@@ -25,11 +25,11 @@ export default function DemoLayout({ children }) {
         </div>
         <div className="hidden sm:flex items-center gap-3 ml-4">
           <Link to="/" className="text-xs text-white/70 hover:text-white underline">← Voltar à LP</Link>
-          <Link to="/app/dashboard">
+          <a href="https://turbosaas.pro/" target="_blank" rel="noopener noreferrer">
             <span className="bg-white text-[#1B3A4B] text-xs font-bold px-3 py-1 rounded-full hover:bg-white/90 transition-colors">
               Contratar agora
             </span>
-          </Link>
+          </a>
         </div>
       </div>
 
@@ -74,11 +74,11 @@ export default function DemoLayout({ children }) {
           <div className="p-4 border-t border-black/10">
             <div className="bg-[#1B3A4B]/5 rounded-xl p-4 text-center">
               <p className="text-xs text-gray-500 mb-3">Gostou do que viu?</p>
-              <Link to="/app/dashboard">
+              <a href="https://turbosaas.pro/" target="_blank" rel="noopener noreferrer" className="block">
                 <button className="w-full bg-[#1B3A4B] text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors">
                   Contratar BarbeiroPro AI
                 </button>
-              </Link>
+              </a>
             </div>
           </div>
         </aside>

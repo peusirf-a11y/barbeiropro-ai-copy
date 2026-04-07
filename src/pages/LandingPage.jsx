@@ -19,9 +19,9 @@ export default function LandingPage() {
             <a href="#como-funciona" className="hover:text-[#1B3A4B] transition-colors">Como Funciona</a>
             <a href="#planos" className="hover:text-[#1B3A4B] transition-colors">Planos</a>
           </div>
-          <Link to="/app/dashboard">
+          <Link to="/demo/dashboard">
             <Button variant="outline" className="border-[#1B3A4B] text-[#1B3A4B] hover:bg-[#1B3A4B] hover:text-white transition-all">
-              Entrar
+              Ver Demo
             </Button>
           </Link>
         </div>
@@ -156,6 +156,7 @@ export default function LandingPage() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
+
             </div>
           </div>
           <div className="bg-white rounded-2xl border border-black/10 p-8 space-y-4">
@@ -201,11 +202,11 @@ export default function LandingPage() {
                     </div>
                   ))}
                 </div>
-                <Link to="/demo/dashboard">
+                <a href="https://turbosaas.pro/" target="_blank" rel="noopener noreferrer">
                   <Button className={`w-full ${p.highlight ? 'bg-white text-[#1B3A4B] hover:bg-white/90' : 'bg-[#1B3A4B] text-white hover:bg-[#1B3A4B]/90'}`}>
                     Começar agora
                   </Button>
-                </Link>
+                </a>
               </div>
             ))}
           </div>
@@ -219,7 +220,7 @@ export default function LandingPage() {
           <p className="text-white/70 text-lg mb-10">Explore a demo completa e veja como o BarbeiroPro AI funciona na prática.</p>
           <Link to="/demo/dashboard">
             <Button size="lg" className="bg-white text-[#1B3A4B] hover:bg-white/90 px-10 py-4 text-base font-bold h-auto">
-              Acessar Demo Gratuita
+              Ver Demo Gratuita
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </Link>
