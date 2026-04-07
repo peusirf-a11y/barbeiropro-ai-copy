@@ -1,6 +1,7 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
 import { Plus, X, UserCheck, Mail } from 'lucide-react';
 
@@ -12,19 +13,22 @@ export default function AppEquipe() {
   const [form, setForm] = useState({ name: '', email: '', role: 'recepcao', active: true });
   const queryClient = useQueryClient();
 
+  const { company, companyId } = useCompany();
+
   const { data: team = [] } = useQuery({
-    queryKey: ['team'],
-    queryFn: () => base44.entities.TeamMember.list(),
+    queryKey: ['team', companyId],
+    queryFn: () => base44.entities.TeamMember.filter({ company_id: companyId }),
+    enabled: !!companyId,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.TeamMember.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['team'] }); setShowForm(false); setForm({ name: '', email: '', role: 'recepcao', active: true }); },
+    mutationFn: (data) => base44.entities.TeamMember.create({ ...data, company_id: companyId }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['team', companyId] }); setShowForm(false); setForm({ name: '', email: '', role: 'recepcao', active: true }); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.TeamMember.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team', companyId] }),
   });
 
   return (

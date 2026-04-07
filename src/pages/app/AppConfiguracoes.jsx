@@ -1,6 +1,7 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
 import { Save, Globe, Copy, CheckCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,6 +16,7 @@ const defaultHours = Object.fromEntries(DAYS.map(d => [d.key, { open: '09:00', c
 
 export default function AppConfiguracoes() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
 
@@ -23,7 +25,7 @@ export default function AppConfiguracoes() {
     queryFn: () => base44.entities.Company.list(),
   });
 
-  const company = companies[0];
+  const company = companies.find(c => c.owner_email === user?.email) || companies[0];
 
   const [form, setForm] = useState({
     name: '', slug: '', phone: '', whatsapp: '', address: '', primary_color: '#1B3A4B', business_hours: defaultHours,
