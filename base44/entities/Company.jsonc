@@ -1,0 +1,62 @@
+{
+  "name": "Company",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "primary_color": {
+      "type": "string",
+      "default": "#1B3A4B"
+    },
+    "secondary_color": {
+      "type": "string",
+      "default": "#F8F7F3"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "whatsapp": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "business_hours": {
+      "type": "object"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "blocked"
+      ],
+      "default": "active"
+    },
+    "plan_name": {
+      "type": "string",
+      "default": "Starter"
+    },
+    "onboarding_step": {
+      "type": "number",
+      "default": 1
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false
+    },
+    "owner_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
