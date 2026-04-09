@@ -2,8 +2,9 @@ import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
-import { Calendar, Users, DollarSign, CheckCircle, TrendingUp, Clock, AlertCircle } from 'lucide-react';
-import { format, startOfDay, endOfDay, startOfMonth, isToday } from 'date-fns';
+import { useState, useEffect } from 'react';
+import { Calendar, Users, DollarSign, CheckCircle, TrendingUp, Clock, AlertCircle, X, AlertTriangle, Zap } from 'lucide-react';
+import { format, startOfDay, endOfDay, startOfMonth, isToday, differenceInMinutes, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 
@@ -18,6 +19,8 @@ const statusConfig = {
 
 export default function AppDashboard() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const [alerts, setAlerts] = useState([]);
+  const [dismissedAlerts, setDismissedAlerts] = useState(new Set());
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
     queryKey: ['appointments', companyId],
@@ -59,6 +62,75 @@ export default function AppDashboard() {
   });
   const topServices = Object.entries(serviceMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
+  // AI bottleneck detection
+  useEffect(() => {
+    if (!appointments.length && !customers.length) return;
+    const detected = [];
+
+    // 1. Agendamentos pendentes sem confirmação há mais de 2h
+    const pendingOld = todayAppts.filter(a =>
+      a.status === 'agendado' &&
+      differenceInMinutes(now, new Date(a.scheduled_at)) > 120
+    );
+    if (pendingOld.length > 0) {
+      detected.push({
+        id: 'pending_old',
+        level: 'high',
+        title: `${pendingOld.length} agendamento${pendingOld.length > 1 ? 's' : ''} sem confirmação há +2h`,
+        desc: 'Clientes podem estar esperando. Confirme ou entre em contato.',
+        href: '/app/agenda',
+        icon: 'clock',
+      });
+    }
+
+    // 2. Alta taxa de cancelamento hoje
+    const cancelledToday = todayAppts.filter(a => a.status === 'cancelado' || a.status === 'faltou');
+    const cancelRate = todayAppts.length > 0 ? cancelledToday.length / todayAppts.length : 0;
+    if (cancelRate >= 0.3 && cancelledToday.length >= 2) {
+      detected.push({
+        id: 'high_cancel',
+        level: 'high',
+        title: `Taxa de cancelamento alta hoje: ${Math.round(cancelRate * 100)}%`,
+        desc: `${cancelledToday.length} cancelamentos/faltas registrados. Verifique os horários vagos.`,
+        href: '/app/agenda',
+        icon: 'warning',
+      });
+    }
+
+    // 3. Clientes VIP inativos
+    const vipInactive = customers.filter(c => {
+      if (c.status !== 'vip' || !c.last_appointment_at) return false;
+      return differenceInDays(now, new Date(c.last_appointment_at)) > 21;
+    });
+    if (vipInactive.length > 0) {
+      detected.push({
+        id: 'vip_inactive',
+        level: 'medium',
+        title: `${vipInactive.length} cliente${vipInactive.length > 1 ? 's' : ''} VIP sem retorno há +21 dias`,
+        desc: 'Seus melhores clientes estão sumindo. Use o AI Growth para reativá-los.',
+        href: '/app/ai-growth',
+        icon: 'zap',
+      });
+    }
+
+    // 4. Nenhum agendamento hoje
+    if (!loadingAppts && todayAppts.length === 0) {
+      detected.push({
+        id: 'empty_today',
+        level: 'medium',
+        title: 'Agenda vazia hoje',
+        desc: 'Nenhum agendamento para hoje. Compartilhe seu link público para receber mais clientes.',
+        href: '/app/configuracoes',
+        icon: 'warning',
+      });
+    }
+
+    setAlerts(detected);
+  }, [appointments, customers, loadingAppts]);
+
+  const visibleAlerts = alerts.filter(a => !dismissedAlerts.has(a.id));
+  const dismissAlert = (id) => setDismissedAlerts(prev => new Set([...prev, id]));
+
   // Top professionals
   const proMap = {};
   completedMonth.forEach(a => {
@@ -67,10 +139,7 @@ export default function AppDashboard() {
   });
   const topPros = Object.entries(proMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // Alerts
-  const alerts = [];
-  const activeToday = todayAppts.filter(a => !['cancelado', 'faltou'].includes(a.status));
-  if (activeToday.length === 0) alerts.push({ msg: 'Sem agendamentos para hoje', type: 'info' });
+
 
   const isLoading = loadingCompany || loadingAppts;
 
@@ -210,6 +279,43 @@ export default function AppDashboard() {
           </div>
         </div>
       </div>
+
+      {/* AI Bottleneck Alerts */}
+      {visibleAlerts.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full">
+          {visibleAlerts.map(alert => (
+            <div
+              key={alert.id}
+              className={`bg-white rounded-2xl border shadow-xl p-4 flex gap-3 items-start ${
+                alert.level === 'high' ? 'border-red-200' : 'border-yellow-200'
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                alert.level === 'high' ? 'bg-red-100' : 'bg-yellow-100'
+              }`}>
+                {alert.icon === 'clock' && <Clock className={`w-4 h-4 ${alert.level === 'high' ? 'text-red-600' : 'text-yellow-600'}`} />}
+                {alert.icon === 'warning' && <AlertTriangle className={`w-4 h-4 ${alert.level === 'high' ? 'text-red-600' : 'text-yellow-600'}`} />}
+                {alert.icon === 'zap' && <Zap className="w-4 h-4 text-yellow-600" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={`text-sm font-bold mb-0.5 ${alert.level === 'high' ? 'text-red-700' : 'text-yellow-700'}`}>
+                  {alert.level === 'high' ? '🔴 ' : '🟡 '}{alert.title}
+                </div>
+                <p className="text-xs text-gray-500 mb-2">{alert.desc}</p>
+                <Link to={alert.href} onClick={() => dismissAlert(alert.id)}
+                  className={`text-xs font-semibold underline ${
+                    alert.level === 'high' ? 'text-red-600' : 'text-yellow-600'
+                  }`}>
+                  Ver agora →
+                </Link>
+              </div>
+              <button onClick={() => dismissAlert(alert.id)} className="p-1 hover:bg-gray-100 rounded-lg flex-shrink-0">
+                <X className="w-3.5 h-3.5 text-gray-400" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </AppLayout>
   );
 }
