@@ -17,7 +17,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
-  const [company, setCompany] = useState({ name: '', phone: '', whatsapp: '', address: '', slug: '', primary_color: '#1B3A4B' });
+  const [company, setCompany] = useState({ name: '', phone: '', whatsapp: '', address: '', slug: '', primary_color: '#2563EB' });
   const [services, setServices] = useState([{ name: 'Corte Clássico', duration_minutes: 30, price: 45 }]);
   const [professionals, setProfessionals] = useState([{ name: '', specialty: '' }]);
   const [companyId, setCompanyId] = useState(null);
@@ -69,17 +69,17 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-[#F8F7F3] flex font-inter">
       {/* Sidebar */}
-      <div className="w-72 bg-[#1B3A4B] min-h-screen p-8 flex flex-col">
+      <div className="w-72 bg-gradient-to-b from-[#2563EB] to-[#60A5FA] min-h-screen p-8 flex flex-col">
         <div className="flex items-center gap-2.5 mb-12">
           <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
             <Scissors className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-white">BarbeiroPro AI</span>
+          <span className="font-bold text-white">BarberTrimly</span>
         </div>
         <div className="space-y-2">
           {STEPS.map(s => (
             <div key={s.id} className={`flex items-start gap-3 p-3 rounded-xl transition-all ${s.id === step ? 'bg-white/15' : ''}`}>
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold transition-all ${s.id < step ? 'bg-white/90 text-[#1B3A4B]' : s.id === step ? 'bg-white text-[#1B3A4B]' : 'bg-white/20 text-white/50'}`}>
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold transition-all ${s.id < step ? 'bg-white/90 text-[#2563EB]' : s.id === step ? 'bg-white text-[#2563EB]' : 'bg-white/20 text-white/50'}`}>
                 {s.id < step ? <Check className="w-3.5 h-3.5" /> : s.id}
               </div>
               <div>
@@ -95,7 +95,7 @@ export default function Onboarding() {
       <div className="flex-1 p-12 flex flex-col">
         <div className="max-w-lg flex-1">
           <div className="mb-8">
-            <div className="text-xs font-semibold text-[#1B3A4B] uppercase tracking-widest mb-2">Etapa {step} de {STEPS.length}</div>
+            <div className="text-xs font-semibold text-[#2563EB] uppercase tracking-widest mb-2">Etapa {step} de {STEPS.length}</div>
             <h1 className="text-3xl font-black text-[#1B1C1E]">{STEPS[step - 1].title}</h1>
             <p className="text-gray-500 mt-1">{STEPS[step - 1].sub}</p>
           </div>
@@ -112,7 +112,7 @@ export default function Onboarding() {
                   <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
                   <input type="text" value={company[f.key]} onChange={e => setCompany(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20 bg-white" />
+                    className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 bg-white" />
                 </div>
               ))}
             </div>
@@ -128,7 +128,7 @@ export default function Onboarding() {
                     placeholder="studio47"
                     className="flex-1 px-4 py-3 text-sm focus:outline-none" />
                 </div>
-                {company.slug && <p className="text-xs text-[#1B3A4B] mt-1">Link: {window.location.origin}/agendar/{company.slug}</p>}
+                {company.slug && <p className="text-xs text-[#2563EB] mt-1">Link: {window.location.origin}/agendar/{company.slug}</p>}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Cor principal</label>
@@ -168,7 +168,7 @@ export default function Onboarding() {
                 </div>
               ))}
               <button onClick={() => setServices(p => [...p, { name: '', duration_minutes: 30, price: 0 }])}
-                className="w-full py-2.5 border-2 border-dashed border-black/15 rounded-xl text-sm text-gray-400 hover:border-[#1B3A4B] hover:text-[#1B3A4B] transition-colors">
+                className="w-full py-2.5 border-2 border-dashed border-black/15 rounded-xl text-sm text-gray-400 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors">
                 + Adicionar serviço
               </button>
             </div>
@@ -191,7 +191,7 @@ export default function Onboarding() {
                 </div>
               ))}
               <button onClick={() => setProfessionals(p => [...p, { name: '', specialty: '' }])}
-                className="w-full py-2.5 border-2 border-dashed border-black/15 rounded-xl text-sm text-gray-400 hover:border-[#1B3A4B] hover:text-[#1B3A4B] transition-colors">
+                className="w-full py-2.5 border-2 border-dashed border-black/15 rounded-xl text-sm text-gray-400 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors">
                 + Adicionar profissional
               </button>
             </div>
@@ -211,7 +211,7 @@ export default function Onboarding() {
               <h2 className="text-2xl font-black text-[#1B1C1E] mb-3">Tudo pronto!</h2>
               <p className="text-gray-500 mb-6">Sua barbearia está configurada e o link público de agendamento está ativo.</p>
               {company.slug && (
-                <div className="bg-[#1B3A4B]/5 border border-[#1B3A4B]/20 rounded-xl p-4 text-sm text-[#1B3A4B] font-medium mb-6">
+                <div className="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-xl p-4 text-sm text-[#2563EB] font-medium mb-6">
                   {window.location.origin}/agendar/{company.slug}
                 </div>
               )}
@@ -226,7 +226,7 @@ export default function Onboarding() {
             </button>
           ) : <div />}
           <button onClick={handleNext} disabled={step === 1 && !company.name}
-            className="flex items-center gap-2 bg-[#1B3A4B] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#1B3A4B]/90 disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#2563EB]/90 disabled:opacity-50 transition-colors">
             {step === 6 ? 'Acessar o painel' : 'Continuar'}
             <ArrowRight className="w-4 h-4" />
           </button>

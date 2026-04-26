@@ -125,7 +125,7 @@ export default function AppAgenda() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -159,7 +159,7 @@ export default function AppAgenda() {
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-            <button onClick={() => setShowNewForm(true)} className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors flex items-center gap-2">
+            <button onClick={() => setShowNewForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
               <Plus className="w-4 h-4" />Novo
             </button>
           </div>
@@ -172,10 +172,10 @@ export default function AppAgenda() {
               const isToday = day.toDateString() === new Date().toDateString();
               const dayCount = filteredAppts.filter(a => new Date(a.scheduled_at).toDateString() === day.toDateString()).length;
               return (
-                <div key={i} className={`p-3 text-center border-r border-black/8 last:border-r-0 ${isToday ? 'bg-[#1B3A4B]/5' : ''}`}>
+                <div key={i} className={`p-3 text-center border-r border-black/8 last:border-r-0 ${isToday ? 'bg-[#2563EB]/5' : ''}`}>
                   <div className="text-xs text-gray-400 uppercase tracking-wide">{format(day, 'EEE', { locale: ptBR })}</div>
-                  <div className={`text-lg font-bold mt-0.5 ${isToday ? 'text-[#1B3A4B]' : 'text-[#1B1C1E]'}`}>{format(day, 'd')}</div>
-                  {dayCount > 0 && <div className="text-xs text-[#1B3A4B] font-medium">{dayCount} ag.</div>}
+                  <div className={`text-lg font-bold mt-0.5 ${isToday ? 'text-[#2563EB]' : 'text-[#1B1C1E]'}`}>{format(day, 'd')}</div>
+                  {dayCount > 0 && <div className="text-xs text-[#2563EB] font-medium">{dayCount} ag.</div>}
                 </div>
               );
             })}
@@ -274,7 +274,7 @@ export default function AppAgenda() {
                   <select value={form.customer_id} onChange={e => {
                     const c = customers.find(x => x.id === e.target.value);
                     setForm(p => ({ ...p, customer_id: e.target.value, customer_name: c?.name || '', customer_phone: c?.phone || '' }));
-                  }} className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20">
+                  }} className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
                     <option value="">Selecionar cliente cadastrado</option>
                     {customers.map(c => <option key={c.id} value={c.id}>{c.name} · {c.phone}</option>)}
                   </select>
@@ -284,18 +284,18 @@ export default function AppAgenda() {
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Nome do cliente *</label>
                     <input type="text" value={form.customer_name} onChange={e => setForm(p => ({ ...p, customer_name: e.target.value }))}
                       placeholder="Ou digite o nome"
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone</label>
                     <input type="text" value={form.customer_phone} onChange={e => setForm(p => ({ ...p, customer_phone: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Serviço *</label>
                   <select value={form.service_id} onChange={e => handleServiceChange(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20">
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
                     <option value="">Selecionar serviço</option>
                     {services.map(s => <option key={s.id} value={s.id}>{s.name} · {s.duration_minutes}min · R${s.price}</option>)}
                   </select>
@@ -303,7 +303,7 @@ export default function AppAgenda() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional *</label>
                   <select value={form.professional_id} onChange={e => setForm(p => ({ ...p, professional_id: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20">
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
                     <option value="">Selecionar profissional</option>
                     {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
@@ -311,18 +311,18 @@ export default function AppAgenda() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Data e hora *</label>
                   <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm(p => ({ ...p, scheduled_at: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
                   <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
                 <button onClick={() => setShowNewForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
                 <button onClick={handleCreate} disabled={!form.customer_name || !form.service_id || !form.professional_id || !form.scheduled_at || createMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#1B3A4B] text-white rounded-lg text-sm font-semibold hover:bg-[#1B3A4B]/90 disabled:opacity-50">
+                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
                   {createMutation.isPending ? 'Salvando...' : 'Confirmar'}
                 </button>
               </div>

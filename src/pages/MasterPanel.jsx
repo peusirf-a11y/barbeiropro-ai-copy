@@ -38,13 +38,13 @@ export default function MasterPanel() {
   return (
     <div className="min-h-screen bg-[#F8F7F3] font-inter">
       {/* Header */}
-      <header className="bg-[#1B3A4B] text-white px-8 py-5 flex items-center justify-between">
+      <header className="bg-[#2563EB] text-white px-8 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
             <Scissors className="w-4 h-4 text-white" />
           </div>
           <div>
-            <div className="font-bold">BarbeiroPro AI — Master</div>
+            <div className="font-bold">BarberTrimly — Master</div>
             <div className="text-xs text-white/60">Painel Super Admin</div>
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function MasterPanel() {
         <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
           <div className="p-5 border-b border-black/8 flex items-center justify-between">
             <h2 className="font-bold text-[#1B1C1E]">Empresas cadastradas</h2>
-            <button onClick={() => setShowForm(true)} className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors flex items-center gap-2">
+            <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
               <Plus className="w-4 h-4" />Nova empresa
             </button>
           </div>
@@ -95,13 +95,13 @@ export default function MasterPanel() {
                   </td>
                   <td className="p-4">
                     {c.slug ? (
-                      <a href={`/agendar/${c.slug}`} target="_blank" className="flex items-center gap-1 text-xs text-[#1B3A4B] hover:underline">
+                      <a href={`/agendar/${c.slug}`} target="_blank" className="flex items-center gap-1 text-xs text-[#2563EB] hover:underline">
                         <Globe className="w-3 h-3" />/agendar/{c.slug}
                       </a>
                     ) : <span className="text-xs text-gray-400">–</span>}
                   </td>
                   <td className="p-4">
-                    <span className="text-xs font-medium px-2 py-1 bg-[#1B3A4B]/10 text-[#1B3A4B] rounded-lg">{c.plan_name || 'Starter'}</span>
+                    <span className="text-xs font-medium px-2 py-1 bg-[#60A5FA]/15 text-[#2563EB] rounded-lg">{c.plan_name || 'Starter'}</span>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-1.5">
@@ -149,13 +149,13 @@ export default function MasterPanel() {
                 <div key={f.key}>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
                   <input type={f.type} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
               ))}
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Plano</label>
                 <select value={form.plan_name} onChange={e => setForm(p => ({ ...p, plan_name: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20">
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
                   <option>Starter</option>
                   <option>Pro</option>
                   <option>Enterprise</option>
@@ -165,7 +165,7 @@ export default function MasterPanel() {
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
               <button onClick={() => createMutation.mutate(form)} disabled={!form.name}
-                className="flex-1 px-4 py-2.5 bg-[#1B3A4B] text-white rounded-lg text-sm font-semibold hover:bg-[#1B3A4B]/90 disabled:opacity-50">Criar empresa</button>
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">Criar empresa</button>
             </div>
           </div>
         </div>

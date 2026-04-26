@@ -11,7 +11,7 @@ export default function DemoServicos() {
             <h1 className="text-2xl font-black text-[#1B1C1E]">Serviços</h1>
             <p className="text-gray-500 text-sm mt-1">{demoServices.length} serviços cadastrados</p>
           </div>
-          <button className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors">
+          <button className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors">
             + Novo serviço
           </button>
         </div>
@@ -35,7 +35,7 @@ export default function DemoServicos() {
                     {s.duration_minutes} min
                   </div>
                 </div>
-                <div className="text-xl font-black text-[#1B3A4B]">R${s.price}</div>
+                <div className="text-xl font-black text-[#2563EB]">R${s.price}</div>
               </div>
               <div className="mt-3 pt-3 border-t border-black/5">
                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${s.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>

@@ -147,7 +147,7 @@ export default function AppDashboard() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -167,7 +167,7 @@ export default function AppDashboard() {
             { label: 'Agendamentos hoje', value: todayAppts.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Faturamento (mês)', value: `R$${revenue.toFixed(0)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
             { label: 'Total clientes', value: customers.length, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-            { label: 'Ticket médio', value: `R$${avgTicket.toFixed(0)}`, icon: TrendingUp, color: 'text-[#1B3A4B]', bg: 'bg-[#1B3A4B]/10' },
+            { label: 'Ticket médio', value: `R$${avgTicket.toFixed(0)}`, icon: TrendingUp, color: 'text-[#2563EB]', bg: 'bg-[#2563EB]/10' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-5">
               <div className={`w-9 h-9 ${s.bg} rounded-xl flex items-center justify-center mb-3`}>
@@ -184,7 +184,7 @@ export default function AppDashboard() {
           <div className="lg:col-span-2 bg-white rounded-2xl border border-black/8 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-[#1B1C1E]">Agenda de hoje</h2>
-              <Link to="/app/agenda" className="text-xs text-[#1B3A4B] font-medium hover:underline">Ver agenda →</Link>
+              <Link to="/app/agenda" className="text-xs text-[#2563EB] font-medium hover:underline">Ver agenda →</Link>
             </div>
             {todayAppts.length > 0 ? (
               <div className="space-y-2 max-h-[340px] overflow-y-auto">
@@ -207,7 +207,7 @@ export default function AppDashboard() {
               <div className="text-center py-10 text-gray-400">
                 <Calendar className="w-8 h-8 mx-auto mb-3 opacity-40" />
                 <p className="text-sm">Nenhum agendamento hoje</p>
-                <Link to="/app/agenda" className="text-xs text-[#1B3A4B] font-medium mt-2 inline-block hover:underline">Criar agendamento →</Link>
+                <Link to="/app/agenda" className="text-xs text-[#2563EB] font-medium mt-2 inline-block hover:underline">Criar agendamento →</Link>
               </div>
             )}
           </div>
@@ -221,7 +221,7 @@ export default function AppDashboard() {
                 <div className="space-y-2">
                   {upcomingToday.slice(0, 4).map(a => (
                     <div key={a.id} className="flex items-center gap-2 text-sm">
-                      <Clock className="w-3.5 h-3.5 text-[#1B3A4B] flex-shrink-0" />
+                      <Clock className="w-3.5 h-3.5 text-[#2563EB] flex-shrink-0" />
                       <span className="font-semibold text-[#1B1C1E]">{format(new Date(a.scheduled_at), 'HH:mm')}</span>
                       <span className="text-gray-500 truncate">{a.customer_name}</span>
                     </div>
@@ -238,7 +238,7 @@ export default function AppDashboard() {
                   {topServices.map(([name, count]) => (
                     <div key={name} className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 truncate">{name}</span>
-                      <span className="text-sm font-bold text-[#1B3A4B]">{count}x</span>
+                      <span className="text-sm font-bold text-[#2563EB]">{count}x</span>
                     </div>
                   ))}
                 </div>
@@ -253,7 +253,7 @@ export default function AppDashboard() {
                   {topPros.map(([name, count]) => (
                     <div key={name} className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 truncate">{name}</span>
-                      <span className="text-sm font-bold text-[#1B3A4B]">{count} atend.</span>
+                      <span className="text-sm font-bold text-[#2563EB]">{count} atend.</span>
                     </div>
                   ))}
                 </div>
@@ -270,7 +270,7 @@ export default function AppDashboard() {
                   { label: '+ Lançamento financeiro', href: '/app/financeiro' },
                 ].map(item => (
                   <Link key={item.href} to={item.href}
-                    className="block text-sm font-medium text-[#1B3A4B] hover:underline py-1">
+                    className="block text-sm font-medium text-[#2563EB] hover:underline py-1">
                     {item.label}
                   </Link>
                 ))}

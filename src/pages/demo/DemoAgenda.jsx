@@ -42,7 +42,7 @@ export default function DemoAgenda() {
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-            <button className="flex items-center gap-2 bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors">
+            <button className="flex items-center gap-2 bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors">
               <Plus className="w-4 h-4" />
               Novo agendamento
             </button>
@@ -56,11 +56,11 @@ export default function DemoAgenda() {
             {weekDays.map((day, i) => {
               const isToday = day.toDateString() === new Date().toDateString();
               return (
-                <div key={i} className={`p-3 text-center border-r border-black/8 last:border-r-0 ${isToday ? 'bg-[#1B3A4B]/5' : ''}`}>
+                <div key={i} className={`p-3 text-center border-r border-black/8 last:border-r-0 ${isToday ? 'bg-[#2563EB]/5' : ''}`}>
                   <div className="text-xs text-gray-400 uppercase tracking-wide">
                     {format(day, 'EEE', { locale: ptBR })}
                   </div>
-                  <div className={`text-lg font-bold mt-0.5 ${isToday ? 'text-[#1B3A4B]' : 'text-[#1B1C1E]'}`}>
+                  <div className={`text-lg font-bold mt-0.5 ${isToday ? 'text-[#2563EB]' : 'text-[#1B1C1E]'}`}>
                     {format(day, 'd')}
                   </div>
                 </div>

@@ -2,7 +2,7 @@ import DemoLayout from '@/components/layout/DemoLayout';
 import { demoAppointments, demoServices, demoProfessionals, demoFinancial } from '@/lib/demoData';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-const COLORS = ['#1B3A4B', '#2D5C73', '#3D7A9B', '#5499BA', '#7AB8D3'];
+const COLORS = ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'];
 
 export default function DemoRelatorios() {
   const serviceData = demoServices.map(s => ({
@@ -37,7 +37,7 @@ export default function DemoRelatorios() {
             <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-5">
               <div className="text-2xl font-black text-[#1B1C1E]">{s.value}</div>
               <div className="text-xs text-gray-400 mt-1">{s.label}</div>
-              <div className="text-xs text-[#1B3A4B] font-medium mt-0.5">{s.unit}</div>
+              <div className="text-xs text-[#2563EB] font-medium mt-0.5">{s.unit}</div>
             </div>
           ))}
         </div>
@@ -50,7 +50,7 @@ export default function DemoRelatorios() {
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="total" fill="#1B3A4B" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="total" fill="#2563EB" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -62,7 +62,7 @@ export default function DemoRelatorios() {
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="atendimentos" fill="#2D5C73" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="atendimentos" fill="#60A5FA" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

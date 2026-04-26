@@ -29,7 +29,7 @@ export default function DemoClientes() {
             <h1 className="text-2xl font-black text-[#1B1C1E]">Clientes</h1>
             <p className="text-gray-500 text-sm mt-1">{demoCustomers.length} clientes cadastrados</p>
           </div>
-          <button className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors">
+          <button className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors">
             + Novo cliente
           </button>
         </div>
@@ -43,7 +43,7 @@ export default function DemoClientes() {
               placeholder="Buscar clientes..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -58,8 +58,8 @@ export default function DemoClientes() {
                 onClick={() => setFilter(f.value)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                   filter === f.value
-                    ? 'bg-[#1B3A4B] text-white'
-                    : 'bg-white border border-black/10 text-gray-600 hover:border-[#1B3A4B]'
+                    ? 'bg-[#2563EB] text-white'
+                    : 'bg-white border border-black/10 text-gray-600 hover:border-[#2563EB]'
                 }`}
               >
                 {f.label}
@@ -86,7 +86,7 @@ export default function DemoClientes() {
                 <tr key={c.id} className="border-b border-black/5 hover:bg-[#F8F7F3] transition-colors cursor-pointer">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[#1B3A4B]/10 rounded-full flex items-center justify-center text-xs font-bold text-[#1B3A4B]">
+                      <div className="w-8 h-8 bg-[#2563EB]/10 rounded-full flex items-center justify-center text-xs font-bold text-[#2563EB]">
                         {c.name[0]}
                       </div>
                       <div>

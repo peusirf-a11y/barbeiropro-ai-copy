@@ -39,8 +39,8 @@ export default function DemoAIGrowth() {
           <p className="text-gray-500 text-sm">Insights automáticos para crescer sua barbearia</p>
         </div>
 
-        <div className="bg-[#1B3A4B]/5 border border-[#1B3A4B]/20 rounded-2xl p-5 mb-8 flex items-start gap-4">
-          <Zap className="w-5 h-5 text-[#1B3A4B] mt-0.5 flex-shrink-0" />
+        <div className="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-2xl p-5 mb-8 flex items-start gap-4">
+          <Zap className="w-5 h-5 text-[#2563EB] mt-0.5 flex-shrink-0" />
           <div>
             <div className="font-semibold text-[#1B1C1E] text-sm mb-1">Como funciona</div>
             <p className="text-sm text-gray-600">A IA analisa automaticamente seus clientes, frequência de visitas, horários de pico e serviços. Em seguida, gera insights acionáveis com mensagens prontas para você enviar via WhatsApp e recuperar receita perdida.</p>
@@ -66,7 +66,7 @@ export default function DemoAIGrowth() {
                     <p className="text-sm text-gray-500">{insight.description}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-black text-[#1B3A4B]">{insight.count}</div>
+                    <div className="text-2xl font-black text-[#2563EB]">{insight.count}</div>
                     <div className="text-xs text-gray-400">{cfg.label}</div>
                   </div>
                 </div>
@@ -79,7 +79,7 @@ export default function DemoAIGrowth() {
                     className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
                       copied === insight.id
                         ? 'bg-green-100 text-green-700'
-                        : 'bg-[#1B3A4B] text-white hover:bg-[#1B3A4B]/90'
+                        : 'bg-[#2563EB] text-white hover:bg-[#2563EB]/90'
                     }`}
                   >
                     <Copy className="w-3.5 h-3.5" />

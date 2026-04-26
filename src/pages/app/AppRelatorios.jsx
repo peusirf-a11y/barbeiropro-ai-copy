@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const COLORS = ['#1B3A4B', '#2D5C73', '#3D7A96', '#4F9AB8', '#6ABCD0'];
+const COLORS = ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'];
 
 export default function AppRelatorios() {
   const { companyId, isLoading: loadingCompany } = useCompany();
@@ -74,7 +74,7 @@ export default function AppRelatorios() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -122,7 +122,7 @@ export default function AppRelatorios() {
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="total" fill="#1B3A4B" radius={[4, 4, 0, 0]} name="Vendas" />
+                  <Bar dataKey="total" fill="#2563EB" radius={[4, 4, 0, 0]} name="Vendas" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -141,7 +141,7 @@ export default function AppRelatorios() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="atendimentos" fill="#2D5C73" radius={[4, 4, 0, 0]} name="Atendimentos" />
+                  <Bar dataKey="atendimentos" fill="#60A5FA" radius={[4, 4, 0, 0]} name="Atendimentos" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -189,7 +189,7 @@ export default function AppRelatorios() {
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
                   <span className="text-sm text-gray-600">{item.label}</span>
-                  <span className="text-sm font-bold text-[#1B3A4B]">{item.value}</span>
+                  <span className="text-sm font-bold text-[#2563EB]">{item.value}</span>
                 </div>
               ))}
             </div>

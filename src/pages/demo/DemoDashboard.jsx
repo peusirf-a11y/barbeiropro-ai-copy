@@ -34,7 +34,7 @@ export default function DemoDashboard() {
             { label: 'Atendimentos hoje', value: todayAppts.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Receita do mês', value: `R$${revenue.toFixed(0)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
             { label: 'Clientes ativos', value: activeCustomers, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-            { label: 'Concluídos', value: completed, icon: CheckCircle, color: 'text-[#1B3A4B]', bg: 'bg-[#1B3A4B]/10' },
+            { label: 'Concluídos', value: completed, icon: CheckCircle, color: 'text-[#2563EB]', bg: 'bg-[#2563EB]/10' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-6">
               <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-4`}>
@@ -69,7 +69,7 @@ export default function DemoDashboard() {
                     <span className={`text-xs font-medium px-2 py-1 rounded-lg ${statusConfig[appt.status].color}`}>
                       {statusConfig[appt.status].label}
                     </span>
-                    <span className="text-sm font-bold text-[#1B3A4B]">R${appt.price}</span>
+                    <span className="text-sm font-bold text-[#2563EB]">R${appt.price}</span>
                   </div>
                 </div>
               ))}

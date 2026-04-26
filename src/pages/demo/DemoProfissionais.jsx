@@ -11,7 +11,7 @@ export default function DemoProfissionais() {
             <h1 className="text-2xl font-black text-[#1B1C1E]">Profissionais</h1>
             <p className="text-gray-500 text-sm mt-1">{demoProfessionals.length} profissionais cadastrados</p>
           </div>
-          <button className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors">
+          <button className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors">
             + Novo profissional
           </button>
         </div>

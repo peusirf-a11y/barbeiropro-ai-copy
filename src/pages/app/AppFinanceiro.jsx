@@ -62,7 +62,7 @@ export default function AppFinanceiro() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -83,7 +83,7 @@ export default function AppFinanceiro() {
               <option value="last_month">Mês passado</option>
               <option value="all">Todo o período</option>
             </select>
-            <button onClick={() => setShowForm(true)} className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors flex items-center gap-2">
+            <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
               <Plus className="w-4 h-4" />Lançamento
             </button>
           </div>
@@ -111,7 +111,7 @@ export default function AppFinanceiro() {
             <div className="text-2xl font-black text-[#1B1C1E]">R${totalOut.toFixed(2)}</div>
             <div className="text-xs text-gray-400 mt-1">{saidas.length} lançamentos</div>
           </div>
-          <div className={`rounded-2xl border p-5 ${saldo >= 0 ? 'bg-[#1B3A4B] border-[#1B3A4B]' : 'bg-red-600 border-red-600'}`}>
+          <div className={`rounded-2xl border p-5 ${saldo >= 0 ? 'bg-[#2563EB] border-[#2563EB]' : 'bg-red-600 border-red-600'}`}>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
                 <DollarSign className="w-4 h-4 text-white" />
@@ -197,25 +197,25 @@ export default function AppFinanceiro() {
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
                   <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                     placeholder="Ex: Corte Clássico - João Silva"
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Valor (R$) *</label>
                     <input type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Data *</label>
                     <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                   </div>
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
                 <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
                 <button onClick={() => createMutation.mutate(form)} disabled={!form.amount || !form.date || createMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#1B3A4B] text-white rounded-lg text-sm font-semibold hover:bg-[#1B3A4B]/90 disabled:opacity-50">
+                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
                   {createMutation.isPending ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>

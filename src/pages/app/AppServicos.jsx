@@ -60,7 +60,7 @@ export default function AppServicos() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -74,7 +74,7 @@ export default function AppServicos() {
             <h1 className="text-2xl font-black text-[#1B1C1E]">Serviços</h1>
             <p className="text-gray-500 text-sm mt-1">{activeServices.length} ativos · {inactiveServices.length} inativos</p>
           </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors flex items-center gap-2">
+          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
             <Plus className="w-4 h-4" />Novo serviço
           </button>
         </div>
@@ -83,7 +83,7 @@ export default function AppServicos() {
           <div className="bg-white rounded-2xl border border-black/8 p-12 text-center text-gray-400">
             <Briefcase className="w-8 h-8 mx-auto mb-3 opacity-40" />
             <p className="text-sm mb-3">Nenhum serviço cadastrado</p>
-            <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#1B3A4B] hover:underline">Adicionar primeiro serviço</button>
+            <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] hover:underline">Adicionar primeiro serviço</button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -102,14 +102,14 @@ export default function AppServicos() {
                 {s.description && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{s.description}</p>}
                 <div className="flex items-center justify-between mb-3">
                   <span className="flex items-center gap-1 text-xs text-gray-500"><Clock className="w-3.5 h-3.5" />{s.duration_minutes} min</span>
-                  <span className="text-xl font-black text-[#1B3A4B]">R${s.price}</span>
+                  <span className="text-xl font-black text-[#2563EB]">R${s.price}</span>
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-black/5">
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${s.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                     {s.active ? 'Ativo' : 'Inativo'}
                   </span>
                   <button onClick={() => toggleActiveMutation.mutate({ id: s.id, active: !s.active })}
-                    className="text-xs text-gray-400 hover:text-[#1B3A4B] font-medium">
+                    className="text-xs text-gray-400 hover:text-[#2563EB] font-medium">
                     {s.active ? 'Inativar' : 'Ativar'}
                   </button>
                 </div>
@@ -130,23 +130,23 @@ export default function AppServicos() {
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
                   <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                     placeholder="Ex: Corte Clássico"
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
                   <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20 resize-none" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Duração (min) *</label>
                     <input type="number" min="5" step="5" value={form.duration_minutes} onChange={e => setForm(p => ({ ...p, duration_minutes: +e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Preço (R$) *</label>
                     <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(p => ({ ...p, price: +e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                   </div>
                 </div>
                 <div className="flex gap-5">
@@ -163,7 +163,7 @@ export default function AppServicos() {
               <div className="flex gap-3 mt-5">
                 <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
                 <button onClick={handleSave} disabled={!form.name || createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#1B3A4B] text-white rounded-lg text-sm font-semibold hover:bg-[#1B3A4B]/90 disabled:opacity-50">
+                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
                   {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>

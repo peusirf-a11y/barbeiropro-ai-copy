@@ -1,0 +1,16 @@
+{
+  "name": "BarberTrimly",
+  "short_name": "BarberTrimly",
+  "description": "Sistema completo para barbearias modernas: agenda online, gestão de clientes, financeiro e IA de crescimento.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F7F3",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "https://base44.com/logo_v2.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -86,7 +86,7 @@ export default function AppProfissionais() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -100,7 +100,7 @@ export default function AppProfissionais() {
             <h1 className="text-2xl font-black text-[#1B1C1E]">Profissionais</h1>
             <p className="text-gray-500 text-sm mt-1">{professionals.length} profissionais cadastrados</p>
           </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors flex items-center gap-2">
+          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
             <Plus className="w-4 h-4" />Novo profissional
           </button>
         </div>
@@ -109,7 +109,7 @@ export default function AppProfissionais() {
           <div className="bg-white rounded-2xl border border-black/8 p-12 text-center text-gray-400">
             <Scissors className="w-8 h-8 mx-auto mb-3 opacity-40" />
             <p className="text-sm mb-3">Nenhum profissional cadastrado</p>
-            <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#1B3A4B] hover:underline">Adicionar primeiro profissional</button>
+            <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] hover:underline">Adicionar primeiro profissional</button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -120,8 +120,8 @@ export default function AppProfissionais() {
                     {pro.photo_url ? (
                       <img src={pro.photo_url} alt={pro.name} className="w-12 h-12 rounded-xl object-cover" />
                     ) : (
-                      <div className="w-12 h-12 bg-[#1B3A4B]/10 rounded-xl flex items-center justify-center">
-                        <Scissors className="w-5 h-5 text-[#1B3A4B]" />
+                      <div className="w-12 h-12 bg-[#2563EB]/10 rounded-xl flex items-center justify-center">
+                        <Scissors className="w-5 h-5 text-[#2563EB]" />
                       </div>
                     )}
                     <div>
@@ -161,7 +161,7 @@ export default function AppProfissionais() {
               <div className="flex border-b border-black/8">
                 {[{ id: 'info', label: 'Dados' }, { id: 'schedule', label: 'Horários' }, { id: 'services', label: 'Serviços' }].map(t => (
                   <button key={t.id} onClick={() => setTab(t.id)}
-                    className={`flex-1 py-2.5 text-sm font-medium transition-all ${tab === t.id ? 'text-[#1B3A4B] border-b-2 border-[#1B3A4B]' : 'text-gray-400 hover:text-gray-600'}`}>
+                    className={`flex-1 py-2.5 text-sm font-medium transition-all ${tab === t.id ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-gray-400 hover:text-gray-600'}`}>
                     {t.label}
                   </button>
                 ))}
@@ -173,19 +173,19 @@ export default function AppProfissionais() {
                     <div>
                       <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
                       <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 block mb-1">Especialidade</label>
                       <input type="text" value={form.specialty} onChange={e => setForm(p => ({ ...p, specialty: e.target.value }))}
                         placeholder="Ex: Barba & Navalha"
-                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 block mb-1">URL da Foto</label>
                       <input type="url" value={form.photo_url} onChange={e => setForm(p => ({ ...p, photo_url: e.target.value }))}
                         placeholder="https://..."
-                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -262,7 +262,7 @@ export default function AppProfissionais() {
               <div className="p-6 border-t border-black/8 flex gap-3">
                 <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
                 <button onClick={handleSave} disabled={!form.name || createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#1B3A4B] text-white rounded-lg text-sm font-semibold hover:bg-[#1B3A4B]/90 disabled:opacity-50">
+                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
                   {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>

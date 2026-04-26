@@ -28,7 +28,7 @@ export default function AppConfiguracoes() {
   const company = companies.find(c => c.owner_email === user?.email) || companies[0];
 
   const [form, setForm] = useState({
-    name: '', slug: '', phone: '', whatsapp: '', address: '', primary_color: '#1B3A4B', business_hours: defaultHours,
+    name: '', slug: '', phone: '', whatsapp: '', address: '', primary_color: '#2563EB', business_hours: defaultHours,
   });
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function AppConfiguracoes() {
         phone: company.phone || '',
         whatsapp: company.whatsapp || '',
         address: company.address || '',
-        primary_color: company.primary_color || '#1B3A4B',
+        primary_color: company.primary_color || '#2563EB',
         business_hours: company.business_hours || defaultHours,
       });
     }
@@ -82,13 +82,13 @@ export default function AppConfiguracoes() {
 
         {/* Public link */}
         {form.slug && (
-          <div className="bg-[#1B3A4B]/5 border border-[#1B3A4B]/20 rounded-2xl p-5 mb-6 flex items-center gap-4">
-            <Globe className="w-5 h-5 text-[#1B3A4B] flex-shrink-0" />
+          <div className="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-2xl p-5 mb-6 flex items-center gap-4">
+            <Globe className="w-5 h-5 text-[#2563EB] flex-shrink-0" />
             <div className="flex-1">
-              <div className="text-xs font-semibold text-[#1B3A4B] mb-1">Seu link público de agendamento</div>
+              <div className="text-xs font-semibold text-[#2563EB] mb-1">Seu link público de agendamento</div>
               <div className="text-sm font-medium text-gray-700 break-all">{publicLink}</div>
             </div>
-            <button onClick={copyLink} className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-shrink-0 ${copied ? 'bg-green-100 text-green-700' : 'bg-[#1B3A4B] text-white hover:bg-[#1B3A4B]/90'}`}>
+            <button onClick={copyLink} className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-shrink-0 ${copied ? 'bg-green-100 text-green-700' : 'bg-[#2563EB] text-white hover:bg-[#2563EB]/90'}`}>
               {copied ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copiado!' : 'Copiar'}
             </button>
@@ -110,14 +110,14 @@ export default function AppConfiguracoes() {
                   <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
                   <input type="text" value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
               ))}
               <div className="md:col-span-2">
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Endereço</label>
                 <input type="text" value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
                   placeholder="Rua, número, bairro, cidade"
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Cor principal</label>
@@ -125,7 +125,7 @@ export default function AppConfiguracoes() {
                   <input type="color" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
                     className="w-10 h-10 rounded-lg border border-black/10 cursor-pointer" />
                   <input type="text" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                    className="flex-1 px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                    className="flex-1 px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
               </div>
             </div>
@@ -146,10 +146,10 @@ export default function AppConfiguracoes() {
                     {h.active ? (
                       <div className="flex items-center gap-2">
                         <input type="time" value={h.open} onChange={e => setHour(key, 'open', e.target.value)}
-                          className="px-3 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                          className="px-3 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                         <span className="text-gray-400 text-sm">até</span>
                         <input type="time" value={h.close} onChange={e => setHour(key, 'close', e.target.value)}
-                          className="px-3 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                          className="px-3 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                       </div>
                     ) : (
                       <span className="text-sm text-gray-400">Fechado</span>
@@ -163,7 +163,7 @@ export default function AppConfiguracoes() {
 
         <div className="mt-6">
           <button onClick={handleSave}
-            className="flex items-center gap-2 bg-[#1B3A4B] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#1B3A4B]/90 transition-colors">
+            className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#2563EB]/90 transition-colors">
             <Save className="w-4 h-4" />
             Salvar configurações
           </button>

@@ -39,7 +39,7 @@ export default function AppEquipe() {
             <h1 className="text-2xl font-black text-[#1B1C1E]">Equipe</h1>
             <p className="text-gray-500 text-sm mt-1">{team.length} membros cadastrados</p>
           </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors flex items-center gap-2">
+          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
             <Plus className="w-4 h-4" />Convidar membro
           </button>
         </div>
@@ -59,7 +59,7 @@ export default function AppEquipe() {
                 <tr key={m.id} className="border-b border-black/5 hover:bg-[#F8F7F3] transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[#1B3A4B]/10 rounded-full flex items-center justify-center text-xs font-bold text-[#1B3A4B]">
+                      <div className="w-8 h-8 bg-[#2563EB]/10 rounded-full flex items-center justify-center text-xs font-bold text-[#2563EB]">
                         {(m.name || '?')[0]}
                       </div>
                       <span className="font-semibold text-sm text-[#1B1C1E]">{m.name}</span>
@@ -101,13 +101,13 @@ export default function AppEquipe() {
                   <div key={f.key}>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
                     <input type={f.type} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                   </div>
                 ))}
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Papel</label>
                   <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20">
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
                     <option value="admin">Admin</option>
                     <option value="recepcao">Recepção</option>
                     <option value="barbeiro">Barbeiro</option>
@@ -118,7 +118,7 @@ export default function AppEquipe() {
               <div className="flex gap-3 mt-5">
                 <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
                 <button onClick={() => createMutation.mutate(form)} disabled={!form.name || !form.email}
-                  className="flex-1 px-4 py-2.5 bg-[#1B3A4B] text-white rounded-lg text-sm font-semibold hover:bg-[#1B3A4B]/90 disabled:opacity-50">Salvar</button>
+                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">Salvar</button>
               </div>
             </div>
           </div>

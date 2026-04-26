@@ -70,7 +70,7 @@ export default function PublicBooking() {
     onSuccess: (result) => setBookingDone(result),
   });
 
-  const primaryColor = company?.primary_color || '#1B3A4B';
+  const primaryColor = company?.primary_color || '#2563EB';
 
   // Compute available time slots for selected date/professional/service
   const getAvailableSlots = () => {
@@ -153,7 +153,7 @@ export default function PublicBooking() {
   if (loadingCompany) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8F7F3]">
-        <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
   }
@@ -339,7 +339,7 @@ export default function PublicBooking() {
                     const isSelected = selected.date?.toDateString() === day.toDateString();
                     return (
                       <button key={i} onClick={() => setSelected(p => ({ ...p, date: day, time: null }))}
-                        className={`flex-shrink-0 flex flex-col items-center p-3 rounded-2xl border transition-all min-w-[64px] ${isSelected ? 'text-white border-transparent' : 'bg-white border-black/10 text-gray-600 hover:border-[#1B3A4B]'}`}
+                        className={`flex-shrink-0 flex flex-col items-center p-3 rounded-2xl border transition-all min-w-[64px] ${isSelected ? 'text-white border-transparent' : 'bg-white border-black/10 text-gray-600 hover:border-[#2563EB]'}`}
                         style={{ backgroundColor: isSelected ? primaryColor : undefined }}>
                         <span className="text-xs uppercase tracking-wide opacity-70">{format(day, 'EEE', { locale: ptBR })}</span>
                         <span className="text-xl font-black">{format(day, 'd')}</span>
@@ -366,7 +366,7 @@ export default function PublicBooking() {
                             const isSelected = selected.time === t;
                             return (
                               <button key={t} onClick={() => setSelected(p => ({ ...p, time: t }))}
-                                className={`py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSelected ? 'text-white border-transparent' : 'bg-white border-black/10 text-gray-700 hover:border-[#1B3A4B]'}`}
+                                className={`py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSelected ? 'text-white border-transparent' : 'bg-white border-black/10 text-gray-700 hover:border-[#2563EB]'}`}
                                 style={{ backgroundColor: isSelected ? primaryColor : undefined }}>
                                 {t}
                               </button>
@@ -454,7 +454,7 @@ export default function PublicBooking() {
       </div>
 
       <footer className="bg-white border-t border-black/10 py-4 text-center">
-        <p className="text-xs text-gray-400">Agendamento online por <span className="font-semibold text-[#1B3A4B]">BarbeiroPro AI</span></p>
+        <p className="text-xs text-gray-400">Agendamento online por <span className="font-semibold text-[#2563EB]">BarberTrimly</span></p>
       </footer>
     </div>
   );

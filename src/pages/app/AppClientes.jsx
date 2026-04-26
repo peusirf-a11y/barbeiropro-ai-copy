@@ -79,7 +79,7 @@ export default function AppClientes() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -93,7 +93,7 @@ export default function AppClientes() {
             <h1 className="text-2xl font-black text-[#1B1C1E]">Clientes</h1>
             <p className="text-gray-500 text-sm mt-1">{customers.length} clientes cadastrados</p>
           </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#1B3A4B] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1B3A4B]/90 transition-colors flex items-center gap-2">
+          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
             <Plus className="w-4 h-4" />Novo cliente
           </button>
         </div>
@@ -102,12 +102,12 @@ export default function AppClientes() {
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input type="text" placeholder="Buscar por nome ou telefone..." value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {[{ v: 'all', l: 'Todos' }, { v: 'active', l: 'Ativos' }, { v: 'vip', l: 'VIP' }, { v: 'inactive', l: 'Inativos' }].map(f => (
               <button key={f.v} onClick={() => setFilter(f.v)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${filter === f.v ? 'bg-[#1B3A4B] text-white' : 'bg-white border border-black/10 text-gray-600 hover:border-[#1B3A4B]'}`}>
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${filter === f.v ? 'bg-[#2563EB] text-white' : 'bg-white border border-black/10 text-gray-600 hover:border-[#2563EB]'}`}>
                 {f.l}
               </button>
             ))}
@@ -132,7 +132,7 @@ export default function AppClientes() {
                   <tr key={c.id} className="border-b border-black/5 hover:bg-[#F8F7F3] transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[#1B3A4B]/10 rounded-full flex items-center justify-center text-xs font-bold text-[#1B3A4B] flex-shrink-0">
+                        <div className="w-8 h-8 bg-[#2563EB]/10 rounded-full flex items-center justify-center text-xs font-bold text-[#2563EB] flex-shrink-0">
                           {(c.name || '?')[0].toUpperCase()}
                         </div>
                         <div>
@@ -171,7 +171,7 @@ export default function AppClientes() {
             <div className="p-12 text-center text-gray-400">
               <Users className="w-8 h-8 mx-auto mb-3 opacity-40" />
               <p className="text-sm">{search ? 'Nenhum cliente encontrado para esta busca' : 'Nenhum cliente cadastrado ainda'}</p>
-              {!search && <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#1B3A4B] mt-2 hover:underline">Cadastrar primeiro cliente</button>}
+              {!search && <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] mt-2 hover:underline">Cadastrar primeiro cliente</button>}
             </div>
           )}
         </div>
@@ -187,25 +187,25 @@ export default function AppClientes() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
                   <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone *</label>
                     <input type="text" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
                       placeholder="(11) 99999-9999"
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">E-mail</label>
                     <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20" />
+                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Status</label>
                   <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20">
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
                     <option value="active">Ativo</option>
                     <option value="vip">VIP</option>
                     <option value="inactive">Inativo</option>
@@ -215,13 +215,13 @@ export default function AppClientes() {
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
                   <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
                     placeholder="Preferências, alergias, observações..."
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A4B]/20 resize-none" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none" />
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
                 <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
                 <button onClick={handleSave} disabled={!form.name || !form.phone || createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#1B3A4B] text-white rounded-lg text-sm font-semibold hover:bg-[#1B3A4B]/90 disabled:opacity-50">
+                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
                   {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>

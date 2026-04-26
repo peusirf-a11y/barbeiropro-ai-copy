@@ -134,7 +134,7 @@ export default function AppAIGrowth() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
           </div>
         ) : insights.length > 0 ? (
           <div className="grid gap-5">
@@ -153,13 +153,13 @@ export default function AppAIGrowth() {
                     </div>
                     <p className="text-sm text-gray-500">{insight.description}</p>
                   </div>
-                  <div className="text-2xl font-black text-[#1B3A4B] flex-shrink-0">{insight.count}</div>
+                  <div className="text-2xl font-black text-[#2563EB] flex-shrink-0">{insight.count}</div>
                 </div>
                 <div className="bg-[#F8F7F3] rounded-xl p-4">
                   <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">💬 Mensagem sugerida para WhatsApp</div>
                   <p className="text-sm text-gray-700 italic mb-3">"{insight.message}"</p>
                   <button onClick={() => handleCopy(insight.id, insight.message)}
-                    className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${copied === insight.id ? 'bg-green-100 text-green-700' : 'bg-[#1B3A4B] text-white hover:bg-[#1B3A4B]/90'}`}>
+                    className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${copied === insight.id ? 'bg-green-100 text-green-700' : 'bg-[#2563EB] text-white hover:bg-[#2563EB]/90'}`}>
                     {copied === insight.id ? <><CheckCircle className="w-3.5 h-3.5" />Copiado!</> : <><Copy className="w-3.5 h-3.5" />Copiar mensagem</>}
                   </button>
                 </div>
