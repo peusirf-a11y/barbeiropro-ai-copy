@@ -39,23 +39,23 @@ export default function MasterPanel() {
   return (
     <div className="min-h-screen bg-[#F8F7F3] font-inter">
       {/* Header */}
-      <header className="bg-[#2563EB] text-white px-8 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="bg-[#2563EB] text-white px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Logo size={36} />
-          <div>
-            <div className="font-bold">BarberTrimly — Master</div>
-            <div className="text-xs text-white/60">Painel Super Admin</div>
+          <div className="min-w-0">
+            <div className="font-bold text-sm sm:text-base truncate">BarberTrimly — Master</div>
+            <div className="text-[11px] sm:text-xs text-white/60 truncate">Painel Super Admin</div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Link to="/" className="text-xs text-white/60 hover:text-white">← LP Pública</Link>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <Link to="/" className="text-xs text-white/60 hover:text-white hidden sm:inline">← LP Pública</Link>
           <Link to="/app/dashboard" className="text-xs text-white/60 hover:text-white">App →</Link>
         </div>
       </header>
 
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           {[
             { label: 'Total de empresas', value: companies.length },
             { label: 'Ativas', value: active },
@@ -71,13 +71,14 @@ export default function MasterPanel() {
 
         {/* Companies table */}
         <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-          <div className="p-5 border-b border-black/8 flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-black/8 flex items-center justify-between gap-3 flex-wrap">
             <h2 className="font-bold text-[#1B1C1E]">Empresas cadastradas</h2>
             <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
               <Plus className="w-4 h-4" />Nova empresa
             </button>
           </div>
-          <table className="w-full">
+         <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px]">
             <thead>
               <tr className="border-b border-black/8">
                 {['Empresa', 'Slug / Link', 'Plano', 'Onboarding', 'Status', 'Ações'].map(h => (
@@ -130,6 +131,7 @@ export default function MasterPanel() {
               )}
             </tbody>
           </table>
+         </div>
         </div>
       </div>
 

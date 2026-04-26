@@ -5,7 +5,7 @@ import { Scissors, Star, CheckCircle, Plus } from 'lucide-react';
 export default function DemoProfissionais() {
   return (
     <DemoLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-black text-[#1B1C1E]">Profissionais</h1>

@@ -87,13 +87,13 @@ export default function AppClientes() {
 
   return (
     <AppLayout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-black text-[#1B1C1E]">Clientes</h1>
             <p className="text-gray-500 text-sm mt-1">{customers.length} clientes cadastrados</p>
           </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
+          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2 sm:self-start">
             <Plus className="w-4 h-4" />Novo cliente
           </button>
         </div>
@@ -116,7 +116,8 @@ export default function AppClientes() {
 
         <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
           {filtered.length > 0 ? (
-            <table className="w-full">
+           <div className="overflow-x-auto">
+            <table className="w-full min-w-[680px]">
               <thead>
                 <tr className="border-b border-black/8 bg-[#F8F7F3]">
                   <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
@@ -167,6 +168,7 @@ export default function AppClientes() {
                 ))}
               </tbody>
             </table>
+           </div>
           ) : (
             <div className="p-12 text-center text-gray-400">
               <Users className="w-8 h-8 mx-auto mb-3 opacity-40" />

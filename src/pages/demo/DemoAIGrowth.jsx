@@ -28,7 +28,7 @@ export default function DemoAIGrowth() {
 
   return (
     <DemoLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">

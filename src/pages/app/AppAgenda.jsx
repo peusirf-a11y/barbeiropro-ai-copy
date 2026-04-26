@@ -133,13 +133,13 @@ export default function AppAgenda() {
 
   return (
     <AppLayout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-5">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
             <h1 className="text-2xl font-black text-[#1B1C1E]">Agenda</h1>
             <p className="text-gray-500 text-sm mt-1">Visualização semanal</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {/* Filter by professional */}
             {professionals.length > 0 && (
               <select value={filterPro} onChange={e => setFilterPro(e.target.value)}
@@ -166,6 +166,8 @@ export default function AppAgenda() {
         </div>
 
         <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
+         <div className="overflow-x-auto">
+          <div className="min-w-[720px]">
           <div className="grid border-b border-black/8" style={{ gridTemplateColumns: '56px repeat(6, 1fr)' }}>
             <div className="p-3 border-r border-black/8" />
             {weekDays.map((day, i) => {
@@ -181,7 +183,7 @@ export default function AppAgenda() {
             })}
           </div>
 
-          <div className="overflow-y-auto max-h-[560px]">
+          <div className="overflow-y-auto max-h-[560px] overflow-x-hidden">
             {hours.map(hour => (
               <div key={hour} className="grid border-b border-black/5" style={{ gridTemplateColumns: '56px repeat(6, 1fr)' }}>
                 <div className="p-2 text-xs text-gray-400 text-right border-r border-black/8 py-3 flex-shrink-0">{hour}:00</div>
@@ -208,6 +210,9 @@ export default function AppAgenda() {
               </div>
             ))}
           </div>
+
+          </div>
+         </div>
         </div>
 
         {/* Legend */}

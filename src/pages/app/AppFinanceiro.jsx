@@ -70,13 +70,13 @@ export default function AppFinanceiro() {
 
   return (
     <AppLayout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-black text-[#1B1C1E]">Financeiro</h1>
             <p className="text-gray-500 text-sm mt-1">Controle de entradas e saídas</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <select value={period} onChange={e => setPeriod(e.target.value)}
               className="px-3 py-2 border border-black/10 rounded-lg text-sm bg-white focus:outline-none">
               <option value="this_month">Este mês</option>

@@ -33,19 +33,20 @@ export default function AppEquipe() {
 
   return (
     <AppLayout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-black text-[#1B1C1E]">Equipe</h1>
             <p className="text-gray-500 text-sm mt-1">{team.length} membros cadastrados</p>
           </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
+          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2 sm:self-start">
             <Plus className="w-4 h-4" />Convidar membro
           </button>
         </div>
 
         <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-          <table className="w-full">
+         <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-black/8">
                 <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Membro</th>
@@ -84,6 +85,7 @@ export default function AppEquipe() {
               )}
             </tbody>
           </table>
+         </div>
         </div>
 
         {showForm && (

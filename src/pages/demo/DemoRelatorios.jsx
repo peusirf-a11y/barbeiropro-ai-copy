@@ -21,7 +21,7 @@ export default function DemoRelatorios() {
 
   return (
     <DemoLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-6">
           <h1 className="text-2xl font-black text-[#1B1C1E]">Relatórios</h1>
           <p className="text-gray-500 text-sm mt-1">Visão geral do período</p>

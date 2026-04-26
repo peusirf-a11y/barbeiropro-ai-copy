@@ -24,13 +24,13 @@ export default function DemoAgenda() {
 
   return (
     <DemoLayout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-black text-[#1B1C1E]">Agenda</h1>
             <p className="text-gray-500 text-sm mt-1">Visualização semanal</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <div className="flex items-center gap-1 bg-white border border-black/10 rounded-lg p-1">
               <button onClick={() => setCurrentDate(d => addDays(d, -7))} className="p-1.5 hover:bg-gray-100 rounded">
                 <ChevronLeft className="w-4 h-4" />
@@ -50,6 +50,8 @@ export default function DemoAgenda() {
         </div>
 
         <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
+         <div className="overflow-x-auto">
+          <div className="min-w-[720px]">
           {/* Header */}
           <div className="grid border-b border-black/8" style={{ gridTemplateColumns: '64px repeat(6, 1fr)' }}>
             <div className="p-3 border-r border-black/8" />
@@ -94,6 +96,9 @@ export default function DemoAgenda() {
               </div>
             ))}
           </div>
+
+          </div>
+         </div>
         </div>
 
         {/* Legend */}

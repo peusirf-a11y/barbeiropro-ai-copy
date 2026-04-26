@@ -74,7 +74,7 @@ export default function AppConfiguracoes() {
 
   return (
     <AppLayout>
-      <div className="p-8 max-w-3xl">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
         <div className="mb-8">
           <h1 className="text-2xl font-black text-[#1B1C1E]">Configurações</h1>
           <p className="text-gray-500 text-sm mt-1">Configure sua barbearia e link público de agendamento</p>

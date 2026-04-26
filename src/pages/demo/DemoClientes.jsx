@@ -23,7 +23,7 @@ export default function DemoClientes() {
 
   return (
     <DemoLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-black text-[#1B1C1E]">Clientes</h1>
@@ -70,7 +70,8 @@ export default function DemoClientes() {
 
         {/* Table */}
         <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-          <table className="w-full">
+         <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px]">
             <thead>
               <tr className="border-b border-black/8">
                 <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
@@ -114,6 +115,7 @@ export default function DemoClientes() {
               ))}
             </tbody>
           </table>
+         </div>
         </div>
       </div>
     </DemoLayout>

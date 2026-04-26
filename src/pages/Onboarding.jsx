@@ -68,14 +68,14 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F7F3] flex font-inter">
+    <div className="min-h-screen bg-[#F8F7F3] flex flex-col lg:flex-row font-inter">
       {/* Sidebar */}
-      <div className="w-72 bg-gradient-to-b from-[#2563EB] to-[#60A5FA] min-h-screen p-8 flex flex-col">
-        <div className="flex items-center gap-2.5 mb-12">
+      <div className="w-full lg:w-72 bg-gradient-to-b from-[#2563EB] to-[#60A5FA] lg:min-h-screen p-6 lg:p-8 flex flex-col">
+        <div className="flex items-center gap-2.5 mb-6 lg:mb-12">
           <Logo size={36} />
           <span className="font-bold text-white">BarberTrimly</span>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 hidden lg:block">
           {STEPS.map(s => (
             <div key={s.id} className={`flex items-start gap-3 p-3 rounded-xl transition-all ${s.id === step ? 'bg-white/15' : ''}`}>
               <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold transition-all ${s.id < step ? 'bg-white/90 text-[#2563EB]' : s.id === step ? 'bg-white text-[#2563EB]' : 'bg-white/20 text-white/50'}`}>
@@ -91,8 +91,8 @@ export default function Onboarding() {
       </div>
 
       {/* Main */}
-      <div className="flex-1 p-12 flex flex-col">
-        <div className="max-w-lg flex-1">
+      <div className="flex-1 p-6 sm:p-8 lg:p-12 flex flex-col">
+        <div className="max-w-lg flex-1 w-full">
           <div className="mb-8">
             <div className="text-xs font-semibold text-[#2563EB] uppercase tracking-widest mb-2">Etapa {step} de {STEPS.length}</div>
             <h1 className="text-3xl font-black text-[#1B1C1E]">{STEPS[step - 1].title}</h1>
@@ -218,7 +218,7 @@ export default function Onboarding() {
           )}
         </div>
 
-        <div className="flex items-center justify-between mt-8 max-w-lg">
+        <div className="flex items-center justify-between mt-8 max-w-lg w-full">
           {step > 1 ? (
             <button onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#1B1C1E]">
               <ArrowLeft className="w-4 h-4" />Voltar

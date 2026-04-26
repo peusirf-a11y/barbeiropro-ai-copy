@@ -22,7 +22,7 @@ export default function DemoDashboard() {
 
   return (
     <DemoLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-black text-[#1B1C1E]">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">{format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>

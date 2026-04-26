@@ -82,8 +82,8 @@ export default function AppRelatorios() {
 
   return (
     <AppLayout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-black text-[#1B1C1E]">Relatórios</h1>
             <p className="text-gray-500 text-sm mt-1">Dados reais da sua operação</p>
