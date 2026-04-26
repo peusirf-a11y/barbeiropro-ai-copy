@@ -6,52 +6,60 @@
 
 @layer base {
   :root {
-    --background: 40 20% 97%;
-    --foreground: 220 15% 10%;
+    --background: 220 20% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 10%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 10%;
+    --popover-foreground: 222 47% 11%;
     --primary: 221 83% 53%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 40 20% 94%;
-    --secondary-foreground: 220 15% 20%;
-    --muted: 40 15% 93%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 20%;
+    --muted: 220 14% 96%;
     --muted-foreground: 220 10% 46%;
     --accent: 213 94% 68%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
     --ring: 221 83% 53%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --font-inter: 'Inter', sans-serif;
-    
+
     --brand: 221 83% 53%;
     --brand-light: 213 94% 68%;
     --brand-mid: 217 91% 60%;
+
+    /* Premium shadow tokens */
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.05);
+    --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.08);
+    --shadow-xl: 0 24px 48px rgba(15, 23, 42, 0.10);
+    --shadow-brand: 0 8px 24px rgba(37, 99, 235, 0.18);
   }
 
   .dark {
-    --background: 220 15% 8%;
-    --foreground: 40 20% 95%;
-    --card: 220 15% 11%;
-    --card-foreground: 40 20% 95%;
-    --popover: 220 15% 11%;
-    --popover-foreground: 40 20% 95%;
+    --background: 222 47% 6%;
+    --foreground: 210 20% 98%;
+    --card: 222 47% 9%;
+    --card-foreground: 210 20% 98%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 20% 98%;
     --primary: 221 83% 53%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 220 15% 16%;
-    --secondary-foreground: 40 20% 90%;
-    --muted: 220 15% 16%;
-    --muted-foreground: 220 10% 55%;
+    --secondary: 222 47% 14%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 222 47% 14%;
+    --muted-foreground: 220 10% 60%;
     --accent: 213 94% 68%;
-    --accent-foreground: 220 15% 8%;
-    --destructive: 0 62% 40%;
+    --accent-foreground: 222 47% 6%;
+    --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 20%;
-    --input: 220 13% 20%;
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
     --ring: 221 83% 53%;
   }
 }
@@ -60,7 +68,123 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
   body {
     @apply bg-background text-foreground font-inter;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    line-height: 1.55;
   }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  /* Inputs / textareas / selects — premium focus ring */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+  textarea,
+  select {
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18) !important;
+  }
+
+  /* Modern scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.12);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.22);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+  }
+}
+
+@layer utilities {
+  .shadow-card { box-shadow: var(--shadow-md); }
+  .shadow-card-lg { box-shadow: var(--shadow-lg); }
+  .shadow-brand { box-shadow: var(--shadow-brand); }
+
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+  }
+  .text-brand-gradient {
+    background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Premium button base — used optionally via .btn-primary */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold text-white;
+    background: #2563EB;
+    transition: background-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-primary:hover { background: #1d4ed8; box-shadow: var(--shadow-brand); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-medium;
+    background: white;
+    color: #1f2937;
+    border: 1px solid #E5E7EB;
+    transition: all 0.18s ease;
+  }
+  .btn-ghost:hover { border-color: #2563EB; color: #2563EB; }
+
+  /* Card premium */
+  .card-premium {
+    @apply rounded-2xl bg-white border border-black/5 p-5;
+    box-shadow: var(--shadow-md);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .card-premium-hover:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
+  }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    @apply rounded-md;
+    background: linear-gradient(90deg, #eef2f7 0%, #f7f9fc 50%, #eef2f7 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+
+  /* Subtle entrance animation for lists */
+  .animate-fade-in {
+    animation: fadeIn 0.35s ease-out both;
+  }
+  .animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out both;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
