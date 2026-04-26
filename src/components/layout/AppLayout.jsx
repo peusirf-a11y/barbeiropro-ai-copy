@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Scissors, Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, Home, LogOut } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import Logo from '@/components/Logo';
 
 const navItems = [
   { label: 'Dashboard', icon: Home, path: '/app/dashboard' },
@@ -24,8 +25,8 @@ export default function AppLayout({ children }) {
       <aside className="w-64 min-h-screen bg-white border-r border-black/10 flex flex-col fixed h-screen overflow-y-auto z-40">
         <div className="p-6 border-b border-black/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center">
-              <Scissors className="w-4 h-4 text-white" />
+            <div className="w-9 h-9 bg-black rounded-lg flex items-center justify-center overflow-hidden">
+              <Logo size={36} className="rounded-none" />
             </div>
             <div>
               <div className="font-bold text-sm text-[#1B1C1E]">BarberTrimly</div>

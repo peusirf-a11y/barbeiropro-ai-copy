@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Scissors, Calendar, Users, TrendingUp, Star, ArrowRight, CheckCircle, Zap, BarChart2, MessageSquare, Shield, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Logo from '@/components/Logo';
 
 export default function LandingPage() {
   return (
@@ -9,9 +10,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full z-50 bg-[#2563EB] backdrop-blur border-b border-black/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-white/15 rounded-lg flex items-center justify-center">
-              <Scissors className="w-4 h-4 text-white" />
-            </div>
+            <Logo size={36} />
             <span className="font-bold text-lg text-white">BarberTrimly</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/80">
@@ -231,9 +230,7 @@ export default function LandingPage() {
       <footer className="py-12 px-6 bg-[#111418]">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-[#2563EB] rounded-lg flex items-center justify-center">
-              <Scissors className="w-3.5 h-3.5 text-white" />
-            </div>
+            <Logo size={28} />
             <span className="font-bold text-white">BarberTrimly</span>
             <span className="text-white/30 text-sm ml-2">parte do TurboSaaS</span>
           </div>

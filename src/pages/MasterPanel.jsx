@@ -2,6 +2,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Scissors, Plus, Globe, CheckCircle, XCircle, Clock, X } from 'lucide-react';
+import Logo from '@/components/Logo';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,9 +41,7 @@ export default function MasterPanel() {
       {/* Header */}
       <header className="bg-[#2563EB] text-white px-8 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-            <Scissors className="w-4 h-4 text-white" />
-          </div>
+          <Logo size={36} />
           <div>
             <div className="font-bold">BarberTrimly — Master</div>
             <div className="text-xs text-white/60">Painel Super Admin</div>

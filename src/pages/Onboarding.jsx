@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Scissors, Check, ArrowRight, ArrowLeft } from 'lucide-react';
+import Logo from '@/components/Logo';
 import { useNavigate } from 'react-router-dom';
 
 const STEPS = [
@@ -71,9 +72,7 @@ export default function Onboarding() {
       {/* Sidebar */}
       <div className="w-72 bg-gradient-to-b from-[#2563EB] to-[#60A5FA] min-h-screen p-8 flex flex-col">
         <div className="flex items-center gap-2.5 mb-12">
-          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-            <Scissors className="w-4 h-4 text-white" />
-          </div>
+          <Logo size={36} />
           <span className="font-bold text-white">BarberTrimly</span>
         </div>
         <div className="space-y-2">
