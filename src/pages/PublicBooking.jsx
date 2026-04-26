@@ -27,7 +27,7 @@ export default function PublicBooking() {
   const { slug } = useParams();
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState({ service: null, professional: null, date: null, time: null });
-  const [form, setForm] = useState({ name: '', phone: '', notes: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const [bookingDone, setBookingDone] = useState(null);
   const [formError, setFormError] = useState('');
 
@@ -57,7 +57,16 @@ export default function PublicBooking() {
   });
 
   const createApptMutation = useMutation({
-    mutationFn: (data) => base44.entities.Appointment.create(data),
+    mutationFn: async (data) => {
+      const result = await base44.entities.Appointment.create(data);
+      // Dispara o e-mail de confirmação (não bloqueia a UX se falhar)
+      if (data.customer_email && result?.id) {
+        base44.functions
+          .invoke('sendBookingConfirmation', { appointment_id: result.id })
+          .catch((err) => console.warn('Falha ao enviar e-mail de confirmação:', err));
+      }
+      return result;
+    },
     onSuccess: (result) => setBookingDone(result),
   });
 
@@ -96,6 +105,10 @@ export default function PublicBooking() {
   const handleBook = () => {
     if (!form.name.trim()) { setFormError('Por favor, informe seu nome'); return; }
     if (!form.phone.trim()) { setFormError('Por favor, informe seu telefone'); return; }
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setFormError('Por favor, informe um e-mail válido');
+      return;
+    }
     setFormError('');
     const [h, m] = selected.time.split(':');
     const dt = new Date(selected.date);
@@ -108,6 +121,7 @@ export default function PublicBooking() {
       professional_name: selected.professional?.id === 'any' ? 'Qualquer disponível' : selected.professional?.name,
       customer_name: form.name,
       customer_phone: form.phone,
+      customer_email: form.email.trim() || undefined,
       scheduled_at: dt.toISOString(),
       notes: form.notes,
       status: 'agendado',
@@ -171,7 +185,11 @@ export default function PublicBooking() {
               <Check className="w-8 h-8 text-green-600" />
             </div>
             <h2 className="text-2xl font-black text-[#1B1C1E] mb-2">Agendado!</h2>
-            <p className="text-gray-500 text-sm mb-6">Seu horário foi confirmado com sucesso.</p>
+            <p className="text-gray-500 text-sm mb-2">Seu horário foi confirmado com sucesso.</p>
+            {form.email && (
+              <p className="text-xs text-gray-400 mb-6">Uma confirmação foi enviada para <span className="font-semibold text-gray-600">{form.email}</span></p>
+            )}
+            {!form.email && <div className="mb-6" />}
             <div className="bg-[#F8F7F3] rounded-xl p-4 text-left space-y-2 mb-6">
               <div className="flex justify-between text-sm"><span className="text-gray-500">Serviço</span><span className="font-semibold">{selected.service?.name}</span></div>
               <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold">{selected.professional?.name}</span></div>
@@ -404,6 +422,13 @@ export default function PublicBooking() {
                 <input type="tel" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
                   placeholder="(11) 99999-9999"
                   className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 bg-white" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">E-mail (para confirmação)</label>
+                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  placeholder="seu@email.com"
+                  className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 bg-white" />
+                <p className="text-[11px] text-gray-400 mt-1">Você receberá uma confirmação automática por e-mail.</p>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Observações (opcional)</label>
