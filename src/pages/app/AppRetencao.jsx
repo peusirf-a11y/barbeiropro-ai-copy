@@ -63,8 +63,26 @@ export default function AppRetencao() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['company'] }),
   });
 
-  if (loadingCompany || !company || !settings) {
-    return <AppLayout><div className="p-8 text-gray-500">Carregando...</div></AppLayout>;
+  if (loadingCompany) {
+    return <AppLayout><div className="p-8 flex items-center justify-center min-h-[400px]"><Loader2 className="w-6 h-6 animate-spin text-[#2563EB]" /></div></AppLayout>;
+  }
+
+  if (!company) {
+    return (
+      <AppLayout>
+        <div className="p-8 max-w-xl mx-auto text-center">
+          <div className="bg-white rounded-2xl border border-black/8 p-8">
+            <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+            <h2 className="text-lg font-bold text-[#1B1C1E] mb-2">Nenhuma empresa configurada</h2>
+            <p className="text-sm text-gray-500">Complete o onboarding para acessar o sistema de retenção.</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!settings) {
+    return <AppLayout><div className="p-8 flex items-center justify-center min-h-[400px]"><Loader2 className="w-6 h-6 animate-spin text-[#2563EB]" /></div></AppLayout>;
   }
 
   // Métricas
