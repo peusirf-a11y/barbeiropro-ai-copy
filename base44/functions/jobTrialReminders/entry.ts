@@ -48,6 +48,7 @@ function buildEmail({ ownerName, businessName, planName, daysLeft, manageUrl }) 
 }
 
 Deno.serve(async (req) => {
+  console.log('JOB START: jobTrialReminders');
   try {
     const base44 = createClientFromRequest(req);
     const now = new Date();
@@ -60,8 +61,10 @@ Deno.serve(async (req) => {
     );
 
     if (!companies || companies.length === 0) {
+      console.log('JOB END: jobTrialReminders — no trialing companies');
       return Response.json({ processed: 0 });
     }
+    console.log('jobTrialReminders: companies in trial =', companies.length);
 
     const origin = req.headers.get('origin') || `https://${req.headers.get('host') || 'barbertrimly.base44.app'}`;
     const manageUrl = `${origin}/app/configuracoes/assinatura`;
@@ -104,9 +107,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ processed: companies.length, sent_d3: sentD3, sent_d1: sentD1, skipped });
+    console.log('JOB END: jobTrialReminders', { sentD3, sentD1, skipped });
+    return Response.json({ success: true, processed: companies.length, sent_d3: sentD3, sent_d1: sentD1, skipped });
   } catch (error) {
-    console.error('jobTrialReminders error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('JOB ERROR: jobTrialReminders:', error.message, error.stack);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 });

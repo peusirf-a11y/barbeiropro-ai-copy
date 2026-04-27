@@ -43,6 +43,7 @@ async function sendReminder(base44, appointment, company, type) {
 }
 
 Deno.serve(async (req) => {
+  console.log('JOB START: jobReminders');
   try {
     const base44 = createClientFromRequest(req);
 
@@ -102,9 +103,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ processed: upcoming.length, sent_24h: sent24, sent_2h: sent2, skipped });
+    console.log('JOB END: jobReminders', { sent24, sent2, skipped });
+    return Response.json({ success: true, processed: upcoming.length, sent_24h: sent24, sent_2h: sent2, skipped });
   } catch (error) {
-    console.error('jobReminders error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('JOB ERROR: jobReminders:', error.message, error.stack);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 });

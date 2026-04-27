@@ -15,6 +15,7 @@ function withinSendWindow(settings) {
 }
 
 Deno.serve(async (req) => {
+  console.log('JOB START: jobReactivation');
   try {
     const base44 = createClientFromRequest(req);
 
@@ -77,9 +78,10 @@ Deno.serve(async (req) => {
       perCompany.push({ company: company.name, candidates: inactive.length, sent });
     }
 
-    return Response.json({ total_candidates: totalCandidates, total_sent: totalSent, total_skipped: totalSkipped, per_company: perCompany });
+    console.log('JOB END: jobReactivation', { totalSent, totalSkipped, totalCandidates });
+    return Response.json({ success: true, total_candidates: totalCandidates, total_sent: totalSent, total_skipped: totalSkipped, per_company: perCompany });
   } catch (error) {
-    console.error('jobReactivation error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('JOB ERROR: jobReactivation:', error.message, error.stack);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 });

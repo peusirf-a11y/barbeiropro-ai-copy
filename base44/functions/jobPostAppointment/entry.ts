@@ -14,6 +14,7 @@ function withinSendWindow(settings) {
 }
 
 Deno.serve(async (req) => {
+  console.log('JOB START: jobPostAppointment');
   try {
     const base44 = createClientFromRequest(req);
 
@@ -68,9 +69,10 @@ Deno.serve(async (req) => {
       sent++;
     }
 
-    return Response.json({ processed: candidates.length, sent, skipped });
+    console.log('JOB END: jobPostAppointment', { sent, skipped });
+    return Response.json({ success: true, processed: candidates.length, sent, skipped });
   } catch (error) {
-    console.error('jobPostAppointment error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('JOB ERROR: jobPostAppointment:', error.message, error.stack);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 });
