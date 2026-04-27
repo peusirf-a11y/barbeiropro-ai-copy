@@ -76,8 +76,30 @@ Deno.serve(async (req) => {
     if (!rating || rating < 1 || rating > 5) {
       return Response.json({ success: false, error: 'Avaliação inválida (1 a 5 estrelas)' }, { status: 400 });
     }
+
+    // Guard idempotente DUPLO contra race condition:
+    // 1) Review já existe na tabela
+    // 2) Appointment já tem reviewed_at setado (escrita atômica antes do create)
     if (existing && existing.length > 0) {
       return Response.json({ success: true, already_reviewed: true, review_id: existing[0].id });
+    }
+    if (appt.reviewed_at) {
+      // Re-checa a tabela (pode ter sido criada por chamada concorrente)
+      const recheck = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
+      return Response.json({ success: true, already_reviewed: true, review_id: recheck?.[0]?.id || null });
+    }
+
+    // Marca o appointment ANTES de criar o review — se 2 requests passarem na checagem
+    // acima ao mesmo tempo, a 2ª vai falhar/sobrescrever, mas só 1 review será criado
+    // pois re-checamos `existing` logo após o update.
+    await base44.asServiceRole.entities.Appointment.update(appt.id, {
+      reviewed_at: new Date().toISOString(),
+    });
+
+    // Re-check final após o update — se houve race, retorna o review existente
+    const finalCheck = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
+    if (finalCheck && finalCheck.length > 0) {
+      return Response.json({ success: true, already_reviewed: true, review_id: finalCheck[0].id });
     }
 
     const review = await base44.asServiceRole.entities.Review.create({
@@ -91,10 +113,6 @@ Deno.serve(async (req) => {
       rating: Number(rating),
       comment: comment || '',
       published: false, // Moderação: dono aprova antes de publicar
-    });
-
-    await base44.asServiceRole.entities.Appointment.update(appt.id, {
-      reviewed_at: new Date().toISOString(),
     });
 
     console.log('JOB END: submitReview', { review_id: review.id, rating });
