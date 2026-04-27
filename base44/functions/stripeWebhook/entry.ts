@@ -39,6 +39,11 @@ Deno.serve(async (req) => {
         return Response.json({ received: true });
       }
 
+      const ownerName = md.owner_name || '';
+      const businessName = md.business_name || 'Minha Barbearia';
+      const planName = md.plan_name || 'Starter';
+      let isNewAccount = false;
+
       // Verificar se já existe empresa
       const existing = await base44.asServiceRole.entities.Company.filter({ owner_email: email });
       if (existing && existing.length > 0) {
@@ -47,23 +52,23 @@ Deno.serve(async (req) => {
           stripe_subscription_id: session.subscription,
           subscription_status: 'trialing',
           status: 'trial',
-          plan_name: md.plan_name || 'Starter',
+          plan_name: planName,
         });
         console.log('Updated existing company for', email);
       } else {
-        const baseSlug = slugify(md.business_name);
+        const baseSlug = slugify(businessName);
         const slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
         const trialEnds = new Date();
         trialEnds.setDate(trialEnds.getDate() + 7);
 
         await base44.asServiceRole.entities.Company.create({
-          name: md.business_name || 'Minha Barbearia',
+          name: businessName,
           owner_email: email,
-          owner_name: md.owner_name || '',
+          owner_name: ownerName,
           whatsapp: md.phone || '',
           phone: md.phone || '',
           slug,
-          plan_name: md.plan_name || 'Starter',
+          plan_name: planName,
           status: 'trial',
           subscription_status: 'trialing',
           stripe_customer_id: session.customer,
@@ -72,7 +77,63 @@ Deno.serve(async (req) => {
           onboarding_step: 1,
           onboarding_completed: false,
         });
+        isNewAccount = true;
         console.log('Created company for', email);
+      }
+
+      // Enviar email de boas-vindas com link de acesso
+      try {
+        const origin = req.headers.get('origin') || `https://${req.headers.get('host') || 'barbertrimly.base44.app'}`;
+        const accessLink = `${origin}/app/dashboard`;
+        const firstName = (ownerName || '').split(' ')[0] || 'tudo certo';
+        const subject = isNewAccount
+          ? `Bem-vindo ao BarberTrimly, ${firstName}! 💈`
+          : `Sua assinatura BarberTrimly foi atualizada`;
+
+        const html = `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#F8F7F3;color:#0F172A;">
+  <div style="background:#fff;border-radius:16px;padding:32px 28px;border:1px solid rgba(0,0,0,0.06);">
+    <div style="background:linear-gradient(135deg,#2563EB 0%,#60A5FA 100%);border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
+      <div style="color:#fff;font-size:22px;font-weight:900;letter-spacing:-0.02em;">BarberTrimly 💈</div>
+      <div style="color:rgba(255,255,255,0.85);font-size:13px;margin-top:4px;">Plano ${planName} · 7 dias grátis</div>
+    </div>
+    <h1 style="font-size:22px;font-weight:900;margin:0 0 12px;letter-spacing:-0.02em;">Olá ${ownerName || 'tudo certo'}, sua conta está pronta!</h1>
+    <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 20px;">
+      Recebemos seu pagamento e sua barbearia <strong>${businessName}</strong> já está cadastrada.
+      Você tem <strong>7 dias grátis</strong> para configurar tudo com calma.
+    </p>
+    <div style="background:#F8F7F3;border-radius:12px;padding:16px 18px;margin:20px 0;">
+      <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Como acessar seu painel</div>
+      <ol style="margin:0;padding-left:18px;color:#334155;font-size:14px;line-height:1.7;">
+        <li>Clique no botão abaixo</li>
+        <li>Faça login com este email: <strong>${email}</strong></li>
+        <li>Complete o onboarding da sua barbearia</li>
+      </ol>
+    </div>
+    <div style="text-align:center;margin:28px 0 16px;">
+      <a href="${accessLink}" style="display:inline-block;background:#2563EB;color:#fff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;text-decoration:none;">
+        Acessar meu painel →
+      </a>
+    </div>
+    <p style="color:#94A3B8;font-size:12px;text-align:center;margin:16px 0 0;">
+      Login seguro via email — sem necessidade de senha.<br>
+      Você pode cancelar a qualquer momento dentro do painel.
+    </p>
+  </div>
+  <p style="color:#94A3B8;font-size:11px;text-align:center;margin-top:16px;">
+    © ${new Date().getFullYear()} BarberTrimly · parte do TurboSaaS
+  </p>
+</div>`.trim();
+
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: email,
+          subject,
+          body: html,
+          from_name: 'BarberTrimly',
+        });
+        console.log('Welcome email sent to', email);
+      } catch (mailErr) {
+        console.error('Failed to send welcome email:', mailErr.message);
       }
     }
 

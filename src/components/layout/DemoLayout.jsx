@@ -24,6 +24,13 @@ export default function DemoLayout({ children }) {
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
+  const handleExitDemo = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    try { localStorage.removeItem('demo_mode'); } catch (err) {}
+    window.location.href = '/';
+  };
+
   const SidebarContent = (
     <>
       <div className="px-6 py-5 border-b border-black/5 flex items-center justify-between">
@@ -83,15 +90,16 @@ export default function DemoLayout({ children }) {
   return (
     <div className="min-h-screen bg-[#F7F8FB] font-inter">
       {/* Demo Banner */}
-      <div className="bg-brand-gradient text-white text-center py-2 px-4 flex items-center justify-center gap-3 sticky top-0 z-50 text-xs sm:text-sm">
-        <div className="flex items-center gap-2 font-medium">
-          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+      <div className="bg-brand-gradient text-white py-2 px-3 sm:px-4 flex items-center justify-between sm:justify-center gap-2 sm:gap-3 sticky top-0 z-[60] text-xs sm:text-sm">
+        <div className="flex items-center gap-2 font-medium min-w-0">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse flex-shrink-0" />
           <span className="hidden sm:inline">Modo Demonstração — dados fictícios</span>
-          <span className="sm:hidden">Demo</span>
+          <span className="sm:hidden truncate">Demo</span>
         </div>
         <div className="hidden sm:flex items-center gap-3 ml-2">
           <button
-            onClick={() => { try { localStorage.removeItem('demo_mode'); } catch (e) {} window.location.href = '/'; }}
+            type="button"
+            onClick={handleExitDemo}
             className="text-xs text-white/80 hover:text-white underline-offset-2 hover:underline"
           >
             ← Sair da demo
@@ -102,9 +110,13 @@ export default function DemoLayout({ children }) {
             </span>
           </Link>
         </div>
+        {/* Mobile exit — touch-friendly, z-index acima de tudo */}
         <button
-          onClick={() => { try { localStorage.removeItem('demo_mode'); } catch (e) {} window.location.href = '/'; }}
-          className="sm:hidden text-xs text-white/90 underline"
+          type="button"
+          onClick={handleExitDemo}
+          onTouchEnd={handleExitDemo}
+          className="sm:hidden relative z-[70] inline-flex items-center justify-center h-9 px-4 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-white text-xs font-bold whitespace-nowrap touch-manipulation"
+          aria-label="Sair do modo demo"
         >
           Sair
         </button>

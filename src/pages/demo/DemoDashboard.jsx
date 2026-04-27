@@ -22,54 +22,54 @@ export default function DemoDashboard() {
 
   return (
     <DemoLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="mb-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-full overflow-x-hidden">
+        <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl font-black text-[#1B1C1E]">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">{format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-md sm:max-w-none mx-auto sm:mx-0 w-full">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full">
           {[
             { label: 'Atendimentos hoje', value: todayAppts.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Receita do mês', value: `R$${revenue.toFixed(0)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
             { label: 'Clientes ativos', value: activeCustomers, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
             { label: 'Concluídos', value: completed, icon: CheckCircle, color: 'text-[#2563EB]', bg: 'bg-[#2563EB]/10' },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-5 sm:p-6 w-full">
-              <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-4`}>
-                <s.icon className={`w-5 h-5 ${s.color}`} />
+            <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-4 sm:p-6 w-full min-w-0">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 ${s.bg} rounded-xl flex items-center justify-center mb-3 sm:mb-4`}>
+                <s.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${s.color}`} />
               </div>
-              <div className="text-2xl font-black text-[#1B1C1E]">{s.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{s.label}</div>
+              <div className="text-xl sm:text-2xl font-black text-[#1B1C1E] truncate">{s.value}</div>
+              <div className="text-[11px] sm:text-xs text-gray-400 mt-1 truncate">{s.label}</div>
             </div>
           ))}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
           {/* Today's appointments */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-black/8 p-6">
-            <div className="flex items-center justify-between mb-5">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-black/8 p-4 sm:p-6 w-full min-w-0">
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
               <h2 className="font-bold text-[#1B1C1E]">Agenda de hoje</h2>
-              <span className="text-xs text-gray-400">{todayAppts.length} agendamentos</span>
+              <span className="text-xs text-gray-400">{todayAppts.length} agend.</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {todayAppts.map(appt => (
-                <div key={appt.id} className="flex items-center gap-4 p-3 rounded-xl bg-[#F8F7F3] hover:bg-gray-50 transition-colors">
-                  <div className="text-center w-14">
+                <div key={appt.id} className="flex items-center gap-3 sm:gap-4 p-3 rounded-xl bg-[#F8F7F3] hover:bg-gray-50 transition-colors min-w-0">
+                  <div className="text-center w-12 sm:w-14 flex-shrink-0">
                     <div className="font-bold text-sm text-[#1B1C1E]">
                       {format(new Date(appt.scheduled_at), 'HH:mm')}
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm text-[#1B1C1E] truncate">{appt.customer_name}</div>
-                    <div className="text-xs text-gray-400">{appt.service_name} · {appt.professional_name}</div>
+                    <div className="text-xs text-gray-400 truncate">{appt.service_name} · {appt.professional_name}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-lg ${statusConfig[appt.status].color}`}>
+                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-2 flex-shrink-0">
+                    <span className={`text-[10px] sm:text-xs font-medium px-2 py-0.5 sm:py-1 rounded-lg whitespace-nowrap ${statusConfig[appt.status].color}`}>
                       {statusConfig[appt.status].label}
                     </span>
-                    <span className="text-sm font-bold text-[#2563EB]">R${appt.price}</span>
+                    <span className="text-sm font-bold text-[#2563EB] whitespace-nowrap">R${appt.price}</span>
                   </div>
                 </div>
               ))}
@@ -83,20 +83,20 @@ export default function DemoDashboard() {
           </div>
 
           {/* Professionals status */}
-          <div className="bg-white rounded-2xl border border-black/8 p-6">
-            <h2 className="font-bold text-[#1B1C1E] mb-5">Profissionais</h2>
-            <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-black/8 p-4 sm:p-6 w-full min-w-0">
+            <h2 className="font-bold text-[#1B1C1E] mb-4 sm:mb-5">Profissionais</h2>
+            <div className="space-y-3 sm:space-y-4">
               {demoProfessionals.map(pro => {
                 const proAppts = todayAppts.filter(a => a.professional_id === pro.id);
                 const inChair = proAppts.find(a => a.status === 'em_atendimento');
                 return (
-                  <div key={pro.id} className="flex items-center gap-3">
-                    <img src={pro.photo_url} alt={pro.name} className="w-10 h-10 rounded-full object-cover" />
-                    <div className="flex-1">
-                      <div className="font-semibold text-sm text-[#1B1C1E]">{pro.name}</div>
+                  <div key={pro.id} className="flex items-center gap-3 min-w-0">
+                    <img src={pro.photo_url} alt={pro.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm text-[#1B1C1E] truncate">{pro.name}</div>
                       <div className="text-xs text-gray-400">{proAppts.length} agendamentos</div>
                     </div>
-                    <div className={`w-2 h-2 rounded-full ${inChair ? 'bg-yellow-400' : 'bg-green-400'}`} />
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${inChair ? 'bg-yellow-400' : 'bg-green-400'}`} />
                   </div>
                 );
               })}
