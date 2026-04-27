@@ -16,6 +16,8 @@ import LandingPage from './pages/LandingPage';
 import PublicBooking from './pages/PublicBooking';
 import Onboarding from './pages/Onboarding';
 import MasterPanel from './pages/MasterPanel';
+import Checkout from './pages/Checkout';
+import CheckoutSuccess from './pages/CheckoutSuccess';
 
 // Demo pages (public)
 import DemoDashboard from './pages/demo/DemoDashboard';
@@ -49,6 +51,8 @@ function App() {
             {/* ── PUBLIC ROUTES ── */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/checkout/sucesso" element={<CheckoutSuccess />} />
 
             {/* ── DEMO ROUTES (public, no login required) ── */}
             <Route path="/demo/dashboard" element={<DemoDashboard />} />

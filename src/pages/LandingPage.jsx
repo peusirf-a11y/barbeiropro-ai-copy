@@ -18,11 +18,18 @@ export default function LandingPage() {
             <a href="#como-funciona" className="hover:text-white transition-colors">Como Funciona</a>
             <a href="#planos" className="hover:text-white transition-colors">Planos</a>
           </div>
-          <Link to="/demo/dashboard">
-            <Button variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white hover:text-[#2563EB] transition-all">
-              Ver Demo
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/demo/dashboard" className="hidden sm:block">
+              <Button variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white hover:text-[#2563EB] transition-all">
+                Ver Demo
+              </Button>
+            </Link>
+            <Link to="/checkout">
+              <Button className="bg-white text-[#2563EB] hover:bg-white/90 font-bold">
+                Começar agora
+              </Button>
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -43,15 +50,15 @@ export default function LandingPage() {
               Agenda online, gestão de clientes, controle financeiro, equipe, relatórios e IA de crescimento — tudo em uma plataforma feita especialmente para barbearias e estúdios masculinos premium.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/demo/dashboard">
+              <Link to="/checkout">
                 <Button size="lg" className="bg-[#2563EB] hover:bg-[#2563EB]/90 text-white px-8 py-4 text-base font-semibold rounded-lg h-auto">
-                  Ver Demo Grátis
+                  Começar agora — 7 dias grátis
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
               <Link to="/demo/dashboard">
                 <Button size="lg" variant="outline" className="border-black/20 text-gray-700 px-8 py-4 text-base font-medium rounded-lg h-auto hover:border-[#2563EB] hover:text-[#2563EB]">
-                  Explorar funcionalidades
+                  Ver demo gratuita
                 </Button>
               </Link>
             </div>
@@ -201,11 +208,11 @@ export default function LandingPage() {
                     </div>
                   ))}
                 </div>
-                <a href="https://turbosaas.pro/checkout" target="_blank" rel="noopener noreferrer" className="block">
+                <Link to={`/checkout?plano=${p.name.toLowerCase()}`} className="block">
                   <Button className={`w-full ${p.highlight ? 'bg-white text-[#2563EB] hover:bg-white/90' : 'bg-[#2563EB] text-white hover:bg-[#2563EB]/90'}`}>
                     Começar agora
                   </Button>
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -217,9 +224,9 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Pronto para transformar sua barbearia?</h2>
           <p className="text-white/80 text-lg mb-10">Explore a demo completa e veja como o BarberTrimly funciona na prática.</p>
-          <Link to="/demo/dashboard">
+          <Link to="/checkout">
             <Button size="lg" className="bg-white text-[#2563EB] hover:bg-white/90 px-10 py-4 text-base font-bold h-auto">
-              Ver Demo Gratuita
+              Começar agora — 7 dias grátis
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </Link>

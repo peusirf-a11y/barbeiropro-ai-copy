@@ -34,11 +34,12 @@
     "status": {
       "type": "string",
       "enum": [
+        "trial",
         "active",
         "inactive",
         "blocked"
       ],
-      "default": "active"
+      "default": "trial"
     },
     "plan_name": {
       "type": "string",
@@ -54,6 +55,38 @@
     },
     "owner_email": {
       "type": "string"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "stripe_customer_id": {
+      "type": "string"
+    },
+    "stripe_subscription_id": {
+      "type": "string"
+    },
+    "stripe_price_id": {
+      "type": "string"
+    },
+    "subscription_status": {
+      "type": "string",
+      "enum": [
+        "trialing",
+        "active",
+        "past_due",
+        "canceled",
+        "incomplete",
+        "unpaid"
+      ],
+      "description": "Status da assinatura no Stripe"
+    },
+    "trial_ends_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "current_period_end": {
+      "type": "string",
+      "format": "date-time"
     },
     "whatsapp_settings": {
       "type": "object",

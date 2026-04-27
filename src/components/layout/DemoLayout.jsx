@@ -67,14 +67,14 @@ export default function DemoLayout({ children }) {
       <div className="p-4 border-t border-black/5">
         <div className="rounded-2xl p-4 text-center bg-gradient-to-br from-[#2563EB]/5 to-[#60A5FA]/10 border border-[#2563EB]/10">
           <p className="text-xs text-gray-600 mb-3 font-medium">Gostou do que viu?</p>
-          <a href="https://turbosaas.pro/" target="_blank" rel="noopener noreferrer" className="block">
+          <Link to="/checkout" className="block">
             <button
               onClick={() => { try { localStorage.removeItem('demo_mode'); } catch (e) {} }}
               className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all shadow-[var(--shadow-sm)] hover:shadow-brand active:scale-[0.98]"
             >
               Contratar BarberTrimly
             </button>
-          </a>
+          </Link>
         </div>
       </div>
     </>
@@ -96,11 +96,11 @@ export default function DemoLayout({ children }) {
           >
             ← Sair da demo
           </button>
-          <a href="https://turbosaas.pro/" target="_blank" rel="noopener noreferrer">
+          <Link to="/checkout">
             <span className="bg-white text-[#2563EB] text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white/90 transition-colors">
               Contratar
             </span>
-          </a>
+          </Link>
         </div>
         <button
           onClick={() => { try { localStorage.removeItem('demo_mode'); } catch (e) {} window.location.href = '/'; }}
