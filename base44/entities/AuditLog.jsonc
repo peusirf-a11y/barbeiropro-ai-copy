@@ -1,0 +1,43 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "actor_email": {
+      "type": "string",
+      "description": "E-mail do usu\u00e1rio que executou a a\u00e7\u00e3o"
+    },
+    "actor_is_super_admin": {
+      "type": "boolean",
+      "default": false
+    },
+    "action": {
+      "type": "string",
+      "description": "Identificador da a\u00e7\u00e3o (ex: BLOCK_COMPANY, ACTIVATE_COMPANY)"
+    },
+    "target_type": {
+      "type": "string",
+      "description": "Tipo da entity alvo (ex: Company)"
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "before": {
+      "type": "object",
+      "description": "Snapshot do estado antes da a\u00e7\u00e3o"
+    },
+    "after": {
+      "type": "object",
+      "description": "Snapshot do estado depois da a\u00e7\u00e3o"
+    },
+    "ip": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Dados adicionais opcionais (motivo, payload, etc.)"
+    }
+  },
+  "required": [
+    "action"
+  ]
+}

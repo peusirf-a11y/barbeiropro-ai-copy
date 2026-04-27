@@ -1,0 +1,22 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "description": "Role do usu\u00e1rio dentro do tenant (admin/user)",
+      "enum": [
+        "admin",
+        "user"
+      ]
+    },
+    "is_super_admin": {
+      "type": "boolean",
+      "default": false,
+      "description": "Super Admin da plataforma (acesso ao /master). N\u00c3O confundir com role=admin do tenant."
+    }
+  },
+  "required": [
+    "role"
+  ]
+}

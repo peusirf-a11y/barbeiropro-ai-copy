@@ -10,8 +10,8 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
-      return Response.json({ success: false, error: 'Forbidden: admin only' }, { status: 403 });
+    if (!user?.is_super_admin) {
+      return Response.json({ success: false, error: 'Forbidden: Super Admin only' }, { status: 403 });
     }
 
     const result = {

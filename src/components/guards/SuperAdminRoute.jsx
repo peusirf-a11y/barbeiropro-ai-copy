@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthContext';
 import { Navigate } from 'react-router-dom';
+import { isSuperAdmin } from '@/lib/permissions';
 
 export default function SuperAdminRoute({ children }) {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user, navigateToLogin } = useAuth();
@@ -17,7 +18,8 @@ export default function SuperAdminRoute({ children }) {
     return null;
   }
 
-  if (user?.role !== 'admin') {
+  // Super Admin é separado de admin de tenant. role=admin NÃO basta.
+  if (!isSuperAdmin(user)) {
     return <Navigate to="/app/dashboard" replace />;
   }
 

@@ -1,11 +1,11 @@
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Scissors, Plus, Globe, CheckCircle, XCircle, Clock, X } from 'lucide-react';
+import { Plus, Globe, CheckCircle, Clock, X } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import MasterMetrics from '@/components/master/MasterMetrics';
+import AuditLogList from '@/components/master/AuditLogList';
 
 const statusConfig = {
   active: { label: 'Ativa', color: 'bg-green-100 text-green-700' },
@@ -28,13 +28,21 @@ export default function MasterPanel() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['master-companies'] }); setShowForm(false); setForm({ name: '', owner_email: '', plan_name: 'Starter', status: 'active' }); },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Company.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['master-companies'] }),
+  // Bloqueio/ativação agora passa por backend function (super-admin check + audit log).
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, nextStatus }) => {
+      const fn = nextStatus === 'blocked' ? 'blockCompany' : 'activateCompany';
+      const res = await base44.functions.invoke(fn, { company_id: id });
+      if (!res.data?.success) throw new Error(res.data?.error || 'Falha na operação');
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['master-companies'] });
+      queryClient.invalidateQueries({ queryKey: ['master-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['master-audit-log'] });
+    },
+    onError: (err) => alert(`Erro: ${err.message}`),
   });
-
-  const active = companies.filter(c => c.status === 'active').length;
-  const onboarding = companies.filter(c => !c.onboarding_completed).length;
 
   return (
     <div className="min-h-screen bg-[#F8F7F3] font-inter">
@@ -54,20 +62,8 @@ export default function MasterPanel() {
       </header>
 
       <div className="p-4 sm:p-6 lg:p-8">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          {[
-            { label: 'Total de empresas', value: companies.length },
-            { label: 'Ativas', value: active },
-            { label: 'Em onboarding', value: onboarding },
-            { label: 'Bloqueadas', value: companies.filter(c => c.status === 'blocked').length },
-          ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-5">
-              <div className="text-3xl font-black text-[#1B1C1E]">{s.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{s.label}</div>
-            </div>
-          ))}
-        </div>
+        {/* Stats / Billing */}
+        <MasterMetrics />
 
         {/* Companies table */}
         <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
@@ -118,8 +114,16 @@ export default function MasterPanel() {
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => updateMutation.mutate({ id: c.id, data: { status: c.status === 'active' ? 'blocked' : 'active' } })}
-                        className={`text-xs px-2 py-1 rounded-lg font-medium transition-colors ${c.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                      <button
+                        disabled={toggleStatusMutation.isPending}
+                        onClick={() => {
+                          const nextStatus = c.status === 'active' ? 'blocked' : 'active';
+                          const verb = nextStatus === 'blocked' ? 'BLOQUEAR' : 'ATIVAR';
+                          if (confirm(`Tem certeza que deseja ${verb} a empresa "${c.name}"?\n\nEsta ação será registrada no log de auditoria.`)) {
+                            toggleStatusMutation.mutate({ id: c.id, nextStatus });
+                          }
+                        }}
+                        className={`text-xs px-2 py-1 rounded-lg font-medium transition-colors disabled:opacity-50 ${c.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
                         {c.status === 'active' ? 'Bloquear' : 'Ativar'}
                       </button>
                     </div>
@@ -132,6 +136,11 @@ export default function MasterPanel() {
             </tbody>
           </table>
          </div>
+        </div>
+
+        {/* Audit log */}
+        <div className="mt-6 sm:mt-8">
+          <AuditLogList />
         </div>
       </div>
 
