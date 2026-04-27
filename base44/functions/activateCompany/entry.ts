@@ -1,9 +1,24 @@
 // activateCompany — Super Admin only. Reativa uma empresa e grava AuditLog.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const buckets = new Map();
+function rateLimit(key, limit = 10, windowMs = 60_000) {
+  const now = Date.now();
+  const arr = (buckets.get(key) || []).filter(t => now - t < windowMs);
+  if (arr.length >= limit) return false;
+  arr.push(now);
+  buckets.set(key, arr);
+  return true;
+}
+
 Deno.serve(async (req) => {
   console.log('JOB START: activateCompany');
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    if (!rateLimit(`act_${ip}`)) {
+      return Response.json({ success: false, error: 'Rate limit exceeded' }, { status: 429 });
+    }
+
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
@@ -25,7 +40,6 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.Company.update(company_id, { status: 'active' });
     const after = { status: 'active' };
 
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     await base44.asServiceRole.entities.AuditLog.create({
       actor_email: user.email,
       actor_is_super_admin: true,

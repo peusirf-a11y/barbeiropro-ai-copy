@@ -1,47 +1,27 @@
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Plus, Globe, CheckCircle, Clock, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { Link } from 'react-router-dom';
 import MasterMetrics from '@/components/master/MasterMetrics';
+import CompaniesTable from '@/components/master/CompaniesTable';
+import FeatureFlagsManager from '@/components/master/FeatureFlagsManager';
 import AuditLogList from '@/components/master/AuditLogList';
-
-const statusConfig = {
-  active: { label: 'Ativa', color: 'bg-green-100 text-green-700' },
-  inactive: { label: 'Inativa', color: 'bg-gray-100 text-gray-500' },
-  blocked: { label: 'Bloqueada', color: 'bg-red-100 text-red-600' },
-};
 
 export default function MasterPanel() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', owner_email: '', plan_name: 'Starter', status: 'active' });
   const queryClient = useQueryClient();
 
-  const { data: companies = [], isLoading } = useQuery({
-    queryKey: ['master-companies'],
-    queryFn: () => base44.entities.Company.list('-created_date', 200),
-  });
-
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Company.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['master-companies'] }); setShowForm(false); setForm({ name: '', owner_email: '', plan_name: 'Starter', status: 'active' }); },
-  });
-
-  // Bloqueio/ativação agora passa por backend function (super-admin check + audit log).
-  const toggleStatusMutation = useMutation({
-    mutationFn: async ({ id, nextStatus }) => {
-      const fn = nextStatus === 'blocked' ? 'blockCompany' : 'activateCompany';
-      const res = await base44.functions.invoke(fn, { company_id: id });
-      if (!res.data?.success) throw new Error(res.data?.error || 'Falha na operação');
-      return res.data;
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       queryClient.invalidateQueries({ queryKey: ['master-metrics'] });
-      queryClient.invalidateQueries({ queryKey: ['master-audit-log'] });
+      setShowForm(false);
+      setForm({ name: '', owner_email: '', plan_name: 'Starter', status: 'active' });
     },
-    onError: (err) => alert(`Erro: ${err.message}`),
   });
 
   return (
@@ -56,90 +36,22 @@ export default function MasterPanel() {
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <Link to="/" className="text-xs text-white/60 hover:text-white hidden sm:inline">← LP Pública</Link>
+          <button
+            onClick={() => setShowForm(true)}
+            className="text-xs font-semibold bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg flex items-center gap-1"
+          >
+            <Plus className="w-3.5 h-3.5" /> Nova
+          </button>
+          <Link to="/" className="text-xs text-white/60 hover:text-white hidden sm:inline">← LP</Link>
           <Link to="/app/dashboard" className="text-xs text-white/60 hover:text-white">App →</Link>
         </div>
       </header>
 
-      <div className="p-4 sm:p-6 lg:p-8">
-        {/* Stats / Billing */}
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
         <MasterMetrics />
-
-        {/* Companies table */}
-        <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-          <div className="p-4 sm:p-5 border-b border-black/8 flex items-center justify-between gap-3 flex-wrap">
-            <h2 className="font-bold text-[#1B1C1E]">Empresas cadastradas</h2>
-            <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
-              <Plus className="w-4 h-4" />Nova empresa
-            </button>
-          </div>
-         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px]">
-            <thead>
-              <tr className="border-b border-black/8">
-                {['Empresa', 'Slug / Link', 'Plano', 'Onboarding', 'Status', 'Ações'].map(h => (
-                  <th key={h} className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {companies.map(c => (
-                <tr key={c.id} className="border-b border-black/5 hover:bg-[#F8F7F3] transition-colors">
-                  <td className="p-4">
-                    <div className="font-semibold text-sm text-[#1B1C1E]">{c.name}</div>
-                    {c.owner_email && <div className="text-xs text-gray-400">{c.owner_email}</div>}
-                  </td>
-                  <td className="p-4">
-                    {c.slug ? (
-                      <a href={`/agendar/${c.slug}`} target="_blank" className="flex items-center gap-1 text-xs text-[#2563EB] hover:underline">
-                        <Globe className="w-3 h-3" />/agendar/{c.slug}
-                      </a>
-                    ) : <span className="text-xs text-gray-400">–</span>}
-                  </td>
-                  <td className="p-4">
-                    <span className="text-xs font-medium px-2 py-1 bg-[#60A5FA]/15 text-[#2563EB] rounded-lg">{c.plan_name || 'Starter'}</span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-1.5">
-                      {c.onboarding_completed
-                        ? <><CheckCircle className="w-4 h-4 text-green-500" /><span className="text-xs text-green-600">Completo</span></>
-                        : <><Clock className="w-4 h-4 text-orange-400" /><span className="text-xs text-orange-600">Etapa {c.onboarding_step || 1}</span></>
-                      }
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-lg ${statusConfig[c.status || 'active'].color}`}>
-                      {statusConfig[c.status || 'active'].label}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        disabled={toggleStatusMutation.isPending}
-                        onClick={() => {
-                          const nextStatus = c.status === 'active' ? 'blocked' : 'active';
-                          const verb = nextStatus === 'blocked' ? 'BLOQUEAR' : 'ATIVAR';
-                          if (confirm(`Tem certeza que deseja ${verb} a empresa "${c.name}"?\n\nEsta ação será registrada no log de auditoria.`)) {
-                            toggleStatusMutation.mutate({ id: c.id, nextStatus });
-                          }
-                        }}
-                        className={`text-xs px-2 py-1 rounded-lg font-medium transition-colors disabled:opacity-50 ${c.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                        {c.status === 'active' ? 'Bloquear' : 'Ativar'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {companies.length === 0 && !isLoading && (
-                <tr><td colSpan={6} className="p-8 text-center text-gray-400 text-sm">Nenhuma empresa cadastrada</td></tr>
-              )}
-            </tbody>
-          </table>
-         </div>
-        </div>
-
-        {/* Audit log */}
-        <div className="mt-6 sm:mt-8">
+        <CompaniesTable />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FeatureFlagsManager />
           <AuditLogList />
         </div>
       </div>
@@ -158,14 +70,21 @@ export default function MasterPanel() {
               ].map(f => (
                 <div key={f.key}>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
-                  <input type={f.type} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                  <input
+                    type={f.type}
+                    value={form[f.key]}
+                    onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm"
+                  />
                 </div>
               ))}
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Plano</label>
-                <select value={form.plan_name} onChange={e => setForm(p => ({ ...p, plan_name: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
+                <select
+                  value={form.plan_name}
+                  onChange={e => setForm(p => ({ ...p, plan_name: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm"
+                >
                   <option>Starter</option>
                   <option>Pro</option>
                   <option>Enterprise</option>
@@ -174,8 +93,13 @@ export default function MasterPanel() {
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
-              <button onClick={() => createMutation.mutate(form)} disabled={!form.name}
-                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">Criar empresa</button>
+              <button
+                onClick={() => createMutation.mutate(form)}
+                disabled={!form.name || createMutation.isPending}
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50"
+              >
+                {createMutation.isPending ? 'Criando…' : 'Criar empresa'}
+              </button>
             </div>
           </div>
         </div>

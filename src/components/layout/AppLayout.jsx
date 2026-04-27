@@ -4,6 +4,7 @@ import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserC
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 import NavList from '@/components/layout/NavList';
+import ImpersonationBanner from '@/components/master/ImpersonationBanner';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
@@ -113,6 +114,7 @@ export default function AppLayout({ children }) {
 
       {/* Main content */}
       <main className="lg:ml-64 min-h-screen animate-fade-in">
+        <ImpersonationBanner />
         {children}
       </main>
     </div>

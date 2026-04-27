@@ -45,6 +45,10 @@
       "type": "string",
       "default": "Starter"
     },
+    "plan_id": {
+      "type": "string",
+      "description": "Refer\u00eancia \u00e0 entity Plan (fonte da verdade para pre\u00e7o/MRR)"
+    },
     "onboarding_step": {
       "type": "number",
       "default": 1
@@ -90,17 +94,14 @@
     },
     "trial_email_d3_sent": {
       "type": "boolean",
-      "default": false,
-      "description": "Marcador para evitar duplicidade do email D-3 do trial"
+      "default": false
     },
     "trial_email_d1_sent": {
       "type": "boolean",
-      "default": false,
-      "description": "Marcador para evitar duplicidade do email D-1 do trial"
+      "default": false
     },
     "whatsapp_settings": {
       "type": "object",
-      "description": "Configura\u00e7\u00f5es de reten\u00e7\u00e3o via WhatsApp",
       "properties": {
         "enabled": {
           "type": "boolean",

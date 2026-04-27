@@ -45,12 +45,15 @@ export default function PrivateRoute({ children }) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Block inadimplentes (except on the assinatura/billing pages)
+  // Block inadimplentes OU bloqueio manual do Master (status='blocked')
   const isBillingPage =
     location.pathname === '/app/assinatura-bloqueada' ||
     location.pathname === '/app/configuracoes/assinatura';
 
-  if (BLOCKED_STATUSES.includes(myCompany.subscription_status) && !isBillingPage) {
+  const isHardBlocked = myCompany.status === 'blocked';
+  const isPaymentBlocked = BLOCKED_STATUSES.includes(myCompany.subscription_status);
+
+  if ((isHardBlocked || isPaymentBlocked) && !isBillingPage) {
     return <Navigate to="/app/assinatura-bloqueada" replace />;
   }
 
