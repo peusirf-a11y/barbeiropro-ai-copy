@@ -1,13 +1,14 @@
 // ErrorBoundary global — captura erros de render dos filhos e mostra fallback amigável.
-// Em produção evita "tela branca". Em dev mostra a mensagem do erro.
+// Sem reload forçado: tenta resetar o estado primeiro. Estrutura preparada para
+// integração futura com Sentry/Logflare/etc via window.__errorReporter.
 
 import React from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null, retryKey: 0 };
   }
 
   static getDerivedStateFromError(error) {
@@ -16,20 +17,33 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     console.error('ErrorBoundary caught:', error, info?.componentStack);
+    this.setState({ errorInfo: info });
+    // Hook futuro para serviço externo (Sentry, etc.)
+    try {
+      if (typeof window !== 'undefined' && typeof window.__errorReporter === 'function') {
+        window.__errorReporter(error, { componentStack: info?.componentStack });
+      }
+    } catch { /* nunca quebrar o boundary por causa do reporter */ }
   }
 
-  handleReload = () => {
-    this.setState({ hasError: false, error: null });
-    window.location.reload();
+  // Reset state — tenta re-renderizar SEM reload da página inteira.
+  // Usa retryKey para forçar remount dos filhos (evita errors persistentes).
+  handleRetry = () => {
+    this.setState((s) => ({ hasError: false, error: null, errorInfo: null, retryKey: s.retryKey + 1 }));
   };
 
   handleHome = () => {
-    this.setState({ hasError: false, error: null });
-    window.location.href = '/';
+    this.setState({ hasError: false, error: null, errorInfo: null, retryKey: this.state.retryKey + 1 });
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.location.href = '/';
+    }
   };
 
   render() {
-    if (!this.state.hasError) return this.props.children;
+    if (!this.state.hasError) {
+      // key força remount após retry, garantindo "estado limpo"
+      return <React.Fragment key={this.state.retryKey}>{this.props.children}</React.Fragment>;
+    }
 
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#F7F8FB] font-inter">
@@ -39,12 +53,12 @@ export default class ErrorBoundary extends React.Component {
           </div>
           <h1 className="text-xl font-black text-[#0F172A] mb-2">Algo deu errado</h1>
           <p className="text-sm text-gray-500 mb-6">
-            Encontramos um problema inesperado. Tente recarregar a página — se persistir, entre em contato com o suporte.
+            Encontramos um problema inesperado. Tente novamente — se persistir, entre em contato com o suporte.
           </p>
           {this.state.error?.message && (
             <details className="text-left mb-5">
               <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">Detalhes técnicos</summary>
-              <pre className="text-[11px] bg-gray-50 border border-black/5 rounded-lg p-3 mt-2 overflow-auto max-h-32 text-red-600">
+              <pre className="text-[11px] bg-gray-50 border border-black/5 rounded-lg p-3 mt-2 overflow-auto max-h-32 text-red-600 whitespace-pre-wrap">
 {String(this.state.error?.message || this.state.error)}
               </pre>
             </details>
@@ -52,15 +66,15 @@ export default class ErrorBoundary extends React.Component {
           <div className="flex gap-2">
             <button
               onClick={this.handleHome}
-              className="flex-1 px-4 py-2.5 border border-black/10 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="flex-1 px-4 py-2.5 border border-black/10 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 inline-flex items-center justify-center gap-2"
             >
-              Início
+              <Home className="w-4 h-4" /> Início
             </button>
             <button
-              onClick={this.handleReload}
+              onClick={this.handleRetry}
               className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-bold hover:bg-[#1d4ed8] inline-flex items-center justify-center gap-2"
             >
-              <RefreshCw className="w-4 h-4" /> Recarregar
+              <RefreshCw className="w-4 h-4" /> Tentar novamente
             </button>
           </div>
         </div>

@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from 'lucide-react';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { generateToken } from '@/lib/tokens';
+import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
+import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
 
 const statusConfig = {
   agendado: { label: 'Agendado', color: 'border-l-blue-400 bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
@@ -65,17 +66,12 @@ export default function AppAgenda() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const updated = await base44.entities.Appointment.update(id, data);
-      // Quando vira "concluido": grava completed_at e dispara comissão automática
-      if (data.status === 'concluido') {
-        try {
-          await base44.entities.Appointment.update(id, { completed_at: new Date().toISOString() });
-          await base44.functions.invoke('registerCommission', { appointment_id: id });
-        } catch (err) {
-          console.error('registerCommission failed:', err?.message);
-        }
-      }
-      return updated;
+      // Marca completed_at junto com status=concluido (a comissão é gerada
+      // automaticamente pela automação de entidade `onAppointmentConcluded`).
+      const payload = data.status === 'concluido' && !data.completed_at
+        ? { ...data, completed_at: new Date().toISOString() }
+        : data;
+      return base44.entities.Appointment.update(id, payload);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments', companyId] }); setSelectedAppt(null); },
   });
@@ -95,38 +91,18 @@ export default function AppAgenda() {
 
   const filteredAppts = filterPro === 'all' ? appointments : appointments.filter(a => a.professional_id === filterPro);
 
-  // Conflict check
+  // Conflict + block check via lib reutilizável
+  const apptsWithDuration = appointments.map(a => ({
+    ...a,
+    __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
+  }));
   const hasConflict = (proId, dateTime, serviceId, excludeId = null) => {
-    if (!proId || !dateTime) return false;
-    const service = services.find(s => s.id === serviceId);
-    const duration = service?.duration_minutes || 30;
-    const start = new Date(dateTime);
-    const end = new Date(start.getTime() + duration * 60000);
-    return appointments.some(a => {
-      if (a.id === excludeId) return false;
-      if (a.professional_id !== proId) return false;
-      if (['cancelado', 'faltou'].includes(a.status)) return false;
-      const aStart = new Date(a.scheduled_at);
-      const aService = services.find(s => s.id === a.service_id);
-      const aDuration = aService?.duration_minutes || 30;
-      const aEnd = new Date(aStart.getTime() + aDuration * 60000);
-      return start < aEnd && end > aStart;
-    });
+    const dur = services.find(s => s.id === serviceId)?.duration_minutes || 30;
+    return appointmentConflict({ professionalId: proId, dateTime, durationMin: dur, appointments: apptsWithDuration, excludeId });
   };
-
-  // Block check (horário bloqueado: almoço, folga, etc.)
   const hitsBlock = (proId, dateTime, serviceId) => {
-    if (!dateTime) return false;
-    const service = services.find(s => s.id === serviceId);
-    const duration = service?.duration_minutes || 30;
-    const start = new Date(dateTime);
-    const end = new Date(start.getTime() + duration * 60000);
-    return blockedTimes.some(b => {
-      if (b.professional_id && b.professional_id !== proId) return false;
-      const bStart = new Date(b.start_time);
-      const bEnd = new Date(b.end_time);
-      return start < bEnd && end > bStart;
-    });
+    const dur = services.find(s => s.id === serviceId)?.duration_minutes || 30;
+    return blockedConflict({ professionalId: proId, dateTime, durationMin: dur, blocks: blockedTimes });
   };
 
   const handleCreate = () => {
@@ -153,6 +129,8 @@ export default function AppAgenda() {
       source: 'interno',
       confirm_token: generateToken(),
       review_token: generateToken(),
+      confirm_token_expires_at: confirmTokenExpiry(form.scheduled_at),
+      review_token_expires_at: reviewTokenExpiry(form.scheduled_at),
     });
   };
 

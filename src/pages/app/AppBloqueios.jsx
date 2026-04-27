@@ -7,6 +7,7 @@ import { Plus, X, Lock, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
+import { SkeletonPage } from '@/components/Skeletons';
 
 const emptyForm = { professional_id: '', start_time: '', end_time: '', reason: '' };
 
@@ -54,13 +55,7 @@ export default function AppBloqueios() {
   };
 
   if (loadingCompany || isLoading) {
-    return (
-      <AppLayout>
-        <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
-        </div>
-      </AppLayout>
-    );
+    return <AppLayout><SkeletonPage /></AppLayout>;
   }
 
   const now = new Date();

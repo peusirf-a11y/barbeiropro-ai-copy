@@ -5,7 +5,8 @@ import { useParams } from 'react-router-dom';
 import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle } from 'lucide-react';
 import { format, addDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { generateToken } from '@/lib/tokens';
+import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
+import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
 
 function generateTimeSlots(openTime, closeTime, durationMin) {
   const slots = [];
@@ -57,6 +58,12 @@ export default function PublicBooking() {
     enabled: !!company?.id,
   });
 
+  const { data: blockedTimes = [] } = useQuery({
+    queryKey: ['public-blocks', company?.id],
+    queryFn: () => base44.entities.BlockedTime.filter({ company_id: company.id }, '-start_time', 200),
+    enabled: !!company?.id,
+  });
+
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
       const result = await base44.entities.Appointment.create(data);
@@ -91,15 +98,14 @@ export default function PublicBooking() {
       const proId = selected.professional?.id;
       if (!proId || proId === 'any') return true;
 
-      return !existingAppointments.some(a => {
-        if (a.professional_id !== proId) return false;
-        if (['cancelado', 'faltou'].includes(a.status)) return false;
-        const aStart = new Date(a.scheduled_at);
-        const aService = services.find(s => s.id === a.service_id);
-        const aDur = aService?.duration_minutes || 30;
-        const aEnd = new Date(aStart.getTime() + aDur * 60000);
-        return slotStart < aEnd && slotEnd > aStart;
-      });
+      const apptsWithDuration = existingAppointments.map(a => ({
+        ...a,
+        __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
+      }));
+      const dur = selected.service.duration_minutes || 30;
+      if (appointmentConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, appointments: apptsWithDuration })) return false;
+      if (blockedConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, blocks: blockedTimes })) return false;
+      return true;
     });
   };
 
@@ -114,9 +120,26 @@ export default function PublicBooking() {
     const [h, m] = selected.time.split(':');
     const dt = new Date(selected.date);
     dt.setHours(+h, +m, 0, 0);
+    const proId = selected.professional?.id === 'any' ? professionals[0]?.id : selected.professional?.id;
+
+    // Re-valida no momento do submit (slot pode ter sido pego enquanto o usuário preenchia)
+    const apptsWithDuration = existingAppointments.map(a => ({
+      ...a,
+      __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
+    }));
+    const dur = selected.service.duration_minutes || 30;
+    if (appointmentConflict({ professionalId: proId, dateTime: dt, durationMin: dur, appointments: apptsWithDuration })) {
+      setFormError('Horário indisponível — alguém acabou de pegar esse horário. Escolha outro.');
+      return;
+    }
+    if (blockedConflict({ professionalId: proId, dateTime: dt, durationMin: dur, blocks: blockedTimes })) {
+      setFormError('Horário indisponível neste momento.');
+      return;
+    }
+
     createApptMutation.mutate({
       company_id: company.id,
-      professional_id: selected.professional?.id === 'any' ? professionals[0]?.id : selected.professional?.id,
+      professional_id: proId,
       service_id: selected.service.id,
       service_name: selected.service.name,
       professional_name: selected.professional?.id === 'any' ? 'Qualquer disponível' : selected.professional?.name,
@@ -130,6 +153,8 @@ export default function PublicBooking() {
       source: 'online',
       confirm_token: generateToken(),
       review_token: generateToken(),
+      confirm_token_expires_at: confirmTokenExpiry(dt),
+      review_token_expires_at: reviewTokenExpiry(dt),
     });
   };
 

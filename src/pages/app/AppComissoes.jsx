@@ -7,6 +7,7 @@ import { DollarSign, Check, Percent, Users } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
+import { SkeletonPage } from '@/components/Skeletons';
 
 export default function AppComissoes() {
   const { companyId, isLoading: loadingCompany } = useCompany();
@@ -58,13 +59,7 @@ export default function AppComissoes() {
   const grandPending = filtered.filter(c => c.status === 'pendente').reduce((s, c) => s + (c.amount || 0), 0);
 
   if (loadingCompany || isLoading) {
-    return (
-      <AppLayout>
-        <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
-        </div>
-      </AppLayout>
-    );
+    return <AppLayout><SkeletonPage /></AppLayout>;
   }
 
   return (

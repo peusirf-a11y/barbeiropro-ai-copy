@@ -33,7 +33,15 @@
     },
     "published": {
       "type": "boolean",
-      "default": true
+      "default": false,
+      "description": "Avalia\u00e7\u00f5es come\u00e7am ocultas e precisam ser aprovadas pelo dono"
+    },
+    "moderated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "moderated_by": {
+      "type": "string"
     }
   },
   "required": [

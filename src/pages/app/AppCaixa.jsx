@@ -8,6 +8,7 @@ import { Plus, X, Wallet, Lock, Unlock, TrendingUp, TrendingDown } from 'lucide-
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
+import { SkeletonPage } from '@/components/Skeletons';
 
 export default function AppCaixa() {
   const { companyId, isLoading: loadingCompany } = useCompany();
@@ -59,24 +60,23 @@ export default function AppCaixa() {
     },
   });
 
+  // Fechamento de caixa: cálculo é feito no BACKEND para ser fonte da verdade.
   const closeMutation = useMutation({
-    mutationFn: (data) => {
-      const final = +data.final_amount || 0;
-      return base44.entities.CashRegister.update(openCash.id, {
-        closed_at: new Date().toISOString(),
-        final_amount: final,
-        expected_amount: expected,
-        difference: +(final - expected).toFixed(2),
-        closed_by: user?.email,
-        notes: [openCash.notes, data.notes].filter(Boolean).join(' · '),
-        status: 'fechado',
+    mutationFn: async (data) => {
+      const res = await base44.functions.invoke('closeCashRegister', {
+        register_id: openCash.id,
+        final_amount: +data.final_amount || 0,
+        notes: data.notes,
       });
+      if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao fechar caixa');
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cash-registers', companyId] });
       setShowClose(false);
       setCloseForm({ final_amount: '', notes: '' });
     },
+    onError: (err) => alert(err.message || 'Erro ao fechar caixa'),
   });
 
   const entryMutation = useMutation({
@@ -97,13 +97,7 @@ export default function AppCaixa() {
   });
 
   if (loadingCompany || isLoading) {
-    return (
-      <AppLayout>
-        <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
-        </div>
-      </AppLayout>
-    );
+    return <AppLayout><SkeletonPage /></AppLayout>;
   }
 
   return (

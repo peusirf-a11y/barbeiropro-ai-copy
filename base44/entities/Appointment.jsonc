@@ -76,6 +76,16 @@
       "type": "string",
       "description": "Token p\u00fablico para avalia\u00e7\u00e3o p\u00f3s-atendimento via WhatsApp"
     },
+    "confirm_token_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expira\u00e7\u00e3o do token de confirma\u00e7\u00e3o (geralmente 24h antes do hor\u00e1rio)"
+    },
+    "review_token_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expira\u00e7\u00e3o do token de avalia\u00e7\u00e3o (72h ap\u00f3s atendimento)"
+    },
     "confirmed_at": {
       "type": "string",
       "format": "date-time",
@@ -85,6 +95,11 @@
       "type": "string",
       "format": "date-time",
       "description": "Data/hora em que o cliente avaliou via link p\u00fablico"
+    },
+    "commission_created": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marcador idempotente para evitar comiss\u00e3o duplicada"
     }
   },
   "required": [

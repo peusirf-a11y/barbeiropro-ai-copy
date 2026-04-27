@@ -5,6 +5,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
 import { Plus, X, Package, Edit2, Star } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
+import { SkeletonPage } from '@/components/Skeletons';
 
 const emptyForm = { name: '', description: '', service_ids: [], price: '', duration_minutes: '', active: true, featured: false };
 
@@ -77,13 +78,7 @@ export default function AppCombos() {
   const sumOriginal = (ids) => ids.reduce((s, id) => s + (services.find(x => x.id === id)?.price || 0), 0);
 
   if (loadingCompany || isLoading) {
-    return (
-      <AppLayout>
-        <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
-        </div>
-      </AppLayout>
-    );
+    return <AppLayout><SkeletonPage /></AppLayout>;
   }
 
   return (
