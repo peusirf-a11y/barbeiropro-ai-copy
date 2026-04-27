@@ -37,7 +37,8 @@ Deno.serve(async (req) => {
     }
 
     authenticator.options = { window: 1 };
-    const isValid = authenticator.check(code.replace(/\s/g, ''), user.totp_secret);
+    const cleanCode = code.replace(/\s/g, '');
+    const isValid = authenticator.check(cleanCode, user.totp_secret);
     if (!isValid) {
       // log de tentativa
       await base44.asServiceRole.entities.AuditLog.create({
@@ -49,10 +50,21 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'Código inválido' }, { status: 401 });
     }
 
-    // Primeiro sucesso: ativa
-    if (!user.totp_enabled) {
-      await base44.asServiceRole.entities.User.update(user.id, { totp_enabled: true });
+    // Anti-replay: rejeita reuso do mesmo código (cobre janela de ~30s)
+    if (user.totp_last_code && user.totp_last_code === cleanCode) {
+      await base44.asServiceRole.entities.AuditLog.create({
+        actor_email: user.email,
+        actor_is_super_admin: true,
+        action: 'TOTP_REPLAY_BLOCKED',
+        ip,
+      });
+      return Response.json({ success: false, error: 'Código já utilizado. Aguarde o próximo.' }, { status: 401 });
     }
+
+    // Marca código como usado + ativa no primeiro sucesso
+    const userUpdates = { totp_last_code: cleanCode };
+    if (!user.totp_enabled) userUpdates.totp_enabled = true;
+    await base44.asServiceRole.entities.User.update(user.id, userUpdates);
 
     // Cria sessão 12h
     const token = crypto.randomUUID() + '.' + crypto.randomUUID();
