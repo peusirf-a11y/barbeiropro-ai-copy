@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Plus, X, Filter } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { SkeletonPage } from '@/components/Skeletons';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
@@ -59,13 +60,7 @@ export default function AppFinanceiro() {
   const apptRevenue = appointments.filter(filterFn.bind(null)).reduce((s, a) => s + (a.price || 0), 0);
 
   if (loadingCompany || isLoading) {
-    return (
-      <AppLayout>
-        <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
-        </div>
-      </AppLayout>
-    );
+    return <AppLayout><SkeletonPage /></AppLayout>;
   }
 
   return (

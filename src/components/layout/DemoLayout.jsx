@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, LayoutDashboard, Scissors, Menu, X } from 'lucide-react';
 import Logo from '@/components/Logo';
+import NavList from '@/components/layout/NavList';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/demo/dashboard' },
@@ -11,7 +12,7 @@ const navItems = [
   { label: 'Profissionais', icon: Scissors, path: '/demo/profissionais' },
   { label: 'Financeiro', icon: DollarSign, path: '/demo/financeiro' },
   { label: 'Relatórios', icon: BarChart2, path: '/demo/relatorios' },
-  { label: 'AI Growth', icon: Zap, path: '/demo/ai-growth' },
+  { label: 'AI Growth', icon: Zap, path: '/demo/ai-growth', badge: 'AI' },
 ];
 
 export default function DemoLayout({ children }) {
@@ -48,28 +49,7 @@ export default function DemoLayout({ children }) {
         </button>
       </div>
 
-      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const active = location.pathname === item.path;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`group flex items-center gap-3 px-3 py-3 lg:py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                active
-                  ? 'bg-[#2563EB]/10 text-[#2563EB]'
-                  : 'text-gray-600 hover:bg-[#F7F8FB] hover:text-[#0F172A] active:bg-gray-100'
-              }`}
-            >
-              <item.icon className={`w-[18px] h-[18px] flex-shrink-0 transition-transform ${active ? '' : 'group-hover:scale-110'}`} />
-              <span>{item.label}</span>
-              {item.label === 'AI Growth' && (
-                <span className="ml-auto text-[10px] bg-brand-gradient text-white font-bold px-1.5 py-0.5 rounded-md tracking-wide">AI</span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      <NavList items={navItems} />
 
       <div className="p-4 border-t border-black/5">
         <div className="rounded-2xl p-4 text-center bg-gradient-to-br from-[#2563EB]/5 to-[#60A5FA]/10 border border-[#2563EB]/10">
