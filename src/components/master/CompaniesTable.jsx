@@ -2,9 +2,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Search, Globe, CheckCircle, Clock, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Globe, CheckCircle, Clock, Eye, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { startImpersonation } from '@/lib/impersonation';
 import { useNavigate } from 'react-router-dom';
+import ConfirmDestructiveDialog from '@/components/ConfirmDestructiveDialog';
+import { useToast } from '@/components/ui/use-toast';
 
 const statusConfig = {
   active: { label: 'Ativa', color: 'bg-green-100 text-green-700' },
@@ -19,6 +21,8 @@ export default function CompaniesTable() {
   const pageSize = 15;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [confirmTarget, setConfirmTarget] = useState(null); // company a bloquear
 
   const { data, isLoading } = useQuery({
     queryKey: ['master-companies', search, page],
@@ -38,14 +42,20 @@ export default function CompaniesTable() {
       const fn = nextStatus === 'blocked' ? 'blockCompany' : 'activateCompany';
       const res = await base44.functions.invoke(fn, { company_id: id });
       if (!res.data?.success) throw new Error(res.data?.error || 'Falha');
-      return res.data;
+      return { ...res.data, nextStatus };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       queryClient.invalidateQueries({ queryKey: ['master-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['master-audit-log'] });
+      queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
+      toast({
+        title: data.nextStatus === 'blocked' ? 'Empresa bloqueada' : 'Empresa ativada',
+        description: 'Ação registrada no log de auditoria.',
+      });
+      setConfirmTarget(null);
     },
-    onError: (e) => alert(`Erro: ${e.message}`),
+    onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
   const impersonate = useMutation({
@@ -58,7 +68,7 @@ export default function CompaniesTable() {
       startImpersonation({ company_id: data.company_id, company_name: data.company_name });
       navigate('/app/dashboard');
     },
-    onError: (e) => alert(`Erro: ${e.message}`),
+    onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
   return (
@@ -123,18 +133,23 @@ export default function CompaniesTable() {
                       className="text-xs px-2 py-1 rounded-lg font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center gap-1 disabled:opacity-50"
                       title="Visualizar como esta empresa (15min)"
                     >
-                      <Eye className="w-3 h-3" /> Visualizar
+                      {impersonate.isPending && impersonate.variables?.id === c.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Eye className="w-3 h-3" />}
+                      Visualizar
                     </button>
                     <button
                       disabled={toggleStatus.isPending}
                       onClick={() => {
-                        const nextStatus = c.status === 'active' ? 'blocked' : 'active';
-                        const verb = nextStatus === 'blocked' ? 'BLOQUEAR' : 'ATIVAR';
-                        if (confirm(`Tem certeza que deseja ${verb} "${c.name}"?\nEsta ação será registrada no log de auditoria.`)) {
-                          toggleStatus.mutate({ id: c.id, nextStatus });
+                        if (c.status === 'active') {
+                          // Confirmação forte: digitar nome
+                          setConfirmTarget(c);
+                        } else {
+                          toggleStatus.mutate({ id: c.id, nextStatus: 'active' });
                         }
                       }}
-                      className={`text-xs px-2 py-1 rounded-lg font-medium disabled:opacity-50 ${c.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                      className={`text-xs px-2 py-1 rounded-lg font-medium disabled:opacity-50 inline-flex items-center gap-1 ${c.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                      {toggleStatus.isPending && toggleStatus.variables?.id === c.id && <Loader2 className="w-3 h-3 animate-spin" />}
                       {c.status === 'active' ? 'Bloquear' : 'Ativar'}
                     </button>
                   </div>
@@ -167,6 +182,17 @@ export default function CompaniesTable() {
           ><ChevronRight className="w-4 h-4" /></button>
         </div>
       </div>
+
+      <ConfirmDestructiveDialog
+        open={!!confirmTarget}
+        onClose={() => setConfirmTarget(null)}
+        onConfirm={() => confirmTarget && toggleStatus.mutate({ id: confirmTarget.id, nextStatus: 'blocked' })}
+        title={`Bloquear "${confirmTarget?.name || ''}"?`}
+        description="A empresa perde imediatamente o acesso ao app. A ação é registrada no log de auditoria."
+        expectedText={confirmTarget?.name || ''}
+        confirmLabel="Bloquear empresa"
+        isLoading={toggleStatus.isPending}
+      />
     </div>
   );
 }

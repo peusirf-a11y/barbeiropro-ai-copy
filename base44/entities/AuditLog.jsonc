@@ -10,31 +10,31 @@
       "type": "boolean",
       "default": false
     },
+    "impersonated_company_id": {
+      "type": "string",
+      "description": "Se a a\u00e7\u00e3o foi executada via impersona\u00e7\u00e3o, ID da empresa-alvo"
+    },
     "action": {
       "type": "string",
       "description": "Identificador da a\u00e7\u00e3o (ex: BLOCK_COMPANY, ACTIVATE_COMPANY)"
     },
     "target_type": {
-      "type": "string",
-      "description": "Tipo da entity alvo (ex: Company)"
+      "type": "string"
     },
     "target_id": {
       "type": "string"
     },
     "before": {
-      "type": "object",
-      "description": "Snapshot do estado antes da a\u00e7\u00e3o"
+      "type": "object"
     },
     "after": {
-      "type": "object",
-      "description": "Snapshot do estado depois da a\u00e7\u00e3o"
+      "type": "object"
     },
     "ip": {
       "type": "string"
     },
     "metadata": {
-      "type": "object",
-      "description": "Dados adicionais opcionais (motivo, payload, etc.)"
+      "type": "object"
     }
   },
   "required": [

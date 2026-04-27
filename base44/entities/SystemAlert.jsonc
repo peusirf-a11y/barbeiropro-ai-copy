@@ -1,0 +1,48 @@
+{
+  "name": "SystemAlert",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "payment_failed",
+        "company_blocked",
+        "subscription_canceled",
+        "critical_error",
+        "abnormal_usage",
+        "info"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "default": "warning"
+    },
+    "message": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Empresa relacionada (opcional)"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "read": {
+      "type": "boolean",
+      "default": false
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "type",
+    "message"
+  ]
+}

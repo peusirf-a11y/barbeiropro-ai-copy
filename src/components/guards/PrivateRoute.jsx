@@ -1,19 +1,35 @@
 import { useAuth } from '@/lib/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-
-const BLOCKED_STATUSES = ['past_due', 'canceled', 'unpaid'];
+import { isCompanyBlocked } from '@/lib/enforceCompanyAccess';
 
 export default function PrivateRoute({ children }) {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user, navigateToLogin } = useAuth();
   const location = useLocation();
+  const qc = useQueryClient();
 
+  // Refresh a cada 60s — pega bloqueios feitos pelo Master quase em tempo real.
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
     queryKey: ['private-route-company', user?.email],
     queryFn: () => base44.entities.Company.list(),
     enabled: !!isAuthenticated && !!user,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 30_000,
   });
+
+  const myCompany = user?.role === 'admin'
+    ? null
+    : companies.find(c => c.owner_email === user?.email);
+
+  const blocked = !!myCompany && isCompanyBlocked(myCompany);
+
+  // Quando detecta bloqueio, invalida TODOS os caches → impede renderização de dados antigos
+  useEffect(() => {
+    if (blocked) qc.clear();
+  }, [blocked, qc]);
 
   if (isLoadingAuth || isLoadingPublicSettings || (isAuthenticated && loadingCompanies)) {
     return (
@@ -33,8 +49,6 @@ export default function PrivateRoute({ children }) {
     return children;
   }
 
-  const myCompany = companies.find(c => c.owner_email === user?.email);
-
   // No company yet → onboarding
   if (!myCompany) {
     return <Navigate to="/onboarding" replace />;
@@ -45,15 +59,12 @@ export default function PrivateRoute({ children }) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Block inadimplentes OU bloqueio manual do Master (status='blocked')
+  // Hard block (manual ou inadimplência)
   const isBillingPage =
     location.pathname === '/app/assinatura-bloqueada' ||
     location.pathname === '/app/configuracoes/assinatura';
 
-  const isHardBlocked = myCompany.status === 'blocked';
-  const isPaymentBlocked = BLOCKED_STATUSES.includes(myCompany.subscription_status);
-
-  if ((isHardBlocked || isPaymentBlocked) && !isBillingPage) {
+  if (blocked && !isBillingPage) {
     return <Navigate to="/app/assinatura-bloqueada" replace />;
   }
 

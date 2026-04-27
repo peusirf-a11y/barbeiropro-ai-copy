@@ -52,6 +52,19 @@ Deno.serve(async (req) => {
       metadata: reason ? { reason } : undefined,
     });
 
+    // Alerta para visibilidade no painel Master
+    try {
+      await base44.asServiceRole.entities.SystemAlert.create({
+        type: 'company_blocked',
+        severity: 'warning',
+        message: `Empresa "${company.name}" bloqueada manualmente por ${user.email}`,
+        company_id,
+        metadata: reason ? { reason } : undefined,
+      });
+    } catch (alertErr) {
+      console.error('Falha ao criar SystemAlert:', alertErr.message);
+    }
+
     console.log(`JOB END: blockCompany ${company_id} by ${user.email}`);
     return Response.json({ success: true });
   } catch (error) {

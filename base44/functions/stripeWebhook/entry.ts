@@ -143,24 +143,89 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+    if (
+      event.type === 'customer.subscription.created' ||
+      event.type === 'customer.subscription.updated' ||
+      event.type === 'customer.subscription.deleted'
+    ) {
       const sub = event.data.object;
+      const priceId = sub.items?.data?.[0]?.price?.id;
+
+      // Mapear price_id -> Plan (fonte da verdade para MRR)
+      let matchedPlan = null;
+      if (priceId) {
+        const plans = await base44.asServiceRole.entities.Plan.filter({ stripe_price_id: priceId });
+        if (plans && plans.length > 0) matchedPlan = plans[0];
+      }
+
       const companies = await base44.asServiceRole.entities.Company.filter({ stripe_subscription_id: sub.id });
       if (companies && companies.length > 0) {
         const c = companies[0];
+        const before = {
+          status: c.status,
+          subscription_status: c.subscription_status,
+          plan_id: c.plan_id,
+        };
+
         const updates = {
           subscription_status: sub.status,
-          stripe_price_id: sub.items?.data?.[0]?.price?.id,
+          stripe_price_id: priceId,
         };
         if (sub.current_period_end) {
           updates.current_period_end = new Date(sub.current_period_end * 1000).toISOString();
         }
+        if (matchedPlan) {
+          updates.plan_id = matchedPlan.id;
+          updates.plan_name = matchedPlan.name;
+        }
+
+        // Hard-block do app conforme status do Stripe (fonte de verdade)
         if (sub.status === 'active') updates.status = 'active';
         else if (sub.status === 'trialing') updates.status = 'trial';
         else if (['past_due', 'unpaid', 'canceled', 'incomplete'].includes(sub.status)) updates.status = 'blocked';
 
         await base44.asServiceRole.entities.Company.update(c.id, updates);
-        console.log('Updated subscription for company', c.id, 'status:', sub.status);
+        console.log('Synced subscription', sub.id, '->', c.id, 'status:', sub.status, 'plan:', matchedPlan?.name);
+
+        // Disparar SystemAlert em situações críticas
+        try {
+          if (sub.status === 'past_due') {
+            await base44.asServiceRole.entities.SystemAlert.create({
+              type: 'payment_failed',
+              severity: 'critical',
+              message: `Pagamento em atraso: ${c.name}`,
+              company_id: c.id,
+              metadata: { subscription_id: sub.id, status: sub.status },
+            });
+          } else if (sub.status === 'canceled' || event.type === 'customer.subscription.deleted') {
+            await base44.asServiceRole.entities.SystemAlert.create({
+              type: 'subscription_canceled',
+              severity: 'warning',
+              message: `Assinatura cancelada: ${c.name}`,
+              company_id: c.id,
+              metadata: { subscription_id: sub.id },
+            });
+          }
+        } catch (alertErr) {
+          console.error('Falha ao criar SystemAlert:', alertErr.message);
+        }
+
+        // AuditLog do sync (rastreabilidade do Stripe)
+        try {
+          await base44.asServiceRole.entities.AuditLog.create({
+            actor_email: 'stripe-webhook',
+            action: `STRIPE_${event.type.toUpperCase().replace(/\./g, '_')}`,
+            target_type: 'Company',
+            target_id: c.id,
+            before,
+            after: { status: updates.status, subscription_status: updates.subscription_status, plan_id: updates.plan_id },
+            metadata: { subscription_id: sub.id, price_id: priceId },
+          });
+        } catch (auditErr) {
+          console.error('Falha ao gravar AuditLog do webhook:', auditErr.message);
+        }
+      } else {
+        console.warn('Subscription event recebido mas nenhuma Company corresponde:', sub.id);
       }
     }
 

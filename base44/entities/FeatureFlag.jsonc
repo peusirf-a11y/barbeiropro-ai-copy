@@ -12,6 +12,23 @@
     },
     "description": {
       "type": "string"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "global",
+        "plan",
+        "company"
+      ],
+      "default": "global",
+      "description": "Escopo da flag: global (todos), plan (planos espec\u00edficos) ou company (empresas espec\u00edficas)"
+    },
+    "target_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs alvo conforme o scope (Plan.id ou Company.id). Vazio quando scope=global."
     }
   },
   "required": [
