@@ -1,16 +1,20 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Scissors, Menu, X, MessageSquare, CreditCard } from 'lucide-react';
+import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Scissors, Menu, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
   { label: 'Agenda', icon: Calendar, path: '/app/agenda' },
+  { label: 'Bloqueios', icon: Lock, path: '/app/bloqueios' },
   { label: 'Clientes', icon: Users, path: '/app/clientes' },
   { label: 'Serviços', icon: Briefcase, path: '/app/servicos' },
+  { label: 'Combos', icon: Package, path: '/app/combos' },
   { label: 'Profissionais', icon: Scissors, path: '/app/profissionais' },
+  { label: 'Caixa', icon: Wallet, path: '/app/caixa' },
   { label: 'Financeiro', icon: DollarSign, path: '/app/financeiro' },
+  { label: 'Comissões', icon: Percent, path: '/app/comissoes' },
   { label: 'Relatórios', icon: BarChart2, path: '/app/relatorios' },
   { label: 'AI Growth', icon: Zap, path: '/app/ai-growth' },
   { label: 'Retenção', icon: MessageSquare, path: '/app/retencao' },

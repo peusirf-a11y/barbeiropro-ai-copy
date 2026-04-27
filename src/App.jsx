@@ -42,6 +42,10 @@ import AppEquipe from './pages/app/AppEquipe';
 import AppConfiguracoes from './pages/app/AppConfiguracoes';
 import AppRetencao from './pages/app/AppRetencao';
 import AppAssinatura from './pages/app/AppAssinatura';
+import AppBloqueios from './pages/app/AppBloqueios';
+import AppCaixa from './pages/app/AppCaixa';
+import AppCombos from './pages/app/AppCombos';
+import AppComissoes from './pages/app/AppComissoes';
 import AssinaturaBloqueada from './pages/AssinaturaBloqueada';
 import TermosDeUso from './pages/legal/TermosDeUso';
 import PoliticaDePrivacidade from './pages/legal/PoliticaDePrivacidade';
@@ -91,6 +95,10 @@ function App() {
             <Route path="/app/servicos" element={<PrivateRoute><AppServicos /></PrivateRoute>} />
             <Route path="/app/profissionais" element={<PrivateRoute><AppProfissionais /></PrivateRoute>} />
             <Route path="/app/financeiro" element={<PrivateRoute><AppFinanceiro /></PrivateRoute>} />
+            <Route path="/app/bloqueios" element={<PrivateRoute><AppBloqueios /></PrivateRoute>} />
+            <Route path="/app/caixa" element={<PrivateRoute><AppCaixa /></PrivateRoute>} />
+            <Route path="/app/combos" element={<PrivateRoute><AppCombos /></PrivateRoute>} />
+            <Route path="/app/comissoes" element={<PrivateRoute><AppComissoes /></PrivateRoute>} />
             <Route path="/app/relatorios" element={<PrivateRoute><AppRelatorios /></PrivateRoute>} />
             <Route path="/app/ai-growth" element={<PrivateRoute><AppAIGrowth /></PrivateRoute>} />
             <Route path="/app/retencao" element={<PrivateRoute><AppRetencao /></PrivateRoute>} />

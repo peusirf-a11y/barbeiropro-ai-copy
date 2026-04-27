@@ -56,8 +56,26 @@ export default function AppAgenda() {
     enabled: !!companyId,
   });
 
+  const { data: blockedTimes = [] } = useQuery({
+    queryKey: ['blocks', companyId],
+    queryFn: () => base44.entities.BlockedTime.filter({ company_id: companyId }, '-start_time', 200),
+    enabled: !!companyId,
+  });
+
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Appointment.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const updated = await base44.entities.Appointment.update(id, data);
+      // Quando vira "concluido": grava completed_at e dispara comissão automática
+      if (data.status === 'concluido') {
+        try {
+          await base44.entities.Appointment.update(id, { completed_at: new Date().toISOString() });
+          await base44.functions.invoke('registerCommission', { appointment_id: id });
+        } catch (err) {
+          console.error('registerCommission failed:', err?.message);
+        }
+      }
+      return updated;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments', companyId] }); setSelectedAppt(null); },
   });
 
@@ -95,10 +113,29 @@ export default function AppAgenda() {
     });
   };
 
+  // Block check (horário bloqueado: almoço, folga, etc.)
+  const hitsBlock = (proId, dateTime, serviceId) => {
+    if (!dateTime) return false;
+    const service = services.find(s => s.id === serviceId);
+    const duration = service?.duration_minutes || 30;
+    const start = new Date(dateTime);
+    const end = new Date(start.getTime() + duration * 60000);
+    return blockedTimes.some(b => {
+      if (b.professional_id && b.professional_id !== proId) return false;
+      const bStart = new Date(b.start_time);
+      const bEnd = new Date(b.end_time);
+      return start < bEnd && end > bStart;
+    });
+  };
+
   const handleCreate = () => {
     if (!form.professional_id || !form.service_id || !form.scheduled_at || !form.customer_name) return;
     if (hasConflict(form.professional_id, form.scheduled_at, form.service_id)) {
       alert('Conflito de horário! Este profissional já tem um agendamento neste horário.');
+      return;
+    }
+    if (hitsBlock(form.professional_id, form.scheduled_at, form.service_id)) {
+      alert('Horário bloqueado (almoço/folga/evento). Escolha outro horário.');
       return;
     }
     const pro = professionals.find(p => p.id === form.professional_id);
@@ -192,8 +229,23 @@ export default function AppAgenda() {
                     const d = new Date(a.scheduled_at);
                     return d.toDateString() === day.toDateString() && d.getHours() === hour;
                   });
+                  // Bloqueios que atingem essa célula (hora exata do dia)
+                  const cellStart = new Date(day); cellStart.setHours(hour, 0, 0, 0);
+                  const cellEnd = new Date(cellStart.getTime() + 60 * 60 * 1000);
+                  const cellBlocks = blockedTimes.filter(b => {
+                    if (filterPro !== 'all' && b.professional_id && b.professional_id !== filterPro) return false;
+                    const bs = new Date(b.start_time);
+                    const be = new Date(b.end_time);
+                    return bs < cellEnd && be > cellStart;
+                  });
                   return (
-                    <div key={di} className="border-r border-black/5 last:border-r-0 min-h-[52px] p-1">
+                    <div key={di} className="border-r border-black/5 last:border-r-0 min-h-[52px] p-1 relative">
+                      {cellBlocks.map(b => (
+                        <div key={b.id} title={b.reason || 'Bloqueado'}
+                          className="rounded p-1 mb-1 bg-gray-200/70 border border-dashed border-gray-400 text-[10px] text-gray-600 font-medium truncate">
+                          🔒 {b.reason || 'Bloqueado'}
+                        </div>
+                      ))}
                       {dayAppts.map(appt => (
                         <div
                           key={appt.id}

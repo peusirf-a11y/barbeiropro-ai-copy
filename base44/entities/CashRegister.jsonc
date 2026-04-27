@@ -1,0 +1,54 @@
+{
+  "name": "CashRegister",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "initial_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "final_amount": {
+      "type": "number"
+    },
+    "expected_amount": {
+      "type": "number",
+      "description": "Saldo esperado calculado pelo sistema (inicial + entradas - sa\u00eddas)"
+    },
+    "difference": {
+      "type": "number",
+      "description": "Diferen\u00e7a entre final_amount e expected_amount (sobra/falta)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "aberto",
+        "fechado"
+      ],
+      "default": "aberto"
+    },
+    "opened_by": {
+      "type": "string"
+    },
+    "closed_by": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "opened_at",
+    "initial_amount"
+  ]
+}

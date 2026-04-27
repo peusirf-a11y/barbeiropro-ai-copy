@@ -1,0 +1,29 @@
+{
+  "name": "BlockedTime",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "professional_id": {
+      "type": "string",
+      "description": "Vazio = bloqueio aplica para toda a barbearia (todos os profissionais)"
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "start_time",
+    "end_time"
+  ]
+}

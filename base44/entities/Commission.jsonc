@@ -1,0 +1,58 @@
+{
+  "name": "Commission",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "professional_id": {
+      "type": "string"
+    },
+    "professional_name": {
+      "type": "string"
+    },
+    "appointment_id": {
+      "type": "string"
+    },
+    "service_name": {
+      "type": "string"
+    },
+    "service_price": {
+      "type": "number"
+    },
+    "commission_type": {
+      "type": "string",
+      "enum": [
+        "percent",
+        "fixed"
+      ],
+      "default": "percent"
+    },
+    "commission_value": {
+      "type": "number",
+      "description": "Percentual (ex: 40) ou valor fixo aplicado"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Comiss\u00e3o calculada em R$"
+    },
+    "earned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "pago"
+      ],
+      "default": "pendente"
+    }
+  },
+  "required": [
+    "company_id",
+    "professional_id",
+    "amount",
+    "earned_at"
+  ]
+}
