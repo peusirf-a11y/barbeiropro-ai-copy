@@ -201,7 +201,7 @@ export default function LandingPage() {
                     </div>
                   ))}
                 </div>
-                <a href="https://turbosaas.pro/" target="_blank" rel="noopener noreferrer">
+                <a href="https://turbosaas.pro/checkout" target="_blank" rel="noopener noreferrer" className="block">
                   <Button className={`w-full ${p.highlight ? 'bg-white text-[#2563EB] hover:bg-white/90' : 'bg-[#2563EB] text-white hover:bg-[#2563EB]/90'}`}>
                     Começar agora
                   </Button>

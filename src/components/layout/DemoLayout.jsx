@@ -68,7 +68,10 @@ export default function DemoLayout({ children }) {
         <div className="rounded-2xl p-4 text-center bg-gradient-to-br from-[#2563EB]/5 to-[#60A5FA]/10 border border-[#2563EB]/10">
           <p className="text-xs text-gray-600 mb-3 font-medium">Gostou do que viu?</p>
           <a href="https://turbosaas.pro/" target="_blank" rel="noopener noreferrer" className="block">
-            <button className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all shadow-[var(--shadow-sm)] hover:shadow-brand active:scale-[0.98]">
+            <button
+              onClick={() => { try { localStorage.removeItem('demo_mode'); } catch (e) {} }}
+              className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all shadow-[var(--shadow-sm)] hover:shadow-brand active:scale-[0.98]"
+            >
               Contratar BarberTrimly
             </button>
           </a>
@@ -87,14 +90,24 @@ export default function DemoLayout({ children }) {
           <span className="sm:hidden">Demo</span>
         </div>
         <div className="hidden sm:flex items-center gap-3 ml-2">
-          <Link to="/" className="text-xs text-white/80 hover:text-white underline-offset-2 hover:underline">← Voltar à LP</Link>
+          <button
+            onClick={() => { try { localStorage.removeItem('demo_mode'); } catch (e) {} window.location.href = '/'; }}
+            className="text-xs text-white/80 hover:text-white underline-offset-2 hover:underline"
+          >
+            ← Sair da demo
+          </button>
           <a href="https://turbosaas.pro/" target="_blank" rel="noopener noreferrer">
             <span className="bg-white text-[#2563EB] text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white/90 transition-colors">
               Contratar
             </span>
           </a>
         </div>
-        <Link to="/" className="sm:hidden text-xs text-white/90 underline">Sair</Link>
+        <button
+          onClick={() => { try { localStorage.removeItem('demo_mode'); } catch (e) {} window.location.href = '/'; }}
+          className="sm:hidden text-xs text-white/90 underline"
+        >
+          Sair
+        </button>
       </div>
 
       {/* Mobile top bar */}

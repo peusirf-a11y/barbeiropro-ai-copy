@@ -29,14 +29,14 @@ export default function DemoDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-md sm:max-w-none mx-auto sm:mx-0 w-full">
           {[
             { label: 'Atendimentos hoje', value: todayAppts.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Receita do mês', value: `R$${revenue.toFixed(0)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
             { label: 'Clientes ativos', value: activeCustomers, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
             { label: 'Concluídos', value: completed, icon: CheckCircle, color: 'text-[#2563EB]', bg: 'bg-[#2563EB]/10' },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-6">
+            <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-5 sm:p-6 w-full">
               <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-4`}>
                 <s.icon className={`w-5 h-5 ${s.color}`} />
               </div>
