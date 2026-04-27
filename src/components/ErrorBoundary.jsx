@@ -41,8 +41,13 @@ export default class ErrorBoundary extends React.Component {
 
   render() {
     if (!this.state.hasError) {
-      // key força remount após retry, garantindo "estado limpo"
-      return <React.Fragment key={this.state.retryKey}>{this.props.children}</React.Fragment>;
+      // Renderizamos os children diretamente — sem wrapper.
+      // Para forçar remount após retry, mudamos a key da árvore via clone.
+      return this.state.retryKey === 0
+        ? this.props.children
+        : React.Children.map(this.props.children, (child) =>
+            React.isValidElement(child) ? React.cloneElement(child, { key: this.state.retryKey }) : child
+          );
     }
 
     return (
