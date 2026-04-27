@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from 'lucide-react';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { generateToken } from '@/lib/tokens';
 
 const statusConfig = {
   agendado: { label: 'Agendado', color: 'border-l-blue-400 bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
@@ -150,6 +151,8 @@ export default function AppAgenda() {
       customer_phone: customer?.phone || form.customer_phone,
       price: svc?.price || form.price,
       source: 'interno',
+      confirm_token: generateToken(),
+      review_token: generateToken(),
     });
   };
 

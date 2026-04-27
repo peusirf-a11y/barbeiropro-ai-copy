@@ -67,6 +67,24 @@
     "confirmation_email_sent": {
       "type": "boolean",
       "default": false
+    },
+    "confirm_token": {
+      "type": "string",
+      "description": "Token p\u00fablico para confirma\u00e7\u00e3o 1-clique via WhatsApp"
+    },
+    "review_token": {
+      "type": "string",
+      "description": "Token p\u00fablico para avalia\u00e7\u00e3o p\u00f3s-atendimento via WhatsApp"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que o cliente confirmou via link p\u00fablico"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que o cliente avaliou via link p\u00fablico"
     }
   },
   "required": [

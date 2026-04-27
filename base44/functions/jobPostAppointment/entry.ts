@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
   console.log('JOB START: jobPostAppointment');
   try {
     const base44 = createClientFromRequest(req);
+    const baseUrl = req.headers.get('origin') || `https://${req.headers.get('host') || 'barbertrimly.base44.app'}`;
 
     const now = new Date();
     const concluded = await base44.asServiceRole.entities.Appointment.filter({ status: 'concluido' }, '-completed_at', 1000);
@@ -51,10 +52,14 @@ Deno.serve(async (req) => {
       if (!withinSendWindow(s)) { skipped++; continue; }
 
       const tpl = s.msg_post_appointment || 'Valeu por colar na {barbearia}, {nome}! 🔥 Se puder, deixa sua avaliação: {link_avaliacao}';
+      // Prioriza nosso link interno (1-clique). Se não houver token, usa review_link configurado.
+      const reviewLink = appt.review_token
+        ? `${baseUrl}/avaliar/${appt.review_token}`
+        : (s.review_link || '');
       const message = renderTemplate(tpl, {
         nome: appt.customer_name || 'cliente',
         barbearia: company.name,
-        link_avaliacao: s.review_link || '',
+        link_avaliacao: reviewLink,
       });
 
       await base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {

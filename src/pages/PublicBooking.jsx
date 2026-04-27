@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle } from 'lucide-react';
 import { format, addDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { generateToken } from '@/lib/tokens';
 
 function generateTimeSlots(openTime, closeTime, durationMin) {
   const slots = [];
@@ -127,6 +128,8 @@ export default function PublicBooking() {
       status: 'agendado',
       price: selected.service.price,
       source: 'online',
+      confirm_token: generateToken(),
+      review_token: generateToken(),
     });
   };
 

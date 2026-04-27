@@ -19,17 +19,23 @@ function withinSendWindow(settings) {
   return hhmm >= start && hhmm <= end;
 }
 
-async function sendReminder(base44, appointment, company, type) {
+async function sendReminder(base44, appointment, company, type, baseUrl) {
   const settings = company.whatsapp_settings || {};
   const tplKey = type === 'lembrete_24h' ? 'msg_reminder_24h' : 'msg_reminder_2h';
   const tpl = settings[tplKey] || 'Lembrete: você tem horário às {hora} na {barbearia}.';
-  const message = renderTemplate(tpl, {
+  const confirmLink = appointment.confirm_token ? `${baseUrl}/confirma/${appointment.confirm_token}` : '';
+  let message = renderTemplate(tpl, {
     nome: appointment.customer_name || 'cliente',
     barbearia: company.name,
     hora: fmtTime(appointment.scheduled_at),
     servico: appointment.service_name || '',
     profissional: appointment.professional_name || '',
+    link_confirmacao: confirmLink,
   });
+  // Se template não menciona confirmação e há token, adiciona automaticamente
+  if (confirmLink && !tpl.includes('{link_confirmacao}') && type === 'lembrete_24h') {
+    message += `\n\n✅ Confirme em 1 clique: ${confirmLink}`;
+  }
 
   return base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {
     phone: appointment.customer_phone,
@@ -46,6 +52,7 @@ Deno.serve(async (req) => {
   console.log('JOB START: jobReminders');
   try {
     const base44 = createClientFromRequest(req);
+    const baseUrl = req.headers.get('origin') || `https://${req.headers.get('host') || 'barbertrimly.base44.app'}`;
 
     const now = new Date();
     const in25h = new Date(now.getTime() + 25 * 60 * 60 * 1000);
@@ -90,14 +97,14 @@ Deno.serve(async (req) => {
       // 24h: dispara quando faltam entre 23h e 25h
       if (s.send_reminder_24h !== false && diffH >= 23 && diffH <= 25) {
         if (!sentSet.has(`${appt.id}:lembrete_24h`)) {
-          await sendReminder(base44, appt, company, 'lembrete_24h');
+          await sendReminder(base44, appt, company, 'lembrete_24h', baseUrl);
           sent24++;
         }
       }
       // 2h: dispara quando faltam entre 1.5h e 2.5h
       if (s.send_reminder_2h !== false && diffH >= 1.5 && diffH <= 2.5) {
         if (!sentSet.has(`${appt.id}:lembrete_2h`)) {
-          await sendReminder(base44, appt, company, 'lembrete_2h');
+          await sendReminder(base44, appt, company, 'lembrete_2h', baseUrl);
           sent2++;
         }
       }
