@@ -11,6 +11,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import PrivateRoute from '@/components/guards/PrivateRoute';
 import SuperAdminRoute from '@/components/guards/SuperAdminRoute';
 import OnboardingGuard from '@/components/guards/OnboardingGuard';
+import TotpGate from '@/components/guards/TotpGate';
 
 // Public pages
 import LandingPage from './pages/LandingPage';
@@ -91,7 +92,9 @@ function App() {
             {/* ── MASTER PANEL (super admin only) ── */}
             <Route path="/master" element={
               <SuperAdminRoute>
-                <MasterPanel />
+                <TotpGate>
+                  <MasterPanel />
+                </TotpGate>
               </SuperAdminRoute>
             } />
 

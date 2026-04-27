@@ -2,26 +2,19 @@
   "name": "User",
   "type": "object",
   "properties": {
-    "role": {
-      "type": "string",
-      "description": "Role do usu\u00e1rio dentro do tenant (admin/user)",
-      "enum": [
-        "admin",
-        "user"
-      ]
-    },
     "is_super_admin": {
       "type": "boolean",
       "default": false,
-      "description": "Super Admin da plataforma (acesso ao /master). N\u00c3O confundir com role=admin do tenant."
+      "description": "Super Admin do BarberTrimly (acesso ao /master). Diferente de role=admin."
     },
-    "two_factor_enabled": {
+    "totp_secret": {
+      "type": "string",
+      "description": "Segredo TOTP base32 do super admin (criptografado seria ideal, mas o Base44 j\u00e1 protege o storage)"
+    },
+    "totp_enabled": {
       "type": "boolean",
       "default": false,
-      "description": "Flag de 2FA habilitado (estrutura preparada \u2014 UI completa ser\u00e1 adicionada depois)."
+      "description": "Indica se o TOTP foi confirmado/ativado para este usu\u00e1rio"
     }
-  },
-  "required": [
-    "role"
-  ]
+  }
 }

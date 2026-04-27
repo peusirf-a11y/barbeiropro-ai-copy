@@ -1,0 +1,39 @@
+{
+  "name": "ImpersonationSession",
+  "type": "object",
+  "properties": {
+    "token": {
+      "type": "string",
+      "description": "Token opaco da sess\u00e3o de impersona\u00e7\u00e3o"
+    },
+    "actor_email": {
+      "type": "string",
+      "description": "E-mail do super admin que iniciou a impersona\u00e7\u00e3o"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Empresa-alvo da impersona\u00e7\u00e3o"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Preenchido quando a sess\u00e3o \u00e9 encerrada explicitamente"
+    },
+    "ip": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "token",
+    "actor_email",
+    "company_id",
+    "expires_at"
+  ]
+}

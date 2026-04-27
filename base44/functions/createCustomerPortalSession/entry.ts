@@ -9,6 +9,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Não autenticado' }, { status: 401 });
     }
 
+    // Bloqueia super admin de abrir portal de cobrança (deveria usar Stripe Dashboard direto)
+    if (user.is_super_admin) {
+      return Response.json({ error: 'Super admins não podem alterar billing via portal. Use o Stripe Dashboard.' }, { status: 403 });
+    }
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
     const { return_url } = await req.json().catch(() => ({}));
 

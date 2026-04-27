@@ -1,4 +1,4 @@
-// activateCompany — Super Admin only. Reativa uma empresa e grava AuditLog.
+// activateCompany — Super Admin only. Exige TOTP session válido. Reativa empresa + AuditLog.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const buckets = new Map();
@@ -9,6 +9,17 @@ function rateLimit(key, limit = 10, windowMs = 60_000) {
   arr.push(now);
   buckets.set(key, arr);
   return true;
+}
+
+async function requireValidTotpSession(base44, totp_session_token, user_email) {
+  if (!totp_session_token) return { ok: false, error: '2FA obrigatório' };
+  const sessions = await base44.asServiceRole.entities.TotpSession.filter({ token: totp_session_token });
+  const s = sessions?.[0];
+  if (!s) return { ok: false, error: 'Sessão 2FA inválida' };
+  if (s.ended_at) return { ok: false, error: 'Sessão 2FA encerrada' };
+  if (new Date(s.expires_at).getTime() <= Date.now()) return { ok: false, error: 'Sessão 2FA expirada' };
+  if (s.user_email !== user_email) return { ok: false, error: 'Sessão 2FA não pertence a este usuário' };
+  return { ok: true };
 }
 
 Deno.serve(async (req) => {
@@ -26,9 +37,14 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'Unauthorized: Super Admin only' }, { status: 403 });
     }
 
-    const { company_id } = await req.json();
+    const { company_id, totp_session_token } = await req.json();
     if (!company_id) {
       return Response.json({ success: false, error: 'company_id é obrigatório' }, { status: 400 });
+    }
+
+    const totpCheck = await requireValidTotpSession(base44, totp_session_token, user.email);
+    if (!totpCheck.ok) {
+      return Response.json({ success: false, error: totpCheck.error, totp_required: true }, { status: 401 });
     }
 
     const company = await base44.asServiceRole.entities.Company.get(company_id);

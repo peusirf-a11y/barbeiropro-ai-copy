@@ -1,0 +1,29 @@
+{
+  "name": "TotpSession",
+  "type": "object",
+  "properties": {
+    "token": {
+      "type": "string",
+      "description": "Token opaco da sess\u00e3o 2FA"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ip": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "token",
+    "user_email",
+    "expires_at"
+  ]
+}

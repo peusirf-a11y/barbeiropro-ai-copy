@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/AuthContext';
 import { CreditCard, CheckCircle, Loader2, ExternalLink, Calendar, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useImpersonation } from '@/hooks/useImpersonation';
+import ImpersonationLockNotice from '@/components/ImpersonationLockNotice';
 
 const STATUS_LABEL = {
   trialing: { label: 'Em período grátis', color: 'bg-blue-100 text-blue-700' },
@@ -20,6 +22,7 @@ export default function AppAssinatura() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { isImpersonating } = useImpersonation();
 
   const { data: companies = [] } = useQuery({
     queryKey: ['my-companies', user?.email],
@@ -99,6 +102,12 @@ export default function AppAssinatura() {
           </div>
         )}
 
+        {isImpersonating && (
+          <div className="mb-4">
+            <ImpersonationLockNotice message="Alterações de billing (cartão, plano, cancelamento) só podem ser feitas pelo dono da empresa via portal Stripe." />
+          </div>
+        )}
+
         {/* Action card */}
         <div className="bg-white rounded-2xl border border-black/8 p-5 sm:p-6 mb-4">
           <h2 className="font-bold text-[#0F172A] mb-2">Gerenciar assinatura</h2>
@@ -108,7 +117,7 @@ export default function AppAssinatura() {
 
           <button
             onClick={handleOpenPortal}
-            disabled={loading || !company?.stripe_customer_id}
+            disabled={loading || !company?.stripe_customer_id || isImpersonating}
             className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3 px-5 rounded-xl text-sm transition-all shadow-brand disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}

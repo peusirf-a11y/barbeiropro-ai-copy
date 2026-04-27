@@ -7,6 +7,7 @@ import { startImpersonation } from '@/lib/impersonation';
 import { useNavigate } from 'react-router-dom';
 import ConfirmDestructiveDialog from '@/components/ConfirmDestructiveDialog';
 import { useToast } from '@/components/ui/use-toast';
+import { getTotpToken, clearTotpSession } from '@/lib/totpSession';
 
 const statusConfig = {
   active: { label: 'Ativa', color: 'bg-green-100 text-green-700' },
@@ -40,8 +41,14 @@ export default function CompaniesTable() {
   const toggleStatus = useMutation({
     mutationFn: async ({ id, nextStatus }) => {
       const fn = nextStatus === 'blocked' ? 'blockCompany' : 'activateCompany';
-      const res = await base44.functions.invoke(fn, { company_id: id });
-      if (!res.data?.success) throw new Error(res.data?.error || 'Falha');
+      const res = await base44.functions.invoke(fn, {
+        company_id: id,
+        totp_session_token: getTotpToken(),
+      });
+      if (!res.data?.success) {
+        if (res.data?.totp_required) clearTotpSession();
+        throw new Error(res.data?.error || 'Falha');
+      }
       return { ...res.data, nextStatus };
     },
     onSuccess: (data) => {
@@ -60,12 +67,23 @@ export default function CompaniesTable() {
 
   const impersonate = useMutation({
     mutationFn: async (company) => {
-      const res = await base44.functions.invoke('startImpersonation', { company_id: company.id });
-      if (!res.data?.success) throw new Error(res.data?.error || 'Falha ao iniciar impersonação');
+      const res = await base44.functions.invoke('startImpersonation', {
+        company_id: company.id,
+        totp_session_token: getTotpToken(),
+      });
+      if (!res.data?.success) {
+        if (res.data?.totp_required) clearTotpSession();
+        throw new Error(res.data?.error || 'Falha ao iniciar impersonação');
+      }
       return { ...res.data, company_name: company.name };
     },
     onSuccess: (data) => {
-      startImpersonation({ company_id: data.company_id, company_name: data.company_name });
+      startImpersonation({
+        company_id: data.company_id,
+        company_name: data.company_name,
+        token: data.token,
+        expires_at: data.expires_at,
+      });
       navigate('/app/dashboard');
     },
     onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
