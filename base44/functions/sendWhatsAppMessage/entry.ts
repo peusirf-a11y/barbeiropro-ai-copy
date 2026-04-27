@@ -18,8 +18,9 @@ async function sendViaZapi({ phone, message }) {
   const token = Deno.env.get('ZAPI_TOKEN');
   const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
 
-  if (!instanceId || !token) {
-    return { simulated: true, reason: 'Z-API credentials not configured' };
+  const isPlaceholder = (v) => !v || ['pending', 'todo', 'placeholder', 'test'].includes(String(v).toLowerCase());
+  if (isPlaceholder(instanceId) || isPlaceholder(token)) {
+    return { simulated: true, reason: 'Z-API credentials not configured (placeholder values)' };
   }
 
   const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
