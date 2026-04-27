@@ -1,0 +1,59 @@
+{
+  "name": "WhatsAppMessage",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "appointment_id": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "confirmacao",
+        "lembrete_24h",
+        "lembrete_2h",
+        "pos_atendimento",
+        "reativacao"
+      ],
+      "description": "Tipo de mensagem autom\u00e1tica"
+    },
+    "message_text": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "enviado",
+        "erro",
+        "simulado"
+      ],
+      "default": "enviado"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "provider_response": {
+      "type": "object"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "company_id",
+    "phone",
+    "type"
+  ]
+}

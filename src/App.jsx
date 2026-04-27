@@ -38,6 +38,7 @@ import AppRelatorios from './pages/app/AppRelatorios';
 import AppAIGrowth from './pages/app/AppAIGrowth';
 import AppEquipe from './pages/app/AppEquipe';
 import AppConfiguracoes from './pages/app/AppConfiguracoes';
+import AppRetencao from './pages/app/AppRetencao';
 
 function App() {
   return (
@@ -82,6 +83,7 @@ function App() {
             <Route path="/app/financeiro" element={<PrivateRoute><AppFinanceiro /></PrivateRoute>} />
             <Route path="/app/relatorios" element={<PrivateRoute><AppRelatorios /></PrivateRoute>} />
             <Route path="/app/ai-growth" element={<PrivateRoute><AppAIGrowth /></PrivateRoute>} />
+            <Route path="/app/retencao" element={<PrivateRoute><AppRetencao /></PrivateRoute>} />
             <Route path="/app/equipe" element={<PrivateRoute><AppEquipe /></PrivateRoute>} />
             <Route path="/app/configuracoes" element={<PrivateRoute><AppConfiguracoes /></PrivateRoute>} />
 

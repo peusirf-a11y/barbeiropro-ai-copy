@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Scissors, Menu, X } from 'lucide-react';
+import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Scissors, Menu, X, MessageSquare } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 
@@ -13,6 +13,7 @@ const navItems = [
   { label: 'Financeiro', icon: DollarSign, path: '/app/financeiro' },
   { label: 'Relatórios', icon: BarChart2, path: '/app/relatorios' },
   { label: 'AI Growth', icon: Zap, path: '/app/ai-growth' },
+  { label: 'Retenção', icon: MessageSquare, path: '/app/retencao' },
   { label: 'Equipe', icon: UserCheck, path: '/app/equipe' },
   { label: 'Configurações', icon: Settings, path: '/app/configuracoes' },
 ];
