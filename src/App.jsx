@@ -7,7 +7,7 @@ import { AuthProvider } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 // Guards
-import PrivateRoute from '@/components/guards/PrivateRoute.jsx';
+import PrivateRoute from '@/components/guards/PrivateRoute';
 import SuperAdminRoute from '@/components/guards/SuperAdminRoute';
 import OnboardingGuard from '@/components/guards/OnboardingGuard';
 
