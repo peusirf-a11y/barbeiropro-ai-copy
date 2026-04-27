@@ -1,9 +1,22 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Scissors, Check, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Scissors, Check, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useNavigate } from 'react-router-dom';
+
+function sanitizeSlug(s) {
+  return (s || '')
+    .toString()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-')
+    .slice(0, 40);
+}
+
+const RESERVED_SLUGS = ['app', 'api', 'admin', 'master', 'checkout', 'onboarding', 'agendar', 'demo', 'login', 'logout', 'termos-de-uso', 'politica-de-privacidade'];
 
 const STEPS = [
   { id: 1, title: 'Dados da barbearia', sub: 'Informações básicas do negócio' },
@@ -22,6 +35,33 @@ export default function Onboarding() {
   const [services, setServices] = useState([{ name: 'Corte Clássico', duration_minutes: 30, price: 45 }]);
   const [professionals, setProfessionals] = useState([{ name: '', specialty: '' }]);
   const [companyId, setCompanyId] = useState(null);
+  const [slugError, setSlugError] = useState('');
+  const [validatingSlug, setValidatingSlug] = useState(false);
+
+  const validateSlug = async (slug) => {
+    const clean = sanitizeSlug(slug);
+    if (!clean || clean.length < 3) {
+      setSlugError('Slug deve ter ao menos 3 caracteres');
+      return false;
+    }
+    if (RESERVED_SLUGS.includes(clean)) {
+      setSlugError('Este slug é reservado, escolha outro');
+      return false;
+    }
+    setValidatingSlug(true);
+    try {
+      const existing = await base44.entities.Company.filter({ slug: clean });
+      const taken = existing.some(c => c.id !== companyId);
+      if (taken) {
+        setSlugError('Este link já está em uso, tente outro');
+        setValidatingSlug(false);
+        return false;
+      }
+    } catch (e) { /* ignore */ }
+    setSlugError('');
+    setValidatingSlug(false);
+    return true;
+  };
 
   const createCompanyMutation = useMutation({
     mutationFn: (data) => base44.entities.Company.create(data),
@@ -40,14 +80,22 @@ export default function Onboarding() {
   });
 
   const handleNext = async () => {
-    if (step === 2 && !companyId) {
-      const result = await createCompanyMutation.mutateAsync({
-        ...company,
-        status: 'active',
-        onboarding_step: 2,
-        onboarding_completed: false,
-      });
-      setCompanyId(result.id);
+    if (step === 2) {
+      const ok = await validateSlug(company.slug);
+      if (!ok) return;
+      const cleanSlug = sanitizeSlug(company.slug);
+      if (!companyId) {
+        const result = await createCompanyMutation.mutateAsync({
+          ...company,
+          slug: cleanSlug,
+          status: 'active',
+          onboarding_step: 2,
+          onboarding_completed: false,
+        });
+        setCompanyId(result.id);
+      } else {
+        await base44.entities.Company.update(companyId, { slug: cleanSlug, onboarding_step: 3 });
+      }
     }
     if (step === 3 && companyId) {
       for (const s of services.filter(s => s.name)) {
@@ -123,11 +171,14 @@ export default function Onboarding() {
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Slug (URL pública) *</label>
                 <div className="flex items-center bg-white border border-black/10 rounded-xl overflow-hidden">
                   <span className="px-4 py-3 text-gray-400 text-sm border-r border-black/10 bg-gray-50">/agendar/</span>
-                  <input type="text" value={company.slug} onChange={e => setCompany(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/\s/g, '-') }))}
+                  <input type="text" value={company.slug}
+                    onChange={e => { setCompany(p => ({ ...p, slug: sanitizeSlug(e.target.value) })); setSlugError(''); }}
+                    onBlur={e => validateSlug(e.target.value)}
                     placeholder="studio47"
                     className="flex-1 px-4 py-3 text-sm focus:outline-none" />
                 </div>
-                {company.slug && <p className="text-xs text-[#2563EB] mt-1">Link: {window.location.origin}/agendar/{company.slug}</p>}
+                {company.slug && !slugError && <p className="text-xs text-[#2563EB] mt-1">Link: {window.location.origin}/agendar/{company.slug}</p>}
+                {slugError && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{slugError}</p>}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Cor principal</label>
@@ -224,7 +275,8 @@ export default function Onboarding() {
               <ArrowLeft className="w-4 h-4" />Voltar
             </button>
           ) : <div />}
-          <button onClick={handleNext} disabled={step === 1 && !company.name}
+          <button onClick={handleNext}
+            disabled={(step === 1 && !company.name) || (step === 2 && (!company.slug || !!slugError || validatingSlug))}
             className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#2563EB]/90 disabled:opacity-50 transition-colors">
             {step === 6 ? 'Acessar o painel' : 'Continuar'}
             <ArrowRight className="w-4 h-4" />

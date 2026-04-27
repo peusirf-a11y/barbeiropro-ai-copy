@@ -7,7 +7,7 @@ import { AuthProvider } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 // Guards
-import PrivateRoute from '@/components/guards/PrivateRoute';
+import PrivateRoute from '@/components/guards/PrivateRoute.jsx';
 import SuperAdminRoute from '@/components/guards/SuperAdminRoute';
 import OnboardingGuard from '@/components/guards/OnboardingGuard';
 
@@ -41,6 +41,10 @@ import AppAIGrowth from './pages/app/AppAIGrowth';
 import AppEquipe from './pages/app/AppEquipe';
 import AppConfiguracoes from './pages/app/AppConfiguracoes';
 import AppRetencao from './pages/app/AppRetencao';
+import AppAssinatura from './pages/app/AppAssinatura';
+import AssinaturaBloqueada from './pages/AssinaturaBloqueada';
+import TermosDeUso from './pages/legal/TermosDeUso';
+import PoliticaDePrivacidade from './pages/legal/PoliticaDePrivacidade';
 
 function App() {
   return (
@@ -53,6 +57,8 @@ function App() {
             <Route path="/agendar/:slug" element={<PublicBooking />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/sucesso" element={<CheckoutSuccess />} />
+            <Route path="/termos-de-uso" element={<TermosDeUso />} />
+            <Route path="/politica-de-privacidade" element={<PoliticaDePrivacidade />} />
 
             {/* ── DEMO ROUTES (public, no login required) ── */}
             <Route path="/demo/dashboard" element={<DemoDashboard />} />
@@ -90,6 +96,8 @@ function App() {
             <Route path="/app/retencao" element={<PrivateRoute><AppRetencao /></PrivateRoute>} />
             <Route path="/app/equipe" element={<PrivateRoute><AppEquipe /></PrivateRoute>} />
             <Route path="/app/configuracoes" element={<PrivateRoute><AppConfiguracoes /></PrivateRoute>} />
+            <Route path="/app/configuracoes/assinatura" element={<PrivateRoute><AppAssinatura /></PrivateRoute>} />
+            <Route path="/app/assinatura-bloqueada" element={<PrivateRoute><AssinaturaBloqueada /></PrivateRoute>} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>

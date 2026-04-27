@@ -268,8 +268,12 @@ export default function Checkout() {
                   {loading ? 'Processando...' : `Assinar ${plan.name} — R$${plan.price}/mês`}
                 </button>
 
-                <p className="hidden lg:block text-[11px] text-gray-400 text-center">
-                  Você não será cobrado nos primeiros 7 dias. Cancele a qualquer momento.
+                <p className="hidden lg:block text-[11px] text-gray-400 text-center leading-relaxed">
+                  Você não será cobrado nos primeiros 7 dias. Cancele a qualquer momento.<br />
+                  Ao continuar, você concorda com os{' '}
+                  <Link to="/termos-de-uso" className="underline hover:text-[#2563EB]">Termos de Uso</Link>
+                  {' '}e a{' '}
+                  <Link to="/politica-de-privacidade" className="underline hover:text-[#2563EB]">Política de Privacidade</Link>.
                 </p>
               </form>
             </div>

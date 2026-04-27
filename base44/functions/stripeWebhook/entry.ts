@@ -57,7 +57,13 @@ Deno.serve(async (req) => {
         console.log('Updated existing company for', email);
       } else {
         const baseSlug = slugify(businessName);
-        const slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+        let slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+        // Garantir unicidade
+        for (let i = 0; i < 5; i++) {
+          const dup = await base44.asServiceRole.entities.Company.filter({ slug });
+          if (!dup || dup.length === 0) break;
+          slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+        }
         const trialEnds = new Date();
         trialEnds.setDate(trialEnds.getDate() + 7);
 

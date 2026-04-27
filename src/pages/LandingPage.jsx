@@ -241,7 +241,11 @@ export default function LandingPage() {
             <span className="font-bold text-white">BarberTrimly</span>
             <span className="text-white/30 text-sm ml-2">parte do TurboSaaS</span>
           </div>
-          <p className="text-white/40 text-sm">© 2026 BarberTrimly. Todos os direitos reservados.</p>
+          <div className="flex items-center gap-4 text-sm">
+            <Link to="/termos-de-uso" className="text-white/50 hover:text-white">Termos</Link>
+            <Link to="/politica-de-privacidade" className="text-white/50 hover:text-white">Privacidade</Link>
+            <span className="text-white/40">© 2026 BarberTrimly</span>
+          </div>
         </div>
       </footer>
     </div>
