@@ -103,6 +103,11 @@ export default function EmailHealthCard() {
           <><Send className="w-4 h-4" /> Enviar e-mail de teste</>
         )}
       </button>
+
+      <div className="mt-3 bg-white/70 border border-black/5 rounded-lg p-3 text-[11px] text-gray-600 leading-relaxed">
+        <strong className="text-gray-700">Não recebeu?</strong> Status <code className="bg-gray-100 px-1 rounded">sent</code> significa que o provedor aceitou a mensagem.
+        Verifique a pasta <strong>Spam</strong> e a aba <strong>Promoções</strong> do Gmail — remetentes do <code className="bg-gray-100 px-1 rounded">base44.app</code> caem lá no primeiro contato.
+      </div>
     </div>
   );
 }
