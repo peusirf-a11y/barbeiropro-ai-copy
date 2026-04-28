@@ -32,7 +32,21 @@ Deno.serve(async (req) => {
     const baseUrl = req.headers.get('origin')
       || `https://${req.headers.get('host') || 'barbertrimly.base44.app'}`;
 
-    const result = { financial: null, review: null };
+    // Garante review_token (atendimentos antigos podem não ter).
+    if (!appt.review_token) {
+      const arr = new Uint8Array(16);
+      crypto.getRandomValues(arr);
+      const token = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+      const exp = new Date(new Date(appt.scheduled_at || Date.now()).getTime() + 72 * 60 * 60 * 1000).toISOString();
+      await sdk.entities.Appointment.update(appt.id, {
+        review_token: token,
+        review_token_expires_at: exp,
+      });
+      appt.review_token = token;
+      appt.review_token_expires_at = exp;
+    }
+
+    const result = { financial: null, review: null, review_link: `${baseUrl}/avaliar/${appt.review_token}` };
 
     // ── 1) Entrada financeira (idempotente por reference_appointment_id) ──
     try {
