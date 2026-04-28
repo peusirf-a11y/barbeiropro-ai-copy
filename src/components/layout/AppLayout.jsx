@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Menu, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -37,17 +37,9 @@ import { ROLE_PERMISSIONS } from '@/lib/rolePermissions';
 export default function AppLayout({ children }) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const { data: teamRole } = useTeamRole();
+  const { data: teamRole, isLoading: loadingRole } = useTeamRole();
   const { company } = useCompany();
   const showPastDue = isPastDueLimited(company);
-
-  // Filtra menu por papel. Sem papel definido (loading/super_admin/owner antigo) → mostra tudo.
-  const allowed = teamRole?.role && ROLE_PERMISSIONS[teamRole.role]
-    ? ROLE_PERMISSIONS[teamRole.role]
-    : null;
-  const navItems = allowed && !allowed.includes('*')
-    ? navItemsAll.filter(i => allowed.includes(i.key))
-    : navItemsAll;
 
   // Fechar drawer ao trocar de rota
   useEffect(() => { setOpen(false); }, [location.pathname]);
@@ -57,6 +49,34 @@ export default function AppLayout({ children }) {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
+
+  // 🔒 Bloqueio rígido: NÃO renderizar nada até saber o role.
+  // Evita flash de menu completo antes do RBAC carregar.
+  if (loadingRole) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#F7F8FB]">
+        <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Filtra menu por papel. Sem teamRole (super_admin/owner antigo) → mostra tudo.
+  const allowed = teamRole?.role && ROLE_PERMISSIONS[teamRole.role]
+    ? ROLE_PERMISSIONS[teamRole.role]
+    : null;
+  const navItems = allowed && !allowed.includes('*')
+    ? navItemsAll.filter(i => allowed.includes(i.key))
+    : navItemsAll;
+
+  // 🔒 Proteção extra contra acesso direto via URL — se a rota atual exigir uma key
+  // que o papel não possui, redireciona para o dashboard.
+  // (RoleRoute já protege, mas isso garante mesmo se alguém esquecer de envolver uma rota nova.)
+  if (allowed && !allowed.includes('*')) {
+    const current = navItemsAll.find(i => location.pathname.startsWith(i.path));
+    if (current && !allowed.includes(current.key) && location.pathname !== '/app/dashboard') {
+      return <Navigate to="/app/dashboard" replace />;
+    }
+  }
 
   const SidebarContent = (
     <>
