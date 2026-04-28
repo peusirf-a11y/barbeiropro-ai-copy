@@ -3,7 +3,7 @@
 // Reviews começam com published=false (moderação manual pelo dono).
 // Rate-limit em memória por IP + validação de formato + expiração.
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClient, createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const TOKEN_RE = /^[a-f0-9]{16,64}$/i;
 
@@ -23,7 +23,14 @@ function rateLimit(ip) {
 Deno.serve(async (req) => {
   console.log('JOB START: submitReview');
   try {
-    const base44 = createClientFromRequest(req);
+    // Endpoint público — usa app_id direto do env (cliente pode não estar logado).
+    // Fallback para createClientFromRequest caso o header esteja presente.
+    let base44;
+    try {
+      base44 = createClientFromRequest(req);
+    } catch {
+      base44 = createClient({ appId: Deno.env.get('BASE44_APP_ID'), requiresAuth: false });
+    }
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
     if (!rateLimit(ip)) {
