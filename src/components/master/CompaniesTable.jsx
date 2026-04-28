@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Search, Globe, CheckCircle, Clock, Eye, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, Globe, CheckCircle, Clock, Eye, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import { startImpersonation } from '@/lib/impersonation';
 import { useNavigate } from 'react-router-dom';
 import ConfirmDestructiveDialog from '@/components/ConfirmDestructiveDialog';
@@ -24,6 +24,7 @@ export default function CompaniesTable() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [confirmTarget, setConfirmTarget] = useState(null); // company a bloquear
+  const [deleteTarget, setDeleteTarget] = useState(null);   // company a EXCLUIR (irreversível)
 
   const { data, isLoading } = useQuery({
     queryKey: ['master-companies', search, page],
@@ -63,6 +64,34 @@ export default function CompaniesTable() {
       setConfirmTarget(null);
     },
     onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const deleteCompany = useMutation({
+    mutationFn: async (company) => {
+      const res = await base44.functions.invoke('deleteCompany', {
+        company_id: company.id,
+        confirm_name: company.name,
+        totp_session_token: getTotpToken(),
+      });
+      if (!res.data?.success) {
+        if (res.data?.totp_required) clearTotpSession();
+        throw new Error(res.data?.error || 'Falha ao excluir');
+      }
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['master-companies'] });
+      queryClient.invalidateQueries({ queryKey: ['master-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['master-audit-log'] });
+      queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
+      const total = Object.values(data?.counters || {}).reduce((s, n) => s + (n || 0), 0);
+      toast({
+        title: 'Empresa excluída',
+        description: `${total} registros relacionados removidos. Ação registrada no log.`,
+      });
+      setDeleteTarget(null);
+    },
+    onError: (e) => toast({ title: 'Erro ao excluir', description: e.message, variant: 'destructive' }),
   });
 
   const impersonate = useMutation({
@@ -170,6 +199,17 @@ export default function CompaniesTable() {
                       {toggleStatus.isPending && toggleStatus.variables?.id === c.id && <Loader2 className="w-3 h-3 animate-spin" />}
                       {c.status === 'active' ? 'Bloquear' : 'Ativar'}
                     </button>
+                    <button
+                      disabled={deleteCompany.isPending}
+                      onClick={() => setDeleteTarget(c)}
+                      title="Excluir empresa permanentemente (irreversível)"
+                      className="text-xs px-2 py-1 rounded-lg font-medium bg-red-100 text-red-700 hover:bg-red-200 inline-flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {deleteCompany.isPending && deleteCompany.variables?.id === c.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Trash2 className="w-3 h-3" />}
+                      Excluir
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -210,6 +250,17 @@ export default function CompaniesTable() {
         expectedText={confirmTarget?.name || ''}
         confirmLabel="Bloquear empresa"
         isLoading={toggleStatus.isPending}
+      />
+
+      <ConfirmDestructiveDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteCompany.mutate(deleteTarget)}
+        title={`EXCLUIR "${deleteTarget?.name || ''}" PERMANENTEMENTE?`}
+        description="Esta ação é IRREVERSÍVEL. Serão apagados em cascata: agendamentos, clientes, profissionais, financeiro, comissões, equipe, mensagens, avaliações e a própria empresa. Apenas o AuditLog ficará preservado."
+        expectedText={deleteTarget?.name || ''}
+        confirmLabel="Excluir tudo permanentemente"
+        isLoading={deleteCompany.isPending}
       />
     </div>
   );
