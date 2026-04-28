@@ -24,16 +24,27 @@ export default function AppEquipe() {
 
   const inviteMutation = useMutation({
     mutationFn: async (data) => {
-      const res = await base44.functions.invoke('inviteTeamMember', data);
+      const ERR_MSG = {
+        ALREADY_MEMBER: 'Este e-mail já faz parte da equipe',
+        EMAIL_INVALID: 'E-mail inválido',
+        NAME_REQUIRED: 'Nome obrigatório',
+        ROLE_INVALID: 'Papel inválido',
+        NO_COMPANY: 'Nenhuma empresa associada à sua conta',
+        FORBIDDEN_ROLE: 'Apenas administradores podem convidar membros',
+        COMPANY_BLOCKED: 'Sua empresa está bloqueada. Regularize para convidar.',
+        NOT_FOUND: 'Empresa não encontrada',
+      };
+      let res;
+      try {
+        res = await base44.functions.invoke('inviteTeamMember', data);
+      } catch (httpErr) {
+        // axios lança em status >= 400; extrai o code retornado pelo backend
+        const code = httpErr?.response?.data?.error;
+        throw new Error(ERR_MSG[code] || code || httpErr.message || 'Falha ao convidar');
+      }
       if (!res.data?.success) {
-        const msg = {
-          ALREADY_MEMBER: 'Este e-mail já faz parte da equipe',
-          EMAIL_INVALID: 'E-mail inválido',
-          NAME_REQUIRED: 'Nome obrigatório',
-          ROLE_INVALID: 'Papel inválido',
-          FORBIDDEN_ROLE: 'Apenas administradores podem convidar membros',
-        }[res.data?.error] || res.data?.error || 'Falha ao convidar';
-        throw new Error(msg);
+        const code = res.data?.error;
+        throw new Error(ERR_MSG[code] || code || 'Falha ao convidar');
       }
       return res.data;
     },
