@@ -5,30 +5,43 @@ import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 import NavList from '@/components/layout/NavList';
 import ImpersonationBanner from '@/components/master/ImpersonationBanner';
+import { useTeamRole } from '@/lib/useTeamRole';
 
-const navItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
-  { label: 'Agenda', icon: Calendar, path: '/app/agenda' },
-  { label: 'Bloqueios', icon: Lock, path: '/app/bloqueios' },
-  { label: 'Clientes', icon: Users, path: '/app/clientes' },
-  { label: 'Serviços', icon: Briefcase, path: '/app/servicos' },
-  { label: 'Combos', icon: Package, path: '/app/combos' },
-  { label: 'Profissionais', icon: Scissors, path: '/app/profissionais' },
-  { label: 'Caixa', icon: Wallet, path: '/app/caixa' },
-  { label: 'Financeiro', icon: DollarSign, path: '/app/financeiro' },
-  { label: 'Comissões', icon: Percent, path: '/app/comissoes' },
-  { label: 'Relatórios', icon: BarChart2, path: '/app/relatorios' },
-  { label: 'AI Growth', icon: Zap, path: '/app/ai-growth', badge: 'AI' },
-  { label: 'Retenção', icon: MessageSquare, path: '/app/retencao' },
-  { label: 'Avaliações', icon: Star, path: '/app/avaliacoes' },
-  { label: 'Equipe', icon: UserCheck, path: '/app/equipe' },
-  { label: 'Assinatura', icon: CreditCard, path: '/app/configuracoes/assinatura' },
-  { label: 'Configurações', icon: Settings, path: '/app/configuracoes' },
+// key = identificador no rolePermissions; default visível para todos os papéis com acesso à rota
+const navItemsAll = [
+  { key: 'dashboard',     label: 'Dashboard',     icon: LayoutDashboard, path: '/app/dashboard' },
+  { key: 'agenda',        label: 'Agenda',        icon: Calendar,        path: '/app/agenda' },
+  { key: 'bloqueios',     label: 'Bloqueios',     icon: Lock,            path: '/app/bloqueios' },
+  { key: 'clientes',      label: 'Clientes',      icon: Users,           path: '/app/clientes' },
+  { key: 'servicos',      label: 'Serviços',      icon: Briefcase,       path: '/app/servicos' },
+  { key: 'combos',        label: 'Combos',        icon: Package,         path: '/app/combos' },
+  { key: 'profissionais', label: 'Profissionais', icon: Scissors,        path: '/app/profissionais' },
+  { key: 'caixa',         label: 'Caixa',         icon: Wallet,          path: '/app/caixa' },
+  { key: 'financeiro',    label: 'Financeiro',    icon: DollarSign,      path: '/app/financeiro' },
+  { key: 'comissoes',     label: 'Comissões',     icon: Percent,         path: '/app/comissoes' },
+  { key: 'relatorios',    label: 'Relatórios',    icon: BarChart2,       path: '/app/relatorios' },
+  { key: 'ai-growth',     label: 'AI Growth',     icon: Zap,             path: '/app/ai-growth', badge: 'AI' },
+  { key: 'retencao',      label: 'Retenção',      icon: MessageSquare,   path: '/app/retencao' },
+  { key: 'avaliacoes',    label: 'Avaliações',    icon: Star,            path: '/app/avaliacoes' },
+  { key: 'equipe',        label: 'Equipe',        icon: UserCheck,       path: '/app/equipe' },
+  { key: 'assinatura',    label: 'Assinatura',    icon: CreditCard,      path: '/app/configuracoes/assinatura' },
+  { key: 'configuracoes', label: 'Configurações', icon: Settings,        path: '/app/configuracoes' },
 ];
+
+import { ROLE_PERMISSIONS } from '@/lib/rolePermissions';
 
 export default function AppLayout({ children }) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const { data: teamRole } = useTeamRole();
+
+  // Filtra menu por papel. Sem papel definido (loading/super_admin/owner antigo) → mostra tudo.
+  const allowed = teamRole?.role && ROLE_PERMISSIONS[teamRole.role]
+    ? ROLE_PERMISSIONS[teamRole.role]
+    : null;
+  const navItems = allowed && !allowed.includes('*')
+    ? navItemsAll.filter(i => allowed.includes(i.key))
+    : navItemsAll;
 
   // Fechar drawer ao trocar de rota
   useEffect(() => { setOpen(false); }, [location.pathname]);

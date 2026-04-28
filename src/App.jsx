@@ -12,6 +12,7 @@ import PrivateRoute from '@/components/guards/PrivateRoute';
 import SuperAdminRoute from '@/components/guards/SuperAdminRoute';
 import OnboardingGuard from '@/components/guards/OnboardingGuard';
 import TotpGate from '@/components/guards/TotpGate';
+import RoleRoute from '@/components/guards/RoleRoute';
 
 // Public pages
 import LandingPage from './pages/LandingPage';
@@ -104,18 +105,18 @@ function App() {
             <Route path="/app/clientes" element={<PrivateRoute><AppClientes /></PrivateRoute>} />
             <Route path="/app/servicos" element={<PrivateRoute><AppServicos /></PrivateRoute>} />
             <Route path="/app/profissionais" element={<PrivateRoute><AppProfissionais /></PrivateRoute>} />
-            <Route path="/app/financeiro" element={<PrivateRoute><AppFinanceiro /></PrivateRoute>} />
-            <Route path="/app/bloqueios" element={<PrivateRoute><AppBloqueios /></PrivateRoute>} />
-            <Route path="/app/caixa" element={<PrivateRoute><AppCaixa /></PrivateRoute>} />
-            <Route path="/app/combos" element={<PrivateRoute><AppCombos /></PrivateRoute>} />
-            <Route path="/app/comissoes" element={<PrivateRoute><AppComissoes /></PrivateRoute>} />
-            <Route path="/app/avaliacoes" element={<PrivateRoute><AppAvaliacoes /></PrivateRoute>} />
-            <Route path="/app/relatorios" element={<PrivateRoute><AppRelatorios /></PrivateRoute>} />
-            <Route path="/app/ai-growth" element={<PrivateRoute><AppAIGrowth /></PrivateRoute>} />
-            <Route path="/app/retencao" element={<PrivateRoute><AppRetencao /></PrivateRoute>} />
-            <Route path="/app/equipe" element={<PrivateRoute><AppEquipe /></PrivateRoute>} />
-            <Route path="/app/configuracoes" element={<PrivateRoute><AppConfiguracoes /></PrivateRoute>} />
-            <Route path="/app/configuracoes/assinatura" element={<PrivateRoute><AppAssinatura /></PrivateRoute>} />
+            <Route path="/app/financeiro" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppFinanceiro /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/bloqueios" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppBloqueios /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/caixa" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppCaixa /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/combos" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppCombos /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/comissoes" element={<PrivateRoute><RoleRoute roles={['admin','financeiro','barbeiro']}><AppComissoes /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/avaliacoes" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppAvaliacoes /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/relatorios" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppRelatorios /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/ai-growth" element={<PrivateRoute><RoleRoute roles={['admin']}><AppAIGrowth /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/retencao" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppRetencao /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/equipe" element={<PrivateRoute><RoleRoute roles={['admin']}><AppEquipe /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/configuracoes" element={<PrivateRoute><RoleRoute roles={['admin']}><AppConfiguracoes /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/configuracoes/assinatura" element={<PrivateRoute><RoleRoute roles={['admin']}><AppAssinatura /></RoleRoute></PrivateRoute>} />
             <Route path="/app/assinatura-bloqueada" element={<PrivateRoute><AssinaturaBloqueada /></PrivateRoute>} />
 
             <Route path="*" element={<PageNotFound />} />

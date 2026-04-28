@@ -2,6 +2,8 @@ import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
+import { useTeamRole } from '@/lib/useTeamRole';
+import { canViewFinance } from '@/lib/rolePermissions';
 import { useState, useEffect } from 'react';
 import { Calendar, Users, DollarSign, CheckCircle, TrendingUp, Clock, AlertCircle, X, AlertTriangle, Zap } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfMonth, isToday, differenceInMinutes, differenceInDays } from 'date-fns';
@@ -19,13 +21,21 @@ const statusConfig = {
 
 export default function AppDashboard() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const { data: teamRole } = useTeamRole();
+  const isBarbeiro = teamRole?.role === 'barbeiro';
+  const myProId = teamRole?.professional_id || null;
+  const showFinance = canViewFinance(teamRole?.role);
   const [alerts, setAlerts] = useState([]);
   const [dismissedAlerts, setDismissedAlerts] = useState(new Set());
 
+  const apptFilter = isBarbeiro && myProId
+    ? { company_id: companyId, professional_id: myProId }
+    : { company_id: companyId };
+
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
-    queryKey: ['appointments', companyId],
-    queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }, '-scheduled_at', 200),
-    enabled: !!companyId,
+    queryKey: ['appointments', companyId, isBarbeiro ? myProId : 'all'],
+    queryFn: () => base44.entities.Appointment.filter(apptFilter, '-scheduled_at', 200),
+    enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
   const { data: customers = [] } = useQuery({
@@ -34,10 +44,11 @@ export default function AppDashboard() {
     enabled: !!companyId,
   });
 
+  // Barbeiro não acessa financeiro — query disabled.
   const { data: financial = [] } = useQuery({
     queryKey: ['financial', companyId],
     queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }),
-    enabled: !!companyId,
+    enabled: !!companyId && showFinance,
   });
 
   const now = new Date();
@@ -161,14 +172,14 @@ export default function AppDashboard() {
           <p className="text-gray-500 text-sm mt-1">{format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} · {company?.name || 'Sua barbearia'}</p>
         </div>
 
-        {/* KPI Cards */}
+        {/* KPI Cards — barbeiro não vê faturamento/ticket médio */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Agendamentos hoje', value: todayAppts.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Faturamento (mês)', value: `R$${revenue.toFixed(0)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-            { label: 'Total clientes', value: customers.length, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-            { label: 'Ticket médio', value: `R$${avgTicket.toFixed(0)}`, icon: TrendingUp, color: 'text-[#2563EB]', bg: 'bg-[#2563EB]/10' },
-          ].map(s => (
+            { label: 'Agendamentos hoje', value: todayAppts.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50', show: true },
+            { label: 'Faturamento (mês)', value: `R$${revenue.toFixed(0)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50', show: showFinance },
+            { label: 'Total clientes', value: customers.length, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50', show: true },
+            { label: 'Ticket médio', value: `R$${avgTicket.toFixed(0)}`, icon: TrendingUp, color: 'text-[#2563EB]', bg: 'bg-[#2563EB]/10', show: showFinance },
+          ].filter(s => s.show).map(s => (
             <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-5">
               <div className={`w-9 h-9 ${s.bg} rounded-xl flex items-center justify-center mb-3`}>
                 <s.icon className={`w-4 h-4 ${s.color}`} />
@@ -265,10 +276,10 @@ export default function AppDashboard() {
               <h3 className="font-bold text-[#1B1C1E] mb-3 text-sm">Ações rápidas</h3>
               <div className="space-y-2">
                 {[
-                  { label: '+ Novo agendamento', href: '/app/agenda' },
-                  { label: '+ Novo cliente', href: '/app/clientes' },
-                  { label: '+ Lançamento financeiro', href: '/app/financeiro' },
-                ].map(item => (
+                  { label: '+ Novo agendamento', href: '/app/agenda', show: true },
+                  { label: '+ Novo cliente', href: '/app/clientes', show: true },
+                  { label: '+ Lançamento financeiro', href: '/app/financeiro', show: showFinance },
+                ].filter(i => i.show).map(item => (
                   <Link key={item.href} to={item.href}
                     className="block text-sm font-medium text-[#2563EB] hover:underline py-1">
                     {item.label}

@@ -2,6 +2,8 @@ import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
+import { useTeamRole } from '@/lib/useTeamRole';
+import { canPayCommission } from '@/lib/rolePermissions';
 import { useState } from 'react';
 import { DollarSign, Check, Percent, Users } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
@@ -11,14 +13,24 @@ import { SkeletonPage } from '@/components/Skeletons';
 
 export default function AppComissoes() {
   const { companyId, isLoading: loadingCompany } = useCompany();
+  const { data: teamRole } = useTeamRole();
+  const isBarbeiro = teamRole?.role === 'barbeiro';
+  const myProId = teamRole?.professional_id || null;
+  const canPay = canPayCommission(teamRole?.role);
+
   const [period, setPeriod] = useState('this_month');
-  const [filterPro, setFilterPro] = useState('all');
+  const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
   const queryClient = useQueryClient();
 
+  // Barbeiro: só vê suas próprias comissões.
+  const commFilter = isBarbeiro && myProId
+    ? { company_id: companyId, professional_id: myProId }
+    : { company_id: companyId };
+
   const { data: commissions = [], isLoading } = useQuery({
-    queryKey: ['commissions', companyId],
-    queryFn: () => base44.entities.Commission.filter({ company_id: companyId }, '-earned_at', 1000),
-    enabled: !!companyId,
+    queryKey: ['commissions', companyId, isBarbeiro ? myProId : 'all'],
+    queryFn: () => base44.entities.Commission.filter(commFilter, '-earned_at', 1000),
+    enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
   const { data: professionals = [] } = useQuery({
@@ -71,10 +83,12 @@ export default function AppComissoes() {
             <p className="text-gray-500 text-sm mt-1">Cálculo automático ao concluir atendimentos</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <select value={filterPro} onChange={e => setFilterPro(e.target.value)} className="px-3 py-2 border border-black/10 rounded-lg text-sm bg-white">
-              <option value="all">Todos os profissionais</option>
-              {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            {!isBarbeiro && (
+              <select value={filterPro} onChange={e => setFilterPro(e.target.value)} className="px-3 py-2 border border-black/10 rounded-lg text-sm bg-white">
+                <option value="all">Todos os profissionais</option>
+                {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            )}
             <select value={period} onChange={e => setPeriod(e.target.value)} className="px-3 py-2 border border-black/10 rounded-lg text-sm bg-white">
               <option value="this_month">Este mês</option>
               <option value="last_month">Mês passado</option>
@@ -128,7 +142,7 @@ export default function AppComissoes() {
                       <div className="text-base font-bold text-[#0F172A]">R$ {row.total.toFixed(2)}</div>
                       {row.pendente > 0 && <div className="text-xs text-amber-600 font-semibold">R$ {row.pendente.toFixed(2)} pendente</div>}
                     </div>
-                    {row.ids_pendentes.length > 0 && (
+                    {canPay && row.ids_pendentes.length > 0 && (
                       <button onClick={() => { if (confirm(`Marcar ${row.ids_pendentes.length} comissões de ${row.name} como pagas?`)) payMutation.mutate(row.ids_pendentes); }}
                         className="bg-[#2563EB] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#1d4ed8] flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5" />Marcar como pago

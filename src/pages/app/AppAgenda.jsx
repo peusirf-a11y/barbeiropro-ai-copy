@@ -2,6 +2,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
+import { useTeamRole } from '@/lib/useTeamRole';
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from 'lucide-react';
 import { format, addDays, startOfWeek } from 'date-fns';
@@ -27,17 +28,25 @@ const emptyForm = {
 
 export default function AppAgenda() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const { data: teamRole } = useTeamRole();
+  const isBarbeiro = teamRole?.role === 'barbeiro';
+  const myProId = teamRole?.professional_id || null;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedAppt, setSelectedAppt] = useState(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
-  const [filterPro, setFilterPro] = useState('all');
+  const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
   const queryClient = useQueryClient();
 
+  // Barbeiro só enxerga seus próprios atendimentos.
+  const apptFilter = isBarbeiro && myProId
+    ? { company_id: companyId, professional_id: myProId }
+    : { company_id: companyId };
+
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
-    queryKey: ['appointments', companyId],
-    queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }, '-scheduled_at', 500),
-    enabled: !!companyId,
+    queryKey: ['appointments', companyId, isBarbeiro ? myProId : 'all'],
+    queryFn: () => base44.entities.Appointment.filter(apptFilter, '-scheduled_at', 500),
+    enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
   const { data: professionals = [] } = useQuery({
@@ -158,8 +167,8 @@ export default function AppAgenda() {
             <p className="text-gray-500 text-sm mt-1">Visualização semanal</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            {/* Filter by professional */}
-            {professionals.length > 0 && (
+            {/* Filter by professional — barbeiro vê só ele mesmo (sem dropdown) */}
+            {!isBarbeiro && professionals.length > 0 && (
               <select value={filterPro} onChange={e => setFilterPro(e.target.value)}
                 className="px-3 py-2 border border-black/10 rounded-lg text-sm focus:outline-none bg-white">
                 <option value="all">Todos os profissionais</option>

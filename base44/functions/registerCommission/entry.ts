@@ -7,6 +7,35 @@
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// === RBAC inline (ver lib/serverPermissions.js — fonte canônica) ===
+class AuthzError extends Error {
+  constructor(code, status = 403) { super(code); this.code = code; this.status = status; }
+}
+async function getCallerContext(base44, user) {
+  if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
+  if (user.is_super_admin) return { role: 'super_admin', is_super_admin: true };
+  const tm = await base44.asServiceRole.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
+  if (tm?.length) {
+    if (tm[0].active === false) throw new AuthzError('USER_INACTIVE', 403);
+    return { role: tm[0].role, company_id: tm[0].company_id };
+  }
+  const co = await base44.asServiceRole.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
+  if (co?.length) return { role: 'admin', company_id: co[0].id };
+  throw new AuthzError('NO_TEAM_MEMBER', 403);
+}
+function ensureSameCompany(caller, entity) {
+  if (caller.is_super_admin) return;
+  if (caller.company_id !== entity.company_id) throw new AuthzError('FORBIDDEN_TENANT', 403);
+}
+function ensureRole(caller, allowed) {
+  if (caller.is_super_admin) return;
+  if (!allowed.includes(caller.role)) throw new AuthzError('FORBIDDEN_ROLE', 403);
+}
+function authzErrorResponse(error) {
+  if (error instanceof AuthzError) return Response.json({ success: false, error: error.code }, { status: error.status });
+  return null;
+}
+
 Deno.serve(async (req) => {
   console.log('JOB START: registerCommission');
   try {
@@ -28,6 +57,16 @@ Deno.serve(async (req) => {
     const appt = await sdk.entities.Appointment.get(appointment_id);
     if (!appt) {
       return Response.json({ success: false, error: 'Appointment not found' }, { status: 404 });
+    }
+
+    // RBAC: se vier de usuário logado (não-automação), valida tenant + papel.
+    // Automações de entidade chamam sem user → bypass para permitir o fluxo.
+    let user = null;
+    try { user = await base44.auth.me(); } catch { /* automation/no auth */ }
+    if (user) {
+      const caller = await getCallerContext(base44, user);
+      ensureSameCompany(caller, appt);
+      ensureRole(caller, ['admin', 'financeiro']);
     }
 
     // Só processa se concluído
@@ -82,6 +121,8 @@ Deno.serve(async (req) => {
     console.log('JOB END: registerCommission', { commission_id: commission.id, amount });
     return Response.json({ success: true, commission_id: commission.id, amount });
   } catch (error) {
+    const az = authzErrorResponse(error);
+    if (az) return az;
     console.error('JOB ERROR: registerCommission:', error.message, error.stack);
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }

@@ -4,6 +4,37 @@
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// === RBAC helpers (inlined: backend functions são deploy independente) ===
+class AuthzError extends Error {
+  constructor(code, status = 403) { super(code); this.code = code; this.status = status; }
+}
+async function getCallerContext(base44, user) {
+  if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
+  if (user.is_super_admin) return { role: 'super_admin', is_super_admin: true, email: user.email };
+  const tm = await base44.asServiceRole.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
+  if (tm?.length) {
+    if (tm[0].active === false) throw new AuthzError('USER_INACTIVE', 403);
+    return { role: tm[0].role, company_id: tm[0].company_id, professional_id: tm[0].professional_id || null, email: user.email };
+  }
+  const co = await base44.asServiceRole.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
+  if (co?.length) return { role: 'admin', company_id: co[0].id, email: user.email, is_owner: true };
+  throw new AuthzError('NO_TEAM_MEMBER', 403);
+}
+function ensureSameCompany(caller, entity) {
+  if (caller.is_super_admin) return;
+  if (!entity?.company_id) throw new AuthzError('ENTITY_NO_COMPANY', 400);
+  if (caller.company_id !== entity.company_id) throw new AuthzError('FORBIDDEN_TENANT', 403);
+}
+function ensureRole(caller, allowed) {
+  if (caller.is_super_admin) return;
+  if (!allowed.includes(caller.role)) throw new AuthzError('FORBIDDEN_ROLE', 403);
+}
+function authzErrorResponse(error) {
+  if (error instanceof AuthzError) return Response.json({ success: false, error: error.code }, { status: error.status });
+  return null;
+}
+const FINANCE_ROLES = ['admin', 'financeiro'];
+
 Deno.serve(async (req) => {
   console.log('JOB START: closeCashRegister');
   try {
@@ -17,14 +48,19 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'final_amount required' }, { status: 400 });
     }
 
-    const reg = await base44.entities.CashRegister.get(register_id);
+    const reg = await base44.asServiceRole.entities.CashRegister.get(register_id);
     if (!reg) return Response.json({ success: false, error: 'Caixa não encontrado' }, { status: 404 });
     if (reg.status === 'fechado') {
       return Response.json({ success: false, error: 'Caixa já está fechado' }, { status: 400 });
     }
 
+    // RBAC: tenant + papel
+    const caller = await getCallerContext(base44, user);
+    ensureSameCompany(caller, reg);
+    ensureRole(caller, FINANCE_ROLES);
+
     // Busca todos os lançamentos da empresa criados após a abertura do caixa.
-    const all = await base44.entities.FinancialEntry.filter({ company_id: reg.company_id }, '-created_date', 1000);
+    const all = await base44.asServiceRole.entities.FinancialEntry.filter({ company_id: reg.company_id }, '-created_date', 1000);
     const since = new Date(reg.opened_at);
     const entries = all.filter(e => new Date(e.created_date || e.date) >= since);
 
@@ -34,7 +70,7 @@ Deno.serve(async (req) => {
     const final = +Number(final_amount).toFixed(2);
     const difference = +(final - expected).toFixed(2);
 
-    const updated = await base44.entities.CashRegister.update(register_id, {
+    const updated = await base44.asServiceRole.entities.CashRegister.update(register_id, {
       closed_at: new Date().toISOString(),
       final_amount: final,
       expected_amount: expected,
@@ -47,6 +83,8 @@ Deno.serve(async (req) => {
     console.log('JOB END: closeCashRegister', { register_id, totalIn, totalOut, expected, final, difference });
     return Response.json({ success: true, register: updated, totals: { totalIn, totalOut, expected, final, difference } });
   } catch (error) {
+    const az = authzErrorResponse(error);
+    if (az) return az;
     console.error('JOB ERROR: closeCashRegister:', error.message, error.stack);
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
