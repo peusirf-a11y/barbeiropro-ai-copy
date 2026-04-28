@@ -3,17 +3,18 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Plus, X, UserCheck, Mail } from 'lucide-react';
+import { Plus, X, Mail, Loader2, Send } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 const roleLabels = { admin: 'Admin', recepcao: 'Recepção', barbeiro: 'Barbeiro', financeiro: 'Financeiro' };
 const roleColors = { admin: 'bg-purple-100 text-purple-700', recepcao: 'bg-blue-100 text-blue-700', barbeiro: 'bg-green-100 text-green-700', financeiro: 'bg-yellow-100 text-yellow-700' };
 
 export default function AppEquipe() {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', role: 'recepcao', active: true });
+  const [form, setForm] = useState({ name: '', email: '', role: 'recepcao' });
   const queryClient = useQueryClient();
-
-  const { company, companyId } = useCompany();
+  const { toast } = useToast();
+  const { companyId } = useCompany();
 
   const { data: team = [] } = useQuery({
     queryKey: ['team', companyId],
@@ -21,9 +22,49 @@ export default function AppEquipe() {
     enabled: !!companyId,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.TeamMember.create({ ...data, company_id: companyId }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['team', companyId] }); setShowForm(false); setForm({ name: '', email: '', role: 'recepcao', active: true }); },
+  const inviteMutation = useMutation({
+    mutationFn: async (data) => {
+      const res = await base44.functions.invoke('inviteTeamMember', data);
+      if (!res.data?.success) {
+        const msg = {
+          ALREADY_MEMBER: 'Este e-mail já faz parte da equipe',
+          EMAIL_INVALID: 'E-mail inválido',
+          NAME_REQUIRED: 'Nome obrigatório',
+          ROLE_INVALID: 'Papel inválido',
+          FORBIDDEN_ROLE: 'Apenas administradores podem convidar membros',
+        }[res.data?.error] || res.data?.error || 'Falha ao convidar';
+        throw new Error(msg);
+      }
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['team', companyId] });
+      setShowForm(false);
+      setForm({ name: '', email: '', role: 'recepcao' });
+      toast({
+        title: data.email_sent ? 'Convite enviado!' : 'Membro adicionado',
+        description: data.email_sent
+          ? 'O e-mail de convite foi enviado. Peça para o convidado verificar a caixa de entrada (e a pasta spam).'
+          : 'Membro criado, mas o e-mail falhou. Use "Reenviar convite" na lista.',
+      });
+    },
+    onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const resendMutation = useMutation({
+    mutationFn: async (id) => {
+      const res = await base44.functions.invoke('resendTeamInvite', { team_member_id: id });
+      if (!res.data?.success) throw new Error(res.data?.error || 'Falha ao reenviar');
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: data.email_sent ? 'Convite reenviado!' : 'Reenvio falhou',
+        description: data.email_sent ? 'O membro receberá um novo e-mail em instantes.' : 'Verifique o painel master para diagnóstico.',
+        variant: data.email_sent ? 'default' : 'destructive',
+      });
+    },
+    onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
   const updateMutation = useMutation({
@@ -46,13 +87,14 @@ export default function AppEquipe() {
 
         <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
          <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px]">
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-black/8">
                 <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Membro</th>
                 <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">E-mail</th>
                 <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Papel</th>
                 <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -78,10 +120,23 @@ export default function AppEquipe() {
                       {m.active ? 'Ativo' : 'Inativo'}
                     </button>
                   </td>
+                  <td className="p-4">
+                    <button
+                      onClick={() => resendMutation.mutate(m.id)}
+                      disabled={resendMutation.isPending}
+                      className="text-xs px-2 py-1 rounded-lg font-medium bg-blue-50 text-[#2563EB] hover:bg-blue-100 inline-flex items-center gap-1 disabled:opacity-50"
+                      title="Reenviar e-mail de convite"
+                    >
+                      {resendMutation.isPending && resendMutation.variables === m.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Send className="w-3 h-3" />}
+                      Reenviar convite
+                    </button>
+                  </td>
                 </tr>
               ))}
               {team.length === 0 && (
-                <tr><td colSpan={4} className="p-8 text-center text-gray-400 text-sm">Nenhum membro na equipe</td></tr>
+                <tr><td colSpan={5} className="p-8 text-center text-gray-400 text-sm">Nenhum membro na equipe</td></tr>
               )}
             </tbody>
           </table>
@@ -91,10 +146,14 @@ export default function AppEquipe() {
         {showForm && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="font-bold text-[#1B1C1E]">Convidar Membro</h3>
                 <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
               </div>
+              <p className="text-xs text-gray-500 mb-5 flex items-start gap-1.5">
+                <Mail className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                Um e-mail será enviado automaticamente com o link de acesso.
+              </p>
               <div className="space-y-4">
                 {[
                   { label: 'Nome *', key: 'name', type: 'text' },
@@ -119,8 +178,14 @@ export default function AppEquipe() {
               </div>
               <div className="flex gap-3 mt-5">
                 <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
-                <button onClick={() => createMutation.mutate(form)} disabled={!form.name || !form.email}
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">Salvar</button>
+                <button
+                  onClick={() => inviteMutation.mutate(form)}
+                  disabled={!form.name || !form.email || inviteMutation.isPending}
+                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {inviteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Enviar convite
+                </button>
               </div>
             </div>
           </div>
