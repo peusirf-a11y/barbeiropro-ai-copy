@@ -66,8 +66,36 @@ export default function PublicBooking() {
 
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
-      const result = await base44.entities.Appointment.create(data);
-      // Dispara o e-mail de confirmação (não bloqueia a UX se falhar)
+      // 1) Busca cliente existente por telefone (normalizado) na empresa
+      const phoneNorm = String(data.customer_phone || '').replace(/\D/g, '');
+      let customer = null;
+      if (phoneNorm) {
+        const matches = await base44.entities.Customer.filter({
+          company_id: data.company_id,
+          phone: phoneNorm,
+        }, '-created_date', 1);
+        if (matches?.length) customer = matches[0];
+      }
+
+      // 2) Se não existe, cria automaticamente
+      if (!customer) {
+        customer = await base44.entities.Customer.create({
+          company_id: data.company_id,
+          name: data.customer_name,
+          phone: phoneNorm,
+          email: data.customer_email || undefined,
+          status: 'active',
+        });
+      }
+
+      // 3) Cria appointment já com customer_id vinculado
+      const result = await base44.entities.Appointment.create({
+        ...data,
+        customer_phone: phoneNorm,
+        customer_id: customer.id,
+      });
+
+      // E-mail de confirmação (não bloqueia UX)
       if (data.customer_email && result?.id) {
         base44.functions
           .invoke('sendBookingConfirmation', { appointment_id: result.id })
