@@ -32,6 +32,17 @@ function ensureRole(caller, allowed) {
   if (caller.is_super_admin) return;
   if (!allowed.includes(caller.role)) throw new AuthzError('FORBIDDEN_ROLE', 403);
 }
+async function logBlockedAttempt(sdk, { actor_email, action, code, target_id, metadata }) {
+  try {
+    await sdk.entities.AuditLog.create({
+      actor_email: actor_email || 'unknown',
+      action: 'BLOCKED_ATTEMPT',
+      target_type: 'Function',
+      target_id: action,
+      metadata: { reason: code, original_target_id: target_id, ...metadata },
+    });
+  } catch (e) { console.warn('[logBlockedAttempt] failed:', e.message); }
+}
 
 const ROLE_LABELS = {
   admin: 'Administrador', recepcao: 'Recepção', barbeiro: 'Barbeiro', financeiro: 'Financeiro',
@@ -135,6 +146,11 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     if (error instanceof AuthzError) {
+      try {
+        const sdk = createClientFromRequest(req).asServiceRole;
+        let u = null; try { u = await createClientFromRequest(req).auth.me(); } catch { /* noop */ }
+        await logBlockedAttempt(sdk, { actor_email: u?.email, action: 'resendTeamInvite', code: error.code });
+      } catch (_e) { /* noop */ }
       return Response.json({ success: false, error: error.code }, { status: error.status });
     }
     console.error('[resendTeamInvite] error:', error.message, error.stack);

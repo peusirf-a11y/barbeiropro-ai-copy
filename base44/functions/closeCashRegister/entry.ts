@@ -42,6 +42,27 @@ const FINANCE_ROLES = ['admin', 'financeiro'];
 function notFound() {
   return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
 }
+async function logBlockedAttempt(sdk, { actor_email, action, code, target_id, metadata }) {
+  try {
+    await sdk.entities.AuditLog.create({
+      actor_email: actor_email || 'unknown',
+      action: 'BLOCKED_ATTEMPT',
+      target_type: 'Function',
+      target_id: action,
+      metadata: { reason: code, original_target_id: target_id, ...metadata },
+    });
+  } catch (e) { console.warn('[logBlockedAttempt] failed:', e.message); }
+}
+async function ensureCompanyNotBlocked(sdk, company_id, user_email, action) {
+  if (!company_id) return;
+  let co;
+  try { co = await sdk.entities.Company.get(company_id); } catch { return; }
+  if (!co) return;
+  if (co.status === 'blocked' || co.is_blocked_by_billing === true) {
+    await logBlockedAttempt(sdk, { actor_email: user_email, action, code: 'COMPANY_BLOCKED', target_id: company_id });
+    throw new AuthzError('COMPANY_BLOCKED', 403);
+  }
+}
 
 Deno.serve(async (req) => {
   console.log('[closeCashRegister] start');
@@ -69,6 +90,7 @@ Deno.serve(async (req) => {
 
     ensureSameCompany(caller, reg);
     ensureRole(caller, FINANCE_ROLES);
+    await ensureCompanyNotBlocked(base44.asServiceRole, reg.company_id, user.email, 'closeCashRegister');
 
     if (reg.status === 'fechado') {
       return Response.json({ success: false, error: 'ALREADY_CLOSED' }, { status: 400 });
@@ -117,6 +139,11 @@ Deno.serve(async (req) => {
     const az = authzErrorResponse(error);
     if (az) {
       console.warn('[closeCashRegister] authz blocked:', error.code);
+      try {
+        const sdk = createClientFromRequest(req).asServiceRole;
+        let u = null; try { u = await createClientFromRequest(req).auth.me(); } catch { /* noop */ }
+        await logBlockedAttempt(sdk, { actor_email: u?.email, action: 'closeCashRegister', code: error.code });
+      } catch (_e) { /* noop */ }
       return az;
     }
     console.error('[closeCashRegister] error:', error.message, error.stack);

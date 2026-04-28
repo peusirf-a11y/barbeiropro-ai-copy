@@ -38,6 +38,27 @@ function authzErrorResponse(error) {
 function notFound() {
   return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
 }
+async function logBlockedAttempt(sdk, { actor_email, action, code, target_id, metadata }) {
+  try {
+    await sdk.entities.AuditLog.create({
+      actor_email: actor_email || 'unknown',
+      action: 'BLOCKED_ATTEMPT',
+      target_type: 'Function',
+      target_id: action,
+      metadata: { reason: code, original_target_id: target_id, ...metadata },
+    });
+  } catch (e) { console.warn('[logBlockedAttempt] failed:', e.message); }
+}
+async function ensureCompanyNotBlocked(sdk, company_id, user_email, action) {
+  if (!company_id) return;
+  let co;
+  try { co = await sdk.entities.Company.get(company_id); } catch { return; }
+  if (!co) return;
+  if (co.status === 'blocked' || co.is_blocked_by_billing === true) {
+    await logBlockedAttempt(sdk, { actor_email: user_email, action, code: 'COMPANY_BLOCKED', target_id: company_id });
+    throw new AuthzError('COMPANY_BLOCKED', 403);
+  }
+}
 
 Deno.serve(async (req) => {
   console.log('[reverseCommission] start');
@@ -73,6 +94,7 @@ Deno.serve(async (req) => {
     if (!appt) return notFound();
 
     if (caller) ensureSameCompany(caller, appt);
+    if (caller) await ensureCompanyNotBlocked(sdk, appt.company_id, user?.email, 'reverseCommission');
 
     // Só estorna se status atual é cancelado/faltou
     if (!['cancelado', 'faltou'].includes(appt.status)) {
@@ -142,6 +164,11 @@ Deno.serve(async (req) => {
     const az = authzErrorResponse(error);
     if (az) {
       console.warn('[reverseCommission] authz blocked:', error.code);
+      try {
+        const sdk = createClientFromRequest(req).asServiceRole;
+        let u = null; try { u = await createClientFromRequest(req).auth.me(); } catch { /* noop */ }
+        await logBlockedAttempt(sdk, { actor_email: u?.email, action: 'reverseCommission', code: error.code });
+      } catch (_e) { /* noop */ }
       return az;
     }
     console.error('[reverseCommission] error:', error.message, error.stack);

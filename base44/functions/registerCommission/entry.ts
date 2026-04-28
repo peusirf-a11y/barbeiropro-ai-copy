@@ -42,6 +42,28 @@ function authzErrorResponse(error) {
 function notFound() {
   return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
 }
+// Best-effort: registra tentativas bloqueadas para detecção de abuso. Falha não interrompe o fluxo.
+async function logBlockedAttempt(sdk, { actor_email, action, code, target_id, metadata }) {
+  try {
+    await sdk.entities.AuditLog.create({
+      actor_email: actor_email || 'unknown',
+      action: 'BLOCKED_ATTEMPT',
+      target_type: 'Function',
+      target_id: action,
+      metadata: { reason: code, original_target_id: target_id, ...metadata },
+    });
+  } catch (e) { console.warn('[logBlockedAttempt] failed:', e.message); }
+}
+async function ensureCompanyNotBlocked(sdk, company_id, user_email, action) {
+  if (!company_id) return;
+  let co;
+  try { co = await sdk.entities.Company.get(company_id); } catch { return; }
+  if (!co) return;
+  if (co.status === 'blocked' || co.is_blocked_by_billing === true) {
+    await logBlockedAttempt(sdk, { actor_email: user_email, action, code: 'COMPANY_BLOCKED', target_id: company_id });
+    throw new AuthzError('COMPANY_BLOCKED', 403);
+  }
+}
 
 Deno.serve(async (req) => {
   console.log('[registerCommission] start');
@@ -82,6 +104,9 @@ Deno.serve(async (req) => {
 
     // Tenant check (só para usuário logado)
     if (caller) ensureSameCompany(caller, appt);
+
+    // Bloqueia mutação em empresa bloqueada (manual ou inadimplência) — só p/ usuários, não automação
+    if (caller) await ensureCompanyNotBlocked(sdk, appt.company_id, user?.email, 'registerCommission');
 
     // Só processa se concluído
     if (appt.status !== 'concluido') {
@@ -154,6 +179,12 @@ Deno.serve(async (req) => {
     const az = authzErrorResponse(error);
     if (az) {
       console.warn('[registerCommission] authz blocked:', error.code);
+      // Loga tentativa bloqueada para detecção de abuso (best-effort)
+      try {
+        const sdk = createClientFromRequest(req).asServiceRole;
+        let u = null; try { u = await createClientFromRequest(req).auth.me(); } catch { /* noop */ }
+        await logBlockedAttempt(sdk, { actor_email: u?.email, action: 'registerCommission', code: error.code });
+      } catch (_e) { /* noop */ }
       return az;
     }
     console.error('[registerCommission] error:', error.message, error.stack);

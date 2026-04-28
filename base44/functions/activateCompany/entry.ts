@@ -36,6 +36,16 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
     if (!user.is_super_admin) {
       console.warn('[activateCompany] non-super-admin attempt:', user.email);
+      try {
+        await base44.asServiceRole.entities.AuditLog.create({
+          actor_email: user.email,
+          action: 'BLOCKED_ATTEMPT',
+          target_type: 'Function',
+          target_id: 'activateCompany',
+          ip,
+          metadata: { reason: 'FORBIDDEN_ROLE' },
+        });
+      } catch (_e) { /* noop */ }
       return Response.json({ success: false, error: 'FORBIDDEN_ROLE' }, { status: 403 });
     }
 

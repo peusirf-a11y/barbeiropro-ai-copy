@@ -36,6 +36,27 @@ function ensureRole(caller, allowed) {
   if (caller.is_super_admin) return;
   if (!allowed.includes(caller.role)) throw new AuthzError('FORBIDDEN_ROLE', 403);
 }
+async function logBlockedAttempt(sdk, { actor_email, action, code, target_id, metadata }) {
+  try {
+    await sdk.entities.AuditLog.create({
+      actor_email: actor_email || 'unknown',
+      action: 'BLOCKED_ATTEMPT',
+      target_type: 'Function',
+      target_id: action,
+      metadata: { reason: code, original_target_id: target_id, ...metadata },
+    });
+  } catch (e) { console.warn('[logBlockedAttempt] failed:', e.message); }
+}
+async function ensureCompanyNotBlocked(sdk, company_id, user_email, action) {
+  if (!company_id) return;
+  let co;
+  try { co = await sdk.entities.Company.get(company_id); } catch { return; }
+  if (!co) return;
+  if (co.status === 'blocked' || co.is_blocked_by_billing === true) {
+    await logBlockedAttempt(sdk, { actor_email: user_email, action, code: 'COMPANY_BLOCKED', target_id: company_id });
+    throw new AuthzError('COMPANY_BLOCKED', 403);
+  }
+}
 
 const ROLE_LABELS = {
   admin: 'Administrador',
@@ -114,6 +135,12 @@ Deno.serve(async (req) => {
     }
     if (!company) return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
 
+    // Empresa bloqueada não pode convidar
+    if (!caller.is_super_admin && (company.status === 'blocked' || company.is_blocked_by_billing === true)) {
+      await logBlockedAttempt(sdk, { actor_email: user.email, action: 'inviteTeamMember', code: 'COMPANY_BLOCKED', target_id: targetCompanyId });
+      return Response.json({ success: false, error: 'COMPANY_BLOCKED' }, { status: 403 });
+    }
+
     // Bloqueia duplicidade no mesmo tenant
     const existing = await sdk.entities.TeamMember.filter({ company_id: targetCompanyId, email });
     if (existing && existing.length > 0) {
@@ -184,6 +211,11 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     if (error instanceof AuthzError) {
+      try {
+        const sdk = createClientFromRequest(req).asServiceRole;
+        let u = null; try { u = await createClientFromRequest(req).auth.me(); } catch { /* noop */ }
+        await logBlockedAttempt(sdk, { actor_email: u?.email, action: 'inviteTeamMember', code: error.code });
+      } catch (_e) { /* noop */ }
       return Response.json({ success: false, error: error.code }, { status: error.status });
     }
     console.error('[inviteTeamMember] error:', error.message, error.stack);
