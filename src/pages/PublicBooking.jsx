@@ -88,11 +88,16 @@ export default function PublicBooking() {
     if (!hours?.active) return [];
     const slots = generateTimeSlots(hours.open || '09:00', hours.close || '19:00', selected.service.duration_minutes || 30);
 
+    const now = new Date();
+    const isToday = selected.date.toDateString() === now.toDateString();
+
     return slots.filter(time => {
       const [h, m] = time.split(':');
       const slotStart = new Date(selected.date);
       slotStart.setHours(+h, +m, 0, 0);
-      const slotEnd = new Date(slotStart.getTime() + (selected.service.duration_minutes || 30) * 60000);
+
+      // Para o dia atual, esconde horários que já passaram
+      if (isToday && slotStart <= now) return false;
 
       // Check conflict with existing appointments for this professional
       const proId = selected.professional?.id;
@@ -158,7 +163,8 @@ export default function PublicBooking() {
     });
   };
 
-  const next7Days = Array.from({ length: 14 }, (_, i) => addDays(startOfDay(new Date()), i + 1)).filter(day => {
+  // Inclui o dia de hoje (i começa em 0). Horários passados são filtrados em getAvailableSlots.
+  const next7Days = Array.from({ length: 14 }, (_, i) => addDays(startOfDay(new Date()), i)).filter(day => {
     if (!company?.business_hours) return true;
     const dayKey = DAY_MAP[day.getDay()];
     return company.business_hours[dayKey]?.active !== false;
