@@ -35,38 +35,46 @@ Deno.serve(async (req) => {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user?.is_super_admin) {
-      return Response.json({ success: false, error: 'Super Admin only' }, { status: 403 });
+    if (!user) return Response.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
+    if (!user.is_super_admin) {
+      console.warn('[impersonatedMutation] non-super-admin attempt:', user.email);
+      return Response.json({ success: false, error: 'FORBIDDEN_ROLE' }, { status: 403 });
     }
 
     const { token, company_id, entity, op, data, id } = await req.json();
     if (!token || !company_id || !entity || !op) {
-      return Response.json({ success: false, error: 'token, company_id, entity e op são obrigatórios' }, { status: 400 });
+      return Response.json({ success: false, error: 'token, company_id, entity e op required' }, { status: 400 });
     }
     if (!ALLOWED_ENTITIES.has(entity)) {
-      return Response.json({ success: false, error: `Entity ${entity} não permitida` }, { status: 400 });
+      return Response.json({ success: false, error: 'ENTITY_NOT_ALLOWED' }, { status: 400 });
     }
     if (!rateLimit(`imp_mut_${user.email}`)) {
-      return Response.json({ success: false, error: 'Rate limit exceeded' }, { status: 429 });
+      return Response.json({ success: false, error: 'RATE_LIMIT' }, { status: 429 });
     }
 
     // Valida sessão de impersonação
     const sessions = await base44.asServiceRole.entities.ImpersonationSession.filter({ token });
     const s = sessions?.[0];
-    if (!s) return Response.json({ success: false, error: 'Sessão de impersonação inválida' }, { status: 401 });
-    if (s.ended_at) return Response.json({ success: false, error: 'Sessão encerrada' }, { status: 401 });
+    if (!s) return Response.json({ success: false, error: 'IMPERSONATION_INVALID' }, { status: 401 });
+    if (s.ended_at) return Response.json({ success: false, error: 'IMPERSONATION_ENDED' }, { status: 401 });
     if (new Date(s.expires_at).getTime() <= Date.now()) {
-      return Response.json({ success: false, error: 'Sessão expirada' }, { status: 401 });
+      return Response.json({ success: false, error: 'IMPERSONATION_EXPIRED' }, { status: 401 });
     }
     if (s.actor_email !== user.email) {
-      return Response.json({ success: false, error: 'Sessão não pertence a este usuário' }, { status: 401 });
+      return Response.json({ success: false, error: 'IMPERSONATION_USER_MISMATCH' }, { status: 401 });
     }
     if (s.company_id !== company_id) {
-      return Response.json({ success: false, error: 'company_id divergente da sessão' }, { status: 403 });
+      console.warn('[impersonatedMutation] company_id mismatch with session', { user: user.email, session_company: s.company_id, requested_company: company_id });
+      return Response.json({ success: false, error: 'IMPERSONATION_COMPANY_MISMATCH' }, { status: 403 });
     }
 
     const Entity = base44.asServiceRole.entities[entity];
-    if (!Entity) return Response.json({ success: false, error: `Entity ${entity} não disponível` }, { status: 400 });
+    if (!Entity) return Response.json({ success: false, error: 'ENTITY_NOT_AVAILABLE' }, { status: 400 });
+
+    // Helper local: 404 genérico (não vaza existência cross-tenant)
+    const safeGet = async (idToGet) => {
+      try { return await Entity.get(idToGet); } catch { return null; }
+    };
 
     let before = null;
     let result = null;
@@ -78,14 +86,15 @@ Deno.serve(async (req) => {
         : { ...(data || {}), company_id };
       result = await Entity.create(payload);
     } else if (op === 'update') {
-      if (!id) return Response.json({ success: false, error: 'id obrigatório para update' }, { status: 400 });
-      const existing = await Entity.get(id);
-      if (!existing) return Response.json({ success: false, error: 'Registro não encontrado' }, { status: 404 });
+      if (!id) return Response.json({ success: false, error: 'id required' }, { status: 400 });
+      const existing = await safeGet(id);
+      if (!existing) return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
 
       // Isolamento: registro deve pertencer à empresa impersonada
       if (entity === 'Company') {
         if (existing.id !== company_id) {
-          return Response.json({ success: false, error: 'Tentativa de editar outra empresa' }, { status: 403 });
+          console.warn('[impersonatedMutation] cross-tenant company update attempt', { user: user.email, target: existing.id, session: company_id });
+          return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
         }
         // Filtra apenas campos permitidos
         const safe = {};
@@ -96,7 +105,8 @@ Deno.serve(async (req) => {
         result = await Entity.update(id, safe);
       } else {
         if (existing.company_id !== company_id) {
-          return Response.json({ success: false, error: 'Registro não pertence à empresa' }, { status: 403 });
+          console.warn('[impersonatedMutation] cross-tenant update attempt', { user: user.email, entity, target_company: existing.company_id, session_company: company_id });
+          return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
         }
         // Não permite trocar company_id via update
         const { company_id: _ignore, ...safe } = data || {};
@@ -104,20 +114,21 @@ Deno.serve(async (req) => {
         result = await Entity.update(id, safe);
       }
     } else if (op === 'delete') {
-      if (!id) return Response.json({ success: false, error: 'id obrigatório para delete' }, { status: 400 });
+      if (!id) return Response.json({ success: false, error: 'id required' }, { status: 400 });
       if (entity === 'Company') {
-        return Response.json({ success: false, error: 'Delete de Company não permitido via impersonação' }, { status: 403 });
+        return Response.json({ success: false, error: 'COMPANY_DELETE_FORBIDDEN' }, { status: 403 });
       }
-      const existing = await Entity.get(id);
-      if (!existing) return Response.json({ success: false, error: 'Registro não encontrado' }, { status: 404 });
+      const existing = await safeGet(id);
+      if (!existing) return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
       if (existing.company_id !== company_id) {
-        return Response.json({ success: false, error: 'Registro não pertence à empresa' }, { status: 403 });
+        console.warn('[impersonatedMutation] cross-tenant delete attempt', { user: user.email, entity, target_company: existing.company_id, session_company: company_id });
+        return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
       }
       before = { ...existing };
       await Entity.delete(id);
       result = { id, deleted: true };
     } else {
-      return Response.json({ success: false, error: `op ${op} inválido` }, { status: 400 });
+      return Response.json({ success: false, error: 'INVALID_OP' }, { status: 400 });
     }
 
     // AuditLog
@@ -133,9 +144,10 @@ Deno.serve(async (req) => {
       ip,
     });
 
+    console.log('[impersonatedMutation] ok', { user: user.email, company_id, entity, op, target_id: id || result?.id });
     return Response.json({ success: true, data: result });
   } catch (error) {
-    console.error('JOB ERROR: impersonatedMutation:', error.message, error.stack);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    console.error('[impersonatedMutation] error:', error.message, error.stack);
+    return Response.json({ success: false, error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 });

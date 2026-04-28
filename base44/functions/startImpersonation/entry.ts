@@ -33,13 +33,15 @@ Deno.serve(async (req) => {
 
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user?.is_super_admin) {
-      return Response.json({ success: false, error: 'Unauthorized: Super Admin only' }, { status: 403 });
+    if (!user) return Response.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
+    if (!user.is_super_admin) {
+      console.warn('[startImpersonation] non-super-admin attempt:', user.email);
+      return Response.json({ success: false, error: 'FORBIDDEN_ROLE' }, { status: 403 });
     }
 
     const { company_id, reason, totp_session_token } = await req.json();
     if (!company_id) {
-      return Response.json({ success: false, error: 'company_id é obrigatório' }, { status: 400 });
+      return Response.json({ success: false, error: 'company_id required' }, { status: 400 });
     }
 
     // Exige 2FA válido para iniciar impersonação
@@ -48,10 +50,13 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: totpCheck.error, totp_required: true }, { status: 401 });
     }
 
-    const company = await base44.asServiceRole.entities.Company.get(company_id);
-    if (!company) {
-      return Response.json({ success: false, error: 'Empresa não encontrada' }, { status: 404 });
+    let company;
+    try {
+      company = await base44.asServiceRole.entities.Company.get(company_id);
+    } catch (_e) {
+      return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
     }
+    if (!company) return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
 
     const token = crypto.randomUUID() + '.' + crypto.randomUUID();
     const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
@@ -76,6 +81,7 @@ Deno.serve(async (req) => {
       metadata: { company_name: company.name, expires_at, reason: reason || null },
     });
 
+    console.log('[startImpersonation] ok', { user: user.email, company_id, expires_at });
     return Response.json({
       success: true,
       token,
@@ -84,7 +90,7 @@ Deno.serve(async (req) => {
       expires_at,
     });
   } catch (error) {
-    console.error('JOB ERROR: startImpersonation:', error.message, error.stack);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    console.error('[startImpersonation] error:', error.message, error.stack);
+    return Response.json({ success: false, error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 });

@@ -4,9 +4,16 @@
 //     cada function é deployada isolada (sandbox Deno separado). Por isso, o
 //     conteúdo abaixo é INLINED em cada function que precisa de RBAC.
 //     Se você alterar a lógica aqui, replique o trecho equivalente em:
-//       - functions/closeCashRegister
-//       - functions/registerCommission
-//       - functions/reverseCommission
+//       - functions/closeCashRegister     (admin/financeiro)
+//       - functions/registerCommission    (admin/financeiro OU automação)
+//       - functions/reverseCommission     (admin/financeiro OU automação)
+//
+// Functions super_admin-only (não usam getCallerContext, usam check direto + TOTP):
+//       - functions/blockCompany
+//       - functions/activateCompany
+//       - functions/startImpersonation
+//       - functions/endImpersonation
+//       - functions/impersonatedMutation
 //
 // Padrão de uso (dentro de cada function, com cópia inline do helper):
 //   const caller = await getCallerContext(base44, user);

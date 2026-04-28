@@ -3,7 +3,10 @@
 //   1) flag commission_created no Appointment (rápido)
 //   2) busca em Commission por appointment_id (defensivo)
 //   3) marca commission_created=true após criar
-// Pode ser chamado pelo frontend OU pela automação de entidade (status=concluido).
+// Pode ser chamado pelo frontend (admin/financeiro) OU pela automação `onAppointmentConcluded`.
+//
+// HARDENING: RBAC inline. Ordem: caller → fetch via serviceRole → ensureSameCompany+ensureRole.
+// Automação chama sem user logado → bypass RBAC (mas continua usando serviceRole).
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
@@ -13,18 +16,19 @@ class AuthzError extends Error {
 }
 async function getCallerContext(base44, user) {
   if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
-  if (user.is_super_admin) return { role: 'super_admin', is_super_admin: true };
+  if (user.is_super_admin) return { role: 'super_admin', is_super_admin: true, email: user.email };
   const tm = await base44.asServiceRole.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
   if (tm?.length) {
     if (tm[0].active === false) throw new AuthzError('USER_INACTIVE', 403);
-    return { role: tm[0].role, company_id: tm[0].company_id };
+    return { role: tm[0].role, company_id: tm[0].company_id, email: user.email };
   }
   const co = await base44.asServiceRole.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
-  if (co?.length) return { role: 'admin', company_id: co[0].id };
+  if (co?.length) return { role: 'admin', company_id: co[0].id, email: user.email };
   throw new AuthzError('NO_TEAM_MEMBER', 403);
 }
 function ensureSameCompany(caller, entity) {
   if (caller.is_super_admin) return;
+  if (!entity?.company_id) throw new AuthzError('ENTITY_NO_COMPANY', 400);
   if (caller.company_id !== entity.company_id) throw new AuthzError('FORBIDDEN_TENANT', 403);
 }
 function ensureRole(caller, allowed) {
@@ -35,9 +39,12 @@ function authzErrorResponse(error) {
   if (error instanceof AuthzError) return Response.json({ success: false, error: error.code }, { status: error.status });
   return null;
 }
+function notFound() {
+  return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
+}
 
 Deno.serve(async (req) => {
-  console.log('JOB START: registerCommission');
+  console.log('[registerCommission] start');
   try {
     const base44 = createClientFromRequest(req);
 
@@ -51,47 +58,64 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'appointment_id required' }, { status: 400 });
     }
 
-    // Service role: o gatilho não tem usuário logado
-    const sdk = base44.asServiceRole;
-
-    const appt = await sdk.entities.Appointment.get(appointment_id);
-    if (!appt) {
-      return Response.json({ success: false, error: 'Appointment not found' }, { status: 404 });
-    }
-
-    // RBAC: se vier de usuário logado (não-automação), valida tenant + papel.
-    // Automações de entidade chamam sem user → bypass para permitir o fluxo.
+    // Detecta automação (sem user) vs. chamada de usuário logado
     let user = null;
     try { user = await base44.auth.me(); } catch { /* automation/no auth */ }
+
+    // RBAC quando vem de usuário logado
+    let caller = null;
     if (user) {
-      const caller = await getCallerContext(base44, user);
-      ensureSameCompany(caller, appt);
+      caller = await getCallerContext(base44, user);
       ensureRole(caller, ['admin', 'financeiro']);
     }
 
+    // Service role: leitura defensiva mesmo em automação
+    const sdk = base44.asServiceRole;
+
+    let appt;
+    try {
+      appt = await sdk.entities.Appointment.get(appointment_id);
+    } catch (_e) {
+      return notFound();
+    }
+    if (!appt) return notFound();
+
+    // Tenant check (só para usuário logado)
+    if (caller) ensureSameCompany(caller, appt);
+
     // Só processa se concluído
     if (appt.status !== 'concluido') {
-      console.log('Skipped: appointment not concluded', { status: appt.status });
+      console.log('[registerCommission] skipped: not concluded', { appointment_id, status: appt.status });
       return Response.json({ success: true, skipped: true, reason: 'not_concluded' });
     }
 
     // 1) Flag idempotente
     if (appt.commission_created) {
-      console.log('Skipped: commission_created flag already true');
+      console.log('[registerCommission] skipped: flag already set', { appointment_id });
       return Response.json({ success: true, skipped: true, reason: 'flag_set' });
     }
 
     // 2) Defesa extra: já existe Commission para esse appointment_id?
     const existing = await sdk.entities.Commission.filter({ appointment_id });
     if (existing && existing.length > 0) {
-      // Marca a flag para não cair aqui de novo
       await sdk.entities.Appointment.update(appointment_id, { commission_created: true });
-      console.log('Skipped: existing commission found, flag synced');
+      console.log('[registerCommission] skipped: existing commission', { appointment_id, commission_id: existing[0].id });
       return Response.json({ success: true, skipped: true, commission_id: existing[0].id });
     }
 
-    const pro = await sdk.entities.Professional.get(appt.professional_id);
-    if (!pro) return Response.json({ success: false, error: 'Professional not found' }, { status: 404 });
+    let pro;
+    try {
+      pro = await sdk.entities.Professional.get(appt.professional_id);
+    } catch (_e) {
+      return Response.json({ success: false, error: 'PROFESSIONAL_NOT_FOUND' }, { status: 404 });
+    }
+    if (!pro) return Response.json({ success: false, error: 'PROFESSIONAL_NOT_FOUND' }, { status: 404 });
+
+    // Defesa extra: Professional precisa pertencer ao mesmo tenant do appointment
+    if (pro.company_id !== appt.company_id) {
+      console.error('[registerCommission] tenant mismatch pro vs appt', { appointment_id, pro_company: pro.company_id, appt_company: appt.company_id });
+      return Response.json({ success: false, error: 'TENANT_MISMATCH' }, { status: 409 });
+    }
 
     const price = Number(appt.price) || 0;
     const type = pro.commission_type || 'percent';
@@ -118,12 +142,21 @@ Deno.serve(async (req) => {
     // 3) Marca flag para garantir idempotência mesmo em chamadas concorrentes
     await sdk.entities.Appointment.update(appointment_id, { commission_created: true });
 
-    console.log('JOB END: registerCommission', { commission_id: commission.id, amount });
+    console.log('[registerCommission] ok', {
+      user: user?.email || 'automation',
+      company_id: appt.company_id,
+      appointment_id,
+      commission_id: commission.id,
+      amount,
+    });
     return Response.json({ success: true, commission_id: commission.id, amount });
   } catch (error) {
     const az = authzErrorResponse(error);
-    if (az) return az;
-    console.error('JOB ERROR: registerCommission:', error.message, error.stack);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    if (az) {
+      console.warn('[registerCommission] authz blocked:', error.code);
+      return az;
+    }
+    console.error('[registerCommission] error:', error.message, error.stack);
+    return Response.json({ success: false, error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 });

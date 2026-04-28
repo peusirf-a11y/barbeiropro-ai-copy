@@ -5,12 +5,14 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user?.is_super_admin) {
-      return Response.json({ success: false, error: 'Super Admin only' }, { status: 403 });
+    if (!user) return Response.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
+    if (!user.is_super_admin) {
+      console.warn('[endImpersonation] non-super-admin attempt:', user.email);
+      return Response.json({ success: false, error: 'FORBIDDEN_ROLE' }, { status: 403 });
     }
 
     const { token } = await req.json();
-    if (!token) return Response.json({ success: false, error: 'token obrigatório' }, { status: 400 });
+    if (!token) return Response.json({ success: false, error: 'token required' }, { status: 400 });
 
     const sessions = await base44.asServiceRole.entities.ImpersonationSession.filter({ token });
     const s = sessions?.[0];
@@ -27,9 +29,10 @@ Deno.serve(async (req) => {
         impersonated_company_id: s.company_id,
       });
     }
+    console.log('[endImpersonation] ok', { user: user.email });
     return Response.json({ success: true });
   } catch (error) {
-    console.error('JOB ERROR: endImpersonation:', error.message);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    console.error('[endImpersonation] error:', error.message);
+    return Response.json({ success: false, error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 });

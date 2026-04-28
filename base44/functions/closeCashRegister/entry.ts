@@ -1,6 +1,9 @@
 // Fecha um caixa calculando entradas/saídas no SERVIDOR (fonte da verdade).
 // Frontend só envia: register_id e final_amount (saldo contado).
 // Backend: busca lançamentos desde a abertura, calcula expected_amount e difference.
+//
+// HARDENING: RBAC inline com ordem CallerContext → fetch via serviceRole → ensureSameCompany+ensureRole.
+// Erros 404 genéricos para não vazar existência de recursos cross-tenant.
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
@@ -35,12 +38,17 @@ function authzErrorResponse(error) {
 }
 const FINANCE_ROLES = ['admin', 'financeiro'];
 
+// 404 genérico — não distingue "não existe" de "existe em outro tenant"
+function notFound() {
+  return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
+}
+
 Deno.serve(async (req) => {
-  console.log('JOB START: closeCashRegister');
+  console.log('[closeCashRegister] start');
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user) return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (!user) return Response.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
 
     const { register_id, final_amount, notes } = await req.json().catch(() => ({}));
     if (!register_id) return Response.json({ success: false, error: 'register_id required' }, { status: 400 });
@@ -48,16 +56,23 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'final_amount required' }, { status: 400 });
     }
 
-    const reg = await base44.asServiceRole.entities.CashRegister.get(register_id);
-    if (!reg) return Response.json({ success: false, error: 'Caixa não encontrado' }, { status: 404 });
-    if (reg.status === 'fechado') {
-      return Response.json({ success: false, error: 'Caixa já está fechado' }, { status: 400 });
-    }
-
-    // RBAC: tenant + papel
+    // ORDEM CORRETA: caller PRIMEIRO, depois fetch via serviceRole, depois RBAC tenant+role
     const caller = await getCallerContext(base44, user);
+
+    let reg;
+    try {
+      reg = await base44.asServiceRole.entities.CashRegister.get(register_id);
+    } catch (_e) {
+      return notFound(); // SDK lança 404 quando id não existe — devolve genérico
+    }
+    if (!reg) return notFound();
+
     ensureSameCompany(caller, reg);
     ensureRole(caller, FINANCE_ROLES);
+
+    if (reg.status === 'fechado') {
+      return Response.json({ success: false, error: 'ALREADY_CLOSED' }, { status: 400 });
+    }
 
     // Busca todos os lançamentos da empresa criados após a abertura do caixa.
     const all = await base44.asServiceRole.entities.FinancialEntry.filter({ company_id: reg.company_id }, '-created_date', 1000);
@@ -80,12 +95,31 @@ Deno.serve(async (req) => {
       status: 'fechado',
     });
 
-    console.log('JOB END: closeCashRegister', { register_id, totalIn, totalOut, expected, final, difference });
+    // AuditLog (mutation crítica)
+    try {
+      await base44.asServiceRole.entities.AuditLog.create({
+        actor_email: user.email,
+        actor_is_super_admin: !!caller.is_super_admin,
+        action: 'CLOSE_CASH_REGISTER',
+        target_type: 'CashRegister',
+        target_id: register_id,
+        before: { status: 'aberto', initial_amount: reg.initial_amount },
+        after: { status: 'fechado', final_amount: final, expected_amount: expected, difference },
+        metadata: { company_id: reg.company_id, totalIn, totalOut },
+      });
+    } catch (auditErr) {
+      console.warn('[closeCashRegister] audit log failed:', auditErr.message);
+    }
+
+    console.log('[closeCashRegister] ok', { user: user.email, company_id: reg.company_id, register_id, expected, final, difference });
     return Response.json({ success: true, register: updated, totals: { totalIn, totalOut, expected, final, difference } });
   } catch (error) {
     const az = authzErrorResponse(error);
-    if (az) return az;
-    console.error('JOB ERROR: closeCashRegister:', error.message, error.stack);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    if (az) {
+      console.warn('[closeCashRegister] authz blocked:', error.code);
+      return az;
+    }
+    console.error('[closeCashRegister] error:', error.message, error.stack);
+    return Response.json({ success: false, error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 });
