@@ -24,6 +24,10 @@
     "active": {
       "type": "boolean",
       "default": true
+    },
+    "professional_id": {
+      "type": "string",
+      "description": "Quando role=barbeiro, vincula ao Professional correspondente para filtrar agenda/comiss\u00f5es"
     }
   },
   "required": [

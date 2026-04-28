@@ -156,6 +156,23 @@ Deno.serve(async (req) => {
       active: true,
     });
 
+    // Se for barbeiro, cria Professional e vincula automaticamente.
+    // Sem isso o filtro de agenda/comissões do barbeiro não funciona.
+    if (role === 'barbeiro') {
+      try {
+        const professional = await sdk.entities.Professional.create({
+          company_id: targetCompanyId,
+          name,
+          active: true,
+        });
+        await sdk.entities.TeamMember.update(member.id, { professional_id: professional.id });
+        member.professional_id = professional.id;
+        console.log('[inviteTeamMember] auto-created Professional', professional.id, 'for barbeiro', email);
+      } catch (profErr) {
+        console.error('[inviteTeamMember] failed to auto-create Professional:', profErr.message);
+      }
+    }
+
     // Determina URL do app a partir do request
     const origin = req.headers.get('origin')
       || req.headers.get('referer')?.replace(/\/[^/]*$/, '')
