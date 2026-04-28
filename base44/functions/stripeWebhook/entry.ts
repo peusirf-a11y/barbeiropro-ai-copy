@@ -131,13 +131,17 @@ Deno.serve(async (req) => {
   </p>
 </div>`.trim();
 
-        await base44.asServiceRole.integrations.Core.SendEmail({
+        const companyForLog = existing?.[0] || (await base44.asServiceRole.entities.Company.filter({ owner_email: email }))?.[0];
+        await base44.asServiceRole.functions.invoke('sendAuditedEmail', {
           to: email,
           subject,
           body: html,
           from_name: 'BarberTrimly',
+          type: 'welcome',
+          company_id: companyForLog?.id || null,
+          metadata: { plan_name: planName, is_new_account: isNewAccount, stripe_session_id: session.id },
         });
-        console.log('Welcome email sent to', email);
+        console.log('Welcome email queued for', email);
       } catch (mailErr) {
         console.error('Failed to send welcome email:', mailErr.message);
       }

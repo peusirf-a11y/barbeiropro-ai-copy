@@ -36,7 +36,7 @@ export default function CheckoutSuccess() {
             Sua assinatura foi confirmada e sua conta está sendo criada. Você ganhou <strong>7 dias grátis</strong> para configurar tudo com calma.
           </p>
 
-          <div className="bg-[#F8F7F3] rounded-xl p-4 mb-6 text-left">
+          <div className="bg-[#F8F7F3] rounded-xl p-4 mb-4 text-left">
             <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
               <Mail className="w-3.5 h-3.5" /> Próximos passos
             </div>
@@ -45,6 +45,12 @@ export default function CheckoutSuccess() {
               <li>Complete o onboarding da sua barbearia</li>
               <li>Comece a receber agendamentos</li>
             </ol>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 mb-6 text-left">
+            <p className="text-xs text-blue-900 leading-relaxed">
+              <strong>Enviamos um link de acesso para seu e-mail.</strong> Não recebeu? Verifique a caixa de <strong>spam</strong> ou tente o login direto com seu e-mail cadastrado clicando no botão abaixo.
+            </p>
           </div>
 
           <button

@@ -98,28 +98,46 @@ export default function Onboarding() {
       }
     }
     if (step === 3 && companyId) {
-      for (const s of services.filter(s => s.name)) {
-        await createServiceMutation.mutateAsync({ ...s, company_id: companyId, active: true });
-      }
+      // Paralelizado: todas as criações ao mesmo tempo
+      await Promise.all(
+        services.filter(s => s.name).map(s =>
+          createServiceMutation.mutateAsync({ ...s, company_id: companyId, active: true })
+        )
+      );
     }
     if (step === 4 && companyId) {
-      for (const p of professionals.filter(p => p.name)) {
-        await createProMutation.mutateAsync({ ...p, company_id: companyId, active: true });
-      }
-      await base44.entities.Company.update(companyId, { onboarding_completed: true, onboarding_step: 6 });
-      try {
-        await base44.functions.invoke('trackEvent', { event_type: 'onboarding_completed' });
-      } catch { /* best effort */ }
+      // Paralelizado
+      await Promise.all(
+        professionals.filter(p => p.name).map(p =>
+          createProMutation.mutateAsync({ ...p, company_id: companyId, active: true })
+        )
+      );
     }
-    // Tracking de cada passo concluído (best-effort)
-    try {
-      await base44.functions.invoke('trackEvent', {
-        event_type: 'onboarding_step_completed',
-        metadata: { step },
-      });
-    } catch { /* best effort */ }
+
+    // Tracking fire-and-forget — não trava a navegação
+    base44.functions.invoke('trackEvent', {
+      event_type: 'onboarding_step_completed',
+      metadata: { step },
+    }).catch(() => {});
 
     if (step === 6) {
+      // Marca como concluído SOMENTE no clique final, e invalida cache antes de navegar
+      if (companyId) {
+        await base44.entities.Company.update(companyId, {
+          onboarding_completed: true,
+          onboarding_step: 6,
+        });
+      }
+      base44.functions.invoke('trackEvent', { event_type: 'onboarding_completed' }).catch(() => {});
+
+      // Invalida todos os caches que decidem onboarding/redirect
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['companies'] }),
+        queryClient.invalidateQueries({ queryKey: ['companies-onboarding'] }),
+        queryClient.invalidateQueries({ queryKey: ['private-route-company'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-company'] }),
+      ]);
+
       navigate('/app/dashboard');
       return;
     }
