@@ -1,6 +1,7 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { CreditCard, CheckCircle, Loader2, ExternalLink, Calendar, Zap } from 'lucide-react';
@@ -8,6 +9,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useImpersonation } from '@/hooks/useImpersonation';
 import ImpersonationLockNotice from '@/components/ImpersonationLockNotice';
+import UpgradePlanCard from '@/components/billing/UpgradePlanCard';
 
 const STATUS_LABEL = {
   trialing: { label: 'Em período grátis', color: 'bg-blue-100 text-blue-700' },
@@ -23,6 +25,8 @@ export default function AppAssinatura() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { isImpersonating } = useImpersonation();
+  const location = useLocation();
+  const showUpgradeHighlight = new URLSearchParams(location.search).get('upgrade') === '1';
 
   const { data: companies = [] } = useQuery({
     queryKey: ['my-companies', user?.email],
@@ -130,6 +134,13 @@ export default function AppAssinatura() {
             </p>
           )}
         </div>
+
+        {/* Upgrade / outros planos */}
+        {company?.id && (
+          <div className="mb-4">
+            <UpgradePlanCard currentPlanId={company.plan_id} highlight={showUpgradeHighlight} />
+          </div>
+        )}
 
         {/* What you can do */}
         <div className="bg-[#2563EB]/5 border border-[#2563EB]/15 rounded-2xl p-5">

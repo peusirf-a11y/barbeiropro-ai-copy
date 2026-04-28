@@ -6,6 +6,7 @@ export const BLOCKED_SUBSCRIPTION_STATUSES = ['past_due', 'canceled', 'unpaid'];
 export function isCompanyBlocked(company) {
   if (!company) return false;
   if (company.status === 'blocked') return true;
+  if (company.is_blocked_by_billing === true) return true;
   if (BLOCKED_SUBSCRIPTION_STATUSES.includes(company.subscription_status)) return true;
   return false;
 }

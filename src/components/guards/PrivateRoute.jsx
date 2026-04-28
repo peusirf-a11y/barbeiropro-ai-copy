@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { isCompanyBlocked } from '@/lib/enforceCompanyAccess';
+import { isRouteAllowedByPlan } from '@/lib/featureGate';
 
 export default function PrivateRoute({ children }) {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user, navigateToLogin } = useAuth();
@@ -25,6 +26,14 @@ export default function PrivateRoute({ children }) {
     : companies.find(c => c.owner_email === user?.email);
 
   const blocked = !!myCompany && isCompanyBlocked(myCompany);
+
+  // Carrega plano da empresa para feature gating (não bloqueia render se falhar/inexistente)
+  const { data: plan } = useQuery({
+    queryKey: ['private-route-plan', myCompany?.plan_id],
+    queryFn: () => base44.entities.Plan.get(myCompany.plan_id),
+    enabled: !!myCompany?.plan_id,
+    staleTime: 5 * 60_000,
+  });
 
   // Quando detecta bloqueio, invalida TODOS os caches → impede renderização de dados antigos
   useEffect(() => {
@@ -66,6 +75,11 @@ export default function PrivateRoute({ children }) {
 
   if (blocked && !isBillingPage) {
     return <Navigate to="/app/assinatura-bloqueada" replace />;
+  }
+
+  // Feature gating por plano (usa lista canônica em lib/featureGate.js)
+  if (myCompany?.plan_id && plan && !isRouteAllowedByPlan(location.pathname, plan)) {
+    return <Navigate to="/app/configuracoes/assinatura?upgrade=1" replace />;
   }
 
   return children;

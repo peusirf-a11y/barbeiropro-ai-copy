@@ -47,7 +47,7 @@
     },
     "plan_id": {
       "type": "string",
-      "description": "Refer\u00eancia \u00e0 entity Plan (fonte da verdade para pre\u00e7o/MRR)"
+      "description": "Refer\u00eancia \u00e0 entity Plan (fonte da verdade para pre\u00e7o/MRR/features)"
     },
     "onboarding_step": {
       "type": "number",
@@ -91,6 +91,11 @@
     "current_period_end": {
       "type": "string",
       "format": "date-time"
+    },
+    "is_blocked_by_billing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Bloqueio autom\u00e1tico por inadimpl\u00eancia (separado do `status=blocked` manual feito pelo Master)"
     },
     "trial_email_d3_sent": {
       "type": "boolean",

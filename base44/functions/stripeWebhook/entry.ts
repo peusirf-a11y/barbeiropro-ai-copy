@@ -237,7 +237,55 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.entities.Company.update(companies[0].id, {
             status: 'active',
             subscription_status: 'active',
+            is_blocked_by_billing: false,
           });
+          console.log('[stripeWebhook] invoice.paid → unblocked', companies[0].id);
+        }
+      }
+    }
+
+    if (event.type === 'invoice.payment_failed') {
+      const invoice = event.data.object;
+      if (invoice.subscription) {
+        const companies = await base44.asServiceRole.entities.Company.filter({ stripe_subscription_id: invoice.subscription });
+        if (companies && companies.length > 0) {
+          const c = companies[0];
+          await base44.asServiceRole.entities.Company.update(c.id, {
+            subscription_status: 'past_due',
+            is_blocked_by_billing: true,
+          });
+
+          try {
+            await base44.asServiceRole.entities.SystemAlert.create({
+              type: 'payment_failed',
+              severity: 'critical',
+              message: `Cobrança falhou: ${c.name}`,
+              company_id: c.id,
+              metadata: {
+                subscription_id: invoice.subscription,
+                invoice_id: invoice.id,
+                amount_due: invoice.amount_due,
+                attempt_count: invoice.attempt_count,
+              },
+            });
+          } catch (alertErr) {
+            console.error('[stripeWebhook] SystemAlert failed:', alertErr.message);
+          }
+
+          try {
+            await base44.asServiceRole.entities.AuditLog.create({
+              actor_email: 'stripe-webhook',
+              action: 'STRIPE_INVOICE_PAYMENT_FAILED',
+              target_type: 'Company',
+              target_id: c.id,
+              after: { is_blocked_by_billing: true, subscription_status: 'past_due' },
+              metadata: { subscription_id: invoice.subscription, invoice_id: invoice.id },
+            });
+          } catch (auditErr) {
+            console.error('[stripeWebhook] AuditLog failed:', auditErr.message);
+          }
+
+          console.log('[stripeWebhook] invoice.payment_failed → blocked', c.id);
         }
       }
     }
