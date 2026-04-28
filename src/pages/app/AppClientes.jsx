@@ -2,6 +2,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
+import { useTeamRole } from '@/lib/useTeamRole';
 import { useState } from 'react';
 import { Search, Plus, X, Users, Pencil, Trash2, Phone } from 'lucide-react';
 import { format } from 'date-fns';
@@ -17,6 +18,8 @@ const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active',
 
 export default function AppClientes() {
   const { companyId, isLoading: loadingCompany } = useCompany();
+  const { data: teamRole } = useTeamRole();
+  const isBarbeiro = teamRole?.role === 'barbeiro';
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
@@ -93,9 +96,11 @@ export default function AppClientes() {
             <h1 className="text-2xl font-black text-[#1B1C1E]">Clientes</h1>
             <p className="text-gray-500 text-sm mt-1">{customers.length} clientes cadastrados</p>
           </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2 sm:self-start">
-            <Plus className="w-4 h-4" />Novo cliente
-          </button>
+          {!isBarbeiro && (
+            <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2 sm:self-start">
+              <Plus className="w-4 h-4" />Novo cliente
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3 mb-5">
@@ -159,10 +164,12 @@ export default function AppClientes() {
                       </span>
                     </td>
                     <td className="p-4">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => openEdit(c)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
-                        <button onClick={() => { if (confirm('Excluir cliente?')) deleteMutation.mutate(c.id); }} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
-                      </div>
+                      {!isBarbeiro ? (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => openEdit(c)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
+                          <button onClick={() => { if (confirm('Excluir cliente?')) deleteMutation.mutate(c.id); }} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+                        </div>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

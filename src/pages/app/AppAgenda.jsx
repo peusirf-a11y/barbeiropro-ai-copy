@@ -186,9 +186,11 @@ export default function AppAgenda() {
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-            <button onClick={() => setShowNewForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
-              <Plus className="w-4 h-4" />Novo
-            </button>
+            {!isBarbeiro && (
+              <button onClick={() => setShowNewForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
+                <Plus className="w-4 h-4" />Novo
+              </button>
+            )}
           </div>
         </div>
 
@@ -298,10 +300,12 @@ export default function AppAgenda() {
                   ))}
                 </div>
               </div>
-              <button onClick={() => { if (confirm('Excluir este agendamento?')) deleteMutation.mutate(selectedAppt.id); }}
-                className="w-full text-xs text-red-500 hover:text-red-700 font-medium py-2">
-                Excluir agendamento
-              </button>
+              {!isBarbeiro && (
+                <button onClick={() => { if (confirm('Excluir este agendamento?')) deleteMutation.mutate(selectedAppt.id); }}
+                  className="w-full text-xs text-red-500 hover:text-red-700 font-medium py-2">
+                  Excluir agendamento
+                </button>
+              )}
             </div>
           </div>
         )}
