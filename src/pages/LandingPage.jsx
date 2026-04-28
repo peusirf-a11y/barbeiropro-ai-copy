@@ -1,9 +1,19 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Scissors, Calendar, Users, TrendingUp, Star, ArrowRight, CheckCircle, Zap, BarChart2, MessageSquare, Shield, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function LandingPage() {
+  const { isAuthenticated, isLoadingAuth, user } = useAuth();
+
+  // Usuário já logado: super admin → /master, demais → /app/dashboard.
+  // Evita ficar preso na landing após login.
+  if (!isLoadingAuth && isAuthenticated && user) {
+    if (user.is_super_admin) return <Navigate to="/master" replace />;
+    return <Navigate to="/app/dashboard" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F7F3] font-inter">
       {/* Navbar */}

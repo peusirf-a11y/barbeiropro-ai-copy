@@ -11,8 +11,21 @@ export function useCompany() {
     enabled: !!user,
   });
 
-  // Pick the company this user owns or the first one available
-  const company = companies.find(c => c.owner_email === user?.email) || companies[0] || null;
+  // Fallback via TeamMember (barbeiro/recepção/financeiro não são owners)
+  const { data: teamMember } = useQuery({
+    queryKey: ['my-team-member', user?.email],
+    queryFn: async () => {
+      const tm = await base44.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
+      return tm?.[0] || null;
+    },
+    enabled: !!user?.email,
+    staleTime: 60_000,
+  });
+
+  // Prioridade: owner > team member > primeira disponível
+  const ownerCompany = companies.find(c => c.owner_email === user?.email);
+  const teamCompany = teamMember ? companies.find(c => c.id === teamMember.company_id) : null;
+  const company = ownerCompany || teamCompany || companies[0] || null;
 
   return { company, companyId: company?.id || null, isLoading };
 }

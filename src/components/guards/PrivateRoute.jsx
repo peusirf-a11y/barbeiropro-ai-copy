@@ -22,9 +22,28 @@ export default function PrivateRoute({ children }) {
     staleTime: 30_000,
   });
 
-  const myCompany = user?.role === 'admin'
+  // Owner direto da empresa
+  const ownerCompany = user?.role === 'admin'
     ? null
     : companies.find(c => c.owner_email === user?.email);
+
+  // Fallback: usuário é membro da equipe (barbeiro/recepção/financeiro) → vincula via TeamMember
+  const { data: teamMember, isLoading: loadingTeamMember } = useQuery({
+    queryKey: ['private-route-team-member', user?.email],
+    queryFn: async () => {
+      const tm = await base44.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
+      return tm?.[0] || null;
+    },
+    enabled: !!isAuthenticated && !!user && user?.role !== 'admin' && !ownerCompany,
+    staleTime: 60_000,
+  });
+
+  const teamCompany = teamMember
+    ? companies.find(c => c.id === teamMember.company_id)
+    : null;
+
+  const myCompany = ownerCompany || teamCompany;
+  const isTeamMemberOnly = !ownerCompany && !!teamMember;
 
   const blocked = !!myCompany && isCompanyBlocked(myCompany);
 
@@ -41,7 +60,7 @@ export default function PrivateRoute({ children }) {
     if (blocked) qc.clear();
   }, [blocked, qc]);
 
-  if (isLoadingAuth || isLoadingPublicSettings || (isAuthenticated && loadingCompanies)) {
+  if (isLoadingAuth || isLoadingPublicSettings || (isAuthenticated && loadingCompanies) || (isAuthenticated && loadingTeamMember)) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#F7F8FB]">
         <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
@@ -59,13 +78,14 @@ export default function PrivateRoute({ children }) {
     return children;
   }
 
-  // No company yet → onboarding
+  // No company yet → onboarding (apenas se também NÃO for membro de equipe)
   if (!myCompany) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Onboarding not completed → onboarding
-  if (!myCompany.onboarding_completed) {
+  // Onboarding not completed → só envia para onboarding o DONO da empresa.
+  // Membros de equipe (barbeiro/recepção/financeiro) NÃO devem fazer onboarding.
+  if (!myCompany.onboarding_completed && !isTeamMemberOnly) {
     return <Navigate to="/onboarding" replace />;
   }
 
