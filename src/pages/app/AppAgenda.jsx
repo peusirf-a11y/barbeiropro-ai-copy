@@ -75,14 +75,31 @@ export default function AppAgenda() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      // Marca completed_at junto com status=concluido (a comissão é gerada
-      // automaticamente pela automação de entidade `onAppointmentConcluded`).
+      // Marca completed_at junto com status=concluido. As automações de entidade
+      // criam comissão (registerCommission) + entrada financeira + link de avaliação
+      // (onAppointmentConcluded) de forma idempotente.
       const payload = data.status === 'concluido' && !data.completed_at
         ? { ...data, completed_at: new Date().toISOString() }
         : data;
       return base44.entities.Appointment.update(id, payload);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments', companyId] }); setSelectedAppt(null); },
+    onSuccess: (_res, vars) => {
+      // Invalida tudo que pode ter mudado por automação encadeada.
+      // Pequeno delay para dar tempo das automações rodarem antes do refetch.
+      const isConcluded = vars?.data?.status === 'concluido';
+      queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
+      if (isConcluded) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
+          queryClient.invalidateQueries({ queryKey: ['commissions', companyId] });
+          queryClient.invalidateQueries({ queryKey: ['financial', companyId] });
+          queryClient.invalidateQueries({ queryKey: ['financial-entries', companyId] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard', companyId] });
+          queryClient.invalidateQueries({ queryKey: ['cash-register', companyId] });
+        }, 1500);
+      }
+      setSelectedAppt(null);
+    },
   });
 
   const createMutation = useMutation({
