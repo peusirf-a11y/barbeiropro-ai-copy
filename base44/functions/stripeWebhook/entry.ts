@@ -89,8 +89,9 @@ Deno.serve(async (req) => {
 
       // Enviar email de boas-vindas com link de acesso
       try {
-        const origin = req.headers.get('origin') || `https://${req.headers.get('host') || 'barbertrimly.base44.app'}`;
-        const accessLink = `${origin}/app/dashboard`;
+        // Stripe webhook não envia header `origin`, e `host` é a URL do Deno (que retorna 400 sem Base44-App-Id).
+        // Sempre usar o domínio público do app.
+        const accessLink = 'https://barbertrimly.base44.app/app/dashboard';
         const firstName = (ownerName || '').split(' ')[0] || 'tudo certo';
         const subject = isNewAccount
           ? `Bem-vindo ao BarberTrimly, ${firstName}! 💈`
