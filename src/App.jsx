@@ -50,6 +50,7 @@ import AppCaixa from './pages/app/AppCaixa';
 import AppCombos from './pages/app/AppCombos';
 import AppComissoes from './pages/app/AppComissoes';
 import AppAvaliacoes from './pages/app/AppAvaliacoes';
+import AppIndicacoes from './pages/app/AppIndicacoes';
 import AssinaturaBloqueada from './pages/AssinaturaBloqueada';
 import TermosDeUso from './pages/legal/TermosDeUso';
 import PoliticaDePrivacidade from './pages/legal/PoliticaDePrivacidade';
@@ -111,6 +112,7 @@ function App() {
             <Route path="/app/combos" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppCombos /></RoleRoute></PrivateRoute>} />
             <Route path="/app/comissoes" element={<PrivateRoute><RoleRoute roles={['admin','financeiro','barbeiro']}><AppComissoes /></RoleRoute></PrivateRoute>} />
             <Route path="/app/avaliacoes" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppAvaliacoes /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/indicacoes" element={<PrivateRoute><RoleRoute roles={['admin']}><AppIndicacoes /></RoleRoute></PrivateRoute>} />
             <Route path="/app/relatorios" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppRelatorios /></RoleRoute></PrivateRoute>} />
             <Route path="/app/ai-growth" element={<PrivateRoute><RoleRoute roles={['admin']}><AppAIGrowth /></RoleRoute></PrivateRoute>} />
             <Route path="/app/retencao" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppRetencao /></RoleRoute></PrivateRoute>} />

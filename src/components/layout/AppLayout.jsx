@@ -1,11 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Menu, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors } from 'lucide-react';
+import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Menu, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 import NavList from '@/components/layout/NavList';
 import ImpersonationBanner from '@/components/master/ImpersonationBanner';
+import BillingPastDueBanner from '@/components/billing/BillingPastDueBanner';
 import { useTeamRole } from '@/lib/useTeamRole';
+import { useCompany } from '@/hooks/useCompany';
+import { isPastDueLimited } from '@/lib/billingMode';
 
 // key = identificador no rolePermissions; default visível para todos os papéis com acesso à rota
 const navItemsAll = [
@@ -23,6 +26,7 @@ const navItemsAll = [
   { key: 'ai-growth',     label: 'AI Growth',     icon: Zap,             path: '/app/ai-growth', badge: 'AI' },
   { key: 'retencao',      label: 'Retenção',      icon: MessageSquare,   path: '/app/retencao' },
   { key: 'avaliacoes',    label: 'Avaliações',    icon: Star,            path: '/app/avaliacoes' },
+  { key: 'indicacoes',    label: 'Indique e ganhe',icon: Gift,           path: '/app/indicacoes' },
   { key: 'equipe',        label: 'Equipe',        icon: UserCheck,       path: '/app/equipe' },
   { key: 'assinatura',    label: 'Assinatura',    icon: CreditCard,      path: '/app/configuracoes/assinatura' },
   { key: 'configuracoes', label: 'Configurações', icon: Settings,        path: '/app/configuracoes' },
@@ -34,6 +38,8 @@ export default function AppLayout({ children }) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const { data: teamRole } = useTeamRole();
+  const { company } = useCompany();
+  const showPastDue = isPastDueLimited(company);
 
   // Filtra menu por papel. Sem papel definido (loading/super_admin/owner antigo) → mostra tudo.
   const allowed = teamRole?.role && ROLE_PERMISSIONS[teamRole.role]
@@ -128,6 +134,7 @@ export default function AppLayout({ children }) {
       {/* Main content */}
       <main className="lg:ml-64 min-h-screen animate-fade-in">
         <ImpersonationBanner />
+        {showPastDue && <BillingPastDueBanner />}
         {children}
       </main>
     </div>

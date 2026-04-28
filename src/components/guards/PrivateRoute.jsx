@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { isCompanyBlocked } from '@/lib/enforceCompanyAccess';
 import { isRouteAllowedByPlan } from '@/lib/featureGate';
+import { isRouteBlockedByPastDue } from '@/lib/billingMode';
 
 export default function PrivateRoute({ children }) {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user, navigateToLogin } = useAuth();
@@ -79,6 +80,11 @@ export default function PrivateRoute({ children }) {
 
   // Feature gating por plano (usa lista canônica em lib/featureGate.js)
   if (myCompany?.plan_id && plan && !isRouteAllowedByPlan(location.pathname, plan)) {
+    return <Navigate to="/app/configuracoes/assinatura?upgrade=1" replace />;
+  }
+
+  // Past-due limitado: bloqueia rotas financeiras mas mantém agenda
+  if (isRouteBlockedByPastDue(location.pathname, myCompany)) {
     return <Navigate to="/app/configuracoes/assinatura?upgrade=1" replace />;
   }
 

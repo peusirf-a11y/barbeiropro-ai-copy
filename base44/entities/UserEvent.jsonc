@@ -1,0 +1,50 @@
+{
+  "name": "UserEvent",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "actor_email": {
+      "type": "string",
+      "description": "Email do usu\u00e1rio que disparou o evento (vazio se sistema)"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "company_created",
+        "onboarding_started",
+        "onboarding_step_completed",
+        "onboarding_completed",
+        "first_appointment",
+        "first_customer",
+        "first_professional",
+        "first_payment",
+        "first_commission",
+        "campaign_d1_sent",
+        "campaign_d3_sent",
+        "campaign_d7_sent",
+        "upsell_shown",
+        "upsell_clicked",
+        "referral_created",
+        "referral_redeemed"
+      ]
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "frontend",
+        "backend",
+        "automation"
+      ],
+      "default": "backend"
+    }
+  },
+  "required": [
+    "company_id",
+    "event_type"
+  ]
+}

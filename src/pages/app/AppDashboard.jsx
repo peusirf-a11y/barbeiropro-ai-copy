@@ -9,6 +9,7 @@ import { Calendar, Users, DollarSign, CheckCircle, TrendingUp, Clock, AlertCircl
 import { format, startOfDay, endOfDay, startOfMonth, isToday, differenceInMinutes, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import ActivationHealthCard from '@/components/dashboard/ActivationHealthCard';
 
 const statusConfig = {
   agendado: { label: 'Agendado', color: 'bg-blue-100 text-blue-700' },
@@ -225,6 +226,9 @@ export default function AppDashboard() {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            {/* Saúde da conta (Activation Score) */}
+            <ActivationHealthCard />
+
             {/* Próximos horários */}
             {upcomingToday.length > 0 && (
               <div className="bg-white rounded-2xl border border-black/8 p-5">

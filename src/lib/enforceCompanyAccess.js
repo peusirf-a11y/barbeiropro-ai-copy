@@ -1,7 +1,8 @@
 // Util compartilhado de bloqueio. Lança "COMPANY_BLOCKED" se a empresa estiver
 // bloqueada manualmente pelo Master ou inadimplente.
 
-export const BLOCKED_SUBSCRIPTION_STATUSES = ['past_due', 'canceled', 'unpaid'];
+// past_due passou a ser tratado como "limitado" (não hard-block) — ver lib/billingMode.js
+export const BLOCKED_SUBSCRIPTION_STATUSES = ['canceled', 'unpaid'];
 
 export function isCompanyBlocked(company) {
   if (!company) return false;

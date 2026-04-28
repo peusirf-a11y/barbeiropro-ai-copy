@@ -107,7 +107,18 @@ export default function Onboarding() {
         await createProMutation.mutateAsync({ ...p, company_id: companyId, active: true });
       }
       await base44.entities.Company.update(companyId, { onboarding_completed: true, onboarding_step: 6 });
+      try {
+        await base44.functions.invoke('trackEvent', { event_type: 'onboarding_completed' });
+      } catch { /* best effort */ }
     }
+    // Tracking de cada passo concluído (best-effort)
+    try {
+      await base44.functions.invoke('trackEvent', {
+        event_type: 'onboarding_step_completed',
+        metadata: { step },
+      });
+    } catch { /* best effort */ }
+
     if (step === 6) {
       navigate('/app/dashboard');
       return;
