@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_REMOVE_DELAY = 500;
+const TOAST_DEFAULT_DURATION = 4000;
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -125,6 +126,7 @@ function toast({ ...props }) {
   dispatch({
     type: actionTypes.ADD_TOAST,
     toast: {
+      duration: TOAST_DEFAULT_DURATION,
       ...props,
       id,
       open: true,
@@ -161,4 +163,4 @@ function useToast() {
   };
 }
 
-export { useToast, toast }; 
+export { useToast, toast };
