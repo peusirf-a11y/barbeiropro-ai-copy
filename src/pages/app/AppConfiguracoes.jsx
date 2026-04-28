@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
 import { Save, Globe, Copy, CheckCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import MyEmailLogs from '@/components/app/MyEmailLogs';
 
 const DAYS = [
   { key: 'seg', label: 'Segunda' }, { key: 'ter', label: 'Terça' }, { key: 'qua', label: 'Quarta' },
@@ -167,6 +168,10 @@ export default function AppConfiguracoes() {
             <Save className="w-4 h-4" />
             Salvar configurações
           </button>
+        </div>
+
+        <div className="mt-8">
+          <MyEmailLogs />
         </div>
       </div>
     </AppLayout>

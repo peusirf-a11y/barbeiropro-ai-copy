@@ -9,6 +9,7 @@ import CompaniesTable from '@/components/master/CompaniesTable';
 import FeatureFlagsManager from '@/components/master/FeatureFlagsManager';
 import AuditLogList from '@/components/master/AuditLogList';
 import SystemAlertsList from '@/components/master/SystemAlertsList';
+import SystemHealth from '@/components/master/SystemHealth';
 
 export default function MasterPanel() {
   const [showForm, setShowForm] = useState(false);
@@ -51,6 +52,7 @@ export default function MasterPanel() {
       <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
         <MasterMetrics />
         <SystemAlertsList />
+        <SystemHealth />
         <CompaniesTable />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FeatureFlagsManager />

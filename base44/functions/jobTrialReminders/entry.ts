@@ -92,16 +92,24 @@ Deno.serve(async (req) => {
       });
 
       try {
-        await base44.asServiceRole.integrations.Core.SendEmail({
+        const sendResult = await base44.asServiceRole.functions.invoke('sendAuditedEmail', {
           to: c.owner_email,
           subject,
           body: html,
           from_name: 'BarberTrimly',
+          type: target === 3 ? 'trial_reminder_d3' : 'trial_reminder_d1',
+          company_id: c.id,
+          metadata: { plan_name: c.plan_name, days_left: target },
         });
-        const flag = target === 3 ? { trial_email_d3_sent: true } : { trial_email_d1_sent: true };
-        await base44.asServiceRole.entities.Company.update(c.id, flag);
-        if (target === 3) sentD3++; else sentD1++;
-        console.log('Trial reminder sent:', c.owner_email, 'D-' + target);
+        const sendData = sendResult?.data || sendResult;
+        if (sendData?.ok) {
+          const flag = target === 3 ? { trial_email_d3_sent: true } : { trial_email_d1_sent: true };
+          await base44.asServiceRole.entities.Company.update(c.id, flag);
+          if (target === 3) sentD3++; else sentD1++;
+          console.log('Trial reminder sent:', c.owner_email, 'D-' + target);
+        } else {
+          console.error('Trial reminder failed:', c.owner_email, sendData?.error);
+        }
       } catch (mailErr) {
         console.error('Failed to send trial reminder to', c.owner_email, mailErr.message);
       }

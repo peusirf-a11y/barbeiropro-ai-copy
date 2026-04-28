@@ -93,18 +93,24 @@ Deno.serve(async (req) => {
       primaryColor: company.primary_color,
     });
 
-    await base44.asServiceRole.integrations.Core.SendEmail({
+    const sendResult = await base44.asServiceRole.functions.invoke('sendAuditedEmail', {
       from_name: company.name,
       to: appointment.customer_email,
       subject: `Agendamento confirmado em ${company.name} - ${dateFull} às ${dateTime}`,
       body: html,
+      type: 'booking_confirmation',
+      company_id: company.id,
+      metadata: { appointment_id, customer_id: appointment.customer_id },
     });
 
-    await base44.asServiceRole.entities.Appointment.update(appointment_id, {
-      confirmation_email_sent: true,
-    });
+    const sendData = sendResult?.data || sendResult;
+    if (sendData?.ok) {
+      await base44.asServiceRole.entities.Appointment.update(appointment_id, {
+        confirmation_email_sent: true,
+      });
+    }
 
-    return Response.json({ success: true, sent_to: appointment.customer_email });
+    return Response.json({ success: !!sendData?.ok, sent_to: appointment.customer_email, log_id: sendData?.log_id });
   } catch (error) {
     console.error('sendBookingConfirmation error:', error);
     return Response.json({ error: error.message }, { status: 500 });

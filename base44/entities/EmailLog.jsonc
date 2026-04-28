@@ -1,0 +1,63 @@
+{
+  "name": "EmailLog",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Empresa associada ao envio. Vazio para e-mails do sistema (ex: diagn\u00f3stico do super-admin)."
+    },
+    "recipient": {
+      "type": "string",
+      "format": "email",
+      "description": "E-mail do destinat\u00e1rio"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "booking_confirmation",
+        "trial_reminder_d1",
+        "trial_reminder_d3",
+        "system_test",
+        "password_reset",
+        "welcome",
+        "other"
+      ],
+      "default": "other"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Mensagem de erro retornada pelo provedor (se status=failed)"
+    },
+    "provider": {
+      "type": "string",
+      "default": "base44_core",
+      "description": "Provedor que efetuou o envio (base44_core, resend, sendgrid, etc.)"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Dados auxiliares (appointment_id, plan_name, etc.)"
+    }
+  },
+  "required": [
+    "recipient",
+    "subject",
+    "type",
+    "status"
+  ]
+}
