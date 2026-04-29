@@ -42,7 +42,7 @@ export default function AppRetencao() {
       msg_reminder_24h: 'Fala, {nome}! Passando pra lembrar do seu horário amanhã às {hora} na {barbearia}. 💈',
       msg_reminder_2h: 'Opa {nome}! Seu horário na {barbearia} é daqui 2h, às {hora}. Tô te esperando! 💈',
       msg_post_appointment: 'Valeu por colar na {barbearia}, {nome}! 🔥 Se puder, deixa sua avaliação: {link_avaliacao}',
-      msg_reactivation: 'Fala, {nome}! Sumiu hein 👀 Já tá na hora de dar aquele trato! Quer que eu veja um horário pra você essa semana?',
+      msg_reactivation: 'Fala, {nome}! Sumiu hein 👀 Já tá na hora de dar aquele trato![[ Tenho um horário {horario_sugerido}, encaixa pra você?]]',
     });
   }, [company]);
 
@@ -248,7 +248,14 @@ export default function AppRetencao() {
               <TextArea label="Lembrete 24h" value={settings.msg_reminder_24h || ''} onChange={v => updateField('msg_reminder_24h', v)} />
               <TextArea label="Lembrete 2h" value={settings.msg_reminder_2h || ''} onChange={v => updateField('msg_reminder_2h', v)} />
               <TextArea label="Pós-atendimento" value={settings.msg_post_appointment || ''} onChange={v => updateField('msg_post_appointment', v)} />
-              <TextArea label="Reativação" value={settings.msg_reactivation || ''} onChange={v => updateField('msg_reactivation', v)} />
+              <div>
+                <TextArea label="Reativação" value={settings.msg_reactivation || ''} onChange={v => updateField('msg_reactivation', v)} />
+                <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5"><Zap className="w-3 h-3" /> IA de horário ideal</div>
+                  <p>Use <code className="bg-white px-1 rounded">{'{horario_sugerido}'}</code> e <code className="bg-white px-1 rounded">{'{profissional_sugerido}'}</code> para inserir o melhor encaixe da agenda do cliente.</p>
+                  <p>Texto entre <code className="bg-white px-1 rounded">[[ ]]</code> só aparece quando a IA encontra um horário. Ex: <em>"Tenho [[{'{horario_sugerido}'} com {'{profissional_sugerido}'}]] disponível."</em></p>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end">
