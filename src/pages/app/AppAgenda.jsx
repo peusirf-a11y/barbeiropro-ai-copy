@@ -9,6 +9,7 @@ import { format, addDays, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
+import AgendaAppointmentCard from '@/components/agenda/AgendaAppointmentCard';
 
 const statusConfig = {
   agendado: { label: 'Agendado', color: 'border-l-blue-400 bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
@@ -256,14 +257,12 @@ export default function AppAgenda() {
                         </div>
                       ))}
                       {dayAppts.map(appt => (
-                        <div
+                        <AgendaAppointmentCard
                           key={appt.id}
-                          onClick={() => setSelectedAppt(appt)}
-                          className={`rounded border-l-4 p-1.5 mb-1 ${statusConfig[appt.status]?.color || 'border-l-gray-300 bg-gray-50'} cursor-pointer hover:opacity-80 transition-opacity`}
-                        >
-                          <div className="text-xs font-semibold text-gray-800 truncate">{appt.customer_name || 'Cliente'}</div>
-                          <div className="text-xs text-gray-500 truncate">{appt.service_name}</div>
-                        </div>
+                          appt={appt}
+                          customer={customers.find(c => c.id === appt.customer_id)}
+                          onClick={setSelectedAppt}
+                        />
                       ))}
                     </div>
                   );
@@ -284,6 +283,10 @@ export default function AppAgenda() {
               <span className="text-xs text-gray-500">{val.label}</span>
             </div>
           ))}
+          <div className="w-px h-4 bg-gray-200" />
+          <div className="flex items-center gap-1.5"><span className="text-xs">⭐</span><span className="text-xs text-gray-500">VIP</span></div>
+          <div className="flex items-center gap-1.5"><span className="text-xs">💤</span><span className="text-xs text-gray-500">Inativo</span></div>
+          <div className="flex items-center gap-1.5"><span className="text-xs">🆕</span><span className="text-xs text-gray-500">Novo</span></div>
         </div>
 
         {/* Appointment Detail Modal */}
