@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
 import AgendaAppointmentCard from '@/components/agenda/AgendaAppointmentCard';
+import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 
 const statusConfig = {
   agendado: { label: 'Agendado', color: 'border-l-blue-400 bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
@@ -299,7 +300,11 @@ export default function AppAgenda() {
               </div>
               <div className="space-y-2 mb-5">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><span className="text-xs text-gray-400 block">Cliente</span><p className="font-semibold text-sm">{selectedAppt.customer_name}</p></div>
+                  <div>
+                    <span className="text-xs text-gray-400 block">Cliente</span>
+                    <p className="font-semibold text-sm">{selectedAppt.customer_name}</p>
+                    <div className="mt-1"><CustomerTypeBadge customer={customers.find(c => c.id === selectedAppt.customer_id)} /></div>
+                  </div>
                   <div><span className="text-xs text-gray-400 block">Telefone</span><p className="font-semibold text-sm">{selectedAppt.customer_phone || '–'}</p></div>
                   <div><span className="text-xs text-gray-400 block">Serviço</span><p className="font-semibold text-sm">{selectedAppt.service_name}</p></div>
                   <div><span className="text-xs text-gray-400 block">Profissional</span><p className="font-semibold text-sm">{selectedAppt.professional_name}</p></div>
