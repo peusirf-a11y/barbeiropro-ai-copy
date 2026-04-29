@@ -4,21 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { canViewFinance } from '@/lib/rolePermissions';
-import { useState, useEffect } from 'react';
-import { Calendar, Users, DollarSign, CheckCircle, TrendingUp, Clock, AlertCircle, X, AlertTriangle, Zap } from 'lucide-react';
-import { format, startOfDay, endOfDay, startOfMonth, isToday, differenceInMinutes, differenceInDays } from 'date-fns';
+import { useState, useEffect, useMemo } from 'react';
+import { Calendar, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { format, startOfMonth, startOfDay, differenceInMinutes, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
 import ActivationHealthCard from '@/components/dashboard/ActivationHealthCard';
-
-const statusConfig = {
-  agendado: { label: 'Agendado', color: 'bg-blue-100 text-blue-700' },
-  confirmado: { label: 'Confirmado', color: 'bg-green-100 text-green-700' },
-  em_atendimento: { label: 'Na Cadeira', color: 'bg-yellow-100 text-yellow-700' },
-  concluido: { label: 'Concluído', color: 'bg-gray-100 text-gray-600' },
-  cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-600' },
-  faltou: { label: 'Faltou', color: 'bg-orange-100 text-orange-600' },
-};
+import KpiCard from '@/components/dashboard/KpiCard';
+import RevenueChart from '@/components/dashboard/RevenueChart';
+import ProfessionalRanking from '@/components/dashboard/ProfessionalRanking';
+import QuickActions from '@/components/dashboard/QuickActions';
+import InsightsCard from '@/components/dashboard/InsightsCard';
+import TodayAgendaList from '@/components/dashboard/TodayAgendaList';
 
 export default function AppDashboard() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
@@ -27,7 +23,6 @@ export default function AppDashboard() {
   const myProId = teamRole?.professional_id || null;
   const showFinance = canViewFinance(teamRole?.role);
   const [alerts, setAlerts] = useState([]);
-  const [dismissedAlerts, setDismissedAlerts] = useState(new Set());
 
   const apptFilter = isBarbeiro && myProId
     ? { company_id: companyId, professional_id: myProId }
@@ -54,11 +49,9 @@ export default function AppDashboard() {
 
   const now = new Date();
   const todayStr = now.toDateString();
+  const todayKey = format(startOfDay(now), 'yyyy-MM-dd');
 
   const todayAppts = appointments.filter(a => new Date(a.scheduled_at).toDateString() === todayStr);
-  const upcomingToday = todayAppts
-    .filter(a => new Date(a.scheduled_at) >= now && !['cancelado', 'concluido', 'faltou'].includes(a.status))
-    .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
   const monthStart = startOfMonth(now);
   const monthAppts = appointments.filter(a => new Date(a.scheduled_at) >= monthStart);
@@ -66,20 +59,40 @@ export default function AppDashboard() {
   const revenue = financial.filter(f => f.type === 'entrada' && new Date(f.date) >= monthStart).reduce((s, f) => s + (f.amount || 0), 0);
   const avgTicket = completedMonth.length > 0 ? revenue / completedMonth.length : 0;
 
-  // Top services
-  const serviceMap = {};
-  completedMonth.forEach(a => {
-    if (!a.service_name) return;
-    serviceMap[a.service_name] = (serviceMap[a.service_name] || 0) + 1;
-  });
-  const topServices = Object.entries(serviceMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  // Faturamento de hoje (entradas com date = hoje)
+  const todayRevenue = financial
+    .filter(f => f.type === 'entrada' && (f.date || '').startsWith(todayKey))
+    .reduce((s, f) => s + (f.amount || 0), 0);
+
+  // Clientes únicos atendidos hoje (com base em appointments concluídos hoje)
+  const todayCustomers = useMemo(() => {
+    const set = new Set();
+    todayAppts.forEach(a => {
+      if (a.status === 'concluido' && (a.customer_id || a.customer_name)) {
+        set.add(a.customer_id || a.customer_name);
+      }
+    });
+    return set.size;
+  }, [todayAppts]);
+
+  // Top professionals (mês)
+  const topPros = useMemo(() => {
+    const map = {};
+    completedMonth.forEach(a => {
+      if (!a.professional_name) return;
+      map[a.professional_name] = (map[a.professional_name] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [completedMonth]);
 
   // AI bottleneck detection
   useEffect(() => {
     if (!appointments.length && !customers.length) return;
     const detected = [];
 
-    // 1. Agendamentos pendentes sem confirmação há mais de 2h
     const pendingOld = todayAppts.filter(a =>
       a.status === 'agendado' &&
       differenceInMinutes(now, new Date(a.scheduled_at)) > 120
@@ -95,7 +108,6 @@ export default function AppDashboard() {
       });
     }
 
-    // 2. Alta taxa de cancelamento hoje
     const cancelledToday = todayAppts.filter(a => a.status === 'cancelado' || a.status === 'faltou');
     const cancelRate = todayAppts.length > 0 ? cancelledToday.length / todayAppts.length : 0;
     if (cancelRate >= 0.3 && cancelledToday.length >= 2) {
@@ -109,7 +121,6 @@ export default function AppDashboard() {
       });
     }
 
-    // 3. Clientes VIP inativos
     const vipInactive = customers.filter(c => {
       if (c.status !== 'vip' || !c.last_appointment_at) return false;
       return differenceInDays(now, new Date(c.last_appointment_at)) > 21;
@@ -125,7 +136,23 @@ export default function AppDashboard() {
       });
     }
 
-    // 4. Nenhum agendamento hoje
+    // Clientes inativos em geral (não-VIP) sem retorno há +60 dias
+    const generalInactive = customers.filter(c => {
+      if (c.status === 'vip') return false;
+      if (!c.last_appointment_at) return false;
+      return differenceInDays(now, new Date(c.last_appointment_at)) > 60;
+    });
+    if (generalInactive.length >= 5) {
+      detected.push({
+        id: 'general_inactive',
+        level: 'medium',
+        title: `${generalInactive.length} clientes não retornam há +60 dias`,
+        desc: 'Crie uma campanha de reativação para trazê-los de volta.',
+        href: '/app/retencao',
+        icon: 'warning',
+      });
+    }
+
     if (!loadingAppts && todayAppts.length === 0) {
       detected.push({
         id: 'empty_today',
@@ -139,19 +166,6 @@ export default function AppDashboard() {
 
     setAlerts(detected);
   }, [appointments, customers, loadingAppts]);
-
-  const visibleAlerts = alerts.filter(a => !dismissedAlerts.has(a.id));
-  const dismissAlert = (id) => setDismissedAlerts(prev => new Set([...prev, id]));
-
-  // Top professionals
-  const proMap = {};
-  completedMonth.forEach(a => {
-    if (!a.professional_name) return;
-    proMap[a.professional_name] = (proMap[a.professional_name] || 0) + 1;
-  });
-  const topPros = Object.entries(proMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
-
-
 
   const isLoading = loadingCompany || loadingAppts;
 
@@ -167,181 +181,94 @@ export default function AppDashboard() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-black text-[#1B1C1E]">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">{format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} · {company?.name || 'Sua barbearia'}</p>
+          <h1 className="text-2xl lg:text-3xl font-black text-[#111827] tracking-tight">Dashboard</h1>
+          <p className="text-[#6B7280] text-sm mt-1 capitalize">
+            {format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} · {company?.name || 'Sua barbearia'}
+          </p>
         </div>
 
-        {/* KPI Cards — estilo "Faturamento consolidado" das referências */}
-        <div className="bg-white rounded-2xl border border-black/5 p-5 mb-6 shadow-[var(--shadow-sm)]">
-          <h2 className="font-bold text-[#0F172A] mb-4 text-sm">Visão geral</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {[
-              { label: 'Agendamentos hoje', sub: 'Total do dia', value: todayAppts.length, tone: 'blue', show: true },
-              { label: 'Faturamento (mês)', sub: 'Em receita', value: `R$ ${revenue.toFixed(2).replace('.', ',')}`, tone: 'green', show: showFinance },
-              { label: 'Total clientes', sub: 'Cadastrados', value: customers.length, tone: 'neutral', show: true },
-              { label: 'Ticket médio', sub: 'Por atendimento', value: `R$ ${avgTicket.toFixed(2).replace('.', ',')}`, tone: avgTicket > 0 ? 'green' : 'red', show: showFinance },
-            ].filter(s => s.show).map(s => {
-              const toneCls = {
-                green: 'bg-[#DCFCE7] border-[#86EFAC] text-emerald-800',
-                red:   'bg-[#FEE2E2] border-[#FCA5A5] text-red-700',
-                blue:  'bg-[#DBEAFE] border-[#93C5FD] text-blue-800',
-                neutral:'bg-[#F1F5F9] border-[#CBD5E1] text-slate-700',
-              }[s.tone];
-              return (
-                <div key={s.label} className="border border-black/5 rounded-xl p-3 bg-[#FAFBFC]">
-                  <div className="text-[11px] font-semibold text-gray-500 mb-1.5">{s.label}</div>
-                  <div className={`rounded-lg border px-3 py-2 font-bold text-base text-center ${toneCls}`}>
-                    {s.value}
-                  </div>
-                  <div className="text-[10px] text-gray-400 mt-1.5 text-center">{s.sub}</div>
-                </div>
-              );
-            })}
-          </div>
+        {/* Quick Actions */}
+        <div className="mb-6">
+          <QuickActions showFinance={showFinance} />
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Agenda do dia */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-black/8 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-[#1B1C1E]">Agenda de hoje</h2>
-              <Link to="/app/agenda" className="text-xs text-[#2563EB] font-medium hover:underline">Ver agenda →</Link>
+        {/* KPI Cards principais */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
+          {showFinance && (
+            <KpiCard
+              label="Faturamento (hoje)"
+              value={`R$ ${todayRevenue.toFixed(2).replace('.', ',')}`}
+              sub="Entradas confirmadas"
+              icon={DollarSign}
+              tone="green"
+            />
+          )}
+          <KpiCard
+            label="Agendamentos (hoje)"
+            value={todayAppts.length}
+            sub={`${todayAppts.filter(a => a.status === 'concluido').length} concluídos`}
+            icon={Calendar}
+            tone="blue"
+          />
+          <KpiCard
+            label="Clientes atendidos"
+            value={todayCustomers}
+            sub="Hoje"
+            icon={Users}
+            tone="violet"
+          />
+          {showFinance && (
+            <KpiCard
+              label="Ticket médio"
+              value={`R$ ${avgTicket.toFixed(2).replace('.', ',')}`}
+              sub="Mês corrente"
+              icon={TrendingUp}
+              tone="amber"
+            />
+          )}
+          {!showFinance && (
+            <KpiCard
+              label="Total clientes"
+              value={customers.length}
+              sub="Cadastrados"
+              icon={Users}
+              tone="blue"
+            />
+          )}
+        </div>
+
+        {/* Gráfico + Ranking */}
+        {showFinance && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
+            <div className="lg:col-span-2">
+              <RevenueChart financial={financial} />
             </div>
-            {todayAppts.length > 0 ? (
-              <div className="space-y-2 max-h-[340px] overflow-y-auto">
-                {todayAppts.sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at)).map(appt => (
-                  <div key={appt.id} className="flex items-center gap-4 p-3 rounded-xl bg-[#F8F7F3]">
-                    <div className="w-14 text-center flex-shrink-0">
-                      <div className="font-bold text-sm text-[#1B1C1E]">{format(new Date(appt.scheduled_at), 'HH:mm')}</div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm text-[#1B1C1E] truncate">{appt.customer_name || 'Cliente'}</div>
-                      <div className="text-xs text-gray-400">{appt.service_name} · {appt.professional_name}</div>
-                    </div>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-lg flex-shrink-0 ${statusConfig[appt.status]?.color || 'bg-gray-100 text-gray-600'}`}>
-                      {statusConfig[appt.status]?.label || appt.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-10 text-gray-400">
-                <Calendar className="w-8 h-8 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">Nenhum agendamento hoje</p>
-                <Link to="/app/agenda" className="text-xs text-[#2563EB] font-medium mt-2 inline-block hover:underline">Criar agendamento →</Link>
-              </div>
-            )}
+            <div>
+              <ProfessionalRanking data={topPros} />
+            </div>
           </div>
+        )}
 
-          {/* Sidebar */}
-          <div className="space-y-4">
-            {/* Saúde da conta (Activation Score) */}
+        {!showFinance && topPros.length > 0 && (
+          <div className="mb-6">
+            <ProfessionalRanking data={topPros} />
+          </div>
+        )}
+
+        {/* Insights + Agenda do dia */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
+          <div className="lg:col-span-2">
+            <TodayAgendaList appointments={todayAppts} />
+          </div>
+          <div className="space-y-4 lg:space-y-6">
+            <InsightsCard alerts={alerts} />
             <ActivationHealthCard />
-
-            {/* Próximos horários */}
-            {upcomingToday.length > 0 && (
-              <div className="bg-white rounded-2xl border border-black/8 p-5">
-                <h3 className="font-bold text-[#1B1C1E] mb-3 text-sm">Próximos horários</h3>
-                <div className="space-y-2">
-                  {upcomingToday.slice(0, 4).map(a => (
-                    <div key={a.id} className="flex items-center gap-2 text-sm">
-                      <Clock className="w-3.5 h-3.5 text-[#2563EB] flex-shrink-0" />
-                      <span className="font-semibold text-[#1B1C1E]">{format(new Date(a.scheduled_at), 'HH:mm')}</span>
-                      <span className="text-gray-500 truncate">{a.customer_name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Top serviços */}
-            {topServices.length > 0 && (
-              <div className="bg-white rounded-2xl border border-black/8 p-5">
-                <h3 className="font-bold text-[#1B1C1E] mb-3 text-sm">Serviços mais vendidos (mês)</h3>
-                <div className="space-y-2">
-                  {topServices.map(([name, count]) => (
-                    <div key={name} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 truncate">{name}</span>
-                      <span className="text-sm font-bold text-[#2563EB]">{count}x</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Top profissionais */}
-            {topPros.length > 0 && (
-              <div className="bg-white rounded-2xl border border-black/8 p-5">
-                <h3 className="font-bold text-[#1B1C1E] mb-3 text-sm">Profissionais ativos (mês)</h3>
-                <div className="space-y-2">
-                  {topPros.map(([name, count]) => (
-                    <div key={name} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 truncate">{name}</span>
-                      <span className="text-sm font-bold text-[#2563EB]">{count} atend.</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Ações rápidas */}
-            <div className="bg-white rounded-2xl border border-black/8 p-5">
-              <h3 className="font-bold text-[#1B1C1E] mb-3 text-sm">Ações rápidas</h3>
-              <div className="space-y-2">
-                {[
-                  { label: '+ Novo agendamento', href: '/app/agenda', show: true },
-                  { label: '+ Novo cliente', href: '/app/clientes', show: true },
-                  { label: '+ Lançamento financeiro', href: '/app/financeiro', show: showFinance },
-                ].filter(i => i.show).map(item => (
-                  <Link key={item.href} to={item.href}
-                    className="block text-sm font-medium text-[#2563EB] hover:underline py-1">
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
-
-      {/* AI Bottleneck Alerts */}
-      {visibleAlerts.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full">
-          {visibleAlerts.map(alert => (
-            <div
-              key={alert.id}
-              className={`bg-white rounded-2xl border shadow-xl p-4 flex gap-3 items-start ${
-                alert.level === 'high' ? 'border-red-200' : 'border-yellow-200'
-              }`}
-            >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                alert.level === 'high' ? 'bg-red-100' : 'bg-yellow-100'
-              }`}>
-                {alert.icon === 'clock' && <Clock className={`w-4 h-4 ${alert.level === 'high' ? 'text-red-600' : 'text-yellow-600'}`} />}
-                {alert.icon === 'warning' && <AlertTriangle className={`w-4 h-4 ${alert.level === 'high' ? 'text-red-600' : 'text-yellow-600'}`} />}
-                {alert.icon === 'zap' && <Zap className="w-4 h-4 text-yellow-600" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className={`text-sm font-bold mb-0.5 ${alert.level === 'high' ? 'text-red-700' : 'text-yellow-700'}`}>
-                  {alert.level === 'high' ? '🔴 ' : '🟡 '}{alert.title}
-                </div>
-                <p className="text-xs text-gray-500 mb-2">{alert.desc}</p>
-                <Link to={alert.href} onClick={() => dismissAlert(alert.id)}
-                  className={`text-xs font-semibold underline ${
-                    alert.level === 'high' ? 'text-red-600' : 'text-yellow-600'
-                  }`}>
-                  Ver agora →
-                </Link>
-              </div>
-              <button onClick={() => dismissAlert(alert.id)} className="p-1 hover:bg-gray-100 rounded-lg flex-shrink-0">
-                <X className="w-3.5 h-3.5 text-gray-400" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
     </AppLayout>
   );
 }
