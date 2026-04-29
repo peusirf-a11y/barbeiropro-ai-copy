@@ -173,22 +173,33 @@ export default function AppDashboard() {
           <p className="text-gray-500 text-sm mt-1">{format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} · {company?.name || 'Sua barbearia'}</p>
         </div>
 
-        {/* KPI Cards — barbeiro não vê faturamento/ticket médio */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: 'Agendamentos hoje', value: todayAppts.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50', show: true },
-            { label: 'Faturamento (mês)', value: `R$${revenue.toFixed(0)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50', show: showFinance },
-            { label: 'Total clientes', value: customers.length, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50', show: true },
-            { label: 'Ticket médio', value: `R$${avgTicket.toFixed(0)}`, icon: TrendingUp, color: 'text-[#2563EB]', bg: 'bg-[#2563EB]/10', show: showFinance },
-          ].filter(s => s.show).map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-5">
-              <div className={`w-9 h-9 ${s.bg} rounded-xl flex items-center justify-center mb-3`}>
-                <s.icon className={`w-4 h-4 ${s.color}`} />
-              </div>
-              <div className="text-2xl font-black text-[#1B1C1E]">{s.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{s.label}</div>
-            </div>
-          ))}
+        {/* KPI Cards — estilo "Faturamento consolidado" das referências */}
+        <div className="bg-white rounded-2xl border border-black/5 p-5 mb-6 shadow-[var(--shadow-sm)]">
+          <h2 className="font-bold text-[#0F172A] mb-4 text-sm">Visão geral</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { label: 'Agendamentos hoje', sub: 'Total do dia', value: todayAppts.length, tone: 'blue', show: true },
+              { label: 'Faturamento (mês)', sub: 'Em receita', value: `R$ ${revenue.toFixed(2).replace('.', ',')}`, tone: 'green', show: showFinance },
+              { label: 'Total clientes', sub: 'Cadastrados', value: customers.length, tone: 'neutral', show: true },
+              { label: 'Ticket médio', sub: 'Por atendimento', value: `R$ ${avgTicket.toFixed(2).replace('.', ',')}`, tone: avgTicket > 0 ? 'green' : 'red', show: showFinance },
+            ].filter(s => s.show).map(s => {
+              const toneCls = {
+                green: 'bg-[#DCFCE7] border-[#86EFAC] text-emerald-800',
+                red:   'bg-[#FEE2E2] border-[#FCA5A5] text-red-700',
+                blue:  'bg-[#DBEAFE] border-[#93C5FD] text-blue-800',
+                neutral:'bg-[#F1F5F9] border-[#CBD5E1] text-slate-700',
+              }[s.tone];
+              return (
+                <div key={s.label} className="border border-black/5 rounded-xl p-3 bg-[#FAFBFC]">
+                  <div className="text-[11px] font-semibold text-gray-500 mb-1.5">{s.label}</div>
+                  <div className={`rounded-lg border px-3 py-2 font-bold text-base text-center ${toneCls}`}>
+                    {s.value}
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-1.5 text-center">{s.sub}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">

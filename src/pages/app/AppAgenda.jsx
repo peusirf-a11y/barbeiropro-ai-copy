@@ -5,12 +5,12 @@ import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from 'lucide-react';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
-import AgendaAppointmentCard from '@/components/agenda/AgendaAppointmentCard';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
+import AgendaProColumns from '@/components/agenda/AgendaProColumns';
 
 const statusConfig = {
   agendado: { label: 'Agendado', color: 'border-l-blue-400 bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
@@ -115,9 +115,10 @@ export default function AppAgenda() {
   });
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const filteredAppts = filterPro === 'all' ? appointments : appointments.filter(a => a.professional_id === filterPro);
+  const visiblePros = filterPro === 'all' ? professionals : professionals.filter(p => p.id === filterPro);
 
   // Conflict + block check via lib reutilizável
   const apptsWithDuration = appointments.map(a => ({
@@ -182,112 +183,111 @@ export default function AppAgenda() {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Agenda</h1>
-            <p className="text-gray-500 text-sm mt-1">Visualização semanal</p>
+            <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">Agendamentos</h1>
+            <p className="text-gray-500 text-sm mt-1 capitalize">{format(currentDate, "EEEE, dd MMM yyyy", { locale: ptBR })}</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            {/* Filter by professional — barbeiro vê só ele mesmo (sem dropdown) */}
             {!isBarbeiro && professionals.length > 0 && (
               <select value={filterPro} onChange={e => setFilterPro(e.target.value)}
-                className="px-3 py-2 border border-black/10 rounded-lg text-sm focus:outline-none bg-white">
+                className="px-3 py-2 border border-black/10 rounded-xl text-sm focus:outline-none bg-white shadow-[var(--shadow-xs)]">
                 <option value="all">Todos os profissionais</option>
                 {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             )}
-            <div className="flex items-center gap-1 bg-white border border-black/10 rounded-lg p-1">
-              <button onClick={() => setCurrentDate(d => addDays(d, -7))} className="p-1.5 hover:bg-gray-100 rounded">
+            <div className="flex items-center gap-1 bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
+              <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="p-1.5 hover:bg-gray-100 rounded-lg">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm font-medium px-2">
-                {format(weekStart, "d MMM", { locale: ptBR })} — {format(addDays(weekStart, 5), "d MMM", { locale: ptBR })}
-              </span>
-              <button onClick={() => setCurrentDate(d => addDays(d, 7))} className="p-1.5 hover:bg-gray-100 rounded">
+              <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold px-3 py-1 rounded-lg hover:bg-gray-100">Hoje</button>
+              <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="p-1.5 hover:bg-gray-100 rounded-lg">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
             {!isBarbeiro && (
-              <button onClick={() => setShowNewForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
+              <button onClick={() => setShowNewForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1d4ed8] transition-all flex items-center gap-2 shadow-[0_4px_12px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.35)]">
                 <Plus className="w-4 h-4" />Novo
               </button>
             )}
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-         <div className="overflow-x-auto">
-          <div className="min-w-[720px]">
-          <div className="grid border-b border-black/8" style={{ gridTemplateColumns: '56px repeat(6, 1fr)' }}>
-            <div className="p-3 border-r border-black/8" />
-            {weekDays.map((day, i) => {
-              const isToday = day.toDateString() === new Date().toDateString();
-              const dayCount = filteredAppts.filter(a => new Date(a.scheduled_at).toDateString() === day.toDateString()).length;
-              return (
-                <div key={i} className={`p-3 text-center border-r border-black/8 last:border-r-0 ${isToday ? 'bg-[#2563EB]/5' : ''}`}>
-                  <div className="text-xs text-gray-400 uppercase tracking-wide">{format(day, 'EEE', { locale: ptBR })}</div>
-                  <div className={`text-lg font-bold mt-0.5 ${isToday ? 'text-[#2563EB]' : 'text-[#1B1C1E]'}`}>{format(day, 'd')}</div>
-                  {dayCount > 0 && <div className="text-xs text-[#2563EB] font-medium">{dayCount} ag.</div>}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="overflow-y-auto max-h-[560px] overflow-x-hidden">
-            {hours.map(hour => (
-              <div key={hour} className="grid border-b border-black/5" style={{ gridTemplateColumns: '56px repeat(6, 1fr)' }}>
-                <div className="p-2 text-xs text-gray-400 text-right border-r border-black/8 py-3 flex-shrink-0">{hour}:00</div>
-                {weekDays.map((day, di) => {
-                  const dayAppts = filteredAppts.filter(a => {
-                    const d = new Date(a.scheduled_at);
-                    return d.toDateString() === day.toDateString() && d.getHours() === hour;
-                  });
-                  // Bloqueios que atingem essa célula (hora exata do dia)
-                  const cellStart = new Date(day); cellStart.setHours(hour, 0, 0, 0);
-                  const cellEnd = new Date(cellStart.getTime() + 60 * 60 * 1000);
-                  const cellBlocks = blockedTimes.filter(b => {
-                    if (filterPro !== 'all' && b.professional_id && b.professional_id !== filterPro) return false;
-                    const bs = new Date(b.start_time);
-                    const be = new Date(b.end_time);
-                    return bs < cellEnd && be > cellStart;
-                  });
-                  return (
-                    <div key={di} className="border-r border-black/5 last:border-r-0 min-h-[52px] p-1 relative">
-                      {cellBlocks.map(b => (
-                        <div key={b.id} title={b.reason || 'Bloqueado'}
-                          className="rounded p-1 mb-1 bg-gray-200/70 border border-dashed border-gray-400 text-[10px] text-gray-600 font-medium truncate">
-                          🔒 {b.reason || 'Bloqueado'}
-                        </div>
-                      ))}
-                      {dayAppts.map(appt => (
-                        <AgendaAppointmentCard
-                          key={appt.id}
-                          appt={appt}
-                          customer={customers.find(c => c.id === appt.customer_id)}
-                          onClick={setSelectedAppt}
-                        />
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-
-          </div>
-         </div>
+        {/* Seletor de dias da semana — pílulas */}
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+          <button
+            onClick={() => setCurrentDate(d => addDays(d, -7))}
+            className="p-2 rounded-lg hover:bg-white border border-black/5 bg-white/60 flex-shrink-0"
+            aria-label="Semana anterior"
+          >
+            <ChevronLeft className="w-4 h-4 text-gray-500" />
+          </button>
+          {weekDays.map(day => {
+            const active = isSameDay(day, currentDate);
+            const isTodayDay = isSameDay(day, new Date());
+            const dayCount = filteredAppts.filter(a => isSameDay(new Date(a.scheduled_at), day)).length;
+            return (
+              <button
+                key={day.toISOString()}
+                onClick={() => setCurrentDate(day)}
+                className={`flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border transition-all min-w-[64px] ${
+                  active
+                    ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-[0_4px_12px_rgba(37,99,235,0.3)]'
+                    : 'bg-white border-black/5 text-gray-600 hover:border-[#2563EB]/30'
+                }`}
+              >
+                <span className={`text-[10px] uppercase tracking-wide font-semibold ${active ? 'text-white/80' : 'text-gray-400'}`}>
+                  {format(day, 'EEE', { locale: ptBR })}
+                </span>
+                <span className={`text-lg font-bold ${active ? 'text-white' : isTodayDay ? 'text-[#2563EB]' : 'text-[#0F172A]'}`}>
+                  {format(day, 'd')}
+                </span>
+                {dayCount > 0 && (
+                  <span className={`text-[10px] font-semibold mt-0.5 ${active ? 'text-white/80' : 'text-[#2563EB]'}`}>
+                    {dayCount} ag.
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setCurrentDate(d => addDays(d, 7))}
+            className="p-2 rounded-lg hover:bg-white border border-black/5 bg-white/60 flex-shrink-0"
+            aria-label="Próxima semana"
+          >
+            <ChevronRight className="w-4 h-4 text-gray-500" />
+          </button>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-4 mt-3 flex-wrap">
-          {Object.entries(statusConfig).map(([key, val]) => (
-            <div key={key} className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded-sm ${val.badge.split(' ')[0]}`} />
-              <span className="text-xs text-gray-500">{val.label}</span>
+        {visiblePros.length > 0 ? (
+          <AgendaProColumns
+            selectedDate={currentDate}
+            professionals={visiblePros}
+            appointments={appointments}
+            services={services}
+            blocks={blockedTimes}
+            onCardClick={setSelectedAppt}
+          />
+        ) : (
+          <div className="bg-white rounded-2xl border border-black/5 p-12 text-center text-gray-500">
+            <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">Nenhum profissional cadastrado.</p>
+          </div>
+        )}
+
+        {/* Legend pastel */}
+        <div className="flex items-center gap-3 mt-4 flex-wrap text-xs">
+          {[
+            { label: 'Agendado', cls: 'bg-[#F1F2F4] border-[#D1D5DB]' },
+            { label: 'Confirmado', cls: 'bg-[#DCF7E3] border-[#86E3A5]' },
+            { label: 'Na cadeira', cls: 'bg-[#FFF1C2] border-[#F5C842]' },
+            { label: 'Concluído', cls: 'bg-[#E5E7EB] border-[#9CA3AF]' },
+            { label: 'Cancelado', cls: 'bg-[#FCE2E2] border-[#F08989]' },
+            { label: 'Faltou', cls: 'bg-[#FFE4D1] border-[#F5A571]' },
+          ].map(s => (
+            <div key={s.label} className="flex items-center gap-1.5">
+              <div className={`w-3 h-3 rounded border ${s.cls}`} />
+              <span className="text-gray-500">{s.label}</span>
             </div>
           ))}
-          <div className="w-px h-4 bg-gray-200" />
-          <div className="flex items-center gap-1.5"><span className="text-xs">⭐</span><span className="text-xs text-gray-500">VIP</span></div>
-          <div className="flex items-center gap-1.5"><span className="text-xs">💤</span><span className="text-xs text-gray-500">Inativo</span></div>
-          <div className="flex items-center gap-1.5"><span className="text-xs">🆕</span><span className="text-xs text-gray-500">Novo</span></div>
         </div>
 
         {/* Appointment Detail Modal */}

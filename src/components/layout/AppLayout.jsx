@@ -80,19 +80,19 @@ export default function AppLayout({ children }) {
 
   const SidebarContent = (
     <>
-      <div className="px-6 py-5 border-b border-black/5 flex items-center justify-between">
+      <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
         <Link to="/app/dashboard" className="flex items-center gap-3 group min-w-0">
-          <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center overflow-hidden shadow-[var(--shadow-sm)] transition-transform group-hover:scale-105 flex-shrink-0">
+          <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center overflow-hidden shadow-[0_4px_12px_rgba(37,99,235,0.35)] transition-transform group-hover:scale-105 flex-shrink-0">
             <Logo size={40} className="rounded-none" />
           </div>
           <div className="min-w-0">
-            <div className="font-bold text-[15px] text-[#0F172A] tracking-tight truncate">BarberTrimly</div>
+            <div className="font-bold text-[15px] text-white tracking-tight truncate">BarberTrimly</div>
             <div className="text-[11px] text-gray-400 font-medium">Painel de gestão</div>
           </div>
         </Link>
         <button
           onClick={() => setOpen(false)}
-          className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-gray-100 text-gray-500"
+          className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-white/10 text-gray-300"
           aria-label="Fechar menu"
         >
           <X className="w-5 h-5" />
@@ -101,10 +101,10 @@ export default function AppLayout({ children }) {
 
       <NavList items={navItems} />
 
-      <div className="px-3 py-4 border-t border-black/5">
+      <div className="px-3 py-4 border-t border-white/5">
         <button
           onClick={() => base44.auth.logout()}
-          className="flex items-center gap-3 text-sm text-gray-500 hover:text-red-500 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-50 font-medium"
+          className="flex items-center gap-3 text-sm text-gray-400 hover:text-red-400 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 font-medium"
         >
           <LogOut className="w-[18px] h-[18px]" />
           Sair
@@ -125,7 +125,7 @@ export default function AppLayout({ children }) {
           <Menu className="w-5 h-5" />
         </button>
         <Link to="/app/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center overflow-hidden">
+          <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center overflow-hidden">
             <Logo size={32} className="rounded-none" />
           </div>
           <span className="font-bold text-[15px] text-[#0F172A] tracking-tight">BarberTrimly</span>
@@ -133,8 +133,8 @@ export default function AppLayout({ children }) {
         <div className="w-9" />
       </header>
 
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 min-h-screen bg-white border-r border-black/5 flex-col fixed h-screen overflow-hidden z-40">
+      {/* Desktop sidebar — DARK */}
+      <aside className="hidden lg:flex w-64 min-h-screen bg-[#0B1020] border-r border-white/5 flex-col fixed h-screen overflow-hidden z-40">
         {SidebarContent}
       </aside>
 
@@ -142,17 +142,28 @@ export default function AppLayout({ children }) {
       <div className={`lg:hidden fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`}>
         <div
           onClick={() => setOpen(false)}
-          className={`absolute inset-0 bg-black/50 transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 bg-black/60 transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}
         />
         <aside
-          className={`absolute left-0 top-0 bottom-0 w-[82%] max-w-[300px] bg-white flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
+          className={`absolute left-0 top-0 bottom-0 w-[82%] max-w-[300px] bg-[#0B1020] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
         >
           {SidebarContent}
         </aside>
       </div>
 
+      {/* Desktop top header — saudação + avatar */}
+      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-16 items-center justify-end px-8 gap-3">
+        <div className="text-right">
+          <div className="text-[11px] text-gray-400 leading-none">Olá,</div>
+          <div className="text-sm font-bold text-[#0F172A] mt-0.5">{company?.owner_name?.split(' ')[0] || 'Bem-vindo'}</div>
+        </div>
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
+          {(company?.owner_name?.[0] || company?.name?.[0] || 'B').toUpperCase()}
+        </div>
+      </header>
+
       {/* Main content */}
-      <main className="lg:ml-64 min-h-screen animate-fade-in">
+      <main className="lg:ml-64 min-h-[calc(100vh-4rem)] animate-fade-in">
         <ImpersonationBanner />
         {showPastDue && <BillingPastDueBanner />}
         {children}
