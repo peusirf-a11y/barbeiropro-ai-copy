@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
 import { Plus, X, Star, Clock, Pencil, Trash2, Briefcase } from 'lucide-react';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
 
 const emptyForm = { name: '', description: '', duration_minutes: 30, price: 0, active: true, featured: false, category_id: '' };
 
@@ -68,44 +70,42 @@ export default function AppServicos() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Serviços</h1>
-            <p className="text-gray-500 text-sm mt-1">{activeServices.length} ativos · {inactiveServices.length} inativos</p>
-          </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2 sm:self-start">
-            <Plus className="w-4 h-4" />Novo serviço
-          </button>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Serviços"
+          subtitle={`${activeServices.length} ativos · ${inactiveServices.length} inativos`}
+          icon={Briefcase}
+        >
+          <PrimaryButton onClick={() => setShowForm(true)}>Novo serviço</PrimaryButton>
+        </AppPageHeader>
 
         {services.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/8 p-12 text-center text-gray-400">
-            <Briefcase className="w-8 h-8 mx-auto mb-3 opacity-40" />
+          <div className="bg-white rounded-2xl border border-black/5 p-16 text-center text-[#6B7280] shadow-[var(--shadow-sm)]">
+            <Briefcase className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm mb-3">Nenhum serviço cadastrado</p>
             <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] hover:underline">Adicionar primeiro serviço</button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {services.map(s => (
-              <div key={s.id} className={`bg-white rounded-2xl border p-5 ${s.active ? 'border-black/8' : 'border-black/5 opacity-60'}`}>
+              <div key={s.id} className={`bg-white rounded-2xl border p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200 ${s.active ? 'border-black/5' : 'border-black/5 opacity-60'}`}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-[#1B1C1E]">{s.name}</h3>
-                    {s.featured && <Star className="w-4 h-4 text-yellow-500 fill-yellow-400" />}
+                    <h3 className="font-bold text-[#111827]">{s.name}</h3>
+                    {s.featured && <Star className="w-4 h-4 text-amber-500 fill-amber-400" />}
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => openEdit(s)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
                     <button onClick={() => { if (confirm('Excluir serviço?')) deleteMutation.mutate(s.id); }} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
                   </div>
                 </div>
-                {s.description && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{s.description}</p>}
+                {s.description && <p className="text-xs text-[#6B7280] mb-3 line-clamp-2">{s.description}</p>}
                 <div className="flex items-center justify-between mb-3">
-                  <span className="flex items-center gap-1 text-xs text-gray-500"><Clock className="w-3.5 h-3.5" />{s.duration_minutes} min</span>
+                  <span className="flex items-center gap-1 text-xs text-[#6B7280]"><Clock className="w-3.5 h-3.5" />{s.duration_minutes} min</span>
                   <span className="text-xl font-black text-[#2563EB]">R${s.price}</span>
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-black/5">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${s.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${s.active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
                     {s.active ? 'Ativo' : 'Inativo'}
                   </span>
                   <button onClick={() => toggleActiveMutation.mutate({ id: s.id, active: !s.active })}

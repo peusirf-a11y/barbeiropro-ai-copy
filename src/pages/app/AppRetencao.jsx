@@ -111,19 +111,24 @@ export default function AppRetencao() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-[#2563EB]/10 text-[#2563EB] text-xs font-semibold px-2.5 py-1 rounded-full mb-2">
-              <Zap className="w-3 h-3" /> Retenção via WhatsApp
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] ring-1 ring-[#DBEAFE] flex items-center justify-center flex-shrink-0">
+              <MessageSquare className="w-5 h-5 text-[#2563EB]" />
             </div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Retenção Automática</h1>
-            <p className="text-gray-500 text-sm mt-1">Confirmações, lembretes e reativação de clientes inativos</p>
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-1.5 bg-[#2563EB]/10 text-[#2563EB] text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1">
+                <Zap className="w-2.5 h-2.5" /> Retenção via WhatsApp
+              </div>
+              <h1 className="text-2xl lg:text-[26px] font-black text-[#111827] tracking-tight leading-tight">Retenção Automática</h1>
+              <p className="text-[#6B7280] text-sm mt-0.5">Confirmações, lembretes e reativação de clientes inativos</p>
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-black/8 overflow-x-auto">
+        <div className="flex gap-2 mb-6 border-b border-black/5 overflow-x-auto">
           {[
             { id: 'dashboard', label: 'Dashboard' },
             { id: 'logs', label: 'Mensagens' },
@@ -150,8 +155,8 @@ export default function AppRetencao() {
               <MetricCard icon={AlertCircle} label="Falhas" value={errors} color="text-red-500" />
             </div>
 
-            <div className="bg-white rounded-2xl border border-black/8 p-5">
-              <h3 className="font-bold text-[#1B1C1E] mb-4">Mensagens por tipo</h3>
+            <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)]">
+              <h3 className="font-bold text-[#111827] mb-4">Mensagens por tipo</h3>
               <div className="space-y-3">
                 {byType.map(b => (
                   <div key={b.type} className="flex items-center gap-3">
@@ -174,10 +179,10 @@ export default function AppRetencao() {
         )}
 
         {tab === 'logs' && (
-          <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-black/8">
+                <thead className="bg-[#FAFBFC] border-b border-black/5">
                   <tr>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Cliente</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Tipo</th>
@@ -216,10 +221,10 @@ export default function AppRetencao() {
 
         {tab === 'config' && (
           <div className="space-y-6 max-w-3xl">
-            <div className="bg-white rounded-2xl border border-black/8 p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-black/5 p-5 space-y-4 shadow-[var(--shadow-sm)]">
               <div className="flex items-center gap-2 mb-2">
                 <SettingsIcon className="w-4 h-4 text-[#2563EB]" />
-                <h3 className="font-bold text-[#1B1C1E]">Geral</h3>
+                <h3 className="font-bold text-[#111827]">Geral</h3>
               </div>
               <ToggleRow label="Sistema de retenção ativo" checked={settings.enabled !== false} onChange={v => updateField('enabled', v)} />
               <div className="grid grid-cols-2 gap-3">
@@ -232,8 +237,8 @@ export default function AppRetencao() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-black/8 p-5 space-y-4">
-              <h3 className="font-bold text-[#1B1C1E]">Tipos de mensagem</h3>
+            <div className="bg-white rounded-2xl border border-black/5 p-5 space-y-4 shadow-[var(--shadow-sm)]">
+              <h3 className="font-bold text-[#111827]">Tipos de mensagem</h3>
               <ToggleRow label="Confirmação ao agendar" checked={settings.send_confirmation !== false} onChange={v => updateField('send_confirmation', v)} />
               <ToggleRow label="Lembrete 24h antes" checked={settings.send_reminder_24h !== false} onChange={v => updateField('send_reminder_24h', v)} />
               <ToggleRow label="Lembrete 2h antes" checked={settings.send_reminder_2h !== false} onChange={v => updateField('send_reminder_2h', v)} />
@@ -241,8 +246,8 @@ export default function AppRetencao() {
               <ToggleRow label="Reativação automática (IA)" checked={settings.send_reactivation !== false} onChange={v => updateField('send_reactivation', v)} />
             </div>
 
-            <div className="bg-white rounded-2xl border border-black/8 p-5 space-y-4">
-              <h3 className="font-bold text-[#1B1C1E]">Modelos de mensagem</h3>
+            <div className="bg-white rounded-2xl border border-black/5 p-5 space-y-4 shadow-[var(--shadow-sm)]">
+              <h3 className="font-bold text-[#111827]">Modelos de mensagem</h3>
               <p className="text-xs text-gray-500">Variáveis disponíveis: <code className="bg-gray-100 px-1 rounded">{'{nome}'}</code> <code className="bg-gray-100 px-1 rounded">{'{barbearia}'}</code> <code className="bg-gray-100 px-1 rounded">{'{data}'}</code> <code className="bg-gray-100 px-1 rounded">{'{hora}'}</code> <code className="bg-gray-100 px-1 rounded">{'{link_avaliacao}'}</code></p>
               <TextArea label="Confirmação" value={settings.msg_confirmation || ''} onChange={v => updateField('msg_confirmation', v)} />
               <TextArea label="Lembrete 24h" value={settings.msg_reminder_24h || ''} onChange={v => updateField('msg_reminder_24h', v)} />
@@ -262,7 +267,7 @@ export default function AppRetencao() {
               <button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending}
-                className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-60"
+                className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 disabled:opacity-60 shadow-[0_4px_12px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.35)] active:scale-[0.98]"
               >
                 {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Salvar configurações
@@ -278,13 +283,13 @@ export default function AppRetencao() {
 
 function MetricCard({ icon: Icon, label, value, sub, color = 'text-gray-700' }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/8 p-4 sm:p-5">
+    <div className="bg-white rounded-2xl border border-black/5 p-4 sm:p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center gap-2 mb-2">
         <Icon className={`w-4 h-4 ${color}`} />
-        <span className="text-xs text-gray-500 font-medium">{label}</span>
+        <span className="text-[11px] text-[#6B7280] font-semibold uppercase tracking-wider">{label}</span>
       </div>
-      <div className="text-2xl sm:text-3xl font-black text-[#1B1C1E]">{value}</div>
-      {sub && <div className="text-xs text-gray-400 mt-1">{sub}</div>}
+      <div className="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight">{value}</div>
+      {sub && <div className="text-xs text-[#6B7280] mt-1">{sub}</div>}
     </div>
   );
 }

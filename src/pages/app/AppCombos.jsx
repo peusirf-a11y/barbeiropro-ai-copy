@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { Plus, X, Package, Edit2, Star } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
 
 const emptyForm = { name: '', description: '', service_ids: [], price: '', duration_minutes: '', active: true, featured: false };
 
@@ -83,16 +85,14 @@ export default function AppCombos() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl">
-        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-black text-[#0F172A]">Combos & Pacotes</h1>
-            <p className="text-gray-500 text-sm mt-1">Junte serviços com preço fixo para aumentar o ticket médio</p>
-          </div>
-          <button onClick={() => { setEditing(null); setForm(emptyForm); setShowForm(true); }} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1d4ed8] flex items-center gap-2">
-            <Plus className="w-4 h-4" />Novo combo
-          </button>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Combos & Pacotes"
+          subtitle="Junte serviços com preço fixo para aumentar o ticket médio"
+          icon={Package}
+        >
+          <PrimaryButton onClick={() => { setEditing(null); setForm(emptyForm); setShowForm(true); }}>Novo combo</PrimaryButton>
+        </AppPageHeader>
 
         {packages.length === 0 ? (
           <div className="bg-white rounded-2xl border border-black/8">
@@ -113,15 +113,15 @@ export default function AppCombos() {
               const original = sumOriginal(p.service_ids || []);
               const discount = original > 0 ? Math.round((1 - p.price / original) * 100) : 0;
               return (
-                <div key={p.id} className="bg-white rounded-2xl border border-black/8 p-5 flex flex-col">
+                <div key={p.id} className="bg-white rounded-2xl border border-black/5 p-5 flex flex-col shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4 text-[#2563EB]" />
-                      <h3 className="font-bold text-[#0F172A]">{p.name}</h3>
+                      <h3 className="font-bold text-[#111827]">{p.name}</h3>
                     </div>
                     {p.featured && <Star className="w-4 h-4 text-amber-400 fill-amber-400" />}
                   </div>
-                  {p.description && <p className="text-xs text-gray-500 mb-3">{p.description}</p>}
+                  {p.description && <p className="text-xs text-[#6B7280] mb-3">{p.description}</p>}
                   <div className="flex flex-wrap gap-1 mb-3">
                     {(p.service_ids || []).map(sid => {
                       const s = services.find(x => x.id === sid);
@@ -130,11 +130,11 @@ export default function AppCombos() {
                   </div>
                   <div className="mt-auto pt-3 border-t border-black/5 flex items-end justify-between">
                     <div>
-                      <div className="text-2xl font-black text-[#0F172A]">R$ {p.price?.toFixed(2)}</div>
+                      <div className="text-2xl font-black text-[#111827]">R$ {p.price?.toFixed(2)}</div>
                       {discount > 0 && (
-                        <div className="text-xs text-green-600 font-semibold">economia de {discount}% (R$ {original.toFixed(2)})</div>
+                        <div className="text-xs text-emerald-600 font-semibold">economia de {discount}% (R$ {original.toFixed(2)})</div>
                       )}
-                      <div className="text-[11px] text-gray-400">{p.duration_minutes || 0} min · {p.active ? 'ativo' : 'inativo'}</div>
+                      <div className="text-[11px] text-[#6B7280]">{p.duration_minutes || 0} min · {p.active ? 'ativo' : 'inativo'}</div>
                     </div>
                     <div className="flex gap-1">
                       <button onClick={() => openEdit(p)} className="p-1.5 text-gray-400 hover:text-[#2563EB]"><Edit2 className="w-4 h-4" /></button>

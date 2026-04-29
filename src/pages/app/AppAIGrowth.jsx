@@ -3,8 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Zap, Copy, AlertCircle, TrendingUp, Star, Users, CheckCircle } from 'lucide-react';
+import { Zap, Copy, AlertCircle, TrendingUp, Star, Users, CheckCircle, Sparkles } from 'lucide-react';
 import { differenceInDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import AppPageHeader from '@/components/app/AppPageHeader';
 
 export default function AppAIGrowth() {
   const { companyId, isLoading: loadingCompany } = useCompany();
@@ -121,16 +122,12 @@ export default function AppAIGrowth() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
-              <Zap className="w-4 h-4 text-yellow-900" />
-            </div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">AI Growth Engine</h1>
-          </div>
-          <p className="text-gray-500 text-sm">Insights automáticos baseados nos dados reais da sua barbearia</p>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="AI Growth Engine"
+          subtitle="Insights automáticos baseados nos dados reais da sua barbearia"
+          icon={Sparkles}
+        />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
@@ -139,27 +136,27 @@ export default function AppAIGrowth() {
         ) : insights.length > 0 ? (
           <div className="grid gap-5">
             {insights.map(insight => (
-              <div key={insight.id} className="bg-white rounded-2xl border border-black/8 p-6">
+              <div key={insight.id} className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all duration-200">
                 <div className="flex items-start gap-4 mb-5">
-                  <div className={`w-10 h-10 ${insight.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <div className={`w-11 h-11 ${insight.iconBg} ring-1 ring-black/5 rounded-xl flex items-center justify-center flex-shrink-0`}>
                     <insight.icon className={`w-5 h-5 ${insight.iconColor}`} />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-bold text-[#1B1C1E]">{insight.title}</h3>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${insight.priority === 'alta' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      <h3 className="font-bold text-[#111827]">{insight.title}</h3>
+                      <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${insight.priority === 'alta' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
                         {insight.priority === 'alta' ? '🔴 Alta' : '🟡 Média'}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500">{insight.description}</p>
+                    <p className="text-sm text-[#6B7280]">{insight.description}</p>
                   </div>
-                  <div className="text-2xl font-black text-[#2563EB] flex-shrink-0">{insight.count}</div>
+                  <div className="text-2xl font-black text-[#2563EB] flex-shrink-0 tracking-tight">{insight.count}</div>
                 </div>
-                <div className="bg-[#F8F7F3] rounded-xl p-4">
-                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">💬 Mensagem sugerida para WhatsApp</div>
+                <div className="bg-[#FAFBFC] rounded-xl p-4 border border-black/5">
+                  <div className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-2">💬 Mensagem sugerida para WhatsApp</div>
                   <p className="text-sm text-gray-700 italic mb-3">"{insight.message}"</p>
                   <button onClick={() => handleCopy(insight.id, insight.message)}
-                    className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${copied === insight.id ? 'bg-green-100 text-green-700' : 'bg-[#2563EB] text-white hover:bg-[#2563EB]/90'}`}>
+                    className={`flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl transition-all ${copied === insight.id ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8] shadow-[0_4px_12px_rgba(37,99,235,0.25)]'}`}>
                     {copied === insight.id ? <><CheckCircle className="w-3.5 h-3.5" />Copiado!</> : <><Copy className="w-3.5 h-3.5" />Copiar mensagem</>}
                   </button>
                 </div>
@@ -167,12 +164,12 @@ export default function AppAIGrowth() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-black/8 p-12 text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+          <div className="bg-white rounded-2xl border border-black/5 p-16 text-center shadow-[var(--shadow-sm)]">
+            <div className="w-14 h-14 bg-emerald-50 ring-1 ring-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-7 h-7 text-emerald-600" />
             </div>
-            <h3 className="font-bold text-[#1B1C1E] mb-2">Tudo certo por enquanto!</h3>
-            <p className="text-gray-500 text-sm max-w-sm mx-auto">
+            <h3 className="font-bold text-[#111827] mb-2">Tudo certo por enquanto!</h3>
+            <p className="text-[#6B7280] text-sm max-w-sm mx-auto">
               {customers.length === 0
                 ? 'Cadastre clientes e crie agendamentos para que o AI Growth comece a gerar insights reais.'
                 : 'Nenhum alerta crítico no momento. Continue registrando atendimentos para análises mais precisas.'}

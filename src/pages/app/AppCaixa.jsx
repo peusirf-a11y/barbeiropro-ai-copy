@@ -9,6 +9,8 @@ import { format, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import KpiCard from '@/components/dashboard/KpiCard';
 
 export default function AppCaixa() {
   const { companyId, isLoading: loadingCompany } = useCompany();
@@ -102,11 +104,12 @@ export default function AppCaixa() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-black text-[#0F172A]">Caixa</h1>
-          <p className="text-gray-500 text-sm mt-1">Abertura e fechamento diário do caixa</p>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Caixa"
+          subtitle="Abertura e fechamento diário do caixa"
+          icon={Wallet}
+        />
 
         {!openCash ? (
           <div className="bg-white rounded-2xl border border-black/8">
@@ -124,44 +127,44 @@ export default function AppCaixa() {
         ) : (
           <>
             {/* Resumo */}
-            <div className="grid sm:grid-cols-3 gap-4 mb-5">
-              <Stat icon={Wallet} label="Saldo inicial" value={`R$ ${(openCash.initial_amount || 0).toFixed(2)}`} />
-              <Stat icon={TrendingUp} label="Entradas" value={`R$ ${totalIn.toFixed(2)}`} positive />
-              <Stat icon={TrendingDown} label="Saídas" value={`R$ ${totalOut.toFixed(2)}`} negative />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+              <KpiCard label="Saldo inicial" value={`R$ ${(openCash.initial_amount || 0).toFixed(2).replace('.', ',')}`} icon={Wallet} tone="blue" />
+              <KpiCard label="Entradas" value={`R$ ${totalIn.toFixed(2).replace('.', ',')}`} icon={TrendingUp} tone="green" />
+              <KpiCard label="Saídas" value={`R$ ${totalOut.toFixed(2).replace('.', ',')}`} icon={TrendingDown} tone="red" />
             </div>
 
-            <div className="bg-[#2563EB] text-white rounded-2xl p-5 mb-5 flex items-center justify-between flex-wrap gap-3">
+            <div className="bg-gradient-to-br from-[#2563EB] to-[#1d4ed8] text-white rounded-2xl p-6 mb-5 flex items-center justify-between flex-wrap gap-3 shadow-[0_8px_24px_rgba(37,99,235,0.25)]">
               <div>
-                <div className="text-xs uppercase tracking-wide font-bold text-white/70">Saldo esperado</div>
-                <div className="text-3xl font-black mt-1">R$ {expected.toFixed(2)}</div>
+                <div className="text-[11px] uppercase tracking-wider font-semibold text-white/70">Saldo esperado</div>
+                <div className="text-3xl font-black mt-1 tracking-tight">R$ {expected.toFixed(2).replace('.', ',')}</div>
                 <div className="text-xs text-white/70 mt-1">Aberto em {format(new Date(openCash.opened_at), "d MMM, HH:mm", { locale: ptBR })}</div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setShowEntry(true)} className="bg-white/20 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-2">
+                <button onClick={() => setShowEntry(true)} className="bg-white/15 hover:bg-white/25 backdrop-blur text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
                   <Plus className="w-4 h-4" />Lançamento
                 </button>
-                <button onClick={() => setShowClose(true)} className="bg-white text-[#2563EB] text-sm font-bold px-4 py-2 rounded-lg flex items-center gap-2">
+                <button onClick={() => setShowClose(true)} className="bg-white text-[#2563EB] text-sm font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all">
                   <Lock className="w-4 h-4" />Fechar caixa
                 </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-              <div className="px-5 py-3 border-b border-black/5 text-xs font-bold uppercase tracking-wide text-gray-500">Movimentações deste caixa</div>
+            <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
+              <div className="px-5 py-3 border-b border-black/5 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] bg-[#FAFBFC]">Movimentações deste caixa</div>
               {entries.length === 0 ? (
-                <div className="p-8 text-center text-sm text-gray-400">Nenhuma movimentação ainda</div>
+                <div className="p-10 text-center text-sm text-[#6B7280]">Nenhuma movimentação ainda</div>
               ) : (
                 <div className="divide-y divide-black/5 max-h-[400px] overflow-y-auto">
                   {entries.map(e => (
-                    <div key={e.id} className="flex items-center gap-4 p-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${e.type === 'entrada' ? 'bg-green-100' : 'bg-red-100'}`}>
-                        {e.type === 'entrada' ? <TrendingUp className="w-4 h-4 text-green-600" /> : <TrendingDown className="w-4 h-4 text-red-500" />}
+                    <div key={e.id} className="flex items-center gap-4 p-4 hover:bg-[#FAFBFC] transition-colors">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${e.type === 'entrada' ? 'bg-emerald-50 ring-1 ring-emerald-100' : 'bg-red-50 ring-1 ring-red-100'}`}>
+                        {e.type === 'entrada' ? <TrendingUp className="w-4 h-4 text-emerald-600" /> : <TrendingDown className="w-4 h-4 text-red-500" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm text-[#0F172A] truncate">{e.description || e.category}</div>
-                        <div className="text-xs text-gray-400">{e.category}</div>
+                        <div className="font-semibold text-sm text-[#111827] truncate">{e.description || e.category}</div>
+                        <div className="text-xs text-[#6B7280]">{e.category}</div>
                       </div>
-                      <div className={`text-sm font-bold ${e.type === 'entrada' ? 'text-green-600' : 'text-red-500'}`}>
+                      <div className={`text-sm font-bold ${e.type === 'entrada' ? 'text-emerald-600' : 'text-red-500'}`}>
                         {e.type === 'entrada' ? '+' : '-'}R$ {e.amount?.toFixed(2)}
                       </div>
                     </div>
@@ -174,23 +177,23 @@ export default function AppCaixa() {
 
         {/* Histórico de caixas */}
         {registers.filter(r => r.status === 'fechado').length > 0 && (
-          <div className="mt-6 bg-white rounded-2xl border border-black/8 overflow-hidden">
-            <div className="px-5 py-3 border-b border-black/5 text-xs font-bold uppercase tracking-wide text-gray-500">Histórico</div>
+          <div className="mt-6 bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
+            <div className="px-5 py-3 border-b border-black/5 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] bg-[#FAFBFC]">Histórico</div>
             <div className="divide-y divide-black/5">
               {registers.filter(r => r.status === 'fechado').slice(0, 10).map(r => (
-                <div key={r.id} className="flex items-center justify-between p-4 gap-3 flex-wrap">
+                <div key={r.id} className="flex items-center justify-between p-4 gap-3 flex-wrap hover:bg-[#FAFBFC] transition-colors">
                   <div>
-                    <div className="text-sm font-semibold text-[#0F172A]">
+                    <div className="text-sm font-semibold text-[#111827]">
                       {format(new Date(r.opened_at), "d MMM yyyy", { locale: ptBR })}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-[#6B7280]">
                       {format(new Date(r.opened_at), "HH:mm")} → {r.closed_at ? format(new Date(r.closed_at), "HH:mm") : '–'} · por {r.closed_by || '–'}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold text-[#0F172A]">R$ {(r.final_amount || 0).toFixed(2)}</div>
+                    <div className="text-sm font-bold text-[#111827]">R$ {(r.final_amount || 0).toFixed(2)}</div>
                     {typeof r.difference === 'number' && r.difference !== 0 && (
-                      <div className={`text-xs font-semibold ${r.difference > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                      <div className={`text-xs font-semibold ${r.difference > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                         {r.difference > 0 ? '+' : ''}{r.difference.toFixed(2)} vs esperado
                       </div>
                     )}

@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
 import { Plus, X, Pencil, Scissors, Trash2 } from 'lucide-react';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
 
 const DAYS = [
   { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
@@ -94,42 +96,40 @@ export default function AppProfissionais() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Profissionais</h1>
-            <p className="text-gray-500 text-sm mt-1">{professionals.length} profissionais cadastrados</p>
-          </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2 sm:self-start">
-            <Plus className="w-4 h-4" />Novo profissional
-          </button>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Profissionais"
+          subtitle={`${professionals.length} profissionais cadastrados`}
+          icon={Scissors}
+        >
+          <PrimaryButton onClick={() => setShowForm(true)}>Novo profissional</PrimaryButton>
+        </AppPageHeader>
 
         {professionals.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/8 p-12 text-center text-gray-400">
-            <Scissors className="w-8 h-8 mx-auto mb-3 opacity-40" />
+          <div className="bg-white rounded-2xl border border-black/5 p-16 text-center text-[#6B7280] shadow-[var(--shadow-sm)]">
+            <Scissors className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm mb-3">Nenhum profissional cadastrado</p>
             <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] hover:underline">Adicionar primeiro profissional</button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {professionals.map(pro => (
-              <div key={pro.id} className={`bg-white rounded-2xl border p-5 ${pro.active ? 'border-black/8' : 'border-black/5 opacity-60'}`}>
+              <div key={pro.id} className={`bg-white rounded-2xl border p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200 ${pro.active ? 'border-black/5' : 'border-black/5 opacity-60'}`}>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {pro.photo_url ? (
-                      <img src={pro.photo_url} alt={pro.name} className="w-12 h-12 rounded-xl object-cover" />
+                      <img src={pro.photo_url} alt={pro.name} className="w-12 h-12 rounded-xl object-cover ring-2 ring-white shadow-sm" />
                     ) : (
-                      <div className="w-12 h-12 bg-[#2563EB]/10 rounded-xl flex items-center justify-center">
-                        <Scissors className="w-5 h-5 text-[#2563EB]" />
+                      <div className="w-12 h-12 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-xl flex items-center justify-center shadow-sm">
+                        <Scissors className="w-5 h-5 text-white" />
                       </div>
                     )}
                     <div>
-                      <h3 className="font-bold text-[#1B1C1E]">{pro.name}</h3>
-                      <p className="text-xs text-gray-500">{pro.specialty || 'Barbeiro'}</p>
+                      <h3 className="font-bold text-[#111827]">{pro.name}</h3>
+                      <p className="text-xs text-[#6B7280]">{pro.specialty || 'Barbeiro'}</p>
                       <div className="flex items-center gap-1 mt-1">
-                        <div className={`w-2 h-2 rounded-full ${pro.active ? 'bg-green-400' : 'bg-gray-300'}`} />
-                        <span className="text-xs text-gray-400">{pro.active ? 'Ativo' : 'Inativo'}</span>
+                        <div className={`w-2 h-2 rounded-full ${pro.active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                        <span className="text-xs text-[#6B7280]">{pro.active ? 'Ativo' : 'Inativo'}</span>
                       </div>
                     </div>
                   </div>
@@ -139,10 +139,10 @@ export default function AppProfissionais() {
                   </div>
                 </div>
                 {pro.service_ids && pro.service_ids.length > 0 && (
-                  <div className="text-xs text-gray-400">{pro.service_ids.length} serviços vinculados</div>
+                  <div className="text-xs text-[#6B7280]">{pro.service_ids.length} serviços vinculados</div>
                 )}
                 {pro.commission_value > 0 && (
-                  <div className="text-xs text-gray-400 mt-1">Comissão: {pro.commission_value}{pro.commission_type === 'percent' ? '%' : ' R$'}</div>
+                  <div className="text-xs text-[#6B7280] mt-1">Comissão: {pro.commission_value}{pro.commission_type === 'percent' ? '%' : ' R$'}</div>
                 )}
               </div>
             ))}

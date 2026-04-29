@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { BarChart2 } from 'lucide-react';
+import AppPageHeader from '@/components/app/AppPageHeader';
 
 const COLORS = ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'];
 
@@ -82,22 +84,22 @@ export default function AppRelatorios() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Relatórios</h1>
-            <p className="text-gray-500 text-sm mt-1">Dados reais da sua operação</p>
-          </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Relatórios"
+          subtitle="Dados reais da sua operação"
+          icon={BarChart2}
+        >
           <select value={period} onChange={e => setPeriod(e.target.value)}
-            className="px-3 py-2 border border-black/10 rounded-lg text-sm bg-white focus:outline-none">
+            className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white focus:outline-none shadow-[var(--shadow-xs)]">
             <option value="this_month">Este mês</option>
             <option value="last_month">Mês passado</option>
             <option value="all">Todo o período</option>
           </select>
-        </div>
+        </AppPageHeader>
 
         {/* KPI */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4 mb-6">
           {[
             { label: 'Total agendamentos', value: periodAppts.length },
             { label: 'Concluídos', value: completedAppts.length },
@@ -105,17 +107,17 @@ export default function AppRelatorios() {
             { label: 'Ticket médio', value: `R$${avgTicket.toFixed(0)}` },
             { label: 'Taxa cancelamento', value: `${cancelledRate}%` },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-black/8 p-4">
-              <div className="text-xl font-black text-[#1B1C1E]">{s.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{s.label}</div>
+            <div key={s.label} className="bg-white rounded-2xl border border-black/5 p-4 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all">
+              <div className="text-xl lg:text-2xl font-black text-[#111827] tracking-tight">{s.value}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] mt-1">{s.label}</div>
             </div>
           ))}
         </div>
 
         <div className="grid lg:grid-cols-2 gap-5 mb-5">
           {/* Top services chart */}
-          <div className="bg-white rounded-2xl border border-black/8 p-6">
-            <h2 className="font-bold text-[#1B1C1E] mb-4">Serviços mais vendidos</h2>
+          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+            <h2 className="font-bold text-[#111827] mb-4">Serviços mais vendidos</h2>
             {serviceData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={serviceData} margin={{ left: -10 }}>
@@ -126,15 +128,15 @@ export default function AppRelatorios() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+              <div className="h-[220px] flex items-center justify-center text-[#6B7280] text-sm">
                 Sem atendimentos concluídos no período
               </div>
             )}
           </div>
 
           {/* Top professionals */}
-          <div className="bg-white rounded-2xl border border-black/8 p-6">
-            <h2 className="font-bold text-[#1B1C1E] mb-4">Profissionais mais ativos</h2>
+          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+            <h2 className="font-bold text-[#111827] mb-4">Profissionais mais ativos</h2>
             {proData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={proData} margin={{ left: -10 }}>
@@ -145,7 +147,7 @@ export default function AppRelatorios() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+              <div className="h-[220px] flex items-center justify-center text-[#6B7280] text-sm">
                 Sem dados no período
               </div>
             )}
@@ -155,8 +157,8 @@ export default function AppRelatorios() {
         {/* Pie + text stats */}
         <div className="grid lg:grid-cols-2 gap-5">
           {serviceData.length > 0 && (
-            <div className="bg-white rounded-2xl border border-black/8 p-6">
-              <h2 className="font-bold text-[#1B1C1E] mb-4">Distribuição de serviços</h2>
+            <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+              <h2 className="font-bold text-[#111827] mb-4">Distribuição de serviços</h2>
               <div className="flex items-center gap-6">
                 <PieChart width={140} height={140}>
                   <Pie data={serviceData} dataKey="total" cx={65} cy={65} outerRadius={60} innerRadius={30}>
@@ -168,9 +170,9 @@ export default function AppRelatorios() {
                     <div key={s.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                        <span className="text-xs text-gray-600 truncate max-w-[100px]">{s.name}</span>
+                        <span className="text-xs text-[#6B7280] truncate max-w-[100px]">{s.name}</span>
                       </div>
-                      <span className="text-xs font-bold text-[#1B1C1E]">{s.total}x</span>
+                      <span className="text-xs font-bold text-[#111827]">{s.total}x</span>
                     </div>
                   ))}
                 </div>
@@ -178,8 +180,8 @@ export default function AppRelatorios() {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-black/8 p-6">
-            <h2 className="font-bold text-[#1B1C1E] mb-4">Indicadores de clientes</h2>
+          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+            <h2 className="font-bold text-[#111827] mb-4">Indicadores de clientes</h2>
             <div className="space-y-4">
               {[
                 { label: 'Total de clientes cadastrados', value: customers.length },
@@ -188,7 +190,7 @@ export default function AppRelatorios() {
                 { label: 'Taxa de conclusão', value: periodAppts.length > 0 ? `${((completedAppts.length / periodAppts.length) * 100).toFixed(0)}%` : '–' },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
-                  <span className="text-sm text-gray-600">{item.label}</span>
+                  <span className="text-sm text-[#6B7280]">{item.label}</span>
                   <span className="text-sm font-bold text-[#2563EB]">{item.value}</span>
                 </div>
               ))}

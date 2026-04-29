@@ -7,6 +7,9 @@ import { TrendingUp, TrendingDown, DollarSign, Plus, X, Filter } from 'lucide-re
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SkeletonPage } from '@/components/Skeletons';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
+import KpiCard from '@/components/dashboard/KpiCard';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
@@ -65,56 +68,44 @@ export default function AppFinanceiro() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Financeiro</h1>
-            <p className="text-gray-500 text-sm mt-1">Controle de entradas e saídas</p>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <select value={period} onChange={e => setPeriod(e.target.value)}
-              className="px-3 py-2 border border-black/10 rounded-lg text-sm bg-white focus:outline-none">
-              <option value="this_month">Este mês</option>
-              <option value="last_month">Mês passado</option>
-              <option value="all">Todo o período</option>
-            </select>
-            <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2">
-              <Plus className="w-4 h-4" />Lançamento
-            </button>
-          </div>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Financeiro"
+          subtitle="Controle de entradas e saídas"
+          icon={DollarSign}
+        >
+          <select value={period} onChange={e => setPeriod(e.target.value)}
+            className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white focus:outline-none shadow-[var(--shadow-xs)]">
+            <option value="this_month">Este mês</option>
+            <option value="last_month">Mês passado</option>
+            <option value="all">Todo o período</option>
+          </select>
+          <PrimaryButton onClick={() => setShowForm(true)}>Lançamento</PrimaryButton>
+        </AppPageHeader>
 
         {/* KPI Cards */}
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-2xl border border-black/8 p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 bg-green-50 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-500">Entradas</span>
-            </div>
-            <div className="text-2xl font-black text-[#1B1C1E]">R${totalIn.toFixed(2)}</div>
-            <div className="text-xs text-gray-400 mt-1">{entradas.length} lançamentos</div>
-          </div>
-          <div className="bg-white rounded-2xl border border-black/8 p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center">
-                <TrendingDown className="w-4 h-4 text-red-500" />
-              </div>
-              <span className="text-sm font-medium text-gray-500">Saídas</span>
-            </div>
-            <div className="text-2xl font-black text-[#1B1C1E]">R${totalOut.toFixed(2)}</div>
-            <div className="text-xs text-gray-400 mt-1">{saidas.length} lançamentos</div>
-          </div>
-          <div className={`rounded-2xl border p-5 ${saldo >= 0 ? 'bg-[#2563EB] border-[#2563EB]' : 'bg-red-600 border-red-600'}`}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-sm font-medium text-white/70">Saldo</span>
-            </div>
-            <div className="text-2xl font-black text-white">R${saldo.toFixed(2)}</div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <KpiCard
+            label="Entradas"
+            value={`R$ ${totalIn.toFixed(2).replace('.', ',')}`}
+            sub={`${entradas.length} lançamentos`}
+            icon={TrendingUp}
+            tone="green"
+          />
+          <KpiCard
+            label="Saídas"
+            value={`R$ ${totalOut.toFixed(2).replace('.', ',')}`}
+            sub={`${saidas.length} lançamentos`}
+            icon={TrendingDown}
+            tone="red"
+          />
+          <KpiCard
+            label="Saldo"
+            value={`R$ ${saldo.toFixed(2).replace('.', ',')}`}
+            sub={saldo >= 0 ? 'Resultado positivo' : 'Resultado negativo'}
+            icon={DollarSign}
+            tone={saldo >= 0 ? 'blue' : 'red'}
+          />
         </div>
 
         {/* Appointments revenue hint */}
@@ -128,27 +119,27 @@ export default function AppFinanceiro() {
         )}
 
         {/* Entries list */}
-        <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-          <div className="p-5 border-b border-black/8">
-            <h2 className="font-bold text-[#1B1C1E]">Lançamentos</h2>
+        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
+          <div className="p-5 border-b border-black/5">
+            <h2 className="font-bold text-[#111827]">Lançamentos</h2>
           </div>
           {filtered.length === 0 ? (
-            <div className="p-10 text-center text-gray-400">
-              <DollarSign className="w-8 h-8 mx-auto mb-3 opacity-40" />
+            <div className="p-12 text-center text-[#6B7280]">
+              <DollarSign className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="text-sm">Nenhum lançamento no período selecionado</p>
             </div>
           ) : (
             <div className="divide-y divide-black/5 max-h-[500px] overflow-y-auto">
               {filtered.map(entry => (
-                <div key={entry.id} className="flex items-center gap-4 p-4 hover:bg-[#F8F7F3] transition-colors group">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${entry.type === 'entrada' ? 'bg-green-100' : 'bg-red-100'}`}>
-                    {entry.type === 'entrada' ? <TrendingUp className="w-4 h-4 text-green-600" /> : <TrendingDown className="w-4 h-4 text-red-500" />}
+                <div key={entry.id} className="flex items-center gap-4 p-4 hover:bg-[#FAFBFC] transition-colors group">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${entry.type === 'entrada' ? 'bg-emerald-50 ring-1 ring-emerald-100' : 'bg-red-50 ring-1 ring-red-100'}`}>
+                    {entry.type === 'entrada' ? <TrendingUp className="w-4 h-4 text-emerald-600" /> : <TrendingDown className="w-4 h-4 text-red-500" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-[#1B1C1E] truncate">{entry.description || entry.category}</div>
-                    <div className="text-xs text-gray-400">{entry.category} · {entry.date ? format(new Date(entry.date + 'T00:00:00'), "d MMM yyyy", { locale: ptBR }) : '–'}</div>
+                    <div className="font-semibold text-sm text-[#111827] truncate">{entry.description || entry.category}</div>
+                    <div className="text-xs text-[#6B7280]">{entry.category} · {entry.date ? format(new Date(entry.date + 'T00:00:00'), "d MMM yyyy", { locale: ptBR }) : '–'}</div>
                   </div>
-                  <div className={`text-sm font-bold ${entry.type === 'entrada' ? 'text-green-600' : 'text-red-500'}`}>
+                  <div className={`text-sm font-bold ${entry.type === 'entrada' ? 'text-emerald-600' : 'text-red-500'}`}>
                     {entry.type === 'entrada' ? '+' : '-'}R${entry.amount?.toFixed(2)}
                   </div>
                   <button onClick={() => { if (confirm('Excluir lançamento?')) deleteMutation.mutate(entry.id); }}

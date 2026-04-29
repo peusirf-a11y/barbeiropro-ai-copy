@@ -8,6 +8,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
 
 const emptyForm = { professional_id: '', start_time: '', end_time: '', reason: '' };
 
@@ -64,16 +66,14 @@ export default function AppBloqueios() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl">
-        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-black text-[#0F172A]">Bloqueios de horário</h1>
-            <p className="text-gray-500 text-sm mt-1">Almoço, folgas, eventos — horários indisponíveis para agendamento</p>
-          </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1d4ed8] flex items-center gap-2">
-            <Plus className="w-4 h-4" />Novo bloqueio
-          </button>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Bloqueios de horário"
+          subtitle="Almoço, folgas, eventos — horários indisponíveis para agendamento"
+          icon={Lock}
+        >
+          <PrimaryButton onClick={() => setShowForm(true)}>Novo bloqueio</PrimaryButton>
+        </AppPageHeader>
 
         {blocks.length === 0 ? (
           <div className="bg-white rounded-2xl border border-black/8">
@@ -147,17 +147,17 @@ export default function AppBloqueios() {
 
 function BlockList({ title, items, proName, onDelete, muted }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-      <div className="px-5 py-3 border-b border-black/5 text-xs font-bold uppercase tracking-wide text-gray-500">{title}</div>
+    <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
+      <div className="px-5 py-3 border-b border-black/5 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] bg-[#FAFBFC]">{title}</div>
       <div className="divide-y divide-black/5">
         {items.map(b => (
-          <div key={b.id} className={`flex items-center gap-4 p-4 ${muted ? 'opacity-60' : ''}`}>
-            <div className="w-9 h-9 bg-[#2563EB]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div key={b.id} className={`flex items-center gap-4 p-4 hover:bg-[#FAFBFC] transition-colors ${muted ? 'opacity-60' : ''}`}>
+            <div className="w-9 h-9 bg-[#EFF6FF] ring-1 ring-[#DBEAFE] rounded-xl flex items-center justify-center flex-shrink-0">
               <Lock className="w-4 h-4 text-[#2563EB]" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm text-[#0F172A] truncate">{b.reason || 'Bloqueado'}</div>
-              <div className="text-xs text-gray-500 truncate">
+              <div className="font-semibold text-sm text-[#111827] truncate">{b.reason || 'Bloqueado'}</div>
+              <div className="text-xs text-[#6B7280] truncate">
                 {proName(b.professional_id)} · {format(new Date(b.start_time), "d MMM HH:mm", { locale: ptBR })} → {format(new Date(b.end_time), "d MMM HH:mm", { locale: ptBR })}
               </div>
             </div>

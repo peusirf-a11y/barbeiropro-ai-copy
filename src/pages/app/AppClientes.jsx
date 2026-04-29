@@ -7,11 +7,13 @@ import { useState } from 'react';
 import { Search, Plus, X, Users, Pencil, Trash2, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
 
 const statusBadge = {
-  active: { label: 'Ativo', color: 'bg-green-100 text-green-700' },
-  inactive: { label: 'Inativo', color: 'bg-red-100 text-red-600' },
-  vip: { label: 'VIP ⭐', color: 'bg-yellow-100 text-yellow-700' },
+  active: { label: 'Ativo', color: 'bg-emerald-50 text-emerald-700' },
+  inactive: { label: 'Inativo', color: 'bg-red-50 text-red-600' },
+  vip: { label: 'VIP ⭐', color: 'bg-amber-50 text-amber-700' },
 };
 
 const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
@@ -90,41 +92,39 @@ export default function AppClientes() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Clientes</h1>
-            <p className="text-gray-500 text-sm mt-1">{customers.length} clientes cadastrados</p>
-          </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Clientes"
+          subtitle={`${customers.length} clientes cadastrados`}
+          icon={Users}
+        >
           {!isBarbeiro && (
-            <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2 sm:self-start">
-              <Plus className="w-4 h-4" />Novo cliente
-            </button>
+            <PrimaryButton onClick={() => setShowForm(true)}>Novo cliente</PrimaryButton>
           )}
-        </div>
+        </AppPageHeader>
 
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input type="text" placeholder="Buscar por nome ou telefone..." value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-black/10 rounded-xl text-sm focus:outline-none shadow-[var(--shadow-xs)]" />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {[{ v: 'all', l: 'Todos' }, { v: 'active', l: 'Ativos' }, { v: 'vip', l: 'VIP' }, { v: 'inactive', l: 'Inativos' }].map(f => (
               <button key={f.v} onClick={() => setFilter(f.v)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${filter === f.v ? 'bg-[#2563EB] text-white' : 'bg-white border border-black/10 text-gray-600 hover:border-[#2563EB]'}`}>
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ${filter === f.v ? 'bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)]' : 'bg-white border border-black/10 text-gray-600 hover:border-[#2563EB] hover:text-[#2563EB]'}`}>
                 {f.l}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
           {filtered.length > 0 ? (
            <div className="overflow-x-auto">
             <table className="w-full min-w-[680px]">
               <thead>
-                <tr className="border-b border-black/8 bg-[#F8F7F3]">
+                <tr className="border-b border-black/5 bg-[#FAFBFC]">
                   <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
                   <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Telefone</th>
                   <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Atendimentos</th>
@@ -135,31 +135,31 @@ export default function AppClientes() {
               </thead>
               <tbody>
                 {filtered.map(c => (
-                  <tr key={c.id} className="border-b border-black/5 hover:bg-[#F8F7F3] transition-colors">
+                  <tr key={c.id} className="border-b border-black/5 hover:bg-[#FAFBFC] transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[#2563EB]/10 rounded-full flex items-center justify-center text-xs font-bold text-[#2563EB] flex-shrink-0">
+                        <div className="w-9 h-9 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 shadow-sm">
                           {(c.name || '?')[0].toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-semibold text-sm text-[#1B1C1E]">{c.name}</div>
-                          {c.email && <div className="text-xs text-gray-400">{c.email}</div>}
+                          <div className="font-semibold text-sm text-[#111827]">{c.name}</div>
+                          {c.email && <div className="text-xs text-[#6B7280]">{c.email}</div>}
                         </div>
                       </div>
                     </td>
                     <td className="p-4 hidden md:table-cell">
-                      <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <div className="flex items-center gap-1 text-sm text-[#6B7280]">
                         <Phone className="w-3 h-3" />{c.phone || '–'}
                       </div>
                     </td>
-                    <td className="p-4 hidden md:table-cell text-sm font-semibold text-[#1B1C1E]">
+                    <td className="p-4 hidden md:table-cell text-sm font-semibold text-[#111827]">
                       {getCustomerStats(c.id)}x
                     </td>
-                    <td className="p-4 hidden lg:table-cell text-sm text-gray-500">
+                    <td className="p-4 hidden lg:table-cell text-sm text-[#6B7280]">
                       {c.last_appointment_at ? format(new Date(c.last_appointment_at), "d MMM yyyy", { locale: ptBR }) : '–'}
                     </td>
                     <td className="p-4">
-                      <span className={`text-xs font-medium px-2 py-1 rounded-lg ${statusBadge[c.status || 'active'].color}`}>
+                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${statusBadge[c.status || 'active'].color}`}>
                         {statusBadge[c.status || 'active'].label}
                       </span>
                     </td>
@@ -177,8 +177,8 @@ export default function AppClientes() {
             </table>
            </div>
           ) : (
-            <div className="p-12 text-center text-gray-400">
-              <Users className="w-8 h-8 mx-auto mb-3 opacity-40" />
+            <div className="p-16 text-center text-[#6B7280]">
+              <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="text-sm">{search ? 'Nenhum cliente encontrado para esta busca' : 'Nenhum cliente cadastrado ainda'}</p>
               {!search && <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] mt-2 hover:underline">Cadastrar primeiro cliente</button>}
             </div>

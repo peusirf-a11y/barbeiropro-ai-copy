@@ -3,9 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
-import { Save, Globe, Copy, CheckCircle } from 'lucide-react';
+import { Save, Globe, Copy, CheckCircle, Settings } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
+import AppPageHeader from '@/components/app/AppPageHeader';
 
 const DAYS = [
   { key: 'seg', label: 'Segunda' }, { key: 'ter', label: 'Terça' }, { key: 'qua', label: 'Quarta' },
@@ -75,21 +76,24 @@ export default function AppConfiguracoes() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
-        <div className="mb-8">
-          <h1 className="text-2xl font-black text-[#1B1C1E]">Configurações</h1>
-          <p className="text-gray-500 text-sm mt-1">Configure sua barbearia e link público de agendamento</p>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Configurações"
+          subtitle="Configure sua barbearia e link público de agendamento"
+          icon={Settings}
+        />
 
         {/* Public link */}
         {form.slug && (
-          <div className="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-2xl p-5 mb-6 flex items-center gap-4">
-            <Globe className="w-5 h-5 text-[#2563EB] flex-shrink-0" />
-            <div className="flex-1">
-              <div className="text-xs font-semibold text-[#2563EB] mb-1">Seu link público de agendamento</div>
-              <div className="text-sm font-medium text-gray-700 break-all">{publicLink}</div>
+          <div className="bg-gradient-to-br from-[#EFF6FF] to-white border border-[#DBEAFE] rounded-2xl p-5 mb-6 flex items-center gap-4 shadow-[var(--shadow-sm)]">
+            <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
+              <Globe className="w-5 h-5 text-white" />
             </div>
-            <button onClick={copyLink} className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-shrink-0 ${copied ? 'bg-green-100 text-green-700' : 'bg-[#2563EB] text-white hover:bg-[#2563EB]/90'}`}>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-semibold text-[#2563EB] uppercase tracking-wider mb-0.5">Seu link público de agendamento</div>
+              <div className="text-sm font-semibold text-[#111827] break-all">{publicLink}</div>
+            </div>
+            <button onClick={copyLink} className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-shrink-0 ${copied ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8] shadow-[0_4px_12px_rgba(37,99,235,0.25)]'}`}>
               {copied ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copiado!' : 'Copiar'}
             </button>
@@ -98,8 +102,8 @@ export default function AppConfiguracoes() {
 
         <div className="space-y-6">
           {/* Basic info */}
-          <div className="bg-white rounded-2xl border border-black/8 p-6">
-            <h2 className="font-bold text-[#1B1C1E] mb-5">Informações básicas</h2>
+          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+            <h2 className="font-bold text-[#111827] mb-5">Informações básicas</h2>
             <div className="grid md:grid-cols-2 gap-4">
               {[
                 { label: 'Nome da barbearia', key: 'name', placeholder: 'Ex: Barbearia Studio 47' },
@@ -133,8 +137,8 @@ export default function AppConfiguracoes() {
           </div>
 
           {/* Business hours */}
-          <div className="bg-white rounded-2xl border border-black/8 p-6">
-            <h2 className="font-bold text-[#1B1C1E] mb-5">Horários de funcionamento</h2>
+          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+            <h2 className="font-bold text-[#111827] mb-5">Horários de funcionamento</h2>
             <div className="space-y-3">
               {DAYS.map(({ key, label }) => {
                 const h = form.business_hours[key] || { open: '09:00', close: '19:00', active: false };
@@ -142,7 +146,7 @@ export default function AppConfiguracoes() {
                   <div key={key} className="flex items-center gap-4">
                     <label className="flex items-center gap-2 w-32">
                       <input type="checkbox" checked={h.active} onChange={e => setHour(key, 'active', e.target.checked)} />
-                      <span className={`text-sm font-medium ${h.active ? 'text-[#1B1C1E]' : 'text-gray-400'}`}>{label}</span>
+                      <span className={`text-sm font-semibold ${h.active ? 'text-[#111827]' : 'text-[#6B7280]'}`}>{label}</span>
                     </label>
                     {h.active ? (
                       <div className="flex items-center gap-2">
@@ -164,7 +168,7 @@ export default function AppConfiguracoes() {
 
         <div className="mt-6">
           <button onClick={handleSave}
-            className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#2563EB]/90 transition-colors">
+            className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#1d4ed8] transition-all shadow-[0_4px_12px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.35)] active:scale-[0.98]">
             <Save className="w-4 h-4" />
             Salvar configurações
           </button>

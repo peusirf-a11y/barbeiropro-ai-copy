@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { CreditCard, CheckCircle, Loader2, ExternalLink, Calendar, Zap } from 'lucide-react';
+import AppPageHeader from '@/components/app/AppPageHeader';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useImpersonation } from '@/hooks/useImpersonation';
@@ -12,11 +13,11 @@ import ImpersonationLockNotice from '@/components/ImpersonationLockNotice';
 import UpgradePlanCard from '@/components/billing/UpgradePlanCard';
 
 const STATUS_LABEL = {
-  trialing: { label: 'Em período grátis', color: 'bg-blue-100 text-blue-700' },
-  active: { label: 'Ativa', color: 'bg-green-100 text-green-700' },
-  past_due: { label: 'Pagamento atrasado', color: 'bg-amber-100 text-amber-700' },
-  canceled: { label: 'Cancelada', color: 'bg-red-100 text-red-700' },
-  unpaid: { label: 'Não paga', color: 'bg-red-100 text-red-700' },
+  trialing: { label: 'Em período grátis', color: 'bg-blue-50 text-blue-700' },
+  active: { label: 'Ativa', color: 'bg-emerald-50 text-emerald-700' },
+  past_due: { label: 'Pagamento atrasado', color: 'bg-amber-50 text-amber-700' },
+  canceled: { label: 'Cancelada', color: 'bg-red-50 text-red-700' },
+  unpaid: { label: 'Não paga', color: 'bg-red-50 text-red-700' },
   incomplete: { label: 'Incompleta', color: 'bg-gray-100 text-gray-700' },
 };
 
@@ -59,20 +60,21 @@ export default function AppAssinatura() {
 
   return (
     <AppLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-3xl">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl font-black text-[#0F172A]">Assinatura</h1>
-          <p className="text-gray-500 text-sm mt-1">Gerencie seu plano, cartão e faturas</p>
-        </div>
+      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-3xl mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Assinatura"
+          subtitle="Gerencie seu plano, cartão e faturas"
+          icon={CreditCard}
+        />
 
         {/* Plan card */}
-        <div className="bg-white rounded-2xl border border-black/8 p-5 sm:p-6 mb-4">
+        <div className="bg-white rounded-2xl border border-black/5 p-5 sm:p-6 mb-4 shadow-[var(--shadow-sm)]">
           <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
             <div className="min-w-0">
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Plano atual</div>
-              <div className="text-2xl font-black text-[#0F172A]">{company?.plan_name || 'Starter'}</div>
+              <div className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-1">Plano atual</div>
+              <div className="text-2xl font-black text-[#111827] tracking-tight">{company?.plan_name || 'Starter'}</div>
             </div>
-            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${statusInfo.color} whitespace-nowrap`}>
+            <span className={`text-[11px] font-semibold px-3 py-1.5 rounded-full ${statusInfo.color} whitespace-nowrap`}>
               {statusInfo.label}
             </span>
           </div>
@@ -113,23 +115,23 @@ export default function AppAssinatura() {
         )}
 
         {/* Action card */}
-        <div className="bg-white rounded-2xl border border-black/8 p-5 sm:p-6 mb-4">
-          <h2 className="font-bold text-[#0F172A] mb-2">Gerenciar assinatura</h2>
-          <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+        <div className="bg-white rounded-2xl border border-black/5 p-5 sm:p-6 mb-4 shadow-[var(--shadow-sm)]">
+          <h2 className="font-bold text-[#111827] mb-2">Gerenciar assinatura</h2>
+          <p className="text-sm text-[#6B7280] mb-4 leading-relaxed">
             Acesse o portal seguro do Stripe para atualizar seu cartão, baixar faturas, mudar de plano ou cancelar a assinatura.
           </p>
 
           <button
             onClick={handleOpenPortal}
             disabled={loading || !company?.stripe_customer_id || isImpersonating}
-            className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3 px-5 rounded-xl text-sm transition-all shadow-brand disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3 px-5 rounded-xl text-sm transition-all shadow-[0_4px_12px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.35)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
             {loading ? 'Abrindo...' : 'Gerenciar assinatura'}
           </button>
 
           {!company?.stripe_customer_id && (
-            <p className="text-xs text-gray-400 mt-3">
+            <p className="text-xs text-[#6B7280] mt-3">
               Sua conta ainda não está vinculada a um plano pago. Adquira um plano para gerenciar pelo portal.
             </p>
           )}
@@ -143,8 +145,8 @@ export default function AppAssinatura() {
         )}
 
         {/* What you can do */}
-        <div className="bg-[#2563EB]/5 border border-[#2563EB]/15 rounded-2xl p-5">
-          <div className="text-xs font-bold text-[#2563EB] uppercase tracking-wide mb-3">No portal você pode</div>
+        <div className="bg-gradient-to-br from-[#EFF6FF] to-white border border-[#DBEAFE] rounded-2xl p-5 shadow-[var(--shadow-sm)]">
+          <div className="text-[11px] font-semibold text-[#2563EB] uppercase tracking-wider mb-3">No portal você pode</div>
           <div className="space-y-2">
             {[
               'Atualizar cartão de crédito',
@@ -167,12 +169,12 @@ export default function AppAssinatura() {
 function InfoRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-8 h-8 bg-[#2563EB]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+      <div className="w-9 h-9 bg-[#EFF6FF] ring-1 ring-[#DBEAFE] rounded-xl flex items-center justify-center flex-shrink-0">
         <Icon className="w-4 h-4 text-[#2563EB]" />
       </div>
       <div className="min-w-0">
-        <div className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">{label}</div>
-        <div className="text-sm font-semibold text-[#0F172A] truncate">{value}</div>
+        <div className="text-[11px] text-[#6B7280] font-semibold uppercase tracking-wider">{label}</div>
+        <div className="text-sm font-semibold text-[#111827] truncate">{value}</div>
       </div>
     </div>
   );

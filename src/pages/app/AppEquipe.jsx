@@ -3,11 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Plus, X, Mail, Loader2, Send } from 'lucide-react';
+import { Plus, X, Mail, Loader2, Send, UserCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
 
 const roleLabels = { admin: 'Admin', recepcao: 'Recepção', barbeiro: 'Barbeiro', financeiro: 'Financeiro' };
-const roleColors = { admin: 'bg-purple-100 text-purple-700', recepcao: 'bg-blue-100 text-blue-700', barbeiro: 'bg-green-100 text-green-700', financeiro: 'bg-yellow-100 text-yellow-700' };
+const roleColors = { admin: 'bg-violet-50 text-violet-700', recepcao: 'bg-blue-50 text-blue-700', barbeiro: 'bg-emerald-50 text-emerald-700', financeiro: 'bg-amber-50 text-amber-700' };
 
 export default function AppEquipe() {
   const [showForm, setShowForm] = useState(false);
@@ -88,49 +90,47 @@ export default function AppEquipe() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Equipe</h1>
-            <p className="text-gray-500 text-sm mt-1">{team.length} membros cadastrados</p>
-          </div>
-          <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB]/90 transition-colors flex items-center gap-2 sm:self-start">
-            <Plus className="w-4 h-4" />Convidar membro
-          </button>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Equipe"
+          subtitle={`${team.length} membros cadastrados`}
+          icon={UserCheck}
+        >
+          <PrimaryButton onClick={() => setShowForm(true)}>Convidar membro</PrimaryButton>
+        </AppPageHeader>
 
-        <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
          <div className="overflow-x-auto">
           <table className="w-full min-w-[720px]">
             <thead>
-              <tr className="border-b border-black/8">
-                <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Membro</th>
-                <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">E-mail</th>
-                <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Papel</th>
-                <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ações</th>
+              <tr className="border-b border-black/5 bg-[#FAFBFC]">
+                <th className="text-left p-4 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">Membro</th>
+                <th className="text-left p-4 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">E-mail</th>
+                <th className="text-left p-4 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">Papel</th>
+                <th className="text-left p-4 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">Status</th>
+                <th className="text-left p-4 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
             <tbody>
               {team.map(m => (
-                <tr key={m.id} className="border-b border-black/5 hover:bg-[#F8F7F3] transition-colors">
+                <tr key={m.id} className="border-b border-black/5 hover:bg-[#FAFBFC] transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[#2563EB]/10 rounded-full flex items-center justify-center text-xs font-bold text-[#2563EB]">
+                      <div className="w-9 h-9 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm">
                         {(m.name || '?')[0]}
                       </div>
-                      <span className="font-semibold text-sm text-[#1B1C1E]">{m.name}</span>
+                      <span className="font-semibold text-sm text-[#111827]">{m.name}</span>
                     </div>
                   </td>
-                  <td className="p-4 text-sm text-gray-500">{m.email}</td>
+                  <td className="p-4 text-sm text-[#6B7280]">{m.email}</td>
                   <td className="p-4">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-lg ${roleColors[m.role] || 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${roleColors[m.role] || 'bg-gray-100 text-gray-600'}`}>
                       {roleLabels[m.role] || m.role}
                     </span>
                   </td>
                   <td className="p-4">
                     <button onClick={() => updateMutation.mutate({ id: m.id, data: { active: !m.active } })}
-                      className={`text-xs font-medium px-2 py-1 rounded-lg cursor-pointer ${m.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full cursor-pointer ${m.active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
                       {m.active ? 'Ativo' : 'Inativo'}
                     </button>
                   </td>
@@ -150,7 +150,7 @@ export default function AppEquipe() {
                 </tr>
               ))}
               {team.length === 0 && (
-                <tr><td colSpan={5} className="p-8 text-center text-gray-400 text-sm">Nenhum membro na equipe</td></tr>
+                <tr><td colSpan={5} className="p-12 text-center text-[#6B7280] text-sm">Nenhum membro na equipe</td></tr>
               )}
             </tbody>
           </table>
