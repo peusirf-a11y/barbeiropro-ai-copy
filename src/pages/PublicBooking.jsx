@@ -6,7 +6,7 @@ import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle } 
 import { format, addDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
-import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
+import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } from '@/lib/scheduling';
 
 function generateTimeSlots(openTime, closeTime, durationMin) {
   const slots = [];
@@ -108,7 +108,9 @@ export default function PublicBooking() {
 
   const primaryColor = company?.primary_color || '#2563EB';
 
-  // Compute available time slots for selected date/professional/service
+  // Compute available time slots for selected date/professional/service.
+  // Retorna [{ time, smart }] — `smart=true` quando o slot preenche um buraco
+  // na agenda do profissional (encaixe inteligente).
   const getAvailableSlots = () => {
     if (!selected.date || !selected.service || !company) return [];
     const dayKey = DAY_MAP[selected.date.getDay()];
@@ -118,28 +120,47 @@ export default function PublicBooking() {
 
     const now = new Date();
     const isToday = selected.date.toDateString() === now.toDateString();
+    const proId = selected.professional?.id;
+    const dur = selected.service.duration_minutes || 30;
 
-    return slots.filter(time => {
+    const apptsWithDuration = existingAppointments.map(a => ({
+      ...a,
+      __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
+    }));
+
+    // 1) filtra slots indisponíveis (passado, conflito, bloqueio)
+    const available = slots.filter(time => {
       const [h, m] = time.split(':');
       const slotStart = new Date(selected.date);
       slotStart.setHours(+h, +m, 0, 0);
-
-      // Para o dia atual, esconde horários que já passaram
       if (isToday && slotStart <= now) return false;
-
-      // Check conflict with existing appointments for this professional
-      const proId = selected.professional?.id;
       if (!proId || proId === 'any') return true;
-
-      const apptsWithDuration = existingAppointments.map(a => ({
-        ...a,
-        __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
-      }));
-      const dur = selected.service.duration_minutes || 30;
       if (appointmentConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, appointments: apptsWithDuration })) return false;
       if (blockedConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, blocks: blockedTimes })) return false;
       return true;
     });
+
+    // 2) reordena priorizando encaixes (preenche buracos primeiro)
+    const ranked = rankSlotsByFit({
+      slots: available,
+      date: selected.date,
+      durationMin: dur,
+      professionalId: proId,
+      appointments: apptsWithDuration,
+      blocks: blockedTimes,
+    });
+
+    // 3) anota quais são "smart" (encaixe ideal) para destacar na UI
+    const annotated = annotateSlots({
+      slots: ranked,
+      date: selected.date,
+      durationMin: dur,
+      professionalId: proId,
+      appointments: apptsWithDuration,
+      blocks: blockedTimes,
+    });
+
+    return annotated;
   };
 
   const handleBook = () => {
@@ -424,17 +445,27 @@ export default function PublicBooking() {
                     ) : (
                       <>
                         <div className="grid grid-cols-4 gap-2">
-                          {availableSlots.map(t => {
+                          {availableSlots.map(({ time: t, smart }) => {
                             const isSelected = selected.time === t;
                             return (
                               <button key={t} onClick={() => setSelected(p => ({ ...p, time: t }))}
-                                className={`py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSelected ? 'text-white border-transparent' : 'bg-white border-black/10 text-gray-700 hover:border-[#2563EB]'}`}
-                                style={{ backgroundColor: isSelected ? primaryColor : undefined }}>
+                                className={`relative py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSelected ? 'text-white border-transparent' : 'bg-white border-black/10 text-gray-700 hover:border-[#2563EB]'} ${smart && !isSelected ? 'ring-1 ring-amber-300' : ''}`}
+                                style={{ backgroundColor: isSelected ? primaryColor : undefined }}
+                                title={smart ? 'Encaixe ideal — preenche um intervalo na agenda' : undefined}>
                                 {t}
+                                {smart && !isSelected && (
+                                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full" />
+                                )}
                               </button>
                             );
                           })}
                         </div>
+                        {availableSlots.some(s => s.smart) && (
+                          <div className="flex items-center gap-1.5 mt-3 text-[11px] text-gray-400">
+                            <span className="w-2 h-2 bg-amber-400 rounded-full" />
+                            Horários com pontinho são encaixes ideais na agenda
+                          </div>
+                        )}
                         {selected.time && (
                           <button onClick={() => setStep(3)} className="mt-6 w-full text-white font-bold py-4 rounded-2xl text-sm transition-opacity hover:opacity-90"
                             style={{ backgroundColor: primaryColor }}>
