@@ -6,8 +6,8 @@
 
 @layer base {
   :root {
-    --background: 220 20% 98%;
-    --foreground: 222 47% 11%;
+    --background: 220 17% 97%; /* #F7F8FB */
+    --foreground: 220 39% 11%; /* #111827 */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
@@ -17,7 +17,7 @@
     --secondary: 220 14% 96%;
     --secondary-foreground: 222 47% 20%;
     --muted: 220 14% 96%;
-    --muted-foreground: 220 10% 46%;
+    --muted-foreground: 220 9% 46%; /* #6B7280 */
     --accent: 213 94% 68%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84% 60%;
@@ -194,3 +194,51 @@
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ======================================================================
+   GLOBAL DESIGN-SYSTEM ENFORCEMENT
+   Garante consistência mesmo em telas legadas que ainda não foram
+   migradas para os primitivos (Card, Button, Input). Todas as classes
+   utilitárias listadas aqui aplicam o padrão visual oficial.
+   ====================================================================== */
+
+@layer components {
+  /* Container padrão de página */
+  .page-container {
+    @apply p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto;
+  }
+
+  /* Card padrão — qualquer div que precise virar card só usar .ds-card */
+  .ds-card {
+    @apply rounded-2xl bg-white border border-black/5 p-5 transition-all duration-200;
+    box-shadow: var(--shadow-sm);
+  }
+  .ds-card:hover { box-shadow: var(--shadow-md); }
+
+  /* Tabela padrão */
+  .ds-table { @apply w-full text-sm; }
+  .ds-table thead th {
+    @apply text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 px-4 py-3 border-b border-black/5 bg-[#FAFBFC];
+  }
+  .ds-table tbody tr {
+    @apply border-b border-black/5 transition-colors duration-150;
+  }
+  .ds-table tbody tr:hover { background-color: #FAFBFC; }
+  .ds-table tbody td { @apply px-4 py-3 text-[#111827]; }
+
+  /* Badge/Pill padrão */
+  .ds-badge {
+    @apply inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border;
+  }
+
+  /* Section heading */
+  .ds-h1 { @apply text-2xl font-black text-[#111827] tracking-tight; }
+  .ds-h2 { @apply text-lg font-bold text-[#111827] tracking-tight; }
+  .ds-subtitle { @apply text-sm text-[#6B7280]; }
+}
+
+/* Smooth scroll global (microinterações) */
+html { scroll-behavior: smooth; }
+
+/* Toast container — auto fechamento já é gerido pelo Radix; só garantir z-index */
+[data-sonner-toaster], [data-radix-toast-viewport] { z-index: 9999 !important; }
