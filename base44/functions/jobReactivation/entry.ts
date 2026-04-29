@@ -56,10 +56,33 @@ Deno.serve(async (req) => {
       for (const c of inactive) {
         if (alreadySent.has(c.id)) { totalSkipped++; continue; }
 
-        const tpl = s.msg_reactivation || 'Fala, {nome}! Sumiu hein 👀 Já tá na hora de dar aquele trato! Quer que eu veja um horário pra você essa semana?';
+        // Sugere um horário ideal (encaixe inteligente). Falha silenciosa: se
+        // não houver sugestão, segue com a mensagem padrão sem horário.
+        let suggestion = null;
+        try {
+          const res = await base44.asServiceRole.functions.invoke('suggestReactivationSlot', {
+            company_id: company.id,
+            customer_id: c.id,
+            days_ahead: 7,
+          });
+          suggestion = res?.data?.suggestion || null;
+        } catch (e) {
+          console.warn('[jobReactivation] suggestReactivationSlot failed:', e.message);
+        }
+
+        // Template: aceita {horario_sugerido} opcional. Se não houver sugestão,
+        // remove a frase entre [[ ]] (placeholder de bloco condicional).
+        const tplBase = s.msg_reactivation || 'Fala, {nome}! Sumiu hein 👀 Já tá na hora de dar aquele trato![[ Tenho um horário {horario_sugerido}, encaixa pra você?]]';
+        const conditional = /\[\[(.*?)\]\]/gs;
+        const tpl = suggestion
+          ? tplBase.replace(conditional, '$1')
+          : tplBase.replace(conditional, '');
+
         const message = renderTemplate(tpl, {
           nome: c.name || 'cliente',
           barbearia: company.name,
+          horario_sugerido: suggestion?.label || '',
+          profissional_sugerido: suggestion?.professional_name || '',
         });
 
         await base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {
