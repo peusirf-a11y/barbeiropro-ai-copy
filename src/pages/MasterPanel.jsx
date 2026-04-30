@@ -27,29 +27,31 @@ export default function MasterPanel() {
   });
 
   return (
-    <div className="min-h-screen bg-[#F8F7F3] font-inter">
-      {/* Header */}
-      <header className="bg-[#2563EB] text-white px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between gap-3">
+    <div className="min-h-screen bg-[#F7F8FB] font-inter">
+      {/* Header — gradient premium */}
+      <header className="bg-gradient-to-r from-[#0B1020] via-[#1d4ed8] to-[#2563EB] text-white px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between gap-3 shadow-[0_8px_24px_rgba(15,23,42,0.10)]">
         <div className="flex items-center gap-3 min-w-0">
-          <Logo size={36} />
+          <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur ring-1 ring-white/20 flex items-center justify-center overflow-hidden">
+            <Logo size={36} />
+          </div>
           <div className="min-w-0">
-            <div className="font-bold text-sm sm:text-base truncate">BarberTrimly — Master</div>
-            <div className="text-[11px] sm:text-xs text-white/60 truncate">Painel Super Admin</div>
+            <div className="font-bold text-sm sm:text-base truncate tracking-tight">BarberTrimly — Master</div>
+            <div className="text-[11px] sm:text-xs text-white/70 truncate font-medium">Painel Super Admin</div>
           </div>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => setShowForm(true)}
-            className="text-xs font-semibold bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg flex items-center gap-1"
+            className="text-xs font-semibold bg-white text-[#2563EB] hover:bg-white/90 px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.15)] active:scale-[0.98] transition-all"
           >
-            <Plus className="w-3.5 h-3.5" /> Nova
+            <Plus className="w-3.5 h-3.5" /> Nova empresa
           </button>
-          <Link to="/" className="text-xs text-white/60 hover:text-white hidden sm:inline">← LP</Link>
-          <Link to="/app/dashboard" className="text-xs text-white/60 hover:text-white">App →</Link>
+          <Link to="/" className="text-xs text-white/70 hover:text-white hidden sm:inline px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">← LP</Link>
+          <Link to="/app/dashboard" className="text-xs text-white/70 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">App →</Link>
         </div>
       </header>
 
-      <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-[1400px] mx-auto animate-fade-in">
         <MasterMetrics />
         <SystemAlertsList />
         <SystemHealth />
@@ -61,11 +63,11 @@ export default function MasterPanel() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowForm(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-[var(--shadow-xl)]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-[#1B1C1E]">Nova Empresa Cliente</h3>
-              <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
+              <h3 className="font-bold text-[#111827] text-lg tracking-tight">Nova Empresa Cliente</h3>
+              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               {[
@@ -73,21 +75,21 @@ export default function MasterPanel() {
                 { label: 'E-mail do responsável', key: 'owner_email', type: 'email' },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
+                  <label className="text-xs font-semibold text-[#6B7280] block mb-1.5">{f.label}</label>
                   <input
                     type={f.type}
                     value={form[f.key]}
                     onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm"
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm"
                   />
                 </div>
               ))}
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Plano</label>
+                <label className="text-xs font-semibold text-[#6B7280] block mb-1.5">Plano</label>
                 <select
                   value={form.plan_name}
                   onChange={e => setForm(p => ({ ...p, plan_name: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm"
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm"
                 >
                   <option>Starter</option>
                   <option>Pro</option>
@@ -95,12 +97,12 @@ export default function MasterPanel() {
                 </select>
               </div>
             </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-xl text-sm font-semibold text-[#111827] hover:bg-gray-50 transition-colors">Cancelar</button>
               <button
                 onClick={() => createMutation.mutate(form)}
                 disabled={!form.name || createMutation.isPending}
-                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all"
               >
                 {createMutation.isPending ? 'Criando…' : 'Criar empresa'}
               </button>

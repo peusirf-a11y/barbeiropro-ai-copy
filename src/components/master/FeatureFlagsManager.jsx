@@ -6,9 +6,9 @@ import { ToggleLeft, ToggleRight, Plus, X, Trash2, Globe, Briefcase, Building2 }
 import { clearFeatureFlagCache } from '@/lib/featureFlags';
 
 const scopeMeta = {
-  global: { icon: Globe, label: 'Global', color: 'text-[#2563EB] bg-[#2563EB]/10' },
-  plan: { icon: Briefcase, label: 'Plano', color: 'text-purple-600 bg-purple-100' },
-  company: { icon: Building2, label: 'Empresa', color: 'text-amber-600 bg-amber-100' },
+  global: { icon: Globe, label: 'Global', color: 'text-[#2563EB] bg-[#EFF6FF] border border-[#DBEAFE]' },
+  plan: { icon: Briefcase, label: 'Plano', color: 'text-violet-700 bg-violet-50 border border-violet-200' },
+  company: { icon: Building2, label: 'Empresa', color: 'text-amber-700 bg-amber-50 border border-amber-200' },
 };
 
 const emptyForm = { key: '', description: '', enabled: true, scope: 'global', target_ids: [] };
@@ -57,32 +57,32 @@ export default function FeatureFlagsManager() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-      <div className="p-4 sm:p-5 border-b border-black/8 flex items-center justify-between gap-3">
-        <h2 className="font-bold text-[#1B1C1E]">Feature flags</h2>
-        <button onClick={() => setShowForm(true)} className="text-xs font-semibold px-3 py-1.5 bg-[#2563EB] text-white rounded-lg hover:bg-[#1d4ed8] flex items-center gap-1">
+    <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
+      <div className="p-4 sm:p-5 border-b border-black/5 flex items-center justify-between gap-3">
+        <h2 className="font-bold text-[#111827] text-lg tracking-tight">Feature flags</h2>
+        <button onClick={() => setShowForm(true)} className="text-xs font-semibold px-3 py-2 bg-[#2563EB] text-white rounded-xl hover:bg-[#1d4ed8] flex items-center gap-1.5 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all">
           <Plus className="w-3.5 h-3.5" /> Nova flag
         </button>
       </div>
       <div className="divide-y divide-black/5 max-h-[480px] overflow-y-auto">
-        {isLoading && <div className="p-6 text-center text-sm text-gray-400">Carregando…</div>}
+        {isLoading && <div className="p-6 text-center text-sm text-[#6B7280]">Carregando…</div>}
         {!isLoading && flags.length === 0 && (
-          <div className="p-6 text-center text-sm text-gray-400">Nenhuma flag cadastrada.</div>
+          <div className="p-12 text-center text-sm text-[#6B7280]">Nenhuma flag cadastrada.</div>
         )}
         {flags.map(f => {
           const scope = f.scope || 'global';
           const meta = scopeMeta[scope] || scopeMeta.global;
           const Icon = meta.icon;
           return (
-            <div key={f.id} className="p-4 flex items-center justify-between gap-3">
+            <div key={f.id} className="p-4 flex items-center justify-between gap-3 hover:bg-[#FAFBFC] transition-colors">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-sm text-[#1B1C1E]">{f.key}</span>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 ${meta.color}`}>
+                  <span className="font-mono text-sm text-[#111827] font-semibold">{f.key}</span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${meta.color}`}>
                     <Icon className="w-3 h-3" /> {meta.label}
                   </span>
                 </div>
-                {f.description && <div className="text-xs text-gray-500 mt-0.5 truncate">{f.description}</div>}
+                {f.description && <div className="text-xs text-[#6B7280] mt-0.5 truncate">{f.description}</div>}
                 {scope !== 'global' && Array.isArray(f.target_ids) && f.target_ids.length > 0 && (
                   <div className="text-[11px] text-gray-400 mt-0.5 truncate font-mono">
                     {f.target_ids.length} target(s): {f.target_ids.slice(0, 2).join(', ')}{f.target_ids.length > 2 ? '…' : ''}
@@ -95,12 +95,12 @@ export default function FeatureFlagsManager() {
                   title={f.enabled !== false ? 'Desativar' : 'Ativar'}
                 >
                   {f.enabled !== false
-                    ? <ToggleRight className="w-7 h-7 text-green-500" />
+                    ? <ToggleRight className="w-7 h-7 text-emerald-500" />
                     : <ToggleLeft className="w-7 h-7 text-gray-300" />}
                 </button>
                 <button
                   onClick={() => { if (confirm(`Excluir flag "${f.key}"?`)) remove.mutate(f.id); }}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md"
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                   title="Excluir"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -112,11 +112,11 @@ export default function FeatureFlagsManager() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-[#1B1C1E]">Nova feature flag</h3>
-              <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowForm(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-[var(--shadow-xl)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-[#111827] text-lg tracking-tight">Nova feature flag</h3>
+              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
               <div>
@@ -187,7 +187,7 @@ export default function FeatureFlagsManager() {
             <button
               onClick={() => create.mutate(form)}
               disabled={!form.key || create.isPending}
-              className="w-full mt-5 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold disabled:opacity-50"
+              className="w-full mt-6 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all"
             >
               {create.isPending ? 'Criando…' : 'Criar flag'}
             </button>

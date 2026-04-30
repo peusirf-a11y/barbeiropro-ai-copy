@@ -10,10 +10,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { getTotpToken, clearTotpSession } from '@/lib/totpSession';
 
 const statusConfig = {
-  active: { label: 'Ativa', color: 'bg-green-100 text-green-700' },
-  trial: { label: 'Trial', color: 'bg-orange-100 text-orange-600' },
-  inactive: { label: 'Inativa', color: 'bg-gray-100 text-gray-500' },
-  blocked: { label: 'Bloqueada', color: 'bg-red-100 text-red-600' },
+  active: { label: 'Ativa', color: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
+  trial: { label: 'Trial', color: 'bg-amber-50 text-amber-700 border border-amber-200' },
+  inactive: { label: 'Inativa', color: 'bg-gray-100 text-gray-600 border border-gray-200' },
+  blocked: { label: 'Bloqueada', color: 'bg-red-50 text-red-700 border border-red-200' },
 };
 
 export default function CompaniesTable() {
@@ -119,16 +119,16 @@ export default function CompaniesTable() {
   });
 
   return (
-    <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-      <div className="p-4 sm:p-5 border-b border-black/8 flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="font-bold text-[#1B1C1E]">Empresas cadastradas</h2>
+    <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
+      <div className="p-4 sm:p-5 border-b border-black/5 flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="font-bold text-[#111827] text-lg tracking-tight">Empresas cadastradas</h2>
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Buscar por nome, e-mail ou slug…"
-            className="pl-9 pr-3 py-2 border border-black/10 rounded-lg text-sm w-64"
+            className="pl-9 pr-3 py-2 border border-black/10 rounded-xl text-sm w-64"
           />
         </div>
       </div>
@@ -136,48 +136,48 @@ export default function CompaniesTable() {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px]">
           <thead>
-            <tr className="border-b border-black/8">
+            <tr className="border-b border-black/5 bg-[#FAFBFC]">
               {['Empresa', 'Slug / Link', 'Plano', 'Onboarding', 'Status', 'Ações'].map(h => (
-                <th key={h} className="text-left p-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {items.map(c => (
-              <tr key={c.id} className="border-b border-black/5 hover:bg-[#F8F7F3]">
-                <td className="p-4">
-                  <div className="font-semibold text-sm text-[#1B1C1E]">{c.name}</div>
-                  {c.owner_email && <div className="text-xs text-gray-400">{c.owner_email}</div>}
+              <tr key={c.id} className="border-b border-black/5 hover:bg-[#FAFBFC] transition-colors duration-150">
+                <td className="px-4 py-3">
+                  <div className="font-semibold text-sm text-[#111827]">{c.name}</div>
+                  {c.owner_email && <div className="text-xs text-[#6B7280] mt-0.5">{c.owner_email}</div>}
                 </td>
-                <td className="p-4">
+                <td className="px-4 py-3">
                   {c.slug ? (
-                    <a href={`/agendar/${c.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-[#2563EB] hover:underline">
+                    <a href={`/agendar/${c.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-[#2563EB] hover:underline font-medium">
                       <Globe className="w-3 h-3" />/agendar/{c.slug}
                     </a>
                   ) : <span className="text-xs text-gray-400">–</span>}
                 </td>
-                <td className="p-4">
-                  <span className="text-xs font-medium px-2 py-1 bg-[#60A5FA]/15 text-[#2563EB] rounded-lg">{c.plan_name || 'Starter'}</span>
+                <td className="px-4 py-3">
+                  <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-[#EFF6FF] text-[#2563EB] rounded-full border border-[#DBEAFE]">{c.plan_name || 'Starter'}</span>
                 </td>
-                <td className="p-4">
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     {c.onboarding_completed
-                      ? <><CheckCircle className="w-4 h-4 text-green-500" /><span className="text-xs text-green-600">Completo</span></>
-                      : <><Clock className="w-4 h-4 text-orange-400" /><span className="text-xs text-orange-600">Etapa {c.onboarding_step || 1}</span></>
+                      ? <><CheckCircle className="w-4 h-4 text-emerald-500" /><span className="text-xs text-emerald-600 font-medium">Completo</span></>
+                      : <><Clock className="w-4 h-4 text-amber-500" /><span className="text-xs text-amber-600 font-medium">Etapa {c.onboarding_step || 1}</span></>
                     }
                   </div>
                 </td>
-                <td className="p-4">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-lg ${(statusConfig[c.status] || statusConfig.active).color}`}>
+                <td className="px-4 py-3">
+                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${(statusConfig[c.status] || statusConfig.active).color}`}>
                     {(statusConfig[c.status] || statusConfig.active).label}
                   </span>
                 </td>
-                <td className="p-4">
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => impersonate.mutate(c)}
                       disabled={impersonate.isPending}
-                      className="text-xs px-2 py-1 rounded-lg font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center gap-1 disabled:opacity-50"
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 flex items-center gap-1 disabled:opacity-50 transition-colors"
                       title="Visualizar como esta empresa (15min)"
                     >
                       {impersonate.isPending && impersonate.variables?.id === c.id
@@ -195,7 +195,7 @@ export default function CompaniesTable() {
                           toggleStatus.mutate({ id: c.id, nextStatus: 'active' });
                         }
                       }}
-                      className={`text-xs px-2 py-1 rounded-lg font-medium disabled:opacity-50 inline-flex items-center gap-1 ${c.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                      className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold disabled:opacity-50 inline-flex items-center gap-1 transition-colors border ${c.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200'}`}>
                       {toggleStatus.isPending && toggleStatus.variables?.id === c.id && <Loader2 className="w-3 h-3 animate-spin" />}
                       {c.status === 'active' ? 'Bloquear' : 'Ativar'}
                     </button>
@@ -203,7 +203,7 @@ export default function CompaniesTable() {
                       disabled={deleteCompany.isPending}
                       onClick={() => setDeleteTarget(c)}
                       title="Excluir empresa permanentemente (irreversível)"
-                      className="text-xs px-2 py-1 rounded-lg font-medium bg-red-100 text-red-700 hover:bg-red-200 inline-flex items-center gap-1 disabled:opacity-50"
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 inline-flex items-center gap-1 disabled:opacity-50 transition-colors"
                     >
                       {deleteCompany.isPending && deleteCompany.variables?.id === c.id
                         ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -215,28 +215,28 @@ export default function CompaniesTable() {
               </tr>
             ))}
             {!isLoading && items.length === 0 && (
-              <tr><td colSpan={6} className="p-8 text-center text-gray-400 text-sm">Nenhuma empresa encontrada</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-[#6B7280] text-sm">Nenhuma empresa encontrada</td></tr>
             )}
             {isLoading && (
-              <tr><td colSpan={6} className="p-8 text-center text-gray-400 text-sm">Carregando…</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-[#6B7280] text-sm">Carregando…</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="p-4 border-t border-black/8 flex items-center justify-between text-sm">
-        <span className="text-gray-500">{total} {total === 1 ? 'empresa' : 'empresas'}</span>
+      <div className="px-4 py-3 border-t border-black/5 flex items-center justify-between text-sm bg-[#FAFBFC]">
+        <span className="text-[#6B7280] font-medium">{total} {total === 1 ? 'empresa' : 'empresas'}</span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="p-1.5 rounded-md border border-black/10 disabled:opacity-40 hover:bg-gray-50"
+            className="p-1.5 rounded-lg border border-black/10 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
           ><ChevronLeft className="w-4 h-4" /></button>
-          <span className="text-gray-500 text-xs">{page} / {totalPages}</span>
+          <span className="text-[#6B7280] text-xs font-medium">{page} / {totalPages}</span>
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="p-1.5 rounded-md border border-black/10 disabled:opacity-40 hover:bg-gray-50"
+            className="p-1.5 rounded-lg border border-black/10 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
           ><ChevronRight className="w-4 h-4" /></button>
         </div>
       </div>
