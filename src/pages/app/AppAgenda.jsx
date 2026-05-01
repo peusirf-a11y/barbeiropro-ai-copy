@@ -38,6 +38,7 @@ export default function AppAgenda() {
   const [showNewForm, setShowNewForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
+  const [slotInterval, setSlotInterval] = useState(10); // 10 ou 15 min
   const queryClient = useQueryClient();
 
   // Barbeiro só enxerga seus próprios atendimentos.
@@ -215,6 +216,18 @@ export default function AppAgenda() {
                 {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             )}
+            <div className="hidden sm:flex items-center bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
+              {[10, 15].map(v => (
+                <button
+                  key={v}
+                  onClick={() => setSlotInterval(v)}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${slotInterval === v ? 'bg-[#2563EB] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                  title={`Intervalo ${v} minutos`}
+                >
+                  {v}min
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-1 bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
               <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="p-1.5 hover:bg-gray-100 rounded-lg">
                 <ChevronLeft className="w-4 h-4" />
@@ -287,6 +300,7 @@ export default function AppAgenda() {
             blocks={blockedTimes}
             onCardClick={setSelectedAppt}
             onMoveAppointment={!isBarbeiro ? handleMoveAppointment : undefined}
+            slotInterval={slotInterval}
           />
         ) : (
           <div className="bg-white rounded-2xl border border-black/5 p-12 text-center text-gray-500">
