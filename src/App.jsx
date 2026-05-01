@@ -23,8 +23,8 @@ import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 
 // Demo pages (public)
-import DemoDashboard from './pages/demo/DemoDashboard';
-import DemoAgenda from './pages/demo/DemoAgenda';
+import DemoDashboard from './pages/demo/DemoDashboard.jsx';
+import DemoAgenda from './pages/demo/DemoAgenda.jsx';
 import DemoClientes from './pages/demo/DemoClientes';
 import DemoServicos from './pages/demo/DemoServicos';
 import DemoProfissionais from './pages/demo/DemoProfissionais';
