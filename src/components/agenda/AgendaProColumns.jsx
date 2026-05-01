@@ -111,7 +111,6 @@ export default function AgendaProColumns({
 }) {
   const [draggingId, setDraggingId] = useState(null);
   const [dropTargetPro, setDropTargetPro] = useState(null);
-  const [mobileProIndex, setMobileProIndex] = useState(0);
 
   const handleDragStart = (e, appt) => {
     if (!onMoveAppointment) return;
@@ -186,11 +185,6 @@ export default function AgendaProColumns({
     }
   }, [showNowLine, nowOffset, slotInterval]);
 
-  // Reseta índice mobile se a lista de pros mudar
-  useEffect(() => {
-    if (mobileProIndex >= professionals.length) setMobileProIndex(0);
-  }, [professionals.length, mobileProIndex]);
-
   function getApptCard(appt) {
     const svc = services.find(s => s.id === appt.service_id);
     const dur = svc?.duration_minutes || 30;
@@ -221,129 +215,66 @@ export default function AgendaProColumns({
   // Pro a renderizar — mobile: só o atual; desktop: todos.
   const renderedPros = professionals;
 
+  // Largura responsiva por coluna: mobile = 80% da viewport para criar
+  // efeito snap (1 barbeiro visível por vez, swipe lateral). Desktop = COL_WIDTH fixo.
+  const totalGridWidth = TIME_AXIS_WIDTH + renderedPros.length * COL_WIDTH;
+
   return (
     <div className="bg-white rounded-2xl border border-black/5 shadow-[var(--shadow-sm)] overflow-hidden">
-      {/* ───────── MOBILE: Pílulas de seleção de profissional ───────── */}
-      {professionals.length > 1 && (
-        <div className="md:hidden flex items-center gap-2 px-3 py-3 overflow-x-auto border-b border-black/5 bg-[#FAFBFC]">
-          {professionals.map((pro, idx) => {
-            const active = idx === mobileProIndex;
-            return (
-              <button
-                key={pro.id}
-                onClick={() => setMobileProIndex(idx)}
-                className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${active ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-[0_4px_12px_rgba(37,99,235,0.25)]' : 'bg-white text-gray-700 border-black/10'}`}
-              >
-                {pro.photo_url ? (
-                  <img src={pro.photo_url} alt={pro.name} className="w-6 h-6 rounded-full object-cover" />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-[10px]">
-                    {pro.name?.[0]?.toUpperCase() || '?'}
-                  </div>
-                )}
-                <span className="text-xs font-semibold">{pro.name?.split(' ')[0]}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ───────── Container scrollable horizontal (desktop) / único pro (mobile) ───────── */}
+      {/* Container scrollable: vertical (horários) + horizontal (colunas) sempre */}
       <div ref={containerRef} className="overflow-auto max-h-[680px]">
-        {/* Header com avatares — sticky no topo */}
-        <div className="sticky top-0 z-20 bg-white border-b border-black/5 flex">
-          <div className="flex-shrink-0 border-r border-black/5" style={{ width: TIME_AXIS_WIDTH }} />
-
-          {/* Desktop: todos os pros */}
-          <div className="hidden md:flex flex-1">
+        <div style={{ minWidth: totalGridWidth }}>
+          {/* Header com avatares — sticky no topo, GRID sempre */}
+          <div className="sticky top-0 z-20 bg-white border-b border-black/5 flex">
+            <div className="flex-shrink-0 border-r border-black/5" style={{ width: TIME_AXIS_WIDTH }} />
             {renderedPros.map(pro => {
               const proAppts = dayAppts.filter(a => a.professional_id === pro.id);
               const nextFree = findNextFreeSlot({ proAppts, services, selectedDate, isToday });
               return <ProHeader key={pro.id} pro={pro} nextFree={nextFree} width={COL_WIDTH} />;
             })}
           </div>
-          {/* Mobile: só o pro selecionado */}
-          <div className="md:hidden flex-1">
-            {renderedPros[mobileProIndex] && (() => {
-              const pro = renderedPros[mobileProIndex];
-              const proAppts = dayAppts.filter(a => a.professional_id === pro.id);
-              const nextFree = findNextFreeSlot({ proAppts, services, selectedDate, isToday });
-              return <ProHeader pro={pro} nextFree={nextFree} mobile />;
-            })()}
-          </div>
-        </div>
 
-        {/* Grid de horários x profissionais */}
-        <div className="flex relative" style={{ height: gridHeight }}>
-          {/* Coluna de horários (eixo vertical) */}
-          <div
-            className="flex-shrink-0 border-r border-black/5 relative bg-[#FAFBFC] z-10"
-            style={{ width: TIME_AXIS_WIDTH }}
-          >
-            {slots.map((s, i) => {
-              const showLabel = slotInterval >= 15 || s.m % 30 === 0 || s.m === 10 || s.m === 20 || s.m === 40 || s.m === 50;
-              return (
-                <div
-                  key={i}
-                  className={`text-[11px] text-right pr-2.5 border-b ${s.m === 0 ? 'border-black/10 text-gray-500 font-semibold' : 'border-black/5 text-gray-400'}`}
-                  style={{ height: SLOT_HEIGHT, lineHeight: `${SLOT_HEIGHT}px` }}
-                >
-                  {showLabel ? `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}` : ''}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Linha do horário atual — sobrepõe as colunas */}
-          {showNowLine && (
+          {/* Grid de horários x profissionais — SEMPRE multi-coluna */}
+          <div className="flex relative" style={{ height: gridHeight }}>
+            {/* Coluna de horários (eixo vertical) */}
             <div
-              className="absolute pointer-events-none z-30 flex items-center"
-              style={{
-                top: `${(nowOffset / slotInterval) * SLOT_HEIGHT}px`,
-                left: TIME_AXIS_WIDTH - 4,
-                right: 0,
-              }}
+              className="flex-shrink-0 border-r border-black/5 relative bg-[#FAFBFC] z-10"
+              style={{ width: TIME_AXIS_WIDTH }}
             >
-              <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.2)] flex-shrink-0" />
-              <div className="flex-1 h-[2px] bg-red-500" />
+              {slots.map((s, i) => {
+                const showLabel = slotInterval >= 15 || s.m % 30 === 0 || s.m === 10 || s.m === 20 || s.m === 40 || s.m === 50;
+                return (
+                  <div
+                    key={i}
+                    className={`text-[11px] text-right pr-2.5 border-b ${s.m === 0 ? 'border-black/10 text-gray-500 font-semibold' : 'border-black/5 text-gray-400'}`}
+                    style={{ height: SLOT_HEIGHT, lineHeight: `${SLOT_HEIGHT}px` }}
+                  >
+                    {showLabel ? `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}` : ''}
+                  </div>
+                );
+              })}
             </div>
-          )}
 
-          {/* Colunas de profissionais — desktop: todas; mobile: só a atual */}
-          {/* Desktop */}
-          <div className="hidden md:flex flex-1">
-            {renderedPros.map((pro, idx) => (
-              <ProColumn
-                key={pro.id}
-                pro={pro}
-                index={idx}
-                slots={slots}
-                slotInterval={slotInterval}
-                dayAppts={dayAppts.filter(a => a.professional_id === pro.id)}
-                proBlocks={dayBlocks.filter(b => !b.professional_id || b.professional_id === pro.id)}
-                getApptCard={getApptCard}
-                getBlockCard={getBlockCard}
-                onCardClick={onCardClick}
-                onMoveAppointment={onMoveAppointment}
-                draggingId={draggingId}
-                isDropTarget={dropTargetPro === pro.id}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragOver={(e) => handleDragOver(e, pro.id)}
-                onDragLeave={() => dropTargetPro === pro.id && setDropTargetPro(null)}
-                onDrop={(e) => handleDrop(e, pro.id)}
-                renderCardIcons={renderCardIcons}
-                width={COL_WIDTH}
-              />
-            ))}
-          </div>
-          {/* Mobile */}
-          <div className="md:hidden flex-1">
-            {renderedPros[mobileProIndex] && (() => {
-              const pro = renderedPros[mobileProIndex];
-              const idx = mobileProIndex;
-              return (
+            {/* Linha do horário atual — sobrepõe as colunas */}
+            {showNowLine && (
+              <div
+                className="absolute pointer-events-none z-30 flex items-center"
+                style={{
+                  top: `${(nowOffset / slotInterval) * SLOT_HEIGHT}px`,
+                  left: TIME_AXIS_WIDTH - 4,
+                  right: 0,
+                }}
+              >
+                <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.2)] flex-shrink-0" />
+                <div className="flex-1 h-[2px] bg-red-500" />
+              </div>
+            )}
+
+            {/* Todas as colunas de profissionais lado a lado */}
+            <div className="flex flex-1">
+              {renderedPros.map((pro, idx) => (
                 <ProColumn
+                  key={pro.id}
                   pro={pro}
                   index={idx}
                   slots={slots}
@@ -362,10 +293,10 @@ export default function AgendaProColumns({
                   onDragLeave={() => dropTargetPro === pro.id && setDropTargetPro(null)}
                   onDrop={(e) => handleDrop(e, pro.id)}
                   renderCardIcons={renderCardIcons}
-                  mobile
+                  width={COL_WIDTH}
                 />
-              );
-            })()}
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -375,11 +306,11 @@ export default function AgendaProColumns({
 
 /* ─────────────────── Sub-components ─────────────────── */
 
-function ProHeader({ pro, nextFree, width, mobile }) {
+function ProHeader({ pro, nextFree, width }) {
   return (
     <div
-      className={`flex flex-col items-center justify-center px-3 py-3 border-r border-black/5 last:border-r-0 ${mobile ? 'w-full' : ''}`}
-      style={mobile ? undefined : { width, minWidth: width }}
+      className="flex flex-col items-center justify-center px-3 py-3 border-r border-black/5 last:border-r-0 flex-shrink-0"
+      style={{ width, minWidth: width }}
     >
       {pro.photo_url ? (
         <img src={pro.photo_url} alt={pro.name} className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-md" />
@@ -404,12 +335,12 @@ function ProColumn({
   onCardClick, onMoveAppointment,
   draggingId, isDropTarget,
   onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
-  renderCardIcons, width, mobile,
+  renderCardIcons, width,
 }) {
   return (
     <div
-      className={`relative border-r border-black/5 last:border-r-0 transition-colors ${isDropTarget ? 'bg-[#EFF6FF] ring-2 ring-inset ring-[#2563EB]/40' : ''} ${mobile ? 'w-full' : ''}`}
-      style={mobile ? undefined : { width, minWidth: width }}
+      className={`relative border-r border-black/5 last:border-r-0 transition-colors flex-shrink-0 ${isDropTarget ? 'bg-[#EFF6FF] ring-2 ring-inset ring-[#2563EB]/40' : ''}`}
+      style={{ width, minWidth: width }}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
