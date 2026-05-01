@@ -5,7 +5,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from 'lucide-react';
-import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
@@ -115,10 +115,6 @@ export default function AppAgenda() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments', companyId] }); setSelectedAppt(null); },
   });
 
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-
-  const filteredAppts = filterPro === 'all' ? appointments : appointments.filter(a => a.professional_id === filterPro);
   const visiblePros = filterPro === 'all' ? professionals : professionals.filter(p => p.id === filterPro);
 
   // Conflict + block check via lib reutilizável
@@ -203,12 +199,15 @@ export default function AppAgenda() {
   return (
     <AppLayout>
       <div className="p-4 sm:p-6 lg:p-8">
+        {/* Título topo — limpo como no modelo */}
+        <h1 className="text-xl font-bold text-[#0F172A] tracking-tight mb-5">Agendamentos</h1>
+
+        {/* Linha: Data à esquerda · Hoje‹› + filtros à direita */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-          <div>
-            <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">Agendamentos</h1>
-            <p className="text-gray-500 text-sm mt-1 capitalize">{format(currentDate, "EEEE, dd MMM yyyy", { locale: ptBR })}</p>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <h2 className="text-2xl font-bold text-[#0F172A] tracking-tight capitalize">
+            {format(currentDate, "EEEE, dd MMM yyyy", { locale: ptBR })}
+          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
             {!isBarbeiro && professionals.length > 0 && (
               <select value={filterPro} onChange={e => setFilterPro(e.target.value)}
                 className="px-3 py-2 border border-black/10 rounded-xl text-sm focus:outline-none bg-white shadow-[var(--shadow-xs)]">
@@ -216,24 +215,15 @@ export default function AppAgenda() {
                 {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             )}
-            <div className="hidden sm:flex items-center bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
-              {[10, 15].map(v => (
-                <button
-                  key={v}
-                  onClick={() => setSlotInterval(v)}
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${slotInterval === v ? 'bg-[#2563EB] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                  title={`Intervalo ${v} minutos`}
-                >
-                  {v}min
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-1 bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
-              <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="p-1.5 hover:bg-gray-100 rounded-lg">
+            <div className="flex items-center gap-1 bg-white border border-black/10 rounded-xl px-1 py-1 shadow-[var(--shadow-xs)]">
+              <button onClick={() => setCurrentDate(new Date())} className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-gray-100">
+                <Calendar className="w-4 h-4 text-gray-500" /> Hoje
+              </button>
+              <div className="w-px h-5 bg-black/10 mx-1" />
+              <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="p-1.5 hover:bg-gray-100 rounded-lg" aria-label="Dia anterior">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold px-3 py-1 rounded-lg hover:bg-gray-100">Hoje</button>
-              <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="p-1.5 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="p-1.5 hover:bg-gray-100 rounded-lg" aria-label="Próximo dia">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -243,52 +233,6 @@ export default function AppAgenda() {
               </button>
             )}
           </div>
-        </div>
-
-        {/* Seletor de dias da semana — pílulas */}
-        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
-          <button
-            onClick={() => setCurrentDate(d => addDays(d, -7))}
-            className="p-2 rounded-lg hover:bg-white border border-black/5 bg-white/60 flex-shrink-0"
-            aria-label="Semana anterior"
-          >
-            <ChevronLeft className="w-4 h-4 text-gray-500" />
-          </button>
-          {weekDays.map(day => {
-            const active = isSameDay(day, currentDate);
-            const isTodayDay = isSameDay(day, new Date());
-            const dayCount = filteredAppts.filter(a => isSameDay(new Date(a.scheduled_at), day)).length;
-            return (
-              <button
-                key={day.toISOString()}
-                onClick={() => setCurrentDate(day)}
-                className={`flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border transition-all min-w-[64px] ${
-                  active
-                    ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-[0_4px_12px_rgba(37,99,235,0.3)]'
-                    : 'bg-white border-black/5 text-gray-600 hover:border-[#2563EB]/30'
-                }`}
-              >
-                <span className={`text-[10px] uppercase tracking-wide font-semibold ${active ? 'text-white/80' : 'text-gray-400'}`}>
-                  {format(day, 'EEE', { locale: ptBR })}
-                </span>
-                <span className={`text-lg font-bold ${active ? 'text-white' : isTodayDay ? 'text-[#2563EB]' : 'text-[#0F172A]'}`}>
-                  {format(day, 'd')}
-                </span>
-                {dayCount > 0 && (
-                  <span className={`text-[10px] font-semibold mt-0.5 ${active ? 'text-white/80' : 'text-[#2563EB]'}`}>
-                    {dayCount} ag.
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          <button
-            onClick={() => setCurrentDate(d => addDays(d, 7))}
-            className="p-2 rounded-lg hover:bg-white border border-black/5 bg-white/60 flex-shrink-0"
-            aria-label="Próxima semana"
-          >
-            <ChevronRight className="w-4 h-4 text-gray-500" />
-          </button>
         </div>
 
         {visiblePros.length > 0 ? (
@@ -308,23 +252,6 @@ export default function AppAgenda() {
             <p className="text-sm">Nenhum profissional cadastrado.</p>
           </div>
         )}
-
-        {/* Legend pastel */}
-        <div className="flex items-center gap-3 mt-4 flex-wrap text-xs">
-          {[
-            { label: 'Agendado', cls: 'bg-[#F1F2F4] border-[#D1D5DB]' },
-            { label: 'Confirmado', cls: 'bg-[#DCF7E3] border-[#86E3A5]' },
-            { label: 'Na cadeira', cls: 'bg-[#FFF1C2] border-[#F5C842]' },
-            { label: 'Concluído', cls: 'bg-[#E5E7EB] border-[#9CA3AF]' },
-            { label: 'Cancelado', cls: 'bg-[#FCE2E2] border-[#F08989]' },
-            { label: 'Faltou', cls: 'bg-[#FFE4D1] border-[#F5A571]' },
-          ].map(s => (
-            <div key={s.label} className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded border ${s.cls}`} />
-              <span className="text-gray-500">{s.label}</span>
-            </div>
-          ))}
-        </div>
 
         {/* Appointment Detail Modal */}
         {selectedAppt && (
