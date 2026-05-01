@@ -32,6 +32,10 @@ export default function PublicBooking() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const [bookingDone, setBookingDone] = useState(null);
   const [formError, setFormError] = useState('');
+  // Detecta cliente recorrente quando o telefone digitado bate com algum cliente
+  // já cadastrado nesta empresa. A partir do 2º agendamento, exigimos e-mail
+  // (proxy de "conta") para preservar histórico.
+  const [returningCustomer, setReturningCustomer] = useState(null);
 
   const { data: companies = [], isLoading: loadingCompany } = useQuery({
     queryKey: ['company-by-slug', slug],
@@ -163,9 +167,48 @@ export default function PublicBooking() {
     return annotated;
   };
 
+  // Lookup do cliente por telefone enquanto digita: se já existe agendamento
+  // anterior, marca como returning e (no submit) exige email.
+  const phoneNorm = String(form.phone || '').replace(/\D/g, '');
+  const matchedExisting = phoneNorm.length >= 10
+    ? null /* checked via async query below */
+    : null;
+
+  // Query async para descobrir cliente existente pelo telefone normalizado
+  useQuery({
+    queryKey: ['public-customer-lookup', company?.id, phoneNorm],
+    queryFn: async () => {
+      const matches = await base44.entities.Customer.filter({
+        company_id: company.id,
+        phone: phoneNorm,
+      }, '-created_date', 1);
+      const existing = matches?.[0] || null;
+      // Considera "returning" se já há pelo menos 1 agendamento prévio
+      if (existing && (existing.total_appointments ?? 0) >= 1) {
+        setReturningCustomer(existing);
+        // Pré-preenche o nome se ainda não preencheu
+        setForm(p => ({
+          ...p,
+          name: p.name || existing.name || '',
+          email: p.email || existing.email || '',
+        }));
+      } else {
+        setReturningCustomer(null);
+      }
+      return existing;
+    },
+    enabled: !!company?.id && phoneNorm.length >= 10,
+    staleTime: 30_000,
+  });
+
   const handleBook = () => {
     if (!form.name.trim()) { setFormError('Por favor, informe seu nome'); return; }
     if (!form.phone.trim()) { setFormError('Por favor, informe seu telefone'); return; }
+    // Cliente recorrente é obrigado a informar e-mail (login obrigatório a partir do 2º agendamento)
+    if (returningCustomer && !form.email.trim()) {
+      setFormError('Como você já é nosso cliente, informe seu e-mail para acessar seu histórico e preferências.');
+      return;
+    }
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       setFormError('Por favor, informe um e-mail válido');
       return;
@@ -517,11 +560,23 @@ export default function PublicBooking() {
                   className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 bg-white" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">E-mail (para confirmação)</label>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">
+                  E-mail {returningCustomer ? '*' : '(para confirmação)'}
+                </label>
                 <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                   placeholder="seu@email.com"
                   className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 bg-white" />
-                <p className="text-[11px] text-gray-400 mt-1">Você receberá uma confirmação automática por e-mail.</p>
+                {returningCustomer ? (
+                  <div className="mt-2 flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg p-2.5">
+                    <Check className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-blue-800 leading-relaxed">
+                      <span className="font-semibold">Bem-vindo de volta!</span> Identificamos seu cadastro pelo telefone.
+                      Confirme seu e-mail para acessar seu histórico de agendamentos.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-gray-400 mt-1">Você receberá uma confirmação automática por e-mail.</p>
+                )}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Observações (opcional)</label>

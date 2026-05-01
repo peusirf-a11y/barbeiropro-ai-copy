@@ -4,7 +4,7 @@
 
 import { format } from 'date-fns';
 import { Phone, MessageCircle } from 'lucide-react';
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 
 const SLOT_MIN = 10;          // cada linha = 10 min
 const SLOT_HEIGHT = 28;       // altura px de cada slot
@@ -43,7 +43,36 @@ export default function AgendaProColumns({
   services,
   blocks,
   onCardClick,
+  onMoveAppointment,   // ({ appointment, toProfessionalId }) => void
 }) {
+  const [draggingId, setDraggingId] = useState(null);
+  const [dropTargetPro, setDropTargetPro] = useState(null);
+
+  const handleDragStart = (e, appt) => {
+    if (!onMoveAppointment) return;
+    setDraggingId(appt.id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', appt.id);
+  };
+  const handleDragEnd = () => { setDraggingId(null); setDropTargetPro(null); };
+  const handleDragOver = (e, proId) => {
+    if (!onMoveAppointment || !draggingId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dropTargetPro !== proId) setDropTargetPro(proId);
+  };
+  const handleDrop = (e, proId) => {
+    if (!onMoveAppointment) return;
+    e.preventDefault();
+    const apptId = e.dataTransfer.getData('text/plain') || draggingId;
+    const appt = appointments.find(a => a.id === apptId);
+    if (appt && appt.professional_id !== proId) {
+      onMoveAppointment({ appointment: appt, toProfessionalId: proId });
+    }
+    setDraggingId(null);
+    setDropTargetPro(null);
+  };
+
   const slots = useMemo(generateSlots, []);
   const totalMinutes = (END_HOUR - START_HOUR) * 60;
   const containerRef = useRef(null);
@@ -57,13 +86,27 @@ export default function AgendaProColumns({
   }, [appointments, selectedDate]);
 
   const dayBlocks = useMemo(() => {
-    return blocks.filter(b => {
-      const start = new Date(b.start_time);
-      const end = new Date(b.end_time);
-      const s = new Date(selectedDate); s.setHours(0, 0, 0, 0);
-      const e = new Date(selectedDate); e.setHours(23, 59, 59, 999);
-      return start <= e && end >= s;
-    });
+    const result = [];
+    for (const b of blocks) {
+      if (b.recurring) {
+        // Aplica se o weekday bate com o dia selecionado
+        if (typeof b.weekday !== 'number') continue;
+        if (selectedDate.getDay() !== b.weekday) continue;
+        if (!b.time_start || !b.time_end) continue;
+        const [sh, sm] = String(b.time_start).split(':').map(Number);
+        const [eh, em] = String(b.time_end).split(':').map(Number);
+        const bStart = new Date(selectedDate); bStart.setHours(sh || 0, sm || 0, 0, 0);
+        const bEnd = new Date(selectedDate);   bEnd.setHours(eh || 0, em || 0, 0, 0);
+        result.push({ ...b, start_time: bStart.toISOString(), end_time: bEnd.toISOString() });
+      } else if (b.start_time && b.end_time) {
+        const start = new Date(b.start_time);
+        const end = new Date(b.end_time);
+        const s = new Date(selectedDate); s.setHours(0, 0, 0, 0);
+        const e = new Date(selectedDate); e.setHours(23, 59, 59, 999);
+        if (start <= e && end >= s) result.push(b);
+      }
+    }
+    return result;
   }, [blocks, selectedDate]);
 
   // Linha do "agora" (só se for hoje)
@@ -139,8 +182,15 @@ export default function AgendaProColumns({
           {professionals.map(pro => {
             const proAppts = dayAppts.filter(a => a.professional_id === pro.id);
             const proBlocks = dayBlocks.filter(b => !b.professional_id || b.professional_id === pro.id);
+            const isDropTarget = dropTargetPro === pro.id;
             return (
-              <div key={pro.id} className="flex-1 min-w-[160px] relative border-r border-black/5 last:border-r-0">
+              <div
+                key={pro.id}
+                className={`flex-1 min-w-[160px] relative border-r border-black/5 last:border-r-0 transition-colors ${isDropTarget ? 'bg-[#EFF6FF] ring-2 ring-inset ring-[#2563EB]/40' : ''}`}
+                onDragOver={(e) => handleDragOver(e, pro.id)}
+                onDragLeave={() => dropTargetPro === pro.id && setDropTargetPro(null)}
+                onDrop={(e) => handleDrop(e, pro.id)}
+              >
                 {/* Linhas de fundo (slots) */}
                 {slots.map((s, i) => (
                   <div
@@ -178,11 +228,16 @@ export default function AgendaProColumns({
                   const startTime = format(new Date(appt.scheduled_at), 'HH:mm');
                   const endDate = new Date(new Date(appt.scheduled_at).getTime() + dur * 60000);
                   const endTime = format(endDate, 'HH:mm');
+                  const draggable = !!onMoveAppointment && !['concluido', 'cancelado', 'faltou'].includes(appt.status);
+                  const isDragging = draggingId === appt.id;
                   return (
                     <button
                       key={appt.id}
+                      draggable={draggable}
+                      onDragStart={(e) => handleDragStart(e, appt)}
+                      onDragEnd={handleDragEnd}
                       onClick={() => onCardClick?.(appt)}
-                      className={`absolute left-1.5 right-1.5 rounded-lg border ${palette.bg} ${palette.border} ${palette.text} px-2.5 py-2 text-left hover:shadow-md hover:-translate-y-px transition-all duration-200 overflow-hidden`}
+                      className={`absolute left-1.5 right-1.5 rounded-lg border ${palette.bg} ${palette.border} ${palette.text} px-2.5 py-2 text-left hover:shadow-md hover:-translate-y-px transition-all duration-200 overflow-hidden ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-40 ring-2 ring-[#2563EB]' : ''}`}
                       style={{ top: top + 1, height }}
                     >
                       <div className="flex items-center gap-1 mb-0.5">

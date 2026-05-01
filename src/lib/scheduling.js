@@ -18,12 +18,28 @@ export function appointmentConflict({ professionalId, dateTime, durationMin, app
 
 // Verifica se o horário do agendamento cai num bloqueio.
 // Bloqueios sem professional_id valem para a barbearia inteira.
+// Suporta bloqueios únicos (start_time/end_time) e recorrentes semanais
+// (recurring=true + weekday + time_start/time_end).
 export function blockedConflict({ professionalId, dateTime, durationMin, blocks }) {
   if (!dateTime) return false;
   const start = new Date(dateTime);
   const end = new Date(start.getTime() + (durationMin || 30) * 60000);
   return blocks.some(b => {
     if (b.professional_id && b.professional_id !== professionalId) return false;
+
+    // Bloqueio recorrente: aplica todo "weekday" entre time_start e time_end
+    if (b.recurring) {
+      if (typeof b.weekday !== 'number' || !b.time_start || !b.time_end) return false;
+      if (start.getDay() !== b.weekday) return false;
+      const [sh, sm] = String(b.time_start).split(':').map(Number);
+      const [eh, em] = String(b.time_end).split(':').map(Number);
+      const bStart = new Date(start); bStart.setHours(sh || 0, sm || 0, 0, 0);
+      const bEnd = new Date(start);   bEnd.setHours(eh || 0, em || 0, 0, 0);
+      return start < bEnd && end > bStart;
+    }
+
+    // Bloqueio único
+    if (!b.start_time || !b.end_time) return false;
     const bStart = new Date(b.start_time);
     const bEnd = new Date(b.end_time);
     return start < bEnd && end > bStart;

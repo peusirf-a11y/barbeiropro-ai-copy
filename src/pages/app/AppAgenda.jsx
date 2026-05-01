@@ -168,6 +168,27 @@ export default function AppAgenda() {
     setForm(p => ({ ...p, service_id: sid, price: svc?.price || 0 }));
   };
 
+  // Drag-and-drop entre barbeiros: muda professional_id mantendo horário.
+  const handleMoveAppointment = ({ appointment, toProfessionalId }) => {
+    if (!toProfessionalId || appointment.professional_id === toProfessionalId) return;
+    if (hasConflict(toProfessionalId, appointment.scheduled_at, appointment.service_id, appointment.id)) {
+      alert('Conflito: o profissional de destino já tem agendamento neste horário.');
+      return;
+    }
+    if (hitsBlock(toProfessionalId, appointment.scheduled_at, appointment.service_id)) {
+      alert('Horário bloqueado para o profissional de destino.');
+      return;
+    }
+    const pro = professionals.find(p => p.id === toProfessionalId);
+    updateMutation.mutate({
+      id: appointment.id,
+      data: {
+        professional_id: toProfessionalId,
+        professional_name: pro?.name || '',
+      },
+    });
+  };
+
   if (loadingCompany) {
     return (
       <AppLayout>
@@ -265,6 +286,7 @@ export default function AppAgenda() {
             services={services}
             blocks={blockedTimes}
             onCardClick={setSelectedAppt}
+            onMoveAppointment={!isBarbeiro ? handleMoveAppointment : undefined}
           />
         ) : (
           <div className="bg-white rounded-2xl border border-black/5 p-12 text-center text-gray-500">

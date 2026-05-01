@@ -11,19 +11,38 @@
     },
     "start_time": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "In\u00edcio (uso para bloqueio \u00fanico; ignorado em recorrentes)"
     },
     "end_time": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "Fim (uso para bloqueio \u00fanico; ignorado em recorrentes)"
     },
     "reason": {
       "type": "string"
+    },
+    "recurring": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, o bloqueio se repete semanalmente conforme weekday + time_start/time_end"
+    },
+    "weekday": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 6,
+      "description": "Dia da semana (0=domingo \u2026 6=s\u00e1bado) quando recurring=true"
+    },
+    "time_start": {
+      "type": "string",
+      "description": "Hor\u00e1rio de in\u00edcio no formato HH:MM (ex: 12:00) quando recurring=true"
+    },
+    "time_end": {
+      "type": "string",
+      "description": "Hor\u00e1rio de fim no formato HH:MM (ex: 13:00) quando recurring=true"
     }
   },
   "required": [
-    "company_id",
-    "start_time",
-    "end_time"
+    "company_id"
   ]
 }
