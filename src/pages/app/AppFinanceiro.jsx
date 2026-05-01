@@ -10,12 +10,13 @@ import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import KpiCard from '@/components/dashboard/KpiCard';
+import FinancialExport from '@/components/financeiro/FinancialExport';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
 
 export default function AppFinanceiro() {
-  const { companyId, isLoading: loadingCompany } = useCompany();
+  const { companyId, company, isLoading: loadingCompany } = useCompany();
   const [showForm, setShowForm] = useState(false);
   const [period, setPeriod] = useState('this_month'); // 'this_month' | 'last_month' | 'all'
   const [form, setForm] = useState({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' });
@@ -80,6 +81,7 @@ export default function AppFinanceiro() {
             <option value="last_month">Mês passado</option>
             <option value="all">Todo o período</option>
           </select>
+          <FinancialExport companyId={companyId} companyName={company?.name} />
           <PrimaryButton onClick={() => setShowForm(true)}>Lançamento</PrimaryButton>
         </AppPageHeader>
 
