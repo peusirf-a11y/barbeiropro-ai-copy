@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } from '@/lib/scheduling';
 import UnitPicker from '@/components/booking/UnitPicker';
+import PhoneIdentificationStep from '@/components/booking/PhoneIdentificationStep';
 
 function generateTimeSlots(openTime, closeTime, durationMin) {
   const slots = [];
@@ -28,14 +29,14 @@ const DAY_MAP = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6:
 
 export default function PublicBooking() {
   const { slug } = useParams();
-  const [step, setStep] = useState(0);
+  // Fluxo: 'identify' → 0 (serviço) → 1 (profissional) → 2 (horário) → 3 (confirmação)
+  // A identificação por telefone é OBRIGATÓRIA antes de qualquer ação.
+  const [step, setStep] = useState('identify');
   const [selected, setSelected] = useState({ unit: null, service: null, professional: null, date: null, time: null });
   const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const [bookingDone, setBookingDone] = useState(null);
   const [formError, setFormError] = useState('');
-  // Detecta cliente recorrente quando o telefone digitado bate com algum cliente
-  // já cadastrado nesta empresa. A partir do 2º agendamento, exigimos e-mail
-  // (proxy de "conta") para preservar histórico.
+  // Cliente identificado na etapa de telefone (existente no banco)
   const [returningCustomer, setReturningCustomer] = useState(null);
 
   const { data: companies = [], isLoading: loadingCompany } = useQuery({
@@ -187,53 +188,10 @@ export default function PublicBooking() {
     return annotated;
   };
 
-  // Lookup do cliente por telefone enquanto digita.
-  // Ao identificar match: preenche nome/email automaticamente e marca como
-  // returning se já houver histórico (>=1 agendamento) — nesse caso o submit exige email.
-  const phoneNorm = String(form.phone || '').replace(/\D/g, '');
-
-  useEffect(() => {
-    if (!company?.id || phoneNorm.length < 10) {
-      setReturningCustomer(null);
-      return;
-    }
-    let cancelled = false;
-    // pequeno debounce para não disparar a cada tecla
-    const t = setTimeout(async () => {
-      try {
-        const matches = await base44.entities.Customer.filter({
-          company_id: company.id,
-          phone: phoneNorm,
-        }, '-created_date', 1);
-        if (cancelled) return;
-        const existing = matches?.[0] || null;
-        if (existing) {
-          // Auto-preenche nome e e-mail (sem sobrescrever o que o usuário já digitou)
-          setForm(p => ({
-            ...p,
-            name: p.name?.trim() ? p.name : (existing.name || ''),
-            email: p.email?.trim() ? p.email : (existing.email || ''),
-          }));
-          // Marca como returning apenas se já tem histórico (proxy de "conta")
-          setReturningCustomer((existing.total_appointments ?? 0) >= 1 ? existing : null);
-        } else {
-          setReturningCustomer(null);
-        }
-      } catch (err) {
-        console.warn('[PublicBooking] lookup falhou:', err.message);
-      }
-    }, 300);
-    return () => { cancelled = true; clearTimeout(t); };
-  }, [company?.id, phoneNorm]);
-
   const handleBook = () => {
-    if (!form.name.trim()) { setFormError('Por favor, informe seu nome'); return; }
-    if (!form.phone.trim()) { setFormError('Por favor, informe seu telefone'); return; }
-    // Cliente recorrente é obrigado a informar e-mail (login obrigatório a partir do 2º agendamento)
-    if (returningCustomer && !form.email.trim()) {
-      setFormError('Como você já é nosso cliente, informe seu e-mail para acessar seu histórico e preferências.');
-      return;
-    }
+    // Telefone e nome já foram validados na etapa de identificação — apenas reforço de segurança.
+    if (!form.phone.trim()) { setFormError('Telefone obrigatório. Volte e informe seu WhatsApp.'); return; }
+    if (!form.name.trim()) { setFormError('Nome obrigatório. Volte e informe seu nome.'); return; }
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       setFormError('Por favor, informe um e-mail válido');
       return;
@@ -388,7 +346,7 @@ export default function PublicBooking() {
             <button
               onClick={() => {
                 setSelected({ unit: null, service: null, professional: null, date: null, time: null });
-                setStep(0);
+                setStep('identify');
               }}
               className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg border border-black/5 flex-shrink-0"
               title="Trocar de unidade"
@@ -400,23 +358,48 @@ export default function PublicBooking() {
         </div>
       </header>
 
-      {/* Progress bar */}
-      <div className="bg-white border-b border-black/10">
-        <div className="max-w-xl mx-auto px-6 py-3">
-          <div className="flex items-center gap-2">
-            {['Serviço', 'Profissional', 'Horário', 'Seus dados'].map((s, i) => (
-              <div key={s} className="flex items-center gap-2 flex-1">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < step ? 'text-white' : i === step ? 'text-white' : 'bg-gray-100 text-gray-400'}`}
-                  style={{ backgroundColor: i <= step ? primaryColor : undefined }}>
-                  {i < step ? <Check className="w-3 h-3" /> : i + 1}
+      {/* Progress bar — só aparece após identificação */}
+      {typeof step === 'number' && (
+        <div className="bg-white border-b border-black/10">
+          <div className="max-w-xl mx-auto px-6 py-3">
+            <div className="flex items-center gap-2">
+              {['Serviço', 'Profissional', 'Horário', 'Confirmar'].map((s, i) => (
+                <div key={s} className="flex items-center gap-2 flex-1">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < step ? 'text-white' : i === step ? 'text-white' : 'bg-gray-100 text-gray-400'}`}
+                    style={{ backgroundColor: i <= step ? primaryColor : undefined }}>
+                    {i < step ? <Check className="w-3 h-3" /> : i + 1}
+                  </div>
+                  <span className={`text-xs font-medium hidden sm:block ${i === step ? 'text-[#1B1C1E]' : 'text-gray-400'}`}>{s}</span>
+                  {i < 3 && <div className={`flex-1 h-px`} style={{ backgroundColor: i < step ? primaryColor : '#e5e7eb' }} />}
                 </div>
-                <span className={`text-xs font-medium hidden sm:block ${i === step ? 'text-[#1B1C1E]' : 'text-gray-400'}`}>{s}</span>
-                {i < 3 && <div className={`flex-1 h-px`} style={{ backgroundColor: i < step ? primaryColor : '#e5e7eb' }} />}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Selo de cliente identificado — visível em todas as etapas após identificação */}
+      {typeof step === 'number' && form.name && (
+        <div className="bg-white border-b border-black/5">
+          <div className="max-w-xl mx-auto px-6 py-2.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: primaryColor }}>
+                {(form.name[0] || '?').toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] text-gray-400 leading-none">Agendando como</div>
+                <div className="text-sm font-bold text-[#111827] truncate">{form.name}</div>
+              </div>
+            </div>
+            <button
+              onClick={() => { setStep('identify'); setFormError(''); }}
+              className="text-[11px] font-semibold text-gray-500 hover:text-[#111827] underline-offset-2 hover:underline flex-shrink-0"
+            >
+              Não sou eu
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 max-w-xl mx-auto w-full px-6 py-8">
 
@@ -438,6 +421,23 @@ export default function PublicBooking() {
 
         {/* Fluxo normal — só renderiza depois que a unidade foi escolhida (ou não há multi-unit) */}
         {(!isMultiUnit || selected.unit) && (<>
+
+        {/* Etapa 'identify': identificação obrigatória por telefone (1ª etapa do fluxo) */}
+        {step === 'identify' && (
+          <PhoneIdentificationStep
+            companyId={company.id}
+            scopeUnitId={scopeCustomerByUnit ? selected.unit?.id : undefined}
+            primaryColor={primaryColor}
+            initialPhone={form.phone}
+            initialName={form.name}
+            initialEmail={form.email}
+            onContinue={({ phone, name, email, existingCustomer }) => {
+              setForm(p => ({ ...p, phone, name, email }));
+              setReturningCustomer(existingCustomer || null);
+              setStep(0);
+            }}
+          />
+        )}
 
         {/* Step 0: Service */}
         {step === 0 && (
@@ -591,16 +591,18 @@ export default function PublicBooking() {
           </div>
         )}
 
-        {/* Step 3: Customer info */}
+        {/* Step 3: Confirmação — nome e telefone já foram coletados na etapa de identificação */}
         {step === 3 && (
           <div>
             <button onClick={() => setStep(2)} className="flex items-center gap-1 text-sm text-gray-500 mb-5 hover:text-[#1B1C1E]">
               <ChevronLeft className="w-4 h-4" />Voltar
             </button>
-            <h2 className="text-xl font-black text-[#1B1C1E] mb-6">Seus dados</h2>
-            
-            {/* Summary */}
+            <h2 className="text-xl font-black text-[#1B1C1E] mb-6">Confirmar agendamento</h2>
+
+            {/* Summary completo */}
             <div className="bg-white rounded-2xl border border-black/8 p-4 mb-6 space-y-2">
+              <div className="flex justify-between text-sm"><span className="text-gray-500">Cliente</span><span className="font-semibold truncate ml-2">{form.name}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-500">WhatsApp</span><span className="font-semibold">{form.phone}</span></div>
               {selected.unit && (
                 <div className="flex justify-between text-sm"><span className="text-gray-500">Unidade</span><span className="font-semibold">{selected.unit.name}</span></div>
               )}
@@ -616,44 +618,20 @@ export default function PublicBooking() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Seu nome *</label>
-                <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Como você se chama?"
-                  className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 bg-white" style={{ '--tw-ring-color': primaryColor + '40' }} />
+            {returningCustomer && (
+              <div className="mb-4 flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[12px] text-emerald-800 leading-relaxed">
+                  <span className="font-semibold">Cliente identificado.</span> Vamos vincular este agendamento ao seu histórico.
+                </p>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">WhatsApp / Telefone *</label>
-                <input type="tel" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                  placeholder="(11) 99999-9999"
-                  className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 bg-white" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">
-                  E-mail {returningCustomer ? '*' : '(para confirmação)'}
-                </label>
-                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                  placeholder="seu@email.com"
-                  className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 bg-white" />
-                {returningCustomer ? (
-                  <div className="mt-2 flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg p-2.5">
-                    <Check className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-blue-800 leading-relaxed">
-                      <span className="font-semibold">Bem-vindo de volta!</span> Identificamos seu cadastro pelo telefone.
-                      Confirme seu e-mail para acessar seu histórico de agendamentos.
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-gray-400 mt-1">Você receberá uma confirmação automática por e-mail.</p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Observações (opcional)</label>
-                <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
-                  placeholder="Preferências ou informações adicionais"
-                  className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 bg-white resize-none" />
-              </div>
+            )}
+
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Observações (opcional)</label>
+              <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
+                placeholder="Preferências ou informações adicionais"
+                className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white resize-none" />
             </div>
 
             {formError && (
@@ -663,7 +641,7 @@ export default function PublicBooking() {
             )}
 
             <button onClick={handleBook} disabled={!form.name || !form.phone || createApptMutation.isPending}
-              className="mt-6 w-full text-white font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-6 w-full text-white font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
               style={{ backgroundColor: primaryColor }}>
               {createApptMutation.isPending ? 'Confirmando...' : 'Confirmar agendamento'}
             </button>
