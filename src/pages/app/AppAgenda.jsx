@@ -105,8 +105,33 @@ export default function AppAgenda() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Appointment.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments', companyId] }); setShowNewForm(false); setForm(emptyForm); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['customers', companyId] });
+      setShowNewForm(false);
+      setForm(emptyForm);
+    },
   });
+
+  // Normaliza telefone para apenas dígitos (padrão usado no Customer)
+  const normalizePhone = (raw) => String(raw || '').replace(/\D/g, '');
+
+  // Lookup por telefone — preenche nome automaticamente quando cliente já existe.
+  // Disparado on-blur do campo telefone, mas só quando ainda não há cliente selecionado.
+  const handlePhoneLookup = (rawPhone) => {
+    const norm = normalizePhone(rawPhone);
+    if (!norm || norm.length < 10) return;
+    if (form.customer_id) return; // já tem cliente vinculado, não sobrescreve
+    const found = customers.find(c => normalizePhone(c.phone) === norm);
+    if (found) {
+      setForm(p => ({
+        ...p,
+        customer_id: found.id,
+        customer_name: found.name,
+        customer_phone: found.phone,
+      }));
+    }
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Appointment.delete(id),
@@ -142,7 +167,7 @@ export default function AppAgenda() {
     return blockedConflict({ professionalId: proId, dateTime, durationMin: dur, blocks: blockedTimes });
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!form.professional_id || !form.service_id || !form.scheduled_at || !form.customer_name) return;
     if (hasConflict(form.professional_id, form.scheduled_at, form.service_id)) {
       alert('Conflito de horário! Este profissional já tem um agendamento neste horário.');
@@ -154,15 +179,41 @@ export default function AppAgenda() {
     }
     const pro = professionals.find(p => p.id === form.professional_id);
     const svc = services.find(s => s.id === form.service_id);
-    const customer = customers.find(c => c.id === form.customer_id);
+
+    // Identificação/criação automática de cliente:
+    // 1) Se já houver customer_id selecionado, usa.
+    // 2) Senão, tenta achar por telefone normalizado.
+    // 3) Se não achar e houver telefone válido, cria novo Customer automaticamente.
+    let customer = customers.find(c => c.id === form.customer_id) || null;
+    const phoneNorm = normalizePhone(form.customer_phone);
+
+    if (!customer && phoneNorm.length >= 10) {
+      customer = customers.find(c => normalizePhone(c.phone) === phoneNorm) || null;
+    }
+    if (!customer && phoneNorm.length >= 10 && form.customer_name?.trim()) {
+      try {
+        customer = await base44.entities.Customer.create({
+          company_id: companyId,
+          unit_id: activeUnitId || undefined,
+          name: form.customer_name.trim(),
+          phone: phoneNorm,
+          status: 'active',
+        });
+        queryClient.invalidateQueries({ queryKey: ['customers', companyId] });
+      } catch (err) {
+        console.warn('[AppAgenda] falha ao criar cliente automaticamente:', err.message);
+      }
+    }
+
     createMutation.mutate({
       ...form,
       company_id: companyId,
       unit_id: activeUnitId || pro?.unit_ids?.[0] || undefined,
+      customer_id: customer?.id || form.customer_id || undefined,
       professional_name: pro?.name || '',
       service_name: svc?.name || '',
       customer_name: customer?.name || form.customer_name,
-      customer_phone: customer?.phone || form.customer_phone,
+      customer_phone: customer?.phone || phoneNorm || form.customer_phone,
       price: svc?.price || form.price,
       source: 'interno',
       confirm_token: generateToken(),
@@ -416,8 +467,24 @@ export default function AppAgenda() {
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone</label>
-                    <input type="text" value={form.customer_phone} onChange={e => setForm(p => ({ ...p, customer_phone: e.target.value }))}
+                    <input type="text" value={form.customer_phone}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setForm(p => ({
+                          ...p,
+                          customer_phone: val,
+                          // se o usuário começa a digitar telefone novo, desvincula cliente anterior
+                          customer_id: p.customer_id && normalizePhone(p.customer_phone) !== normalizePhone(val) ? '' : p.customer_id,
+                        }));
+                        // lookup imediato quando atinge tamanho mínimo
+                        if (normalizePhone(val).length >= 10) handlePhoneLookup(val);
+                      }}
+                      onBlur={e => handlePhoneLookup(e.target.value)}
+                      placeholder="(11) 99999-9999"
                       className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                    {form.customer_id && (
+                      <span className="text-[11px] text-green-600 font-medium mt-1 block">✓ Cliente identificado</span>
+                    )}
                   </div>
                 </div>
                 <div>
