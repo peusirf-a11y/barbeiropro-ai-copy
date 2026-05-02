@@ -113,47 +113,21 @@ export default function PublicBooking() {
   const customersSharedMode = company?.customers_shared_across_units !== false;
   const scopeCustomerByUnit = isMultiUnit && !customersSharedMode && !!selected.unit?.id;
 
+  // Cria agendamento via backend (asServiceRole) — garante criação/vinculação do Customer
+  // mesmo sem usuário autenticado.
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
-      // 1) Busca cliente existente por telefone (normalizado) na empresa
-      const phoneNorm = String(data.customer_phone || '').replace(/\D/g, '');
-      let customer = null;
-      if (phoneNorm) {
-        const lookupFilter = scopeCustomerByUnit
-          ? { company_id: data.company_id, phone: phoneNorm, unit_id: data.unit_id }
-          : { company_id: data.company_id, phone: phoneNorm };
-        const matches = await base44.entities.Customer.filter(lookupFilter, '-created_date', 1);
-        if (matches?.length) customer = matches[0];
-      }
-
-      // 2) Se não existe, cria automaticamente
-      if (!customer) {
-        customer = await base44.entities.Customer.create({
-          company_id: data.company_id,
-          unit_id: scopeCustomerByUnit ? data.unit_id : undefined,
-          name: data.customer_name,
-          phone: phoneNorm,
-          email: data.customer_email || undefined,
-          status: 'active',
-        });
-      }
-
-      // 3) Cria appointment já com customer_id vinculado
-      const result = await base44.entities.Appointment.create({
+      const res = await base44.functions.invoke('createPublicAppointment', {
         ...data,
-        customer_phone: phoneNorm,
-        customer_id: customer.id,
+        scope_customer_by_unit: scopeCustomerByUnit,
       });
-
-      // E-mail de confirmação (não bloqueia UX)
-      if (data.customer_email && result?.id) {
-        base44.functions
-          .invoke('sendBookingConfirmation', { appointment_id: result.id })
-          .catch((err) => console.warn('Falha ao enviar e-mail de confirmação:', err));
+      if (!res?.data?.success) {
+        throw new Error(res?.data?.error || 'Falha ao criar agendamento');
       }
-      return result;
+      return res.data;
     },
     onSuccess: (result) => setBookingDone(result),
+    onError: (err) => setFormError(err.message || 'Erro ao confirmar agendamento. Tente novamente.'),
   });
 
   const primaryColor = company?.primary_color || '#2563EB';
