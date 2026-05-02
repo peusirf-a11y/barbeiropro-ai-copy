@@ -15,32 +15,13 @@
 import { format, addMinutes } from 'date-fns';
 import { Phone, MessageCircle, Smartphone, Monitor, Coffee, Hourglass } from 'lucide-react';
 import { useMemo, useEffect, useRef, useState } from 'react';
+import { getStatusToken, isClientWithoutPreference } from '@/lib/statusTokens';
 
 const SLOT_HEIGHT = 28;       // altura px de cada slot
 const START_HOUR = 8;
 const END_HOUR = 21;
 const COL_WIDTH = 200;        // largura desktop por coluna
 const TIME_AXIS_WIDTH = 64;
-
-// Paleta pastel inspirada na referência (Cash Barber).
-// Cores suaves, transparência leve, texto contrastante.
-const PASTEL = {
-  agendado:       { bg: 'bg-[#F1F2F4]/70',  border: 'border-[#D1D5DB]',  text: 'text-gray-700',     accent: '#9CA3AF' },
-  confirmado:     { bg: 'bg-[#DCF7E3]/80',  border: 'border-[#86E3A5]',  text: 'text-emerald-800',  accent: '#10B981' },
-  em_atendimento: { bg: 'bg-[#FFF1C2]/80',  border: 'border-[#F5C842]',  text: 'text-amber-800',    accent: '#F59E0B' },
-  concluido:      { bg: 'bg-[#E5E7EB]/70',  border: 'border-[#9CA3AF]',  text: 'text-gray-500',     accent: '#6B7280' },
-  cancelado:      { bg: 'bg-[#FCE2E2]/80',  border: 'border-[#F08989]',  text: 'text-red-700',      accent: '#EF4444' },
-  faltou:         { bg: 'bg-[#FFE4D1]/80',  border: 'border-[#F5A571]',  text: 'text-orange-700',   accent: '#F97316' },
-};
-
-// Variação extra de cor por profissional (rotacional) — só aplicada em
-// agendamentos "agendado" sem cliente preferencial, para enriquecer visual.
-const SOFT_TINTS = [
-  { bg: 'bg-[#E9E5FF]/70', border: 'border-[#C7BCFD]', text: 'text-violet-800' }, // roxo claro (Pedro)
-  { bg: 'bg-[#FFE4D1]/70', border: 'border-[#F5A571]', text: 'text-orange-700' }, // pêssego (João Paulo)
-  { bg: 'bg-[#DCF7E3]/70', border: 'border-[#86E3A5]', text: 'text-emerald-800' }, // verde menta (Eduardo)
-  { bg: 'bg-[#E5E7EB]/70', border: 'border-[#9CA3AF]', text: 'text-gray-700' },   // cinza
-];
 
 function generateSlots(stepMin) {
   const slots = [];
@@ -92,12 +73,7 @@ function findNextFreeSlot({ proAppts, services, selectedDate, isToday }) {
   return null;
 }
 
-// Detecta cliente novo (sem total_appointments) — para borda tracejada.
-function isNewClient(appt) {
-  // O preferencial é receber a info via lookup; aqui usamos heurística:
-  // se não tem customer_id, é cliente "sem preferência" / novo.
-  return !appt.customer_id;
-}
+
 
 export default function AgendaProColumns({
   selectedDate,
@@ -376,20 +352,14 @@ function ProColumn({
       {/* Cards de agendamento */}
       {dayAppts.map(appt => {
         const { top, height, dur } = getApptCard(appt);
-        // Status determina paleta. Para "agendado" usamos tint rotacional por
-        // profissional para variar visual (estilo da referência).
-        let palette;
-        if (appt.status === 'agendado') {
-          palette = SOFT_TINTS[index % SOFT_TINTS.length];
-        } else {
-          palette = PASTEL[appt.status] || PASTEL.agendado;
-        }
+        // Cores via tokens centrais — padronizadas em todo o sistema.
+        const token = getStatusToken(appt.status);
         const startTime = format(new Date(appt.scheduled_at), 'HH:mm');
         const endDate = addMinutes(new Date(appt.scheduled_at), dur);
         const endTime = format(endDate, 'HH:mm');
         const draggable = !!onMoveAppointment && !['concluido', 'cancelado', 'faltou'].includes(appt.status);
         const isDragging = draggingId === appt.id;
-        const newClient = isNewClient(appt);
+        const noPreference = isClientWithoutPreference(appt);
 
         return (
           <button
@@ -398,7 +368,7 @@ function ProColumn({
             onDragStart={(e) => onDragStart(e, appt)}
             onDragEnd={onDragEnd}
             onClick={() => onCardClick?.(appt)}
-            className={`absolute left-1.5 right-1.5 rounded-xl border ${palette.bg} ${palette.border} ${palette.text} ${newClient ? 'border-dashed' : ''} px-2.5 py-2 text-left transition-all duration-200 overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-px hover:z-10 ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${isDragging ? 'opacity-40 ring-2 ring-[#2563EB]' : ''}`}
+            className={`absolute left-1.5 right-1.5 rounded-xl border ${token.cardBg} ${token.cardBorder} ${token.cardText} ${noPreference ? 'border-dashed' : ''} px-2.5 py-2 text-left transition-all duration-200 overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-px hover:z-10 ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${isDragging ? 'opacity-40 ring-2 ring-[#2563EB]' : ''}`}
             style={{ top: top + 1, height }}
             title={`${appt.customer_name || 'Cliente'} · ${appt.service_name} · ${startTime}–${endTime}`}
           >

@@ -3,15 +3,7 @@
 import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
-
-const STATUS = {
-  agendado: { label: 'Agendado', cls: 'bg-blue-50 text-blue-700' },
-  confirmado: { label: 'Confirmado', cls: 'bg-emerald-50 text-emerald-700' },
-  em_atendimento: { label: 'Na Cadeira', cls: 'bg-amber-50 text-amber-700' },
-  concluido: { label: 'Concluído', cls: 'bg-gray-100 text-gray-600' },
-  cancelado: { label: 'Cancelado', cls: 'bg-red-50 text-red-600' },
-  faltou: { label: 'Faltou', cls: 'bg-orange-50 text-orange-600' },
-};
+import { getStatusToken } from '@/lib/statusTokens';
 
 export default function TodayAgendaList({ appointments = [] }) {
   const sorted = [...appointments].sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
@@ -42,9 +34,14 @@ export default function TodayAgendaList({ appointments = [] }) {
                 <div className="font-semibold text-sm text-[#111827] truncate">{appt.customer_name || 'Cliente'}</div>
                 <div className="text-xs text-[#6B7280] truncate">{appt.service_name} · {appt.professional_name}</div>
               </div>
-              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${STATUS[appt.status]?.cls || 'bg-gray-100 text-gray-600'}`}>
-                {STATUS[appt.status]?.label || appt.status}
-              </span>
+              {(() => {
+                const t = getStatusToken(appt.status);
+                return (
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border flex-shrink-0 ${t.pill}`}>
+                    {t.label}
+                  </span>
+                );
+              })()}
             </div>
           ))}
         </div>

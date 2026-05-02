@@ -13,15 +13,10 @@ import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import AgendaProColumns from '@/components/agenda/AgendaProColumns';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
+import { STATUS_TOKENS } from '@/lib/statusTokens';
 
-const statusConfig = {
-  agendado: { label: 'Agendado', color: 'border-l-blue-400 bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
-  confirmado: { label: 'Confirmado', color: 'border-l-green-400 bg-green-50', badge: 'bg-green-100 text-green-700' },
-  em_atendimento: { label: 'Na Cadeira', color: 'border-l-yellow-400 bg-yellow-50', badge: 'bg-yellow-100 text-yellow-700' },
-  concluido: { label: 'Concluído', color: 'border-l-gray-300 bg-gray-50', badge: 'bg-gray-100 text-gray-600' },
-  cancelado: { label: 'Cancelado', color: 'border-l-red-300 bg-red-50', badge: 'bg-red-100 text-red-600' },
-  faltou: { label: 'Faltou', color: 'border-l-orange-300 bg-orange-50', badge: 'bg-orange-100 text-orange-600' },
-};
+// Status habilitados no modal de mudança — ordenados.
+const STATUS_KEYS = ['agendado', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'faltou'];
 
 const hours = Array.from({ length: 13 }, (_, i) => i + 8);
 
@@ -326,21 +321,21 @@ export default function AppAgenda() {
           </div>
         )}
 
-        {/* Legend pastel */}
+        {/* Legenda — cores padronizadas em todo o sistema */}
         <div className="flex items-center gap-3 mt-4 flex-wrap text-xs">
-          {[
-            { label: 'Agendado', cls: 'bg-[#F1F2F4] border-[#D1D5DB]' },
-            { label: 'Confirmado', cls: 'bg-[#DCF7E3] border-[#86E3A5]' },
-            { label: 'Na cadeira', cls: 'bg-[#FFF1C2] border-[#F5C842]' },
-            { label: 'Concluído', cls: 'bg-[#E5E7EB] border-[#9CA3AF]' },
-            { label: 'Cancelado', cls: 'bg-[#FCE2E2] border-[#F08989]' },
-            { label: 'Faltou', cls: 'bg-[#FFE4D1] border-[#F5A571]' },
-          ].map(s => (
-            <div key={s.label} className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded border ${s.cls}`} />
-              <span className="text-gray-500">{s.label}</span>
-            </div>
-          ))}
+          {STATUS_KEYS.map(key => {
+            const t = STATUS_TOKENS[key];
+            return (
+              <div key={key} className="flex items-center gap-1.5">
+                <div className={`w-3 h-3 rounded border ${t.cardBg} ${t.cardBorder}`} />
+                <span className="text-gray-500">{t.label}</span>
+              </div>
+            );
+          })}
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded border border-dashed border-gray-400 bg-white" />
+            <span className="text-gray-500">Cliente sem preferência</span>
+          </div>
         </div>
 
         {/* Appointment Detail Modal */}
@@ -369,13 +364,17 @@ export default function AppAgenda() {
               <div className="mb-4">
                 <span className="text-xs text-gray-400 block mb-2">Alterar status</span>
                 <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(statusConfig).map(([key, val]) => (
-                    <button key={key}
-                      onClick={() => updateMutation.mutate({ id: selectedAppt.id, data: { status: key } })}
-                      className={`text-xs font-medium px-2 py-2 rounded-lg ${selectedAppt.status === key ? val.badge + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                      {val.label}
-                    </button>
-                  ))}
+                  {STATUS_KEYS.map(key => {
+                    const t = STATUS_TOKENS[key];
+                    const active = selectedAppt.status === key;
+                    return (
+                      <button key={key}
+                        onClick={() => updateMutation.mutate({ id: selectedAppt.id, data: { status: key } })}
+                        className={`text-xs font-medium px-2 py-2 rounded-lg border ${active ? `${t.pill} ring-2 ring-offset-1 ring-current` : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'}`}>
+                        {t.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               {!isBarbeiro && (
