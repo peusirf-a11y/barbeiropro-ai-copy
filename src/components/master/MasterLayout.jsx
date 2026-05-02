@@ -31,8 +31,8 @@ export default function MasterLayout() {
     <>
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
         <Link to="/master/dashboard" className="flex items-center gap-3 group min-w-0">
-          <div className="w-10 h-10 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-xl flex items-center justify-center overflow-hidden shadow-[0_4px_12px_rgba(37,99,235,0.35)] flex-shrink-0">
-            <Logo size={40} className="rounded-none" />
+          <div className="w-10 h-10 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(37,99,235,0.35)] flex-shrink-0 text-white">
+            <Logo size={24} />
           </div>
           <div className="min-w-0">
             <div className="font-bold text-[15px] text-white tracking-tight truncate">Master</div>
@@ -97,8 +97,8 @@ export default function MasterLayout() {
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-            <Logo size={32} className="rounded-none" />
+          <div className="w-8 h-8 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-lg flex items-center justify-center flex-shrink-0 text-white">
+            <Logo size={20} />
           </div>
           <span className="font-bold text-[15px] text-[#0F172A] tracking-tight truncate">{pageTitle}</span>
         </div>
