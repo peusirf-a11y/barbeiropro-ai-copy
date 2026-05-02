@@ -9,8 +9,8 @@ import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
-import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import AgendaProColumns from '@/components/agenda/AgendaProColumns';
+import EditAppointmentModal from '@/components/agenda/EditAppointmentModal';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 import { STATUS_TOKENS } from '@/lib/statusTokens';
@@ -84,9 +84,25 @@ export default function AppAgenda() {
         : data;
       return base44.entities.Appointment.update(id, payload);
     },
+    // Update otimista — UI reflete a mudança imediatamente, sem esperar o servidor.
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['appointments', companyId] });
+      const previous = queryClient.getQueriesData({ queryKey: ['appointments', companyId] });
+      queryClient.setQueriesData({ queryKey: ['appointments', companyId] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        return old.map(a => a.id === id ? { ...a, ...data } : a);
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      // Reverte em caso de falha
+      if (context?.previous) {
+        context.previous.forEach(([key, value]) => queryClient.setQueryData(key, value));
+      }
+      alert('Não foi possível salvar a alteração. Tente novamente.');
+    },
     onSuccess: (_res, vars) => {
-      // Invalida tudo que pode ter mudado por automação encadeada.
-      // Pequeno delay para dar tempo das automações rodarem antes do refetch.
+      // Reconcilia com o servidor + invalida cadeias derivadas (comissões/financeiro) quando concluído.
       const isConcluded = vars?.data?.status === 'concluido';
       queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
       if (isConcluded) {
@@ -389,53 +405,21 @@ export default function AppAgenda() {
           </div>
         </div>
 
-        {/* Appointment Detail Modal */}
+        {/* Edit Appointment Modal — horário, profissional, serviço, status, observações */}
         {selectedAppt && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedAppt(null)}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-[#1B1C1E]">Agendamento</h3>
-                <button onClick={() => setSelectedAppt(null)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
-              </div>
-              <div className="space-y-2 mb-5">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="text-xs text-gray-400 block">Cliente</span>
-                    <p className="font-semibold text-sm">{selectedAppt.customer_name}</p>
-                    <div className="mt-1"><CustomerTypeBadge customer={customers.find(c => c.id === selectedAppt.customer_id)} /></div>
-                  </div>
-                  <div><span className="text-xs text-gray-400 block">Telefone</span><p className="font-semibold text-sm">{selectedAppt.customer_phone || '–'}</p></div>
-                  <div><span className="text-xs text-gray-400 block">Serviço</span><p className="font-semibold text-sm">{selectedAppt.service_name}</p></div>
-                  <div><span className="text-xs text-gray-400 block">Profissional</span><p className="font-semibold text-sm">{selectedAppt.professional_name}</p></div>
-                  <div><span className="text-xs text-gray-400 block">Horário</span><p className="font-semibold text-sm">{format(new Date(selectedAppt.scheduled_at), "d 'de' MMMM 'às' HH:mm", { locale: ptBR })}</p></div>
-                  <div><span className="text-xs text-gray-400 block">Valor</span><p className="font-semibold text-sm">R${selectedAppt.price || '–'}</p></div>
-                </div>
-                {selectedAppt.notes && <div><span className="text-xs text-gray-400 block">Obs.</span><p className="text-sm text-gray-600">{selectedAppt.notes}</p></div>}
-              </div>
-              <div className="mb-4">
-                <span className="text-xs text-gray-400 block mb-2">Alterar status</span>
-                <div className="grid grid-cols-3 gap-2">
-                  {STATUS_KEYS.map(key => {
-                    const t = STATUS_TOKENS[key];
-                    const active = selectedAppt.status === key;
-                    return (
-                      <button key={key}
-                        onClick={() => updateMutation.mutate({ id: selectedAppt.id, data: { status: key } })}
-                        className={`text-xs font-medium px-2 py-2 rounded-lg border ${active ? `${t.pill} ring-2 ring-offset-1 ring-current` : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'}`}>
-                        {t.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {!isBarbeiro && (
-                <button onClick={() => { if (confirm('Excluir este agendamento?')) deleteMutation.mutate(selectedAppt.id); }}
-                  className="w-full text-xs text-red-500 hover:text-red-700 font-medium py-2">
-                  Excluir agendamento
-                </button>
-              )}
-            </div>
-          </div>
+          <EditAppointmentModal
+            appointment={selectedAppt}
+            professionals={professionals}
+            services={services}
+            customers={customers}
+            isBarbeiro={isBarbeiro}
+            hasConflict={hasConflict}
+            hitsBlock={hitsBlock}
+            onSave={(payload) => updateMutation.mutate(payload)}
+            onDelete={!isBarbeiro ? (id) => deleteMutation.mutate(id) : undefined}
+            onClose={() => setSelectedAppt(null)}
+            isSaving={updateMutation.isPending}
+          />
         )}
 
         {/* New Appointment Form */}
