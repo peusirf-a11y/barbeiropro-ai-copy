@@ -152,6 +152,7 @@ Deno.serve(async (req) => {
 
     const commission = await sdk.entities.Commission.create({
       company_id: appt.company_id,
+      unit_id: appt.unit_id || undefined,
       professional_id: pro.id,
       professional_name: pro.name,
       appointment_id: appt.id,

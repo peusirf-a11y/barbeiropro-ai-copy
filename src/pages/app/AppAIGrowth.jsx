@@ -6,9 +6,12 @@ import { useState } from 'react';
 import { Zap, Copy, AlertCircle, TrendingUp, Star, Users, CheckCircle, Sparkles } from 'lucide-react';
 import { differenceInDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import AppPageHeader from '@/components/app/AppPageHeader';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { filterByUnit } from '@/lib/unitFilter';
 
 export default function AppAIGrowth() {
   const { companyId, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId, isMultiUnit } = useActiveUnit();
   const [copied, setCopied] = useState(null);
 
   const { data: customers = [], isLoading: loadingCustomers } = useQuery({
@@ -30,7 +33,9 @@ export default function AppAIGrowth() {
   });
 
   const now = new Date();
-  const completedAppts = appointments.filter(a => a.status === 'concluido');
+  // Filtra por unidade ativa
+  const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
+  const completedAppts = apptsScoped.filter(a => a.status === 'concluido');
 
   // Clientes inativos há 30+ dias (com histórico)
   const inactiveCustomers = customers.filter(c => {
@@ -47,7 +52,7 @@ export default function AppAIGrowth() {
 
   // Horário fraco (< 2 agendamentos)
   const hourCounts = {};
-  appointments.filter(a => {
+  apptsScoped.filter(a => {
     const d = new Date(a.scheduled_at);
     return d >= startOfMonth(subMonths(now, 1)) && d <= endOfMonth(subMonths(now, 1));
   }).forEach(a => {
@@ -57,7 +62,7 @@ export default function AppAIGrowth() {
   const weakHours = Object.entries(hourCounts).filter(([, v]) => v < 2).map(([h]) => `${h}:00`);
 
   // Serviço sem venda no mês
-  const thisMonthAppts = appointments.filter(a => {
+  const thisMonthAppts = apptsScoped.filter(a => {
     const d = new Date(a.scheduled_at);
     return d >= startOfMonth(now) && d <= endOfMonth(now);
   });

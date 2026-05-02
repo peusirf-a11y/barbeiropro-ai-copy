@@ -11,9 +11,12 @@ import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import KpiCard from '@/components/dashboard/KpiCard';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { filterByUnit } from '@/lib/unitFilter';
 
 export default function AppCaixa() {
   const { companyId, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId, isMultiUnit } = useActiveUnit();
   const { user } = useAuth();
   const [showOpen, setShowOpen] = useState(false);
   const [showClose, setShowClose] = useState(false);
@@ -23,12 +26,14 @@ export default function AppCaixa() {
   const [entryForm, setEntryForm] = useState({ type: 'entrada', description: '', amount: '', category: 'Atendimento' });
   const queryClient = useQueryClient();
 
-  const { data: registers = [], isLoading } = useQuery({
+  const { data: registersRaw = [], isLoading } = useQuery({
     queryKey: ['cash-registers', companyId],
     queryFn: () => base44.entities.CashRegister.filter({ company_id: companyId }, '-opened_at', 30),
     enabled: !!companyId,
   });
 
+  // Filtra caixas pela unidade ativa (legados sem unit_id continuam visíveis)
+  const registers = filterByUnit(registersRaw, activeUnitId, isMultiUnit);
   const openCash = registers.find(r => r.status === 'aberto');
 
   // Lançamentos do caixa atual (a partir do horário de abertura)
@@ -49,6 +54,7 @@ export default function AppCaixa() {
   const openMutation = useMutation({
     mutationFn: (data) => base44.entities.CashRegister.create({
       company_id: companyId,
+      unit_id: activeUnitId || undefined,
       opened_at: new Date().toISOString(),
       initial_amount: +data.initial_amount || 0,
       opened_by: user?.email,
@@ -84,6 +90,7 @@ export default function AppCaixa() {
   const entryMutation = useMutation({
     mutationFn: (data) => base44.entities.FinancialEntry.create({
       company_id: companyId,
+      unit_id: activeUnitId || undefined,
       type: data.type,
       description: data.description,
       amount: +data.amount,

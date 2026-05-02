@@ -10,6 +10,8 @@ import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { filterByUnit, filterProfessionalsByUnit } from '@/lib/unitFilter';
 
 const emptyForm = {
   mode: 'once',           // 'once' | 'recurring'
@@ -26,27 +28,33 @@ const WEEKDAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sex
 
 export default function AppBloqueios() {
   const { companyId, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId, isMultiUnit } = useActiveUnit();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const queryClient = useQueryClient();
 
-  const { data: blocks = [], isLoading } = useQuery({
+  const { data: blocksRaw = [], isLoading } = useQuery({
     queryKey: ['blocks', companyId],
     queryFn: () => base44.entities.BlockedTime.filter({ company_id: companyId }, '-start_time', 200),
     enabled: !!companyId,
   });
 
-  const { data: professionals = [] } = useQuery({
+  const { data: professionalsRaw = [] } = useQuery({
     queryKey: ['professionals', companyId],
     queryFn: () => base44.entities.Professional.filter({ company_id: companyId, active: true }),
     enabled: !!companyId,
   });
+
+  // Filtra por unidade ativa
+  const blocks = filterByUnit(blocksRaw, activeUnitId, isMultiUnit);
+  const professionals = filterProfessionalsByUnit(professionalsRaw, activeUnitId, isMultiUnit);
 
   const createMutation = useMutation({
     mutationFn: (data) => {
       const payload = data.mode === 'recurring'
         ? {
             company_id: companyId,
+            unit_id: activeUnitId || undefined,
             professional_id: data.professional_id || undefined,
             recurring: true,
             weekday: Number(data.weekday),
@@ -56,6 +64,7 @@ export default function AppBloqueios() {
           }
         : {
             company_id: companyId,
+            unit_id: activeUnitId || undefined,
             professional_id: data.professional_id || undefined,
             recurring: false,
             start_time: data.start_time,

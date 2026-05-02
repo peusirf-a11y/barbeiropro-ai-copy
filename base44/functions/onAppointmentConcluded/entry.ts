@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
         } else {
           const entry = await sdk.entities.FinancialEntry.create({
             company_id: companyId,
+            unit_id: appt.unit_id || undefined,
             type: 'entrada',
             category: 'Atendimento',
             description: `${appt.service_name || 'Serviço'} — ${appt.customer_name || 'Cliente'}`,

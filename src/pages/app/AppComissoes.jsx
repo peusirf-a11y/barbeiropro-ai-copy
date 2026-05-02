@@ -12,9 +12,12 @@ import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import KpiCard from '@/components/dashboard/KpiCard';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { filterByUnit, filterProfessionalsByUnit } from '@/lib/unitFilter';
 
 export default function AppComissoes() {
   const { companyId, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId, isMultiUnit } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
   const isBarbeiro = teamRole?.role === 'barbeiro';
   const myProId = teamRole?.professional_id || null;
@@ -54,7 +57,13 @@ export default function AppComissoes() {
     return true;
   };
 
-  const filtered = commissions.filter(c => inPeriod(c) && (filterPro === 'all' || c.professional_id === filterPro));
+  // Filtra por unidade ativa: comissões cuja prof. atende na unidade
+  const proIdsInUnit = new Set(filterProfessionalsByUnit(professionals, activeUnitId, isMultiUnit).map(p => p.id));
+  const commissionsScoped = (isMultiUnit && activeUnitId)
+    ? commissions.filter(c => !c.professional_id || proIdsInUnit.has(c.professional_id))
+    : commissions;
+
+  const filtered = commissionsScoped.filter(c => inPeriod(c) && (filterPro === 'all' || c.professional_id === filterPro));
 
   // Resumo por profissional
   const byPro = {};
@@ -87,7 +96,7 @@ export default function AppComissoes() {
           {!isBarbeiro && (
             <select value={filterPro} onChange={e => setFilterPro(e.target.value)} className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white shadow-[var(--shadow-xs)]">
               <option value="all">Todos os profissionais</option>
-              {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {filterProfessionalsByUnit(professionals, activeUnitId, isMultiUnit).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           )}
           <select value={period} onChange={e => setPeriod(e.target.value)} className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white shadow-[var(--shadow-xs)]">

@@ -8,11 +8,14 @@ import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart2 } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { filterByUnit } from '@/lib/unitFilter';
 
 const COLORS = ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'];
 
 export default function AppRelatorios() {
   const { companyId, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId, isMultiUnit } = useActiveUnit();
   const [period, setPeriod] = useState('this_month');
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
@@ -41,9 +44,13 @@ export default function AppRelatorios() {
     return true;
   };
 
-  const periodAppts = appointments.filter(a => filterByPeriod(a));
+  // Filtra por unidade ativa
+  const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
+  const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
+
+  const periodAppts = apptsScoped.filter(a => filterByPeriod(a));
   const completedAppts = periodAppts.filter(a => a.status === 'concluido');
-  const periodFinancial = financial.filter(f => filterByPeriod(f, 'date'));
+  const periodFinancial = financialScoped.filter(f => filterByPeriod(f, 'date'));
 
   const totalRevenue = periodFinancial.filter(f => f.type === 'entrada').reduce((s, f) => s + (f.amount || 0), 0);
   const apptRevenue = completedAppts.reduce((s, a) => s + (a.price || 0), 0);

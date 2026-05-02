@@ -11,12 +11,15 @@ import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import KpiCard from '@/components/dashboard/KpiCard';
 import FinancialExport from '@/components/financeiro/FinancialExport';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { filterByUnit } from '@/lib/unitFilter';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
 
 export default function AppFinanceiro() {
   const { companyId, company, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId, isMultiUnit } = useActiveUnit();
   const [showForm, setShowForm] = useState(false);
   const [period, setPeriod] = useState('this_month'); // 'this_month' | 'last_month' | 'all'
   const [form, setForm] = useState({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' });
@@ -36,7 +39,7 @@ export default function AppFinanceiro() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.FinancialEntry.create({ ...data, company_id: companyId, amount: +data.amount }),
+    mutationFn: (data) => base44.entities.FinancialEntry.create({ ...data, company_id: companyId, unit_id: activeUnitId || undefined, amount: +data.amount }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['financial', companyId] }); setShowForm(false); setForm({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' }); },
   });
 
@@ -53,7 +56,11 @@ export default function AppFinanceiro() {
     return true;
   };
 
-  const filtered = financial.filter(filterFn);
+  // Filtra por unidade ativa antes de aplicar período
+  const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
+  const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
+
+  const filtered = financialScoped.filter(filterFn);
   const entradas = filtered.filter(f => f.type === 'entrada');
   const saidas = filtered.filter(f => f.type === 'saida');
   const totalIn = entradas.reduce((s, f) => s + (f.amount || 0), 0);
@@ -61,7 +68,7 @@ export default function AppFinanceiro() {
   const saldo = totalIn - totalOut;
 
   // Appointment revenue (not yet registered as financial entry)
-  const apptRevenue = appointments.filter(filterFn.bind(null)).reduce((s, a) => s + (a.price || 0), 0);
+  const apptRevenue = apptsScoped.filter(filterFn.bind(null)).reduce((s, a) => s + (a.price || 0), 0);
 
   if (loadingCompany || isLoading) {
     return <AppLayout><SkeletonPage /></AppLayout>;

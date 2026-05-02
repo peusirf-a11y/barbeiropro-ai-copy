@@ -8,6 +8,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Calendar, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { format, startOfMonth, startOfDay, differenceInMinutes, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { filterByUnit } from '@/lib/unitFilter';
 import ActivationHealthCard from '@/components/dashboard/ActivationHealthCard';
 import KpiCard from '@/components/dashboard/KpiCard';
 import RevenueChart from '@/components/dashboard/RevenueChart';
@@ -18,6 +20,7 @@ import TodayAgendaList from '@/components/dashboard/TodayAgendaList';
 
 export default function AppDashboard() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId, isMultiUnit } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
   const isBarbeiro = teamRole?.role === 'barbeiro';
   const myProId = teamRole?.professional_id || null;
@@ -51,16 +54,20 @@ export default function AppDashboard() {
   const todayStr = now.toDateString();
   const todayKey = format(startOfDay(now), 'yyyy-MM-dd');
 
-  const todayAppts = appointments.filter(a => new Date(a.scheduled_at).toDateString() === todayStr);
+  // Aplica filtro por unidade ativa (registros sem unit_id continuam aparecendo)
+  const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
+  const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
+
+  const todayAppts = apptsScoped.filter(a => new Date(a.scheduled_at).toDateString() === todayStr);
 
   const monthStart = startOfMonth(now);
-  const monthAppts = appointments.filter(a => new Date(a.scheduled_at) >= monthStart);
+  const monthAppts = apptsScoped.filter(a => new Date(a.scheduled_at) >= monthStart);
   const completedMonth = monthAppts.filter(a => a.status === 'concluido');
-  const revenue = financial.filter(f => f.type === 'entrada' && new Date(f.date) >= monthStart).reduce((s, f) => s + (f.amount || 0), 0);
+  const revenue = financialScoped.filter(f => f.type === 'entrada' && new Date(f.date) >= monthStart).reduce((s, f) => s + (f.amount || 0), 0);
   const avgTicket = completedMonth.length > 0 ? revenue / completedMonth.length : 0;
 
   // Faturamento de hoje (entradas com date = hoje)
-  const todayRevenue = financial
+  const todayRevenue = financialScoped
     .filter(f => f.type === 'entrada' && (f.date || '').startsWith(todayKey))
     .reduce((s, f) => s + (f.amount || 0), 0);
 
@@ -90,7 +97,7 @@ export default function AppDashboard() {
 
   // AI bottleneck detection
   useEffect(() => {
-    if (!appointments.length && !customers.length) return;
+    if (!apptsScoped.length && !customers.length) return;
     const detected = [];
 
     const pendingOld = todayAppts.filter(a =>
@@ -165,7 +172,7 @@ export default function AppDashboard() {
     }
 
     setAlerts(detected);
-  }, [appointments, customers, loadingAppts]);
+  }, [apptsScoped, customers, loadingAppts]);
 
   const isLoading = loadingCompany || loadingAppts;
 
@@ -244,7 +251,7 @@ export default function AppDashboard() {
         {showFinance && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
             <div className="lg:col-span-2">
-              <RevenueChart financial={financial} />
+              <RevenueChart financial={financialScoped} />
             </div>
             <div>
               <ProfessionalRanking data={topPros} />

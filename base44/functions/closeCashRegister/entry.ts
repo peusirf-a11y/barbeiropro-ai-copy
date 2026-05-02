@@ -97,9 +97,15 @@ Deno.serve(async (req) => {
     }
 
     // Busca todos os lançamentos da empresa criados após a abertura do caixa.
+    // Em multi-unidade, filtra também pela unidade do caixa (entries sem unit_id são considerados legados/compartilhados).
     const all = await base44.asServiceRole.entities.FinancialEntry.filter({ company_id: reg.company_id }, '-created_date', 1000);
     const since = new Date(reg.opened_at);
-    const entries = all.filter(e => new Date(e.created_date || e.date) >= since);
+    const entries = all.filter(e => {
+      const matchTime = new Date(e.created_date || e.date) >= since;
+      if (!matchTime) return false;
+      if (!reg.unit_id) return true; // caixa legado sem unit_id => pega tudo
+      return !e.unit_id || e.unit_id === reg.unit_id;
+    });
 
     const totalIn = entries.filter(e => e.type === 'entrada').reduce((s, e) => s + (e.amount || 0), 0);
     const totalOut = entries.filter(e => e.type === 'saida').reduce((s, e) => s + (e.amount || 0), 0);
