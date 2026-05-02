@@ -170,9 +170,10 @@ export default function AppAgenda() {
   const visiblePros = filterPro === 'all' ? prosByUnit : prosByUnit.filter(p => p.id === filterPro);
 
   // Conflict + block check via lib reutilizável
+  // custom_duration_minutes (resize manual) sobrescreve a duração padrão do serviço
   const apptsWithDuration = appointments.map(a => ({
     ...a,
-    __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
+    __duration: a.custom_duration_minutes || services.find(s => s.id === a.service_id)?.duration_minutes || 30,
   }));
   const hasConflict = (proId, dateTime, serviceId, excludeId = null) => {
     const dur = services.find(s => s.id === serviceId)?.duration_minutes || 30;
@@ -244,24 +245,55 @@ export default function AppAgenda() {
     setForm(p => ({ ...p, service_id: sid, price: svc?.price || 0 }));
   };
 
-  // Drag-and-drop entre barbeiros: muda professional_id mantendo horário.
-  const handleMoveAppointment = ({ appointment, toProfessionalId }) => {
-    if (!toProfessionalId || appointment.professional_id === toProfessionalId) return;
-    if (hasConflict(toProfessionalId, appointment.scheduled_at, appointment.service_id, appointment.id)) {
-      alert('Conflito: o profissional de destino já tem agendamento neste horário.');
+  // Drag-and-drop completo: troca profissional E/OU horário mantendo a duração.
+  // Recebe `newStartISO` do hook (já snapado na grade) e `toProfessionalId`.
+  const handleMoveAppointment = ({ appointment, toProfessionalId, newStartISO }) => {
+    const targetProId = toProfessionalId || appointment.professional_id;
+    const targetStart = newStartISO || appointment.scheduled_at;
+    // Sem mudança real → no-op
+    const sameStart = new Date(targetStart).getTime() === new Date(appointment.scheduled_at).getTime();
+    if (sameStart && targetProId === appointment.professional_id) return;
+
+    if (hasConflict(targetProId, targetStart, appointment.service_id, appointment.id)) {
+      alert('Conflito: este horário já está ocupado.');
       return;
     }
-    if (hitsBlock(toProfessionalId, appointment.scheduled_at, appointment.service_id)) {
-      alert('Horário bloqueado para o profissional de destino.');
+    if (hitsBlock(targetProId, targetStart, appointment.service_id)) {
+      alert('Horário bloqueado (almoço/folga/evento).');
       return;
     }
-    const pro = professionals.find(p => p.id === toProfessionalId);
+    const pro = professionals.find(p => p.id === targetProId);
     updateMutation.mutate({
       id: appointment.id,
       data: {
-        professional_id: toProfessionalId,
-        professional_name: pro?.name || '',
+        professional_id: targetProId,
+        professional_name: pro?.name || appointment.professional_name,
+        scheduled_at: new Date(targetStart).toISOString(),
       },
+    });
+  };
+
+  // Resize via borda inferior do card — altera somente a duração (custom_duration_minutes
+  // sobrescreve a duração padrão do serviço). Valida conflito contra a NOVA duração.
+  const handleResizeAppointment = ({ appointment, newDurationMin }) => {
+    const start = new Date(appointment.scheduled_at);
+    const end = new Date(start.getTime() + newDurationMin * 60_000);
+    const conflict = appointments.some(a => {
+      if (a.id === appointment.id) return false;
+      if (a.professional_id !== appointment.professional_id) return false;
+      if (['cancelado', 'faltou'].includes(a.status)) return false;
+      const aStart = new Date(a.scheduled_at);
+      const aDur = a.custom_duration_minutes || services.find(s => s.id === a.service_id)?.duration_minutes || 30;
+      const aEnd = new Date(aStart.getTime() + aDur * 60_000);
+      return start < aEnd && end > aStart;
+    });
+    if (conflict) {
+      alert('Não é possível redimensionar: conflita com outro agendamento.');
+      return;
+    }
+    updateMutation.mutate({
+      id: appointment.id,
+      data: { custom_duration_minutes: newDurationMin },
     });
   };
 
@@ -379,6 +411,7 @@ export default function AppAgenda() {
             blocks={blockedTimes}
             onCardClick={setSelectedAppt}
             onMoveAppointment={!isBarbeiro ? handleMoveAppointment : undefined}
+            onResizeAppointment={!isBarbeiro ? handleResizeAppointment : undefined}
             slotInterval={slotInterval}
           />
         ) : (

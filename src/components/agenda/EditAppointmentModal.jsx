@@ -40,7 +40,8 @@ export default function EditAppointmentModal({
   const [error, setError] = useState('');
 
   const service = services.find(s => s.id === form.service_id);
-  const duration = service?.duration_minutes || 30;
+  // custom_duration_minutes (definido por resize manual) sobrescreve a duração padrão
+  const duration = appointment.custom_duration_minutes || service?.duration_minutes || 30;
 
   // Hora de fim derivada (apenas exibição)
   const endTime = useMemo(() => {

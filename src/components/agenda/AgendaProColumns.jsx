@@ -3,19 +3,20 @@
 // Cards de agendamento são posicionados absolutamente conforme início/duração.
 //
 // Recursos:
-// - Header com avatar circular grande, nome do profissional e próximo horário livre.
-// - Eixo de horários com labels a cada slot.
-// - Cards coloridos por status, com sombra leve, transparência e cantos arredondados.
-// - Borda tracejada para clientes "novos" (sem histórico).
-// - Linha vermelha do horário atual quando o dia selecionado é hoje.
-// - Drag & drop entre profissionais (validação no parent).
-// - Mobile: 1 barbeiro por vez com swipe lateral entre colunas (snap scroll).
-// - Scroll horizontal automático se houver muitos barbeiros (desktop).
+// - Drag-and-drop completo (entre colunas E entre horários) via Pointer Events.
+//   Funciona em desktop e mobile (touch/pen). Snap automático na grade.
+// - Resize por borda inferior do card (alterar duração arrastando).
+// - Ghost preview da posição de destino durante o drag.
+// - Auto-scroll quando o cursor chega nas bordas verticais.
+// - Validação de conflito ANTES do commit — se inválido, posição original é mantida.
+// - Atualização otimista é feita pelo parent (mutation com onMutate).
+// - Clique simples (sem drag) abre o modal de edição (CLICK_THRESHOLD = 4px).
 
 import { format, addMinutes } from 'date-fns';
-import { Phone, MessageCircle, Smartphone, Monitor, Coffee, Hourglass } from 'lucide-react';
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { Smartphone, MessageCircle } from 'lucide-react';
+import { useMemo, useEffect, useRef } from 'react';
 import { getStatusToken, isClientWithoutPreference } from '@/lib/statusTokens';
+import useAgendaDnD from './useAgendaDnD';
 
 const SLOT_HEIGHT = 28;       // altura px de cada slot
 const START_HOUR = 8;
@@ -47,7 +48,6 @@ function findNextFreeSlot({ proAppts, services, selectedDate, isToday }) {
   const dayEnd = new Date(selectedDate);
   dayEnd.setHours(END_HOUR, 0, 0, 0);
 
-  // Arredonda para o próximo múltiplo de 30 min
   const cursor = new Date(refNow);
   cursor.setSeconds(0, 0);
   const nextMinutes = Math.ceil(cursor.getMinutes() / 30) * 30;
@@ -57,7 +57,7 @@ function findNextFreeSlot({ proAppts, services, selectedDate, isToday }) {
   const sorted = [...proAppts]
     .filter(a => !['cancelado', 'faltou'].includes(a.status))
     .map(a => {
-      const dur = services.find(s => s.id === a.service_id)?.duration_minutes || 30;
+      const dur = a.custom_duration_minutes || services.find(s => s.id === a.service_id)?.duration_minutes || 30;
       const start = new Date(a.scheduled_at);
       const end = addMinutes(start, dur);
       return { start, end };
@@ -74,7 +74,6 @@ function findNextFreeSlot({ proAppts, services, selectedDate, isToday }) {
 }
 
 
-
 export default function AgendaProColumns({
   selectedDate,
   professionals,
@@ -82,40 +81,14 @@ export default function AgendaProColumns({
   services,
   blocks,
   onCardClick,
-  onMoveAppointment,
-  slotInterval = 10,             // 10 ou 15 min
+  onMoveAppointment,   // ({ appointment, toProfessionalId, newStartISO, newDurationMin }) => void
+  onResizeAppointment, // ({ appointment, newDurationMin }) => void
+  slotInterval = 10,
 }) {
-  const [draggingId, setDraggingId] = useState(null);
-  const [dropTargetPro, setDropTargetPro] = useState(null);
-
-  const handleDragStart = (e, appt) => {
-    if (!onMoveAppointment) return;
-    setDraggingId(appt.id);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', appt.id);
-  };
-  const handleDragEnd = () => { setDraggingId(null); setDropTargetPro(null); };
-  const handleDragOver = (e, proId) => {
-    if (!onMoveAppointment || !draggingId) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dropTargetPro !== proId) setDropTargetPro(proId);
-  };
-  const handleDrop = (e, proId) => {
-    if (!onMoveAppointment) return;
-    e.preventDefault();
-    const apptId = e.dataTransfer.getData('text/plain') || draggingId;
-    const appt = appointments.find(a => a.id === apptId);
-    if (appt && appt.professional_id !== proId) {
-      onMoveAppointment({ appointment: appt, toProfessionalId: proId });
-    }
-    setDraggingId(null);
-    setDropTargetPro(null);
-  };
-
+  const containerRef = useRef(null);
   const slots = useMemo(() => generateSlots(slotInterval), [slotInterval]);
   const totalMinutes = (END_HOUR - START_HOUR) * 60;
-  const containerRef = useRef(null);
+  const gridHeight = totalMinutes / slotInterval * SLOT_HEIGHT;
 
   // Filtra apenas o dia selecionado
   const dayAppts = useMemo(() => {
@@ -148,12 +121,25 @@ export default function AgendaProColumns({
     return result;
   }, [blocks, selectedDate]);
 
+  // DnD via hook
+  const { draggingId, resizingId, ghost, startMove, startResize } = useAgendaDnD({
+    selectedDate,
+    startHour: START_HOUR,
+    slotInterval,
+    slotHeight: SLOT_HEIGHT,
+    colWidth: COL_WIDTH,
+    timeAxisWidth: TIME_AXIS_WIDTH,
+    professionals,
+    scrollContainerRef: containerRef,
+    onCommitMove: onMoveAppointment,
+    onCommitResize: onResizeAppointment,
+  });
+
   // Linha do "agora" (só se for hoje)
   const isToday = selectedDate.toDateString() === new Date().toDateString();
   const nowOffset = isToday ? minutesFromStart(new Date()) : -1;
   const showNowLine = nowOffset >= 0 && nowOffset <= totalMinutes;
 
-  // Auto-scroll para o horário atual quando for hoje
   useEffect(() => {
     if (showNowLine && containerRef.current) {
       const targetTop = (nowOffset / slotInterval) * SLOT_HEIGHT - 120;
@@ -163,7 +149,8 @@ export default function AgendaProColumns({
 
   function getApptCard(appt) {
     const svc = services.find(s => s.id === appt.service_id);
-    const dur = svc?.duration_minutes || 30;
+    // custom_duration_minutes (resize manual) sobrescreve a duração padrão do serviço
+    const dur = appt.custom_duration_minutes || svc?.duration_minutes || 30;
     const top = (minutesFromStart(appt.scheduled_at) / slotInterval) * SLOT_HEIGHT;
     const height = (dur / slotInterval) * SLOT_HEIGHT - 2;
     return { top, height, dur };
@@ -177,30 +164,21 @@ export default function AgendaProColumns({
     return { top, height };
   }
 
-  const gridHeight = totalMinutes / slotInterval * SLOT_HEIGHT;
-
-  // Ícones decorativos no card (estilo da referência: WhatsApp, monitor, café…)
-  // Aqui mostramos sempre Phone+Chat porque é o caso mais comum.
-  const renderCardIcons = (appt) => (
+  const renderCardIcons = () => (
     <div className="flex items-center gap-1 mb-0.5 opacity-60">
       <Smartphone className="w-3 h-3" />
       <MessageCircle className="w-3 h-3" />
     </div>
   );
 
-  // Pro a renderizar — mobile: só o atual; desktop: todos.
   const renderedPros = professionals;
-
-  // Largura responsiva por coluna: mobile = 80% da viewport para criar
-  // efeito snap (1 barbeiro visível por vez, swipe lateral). Desktop = COL_WIDTH fixo.
   const totalGridWidth = TIME_AXIS_WIDTH + renderedPros.length * COL_WIDTH;
 
   return (
     <div className="bg-white rounded-2xl border border-black/5 shadow-[var(--shadow-sm)] overflow-hidden">
-      {/* Container scrollable: vertical (horários) + horizontal (colunas) sempre */}
-      <div ref={containerRef} className="overflow-auto max-h-[680px]">
+      <div ref={containerRef} className="overflow-auto max-h-[680px] select-none" style={{ touchAction: 'pan-x pan-y' }}>
         <div style={{ minWidth: totalGridWidth }}>
-          {/* Header com avatares — sticky no topo, GRID sempre */}
+          {/* Header */}
           <div className="sticky top-0 z-20 bg-white border-b border-black/5 flex">
             <div className="flex-shrink-0 border-r border-black/5" style={{ width: TIME_AXIS_WIDTH }} />
             {renderedPros.map(pro => {
@@ -210,13 +188,10 @@ export default function AgendaProColumns({
             })}
           </div>
 
-          {/* Grid de horários x profissionais — SEMPRE multi-coluna */}
+          {/* Grid */}
           <div className="flex relative" style={{ height: gridHeight }}>
-            {/* Coluna de horários (eixo vertical) */}
-            <div
-              className="flex-shrink-0 border-r border-black/5 relative bg-[#FAFBFC] z-10"
-              style={{ width: TIME_AXIS_WIDTH }}
-            >
+            {/* Eixo de horários */}
+            <div className="flex-shrink-0 border-r border-black/5 relative bg-[#FAFBFC] z-10" style={{ width: TIME_AXIS_WIDTH }}>
               {slots.map((s, i) => {
                 const showLabel = slotInterval >= 15 || s.m % 30 === 0 || s.m === 10 || s.m === 20 || s.m === 40 || s.m === 50;
                 return (
@@ -231,45 +206,39 @@ export default function AgendaProColumns({
               })}
             </div>
 
-            {/* Linha do horário atual — sobrepõe as colunas */}
+            {/* Linha do agora */}
             {showNowLine && (
               <div
                 className="absolute pointer-events-none z-30 flex items-center"
-                style={{
-                  top: `${(nowOffset / slotInterval) * SLOT_HEIGHT}px`,
-                  left: TIME_AXIS_WIDTH - 4,
-                  right: 0,
-                }}
+                style={{ top: `${(nowOffset / slotInterval) * SLOT_HEIGHT}px`, left: TIME_AXIS_WIDTH - 4, right: 0 }}
               >
                 <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.2)] flex-shrink-0" />
                 <div className="flex-1 h-[2px] bg-red-500" />
               </div>
             )}
 
-            {/* Todas as colunas de profissionais lado a lado */}
+            {/* Colunas dos profissionais */}
             <div className="flex flex-1">
               {renderedPros.map((pro, idx) => (
                 <ProColumn
                   key={pro.id}
                   pro={pro}
-                  index={idx}
                   slots={slots}
-                  slotInterval={slotInterval}
                   dayAppts={dayAppts.filter(a => a.professional_id === pro.id)}
                   proBlocks={dayBlocks.filter(b => !b.professional_id || b.professional_id === pro.id)}
                   getApptCard={getApptCard}
                   getBlockCard={getBlockCard}
                   onCardClick={onCardClick}
-                  onMoveAppointment={onMoveAppointment}
+                  startMove={startMove}
+                  startResize={startResize}
                   draggingId={draggingId}
-                  isDropTarget={dropTargetPro === pro.id}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={(e) => handleDragOver(e, pro.id)}
-                  onDragLeave={() => dropTargetPro === pro.id && setDropTargetPro(null)}
-                  onDrop={(e) => handleDrop(e, pro.id)}
+                  resizingId={resizingId}
+                  isGhostTarget={ghost?.proId === pro.id}
+                  ghost={ghost?.proId === pro.id ? ghost : null}
                   renderCardIcons={renderCardIcons}
                   width={COL_WIDTH}
+                  canMove={!!onMoveAppointment}
+                  canResize={!!onResizeAppointment}
                 />
               ))}
             </div>
@@ -306,22 +275,18 @@ function ProHeader({ pro, nextFree, width }) {
 }
 
 function ProColumn({
-  pro, index, slots, slotInterval,
+  pro, slots,
   dayAppts, proBlocks, getApptCard, getBlockCard,
-  onCardClick, onMoveAppointment,
-  draggingId, isDropTarget,
-  onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
-  renderCardIcons, width,
+  onCardClick, startMove, startResize,
+  draggingId, resizingId, isGhostTarget, ghost,
+  renderCardIcons, width, canMove, canResize,
 }) {
   return (
     <div
-      className={`relative border-r border-black/5 last:border-r-0 transition-colors flex-shrink-0 ${isDropTarget ? 'bg-[#EFF6FF] ring-2 ring-inset ring-[#2563EB]/40' : ''}`}
+      className={`relative border-r border-black/5 last:border-r-0 transition-colors flex-shrink-0 ${isGhostTarget ? 'bg-[#EFF6FF]' : ''}`}
       style={{ width, minWidth: width }}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
     >
-      {/* Linhas de fundo (slots) */}
+      {/* Linhas de fundo */}
       {slots.map((s, i) => (
         <div
           key={i}
@@ -330,7 +295,7 @@ function ProColumn({
         />
       ))}
 
-      {/* Bloqueios (faixas listradas) */}
+      {/* Bloqueios */}
       {proBlocks.map(b => {
         const { top, height } = getBlockCard(b);
         if (height <= 0) return null;
@@ -349,27 +314,41 @@ function ProColumn({
         );
       })}
 
+      {/* Ghost preview — destino do drag/resize */}
+      {ghost && (
+        <div
+          className="absolute left-1.5 right-1.5 rounded-xl border-2 border-dashed border-[#2563EB] bg-[#2563EB]/10 pointer-events-none z-20 transition-[top,height] duration-75"
+          style={{
+            top: ghost.top != null ? ghost.top : undefined,
+            height: ghost.height,
+          }}
+        />
+      )}
+
       {/* Cards de agendamento */}
       {dayAppts.map(appt => {
         const { top, height, dur } = getApptCard(appt);
-        // Cores via tokens centrais — padronizadas em todo o sistema.
         const token = getStatusToken(appt.status);
         const startTime = format(new Date(appt.scheduled_at), 'HH:mm');
         const endDate = addMinutes(new Date(appt.scheduled_at), dur);
         const endTime = format(endDate, 'HH:mm');
-        const draggable = !!onMoveAppointment && !['concluido', 'cancelado', 'faltou'].includes(appt.status);
+        const movable = canMove && !['concluido', 'cancelado', 'faltou'].includes(appt.status);
+        const resizable = canResize && !['concluido', 'cancelado', 'faltou'].includes(appt.status);
         const isDragging = draggingId === appt.id;
+        const isResizing = resizingId === appt.id;
         const noPreference = isClientWithoutPreference(appt);
 
         return (
-          <button
+          <div
             key={appt.id}
-            draggable={draggable}
-            onDragStart={(e) => onDragStart(e, appt)}
-            onDragEnd={onDragEnd}
-            onClick={() => onCardClick?.(appt)}
-            className={`absolute left-1.5 right-1.5 rounded-xl border ${token.cardBg} ${token.cardBorder} ${token.cardText} ${noPreference ? 'border-dashed' : ''} px-2.5 py-2 text-left transition-all duration-200 overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-px hover:z-10 ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${isDragging ? 'opacity-40 ring-2 ring-[#2563EB]' : ''}`}
-            style={{ top: top + 1, height }}
+            onPointerDown={(e) => movable && startMove(e, appt, dur)}
+            onClick={(e) => {
+              // só dispara click se não houve drag (hook bloqueia se moveu >4px)
+              if (!isDragging && !isResizing) onCardClick?.(appt);
+              e.stopPropagation();
+            }}
+            className={`absolute left-1.5 right-1.5 rounded-xl border ${token.cardBg} ${token.cardBorder} ${token.cardText} ${noPreference ? 'border-dashed' : ''} px-2.5 py-2 text-left overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-px hover:z-10 ${movable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${isDragging ? 'opacity-30' : 'transition-all duration-150'}`}
+            style={{ top: top + 1, height, touchAction: 'none' }}
             title={`${appt.customer_name || 'Cliente'} · ${appt.service_name} · ${startTime}–${endTime}`}
           >
             {height >= 36 && renderCardIcons(appt)}
@@ -380,7 +359,17 @@ function ProColumn({
             {height > 56 && (
               <div className="text-[10px] opacity-60 mt-1">{startTime} - {endTime}</div>
             )}
-          </button>
+
+            {/* Handle de resize na borda inferior */}
+            {resizable && (
+              <div
+                onPointerDown={(e) => startResize(e, appt, dur, top + 1)}
+                className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-[#2563EB]/20 rounded-b-xl"
+                style={{ touchAction: 'none' }}
+                title="Arraste para alterar a duração"
+              />
+            )}
+          </div>
         );
       })}
     </div>

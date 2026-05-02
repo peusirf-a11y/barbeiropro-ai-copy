@@ -68,6 +68,10 @@
     "price": {
       "type": "number"
     },
+    "custom_duration_minutes": {
+      "type": "number",
+      "description": "Dura\u00e7\u00e3o customizada em minutos. Quando definida, sobrescreve a dura\u00e7\u00e3o padr\u00e3o do servi\u00e7o (usado em resize manual na agenda)."
+    },
     "confirmation_email_sent": {
       "type": "boolean",
       "default": false
