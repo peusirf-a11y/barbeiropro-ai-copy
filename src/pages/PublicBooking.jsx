@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle } from 'lucide-react';
+import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle, MapPin } from 'lucide-react';
 import { format, addDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } from '@/lib/scheduling';
+import UnitPicker from '@/components/booking/UnitPicker';
 
 function generateTimeSlots(openTime, closeTime, durationMin) {
   const slots = [];
@@ -28,7 +29,7 @@ const DAY_MAP = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6:
 export default function PublicBooking() {
   const { slug } = useParams();
   const [step, setStep] = useState(0);
-  const [selected, setSelected] = useState({ service: null, professional: null, date: null, time: null });
+  const [selected, setSelected] = useState({ unit: null, service: null, professional: null, date: null, time: null });
   const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const [bookingDone, setBookingDone] = useState(null);
   const [formError, setFormError] = useState('');
@@ -50,23 +51,63 @@ export default function PublicBooking() {
     enabled: !!company?.id,
   });
 
-  const { data: professionals = [] } = useQuery({
+  const { data: allProfessionals = [] } = useQuery({
     queryKey: ['public-professionals', company?.id],
     queryFn: () => base44.entities.Professional.filter({ company_id: company.id, active: true }),
     enabled: !!company?.id,
   });
 
-  const { data: existingAppointments = [] } = useQuery({
+  // Unidades ativas (apenas se a empresa tem multi_unit_enabled)
+  const isMultiUnit = !!company?.multi_unit_enabled;
+  const { data: units = [] } = useQuery({
+    queryKey: ['public-units', company?.id],
+    queryFn: async () => {
+      const list = await base44.entities.Unit.filter({ company_id: company.id, active: true });
+      return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    },
+    enabled: !!company?.id && isMultiUnit,
+  });
+
+  // Pré-seleciona unidade via query param (?unidade=slug) ou quando há apenas 1 ativa
+  useEffect(() => {
+    if (!isMultiUnit || selected.unit) return;
+    if (!units.length) return;
+    const params = new URLSearchParams(window.location.search);
+    const wantedSlug = params.get('unidade');
+    const byParam = wantedSlug ? units.find(u => u.slug === wantedSlug) : null;
+    if (byParam) {
+      setSelected(p => ({ ...p, unit: byParam }));
+      return;
+    }
+    if (units.length === 1) {
+      setSelected(p => ({ ...p, unit: units[0] }));
+    }
+  }, [isMultiUnit, units, selected.unit]);
+
+  // Filtra profissionais pela unidade escolhida (legados sem unit_ids[] aparecem em todas)
+  const professionals = (isMultiUnit && selected.unit)
+    ? allProfessionals.filter(p => !p.unit_ids || p.unit_ids.length === 0 || p.unit_ids.includes(selected.unit.id))
+    : allProfessionals;
+
+  const { data: allAppointments = [] } = useQuery({
     queryKey: ['public-appointments', company?.id],
     queryFn: () => base44.entities.Appointment.filter({ company_id: company.id }),
     enabled: !!company?.id,
   });
 
-  const { data: blockedTimes = [] } = useQuery({
+  const { data: allBlockedTimes = [] } = useQuery({
     queryKey: ['public-blocks', company?.id],
     queryFn: () => base44.entities.BlockedTime.filter({ company_id: company.id }, '-start_time', 200),
     enabled: !!company?.id,
   });
+
+  // Filtra agendamentos e bloqueios pela unidade selecionada (registros sem unit_id são considerados aplicáveis a todas)
+  const existingAppointments = (isMultiUnit && selected.unit)
+    ? allAppointments.filter(a => !a.unit_id || a.unit_id === selected.unit.id)
+    : allAppointments;
+  const blockedTimes = (isMultiUnit && selected.unit)
+    ? allBlockedTimes.filter(b => !b.unit_id || b.unit_id === selected.unit.id)
+    : allBlockedTimes;
 
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
@@ -236,6 +277,7 @@ export default function PublicBooking() {
 
     createApptMutation.mutate({
       company_id: company.id,
+      unit_id: selected.unit?.id || undefined,
       professional_id: proId,
       service_id: selected.service.id,
       service_name: selected.service.name,
@@ -317,6 +359,9 @@ export default function PublicBooking() {
             )}
             {!form.email && <div className="mb-6" />}
             <div className="bg-[#F8F7F3] rounded-xl p-4 text-left space-y-2 mb-6">
+              {selected.unit && (
+                <div className="flex justify-between text-sm"><span className="text-gray-500">Unidade</span><span className="font-semibold">{selected.unit.name}</span></div>
+              )}
               <div className="flex justify-between text-sm"><span className="text-gray-500">Serviço</span><span className="font-semibold">{selected.service?.name}</span></div>
               <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold">{selected.professional?.name}</span></div>
               <div className="flex justify-between text-sm"><span className="text-gray-500">Data</span><span className="font-semibold">{selected.date ? format(selected.date, "d 'de' MMMM", { locale: ptBR }) : ''}</span></div>
@@ -341,14 +386,33 @@ export default function PublicBooking() {
     <div className="min-h-screen bg-[#F8F7F3] flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-black/10 px-6 py-4 sticky top-0 z-10">
-        <div className="max-w-xl mx-auto flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-            <Scissors className="w-4 h-4 text-white" />
+        <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: primaryColor }}>
+              <Scissors className="w-4 h-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-bold text-sm text-[#1B1C1E] truncate">{company.name}</div>
+              {selected.unit?.address ? (
+                <div className="text-xs text-gray-400 truncate">{selected.unit.address}</div>
+              ) : company.address ? (
+                <div className="text-xs text-gray-400 truncate">{company.address}</div>
+              ) : null}
+            </div>
           </div>
-          <div>
-            <div className="font-bold text-sm text-[#1B1C1E]">{company.name}</div>
-            {company.address && <div className="text-xs text-gray-400">{company.address}</div>}
-          </div>
+          {isMultiUnit && selected.unit && units.length > 1 && (
+            <button
+              onClick={() => {
+                setSelected({ unit: null, service: null, professional: null, date: null, time: null });
+                setStep(0);
+              }}
+              className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg border border-black/5 flex-shrink-0"
+              title="Trocar de unidade"
+            >
+              <MapPin className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+              <span className="max-w-[120px] truncate">{selected.unit.name}</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -371,6 +435,25 @@ export default function PublicBooking() {
       </div>
 
       <div className="flex-1 max-w-xl mx-auto w-full px-6 py-8">
+
+        {/* Pré-passo: seleção de unidade (somente multi-unit com 2+ unidades) */}
+        {isMultiUnit && !selected.unit && units.length > 1 && (
+          <UnitPicker
+            units={units}
+            primaryColor={primaryColor}
+            onSelect={(u) => setSelected(p => ({ ...p, unit: u }))}
+          />
+        )}
+
+        {/* Loading enquanto busca unidades em modo multi-unit */}
+        {isMultiUnit && !selected.unit && units.length === 0 && (
+          <div className="text-center py-16 text-gray-400">
+            <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin mx-auto" />
+          </div>
+        )}
+
+        {/* Fluxo normal — só renderiza depois que a unidade foi escolhida (ou não há multi-unit) */}
+        {(!isMultiUnit || selected.unit) && (<>
 
         {/* Step 0: Service */}
         {step === 0 && (
@@ -534,6 +617,9 @@ export default function PublicBooking() {
             
             {/* Summary */}
             <div className="bg-white rounded-2xl border border-black/8 p-4 mb-6 space-y-2">
+              {selected.unit && (
+                <div className="flex justify-between text-sm"><span className="text-gray-500">Unidade</span><span className="font-semibold">{selected.unit.name}</span></div>
+              )}
               <div className="flex justify-between text-sm"><span className="text-gray-500">Serviço</span><span className="font-semibold">{selected.service?.name}</span></div>
               <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold">{selected.professional?.name}</span></div>
               <div className="flex justify-between text-sm">
@@ -599,6 +685,7 @@ export default function PublicBooking() {
             </button>
           </div>
         )}
+        </>)}
       </div>
 
       <footer className="bg-white border-t border-black/10 py-4 text-center">
