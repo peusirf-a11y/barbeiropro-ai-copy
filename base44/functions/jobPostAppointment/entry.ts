@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
         message,
         type: 'pos_atendimento',
         company_id: company.id,
+        unit_id: appt.unit_id || undefined,
         customer_id: appt.customer_id,
         customer_name: appt.customer_name,
         appointment_id: appt.id,

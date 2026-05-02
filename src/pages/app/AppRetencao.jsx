@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import AppLayout from '@/components/layout/AppLayout';
 import { useCompany } from '@/hooks/useCompany';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { shouldScopeCustomersByUnit } from '@/lib/customerUnitMode';
 import { MessageSquare, CheckCircle, Send, AlertCircle, Zap, Save, Loader2, Settings as SettingsIcon } from 'lucide-react';
 
 const TYPE_LABELS = {
@@ -21,6 +23,8 @@ const STATUS_BADGE = {
 
 export default function AppRetencao() {
   const { company, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId } = useActiveUnit();
+  const scopeByUnit = shouldScopeCustomersByUnit(company, activeUnitId);
   const qc = useQueryClient();
   const [tab, setTab] = useState('dashboard');
   const [settings, setSettings] = useState(null);
@@ -46,17 +50,25 @@ export default function AppRetencao() {
     });
   }, [company]);
 
-  const { data: messages = [] } = useQuery({
+  const { data: messagesRaw = [] } = useQuery({
     queryKey: ['whatsapp-messages', company?.id],
     queryFn: () => base44.entities.WhatsAppMessage.filter({ company_id: company.id }, '-sent_at', 500),
     enabled: !!company?.id,
   });
 
-  const { data: customers = [] } = useQuery({
+  const { data: customersRaw = [] } = useQuery({
     queryKey: ['customers-retencao', company?.id],
     queryFn: () => base44.entities.Customer.filter({ company_id: company.id }, '-last_appointment_at', 1000),
     enabled: !!company?.id,
   });
+
+  // Em modo "clientes por unidade", filtra logs e clientes pela unidade ativa
+  const messages = scopeByUnit
+    ? messagesRaw.filter(m => !m.unit_id || m.unit_id === activeUnitId)
+    : messagesRaw;
+  const customers = scopeByUnit
+    ? customersRaw.filter(c => !c.unit_id || c.unit_id === activeUnitId)
+    : customersRaw;
 
   const saveMutation = useMutation({
     mutationFn: () => base44.entities.Company.update(company.id, { whatsapp_settings: settings }),

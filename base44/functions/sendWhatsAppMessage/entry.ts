@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
       message,
       type,
       company_id,
+      unit_id = null,
       customer_id = null,
       customer_name = null,
       appointment_id = null,
@@ -66,6 +67,7 @@ Deno.serve(async (req) => {
 
     const baseLog = {
       company_id,
+      unit_id: unit_id || undefined,
       customer_id,
       customer_name,
       appointment_id,

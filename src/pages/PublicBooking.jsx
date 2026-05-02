@@ -109,16 +109,20 @@ export default function PublicBooking() {
     ? allBlockedTimes.filter(b => !b.unit_id || b.unit_id === selected.unit.id)
     : allBlockedTimes;
 
+  // Em modo "clientes por unidade", o lookup e o create do Customer ficam restritos à unidade
+  const customersSharedMode = company?.customers_shared_across_units !== false;
+  const scopeCustomerByUnit = isMultiUnit && !customersSharedMode && !!selected.unit?.id;
+
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
       // 1) Busca cliente existente por telefone (normalizado) na empresa
       const phoneNorm = String(data.customer_phone || '').replace(/\D/g, '');
       let customer = null;
       if (phoneNorm) {
-        const matches = await base44.entities.Customer.filter({
-          company_id: data.company_id,
-          phone: phoneNorm,
-        }, '-created_date', 1);
+        const lookupFilter = scopeCustomerByUnit
+          ? { company_id: data.company_id, phone: phoneNorm, unit_id: data.unit_id }
+          : { company_id: data.company_id, phone: phoneNorm };
+        const matches = await base44.entities.Customer.filter(lookupFilter, '-created_date', 1);
         if (matches?.length) customer = matches[0];
       }
 
@@ -126,6 +130,7 @@ export default function PublicBooking() {
       if (!customer) {
         customer = await base44.entities.Customer.create({
           company_id: data.company_id,
+          unit_id: scopeCustomerByUnit ? data.unit_id : undefined,
           name: data.customer_name,
           phone: phoneNorm,
           email: data.customer_email || undefined,

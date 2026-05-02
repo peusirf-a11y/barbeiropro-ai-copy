@@ -42,6 +42,7 @@ async function sendReminder(base44, appointment, company, type, baseUrl) {
     message,
     type,
     company_id: company.id,
+    unit_id: appointment.unit_id || undefined,
     customer_id: appointment.customer_id,
     customer_name: appointment.customer_name,
     appointment_id: appointment.id,

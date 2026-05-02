@@ -5,6 +5,10 @@
     "company_id": {
       "type": "string"
     },
+    "unit_id": {
+      "type": "string",
+      "description": "Unidade associada ao envio. Propagado a partir do Appointment ou do Customer quando relevante."
+    },
     "customer_id": {
       "type": "string"
     },

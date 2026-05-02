@@ -41,6 +41,10 @@ Deno.serve(async (req) => {
         return new Date(c.last_appointment_at) < cutoff;
       });
 
+      // Se a empresa usa "clientes por unidade", o customer.unit_id já existe e
+      // será propagado para a WhatsAppMessage (apenas para fins de filtro de logs).
+      // Não muda regra de negócio: cliente continua recebendo 1 mensagem por janela.
+
       // Mensagens de reativação já enviadas pra essa empresa nos últimos 'days' dias
       const recentLogs = await base44.asServiceRole.entities.WhatsAppMessage.filter(
         { company_id: company.id, type: 'reativacao' }, '-sent_at', 2000
@@ -90,6 +94,7 @@ Deno.serve(async (req) => {
           message,
           type: 'reativacao',
           company_id: company.id,
+          unit_id: c.unit_id || undefined,
           customer_id: c.id,
           customer_name: c.name,
         });

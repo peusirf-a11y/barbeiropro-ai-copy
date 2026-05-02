@@ -1,5 +1,6 @@
 // Automação de entidade: dispara quando Appointment muda para status=concluido.
 // Trigger conditions na automação garantem que só roda 1x (changed_fields contém "status").
+// Multi-unidade: propaga appt.unit_id para FinancialEntry e WhatsAppMessage.
 //
 // Faz, de forma IDEMPOTENTE:
 //   1) Cria FinancialEntry (entrada no caixa) — flag financial_created via reference_appointment_id
@@ -117,6 +118,7 @@ Deno.serve(async (req) => {
               message,
               type: 'pos_atendimento',
               company_id: companyId,
+              unit_id: appt.unit_id || undefined,
               customer_id: appt.customer_id,
               customer_name: appt.customer_name,
               appointment_id: appt.id,

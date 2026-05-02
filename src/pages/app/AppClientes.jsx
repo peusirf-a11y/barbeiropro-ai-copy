@@ -3,6 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { shouldScopeCustomersByUnit } from '@/lib/customerUnitMode';
 import { useState } from 'react';
 import { Search, Plus, X, Users, Pencil, Trash2, Phone } from 'lucide-react';
 import { format } from 'date-fns';
@@ -19,9 +21,12 @@ const statusBadge = {
 const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
 
 export default function AppClientes() {
-  const { companyId, isLoading: loadingCompany } = useCompany();
+  const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
   const isBarbeiro = teamRole?.role === 'barbeiro';
+  // Quando true, lista e novo cliente ficam restritos à unidade ativa
+  const scopeByUnit = shouldScopeCustomersByUnit(company, activeUnitId);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
@@ -29,11 +34,15 @@ export default function AppClientes() {
   const [form, setForm] = useState(emptyForm);
   const queryClient = useQueryClient();
 
-  const { data: customers = [], isLoading } = useQuery({
+  const { data: customersRaw = [], isLoading } = useQuery({
     queryKey: ['customers', companyId],
     queryFn: () => base44.entities.Customer.filter({ company_id: companyId }, '-created_date', 500),
     enabled: !!companyId,
   });
+  // Em modo "clientes por unidade", filtra pela unidade ativa (registros sem unit_id são considerados legados/compartilhados e continuam visíveis)
+  const customers = scopeByUnit
+    ? customersRaw.filter(c => !c.unit_id || c.unit_id === activeUnitId)
+    : customersRaw;
 
   const { data: appointments = [] } = useQuery({
     queryKey: ['appointments', companyId],
@@ -42,7 +51,12 @@ export default function AppClientes() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Customer.create({ ...data, company_id: companyId }),
+    mutationFn: (data) => base44.entities.Customer.create({
+      ...data,
+      company_id: companyId,
+      // Só grava unit_id quando estamos no modo "clientes por unidade"
+      unit_id: scopeByUnit ? activeUnitId : undefined,
+    }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers', companyId] }); closeForm(); },
   });
 

@@ -5,6 +5,10 @@
     "company_id": {
       "type": "string"
     },
+    "unit_id": {
+      "type": "string",
+      "description": "Unidade vinculada ao cliente. Usado apenas quando Company.customers_shared_across_units=false. Quando shared=true, fica vazio e o cliente pertence \u00e0 barbearia inteira."
+    },
     "name": {
       "type": "string"
     },
