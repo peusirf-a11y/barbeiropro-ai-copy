@@ -187,39 +187,44 @@ export default function PublicBooking() {
     return annotated;
   };
 
-  // Lookup do cliente por telefone enquanto digita: se já existe agendamento
-  // anterior, marca como returning e (no submit) exige email.
+  // Lookup do cliente por telefone enquanto digita.
+  // Ao identificar match: preenche nome/email automaticamente e marca como
+  // returning se já houver histórico (>=1 agendamento) — nesse caso o submit exige email.
   const phoneNorm = String(form.phone || '').replace(/\D/g, '');
-  const matchedExisting = phoneNorm.length >= 10
-    ? null /* checked via async query below */
-    : null;
 
-  // Query async para descobrir cliente existente pelo telefone normalizado
-  useQuery({
-    queryKey: ['public-customer-lookup', company?.id, phoneNorm],
-    queryFn: async () => {
-      const matches = await base44.entities.Customer.filter({
-        company_id: company.id,
-        phone: phoneNorm,
-      }, '-created_date', 1);
-      const existing = matches?.[0] || null;
-      // Considera "returning" se já há pelo menos 1 agendamento prévio
-      if (existing && (existing.total_appointments ?? 0) >= 1) {
-        setReturningCustomer(existing);
-        // Pré-preenche o nome se ainda não preencheu
-        setForm(p => ({
-          ...p,
-          name: p.name || existing.name || '',
-          email: p.email || existing.email || '',
-        }));
-      } else {
-        setReturningCustomer(null);
+  useEffect(() => {
+    if (!company?.id || phoneNorm.length < 10) {
+      setReturningCustomer(null);
+      return;
+    }
+    let cancelled = false;
+    // pequeno debounce para não disparar a cada tecla
+    const t = setTimeout(async () => {
+      try {
+        const matches = await base44.entities.Customer.filter({
+          company_id: company.id,
+          phone: phoneNorm,
+        }, '-created_date', 1);
+        if (cancelled) return;
+        const existing = matches?.[0] || null;
+        if (existing) {
+          // Auto-preenche nome e e-mail (sem sobrescrever o que o usuário já digitou)
+          setForm(p => ({
+            ...p,
+            name: p.name?.trim() ? p.name : (existing.name || ''),
+            email: p.email?.trim() ? p.email : (existing.email || ''),
+          }));
+          // Marca como returning apenas se já tem histórico (proxy de "conta")
+          setReturningCustomer((existing.total_appointments ?? 0) >= 1 ? existing : null);
+        } else {
+          setReturningCustomer(null);
+        }
+      } catch (err) {
+        console.warn('[PublicBooking] lookup falhou:', err.message);
       }
-      return existing;
-    },
-    enabled: !!company?.id && phoneNorm.length >= 10,
-    staleTime: 30_000,
-  });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [company?.id, phoneNorm]);
 
   const handleBook = () => {
     if (!form.name.trim()) { setFormError('Por favor, informe seu nome'); return; }
