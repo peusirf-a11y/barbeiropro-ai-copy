@@ -7,6 +7,8 @@ import { Save, Globe, Copy, CheckCircle, Settings } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
+import { Link } from 'react-router-dom';
+import { Building2 } from 'lucide-react';
 
 const DAYS = [
   { key: 'seg', label: 'Segunda' }, { key: 'ter', label: 'Terça' }, { key: 'qua', label: 'Quarta' },
@@ -172,6 +174,21 @@ export default function AppConfiguracoes() {
             <Save className="w-4 h-4" />
             Salvar configurações
           </button>
+        </div>
+
+        {/* Multi-unidade */}
+        <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+          <h2 className="font-bold text-[#111827] mb-2">Unidades</h2>
+          <p className="text-sm text-[#6B7280] mb-4">
+            Gerencie filiais da sua barbearia. Quando houver 2 ou mais unidades, um seletor aparece automaticamente no topo do app.
+          </p>
+          <Link
+            to="/app/configuracoes/unidades"
+            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
+          >
+            <Building2 className="w-4 h-4" />
+            Gerenciar unidades
+          </Link>
         </div>
 
         <div className="mt-8">

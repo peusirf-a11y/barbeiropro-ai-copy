@@ -5,6 +5,13 @@
     "company_id": {
       "type": "string"
     },
+    "unit_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs das unidades onde este profissional atende. Vazio = aparece em todas (compatibilidade com mono-unidade)."
+    },
     "name": {
       "type": "string"
     },

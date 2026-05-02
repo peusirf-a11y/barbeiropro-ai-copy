@@ -95,7 +95,7 @@
     "is_blocked_by_billing": {
       "type": "boolean",
       "default": false,
-      "description": "Bloqueio autom\u00e1tico por inadimpl\u00eancia (separado do `status=blocked` manual feito pelo Master)"
+      "description": "Bloqueio autom\u00e1tico por inadimpl\u00eancia"
     },
     "trial_email_d3_sent": {
       "type": "boolean",
@@ -104,6 +104,21 @@
     "trial_email_d1_sent": {
       "type": "boolean",
       "default": false
+    },
+    "multi_unit_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Liga o recurso de multi-unidade. Quando false, sistema funciona como antes (mono-unidade)."
+    },
+    "customers_shared_across_units": {
+      "type": "boolean",
+      "default": true,
+      "description": "Quando true, clientes pertencem \u00e0 barbearia inteira e podem agendar em qualquer unidade. Quando false, cada cliente fica vinculado a uma unidade espec\u00edfica."
+    },
+    "units_backfilled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Marcador idempotente: indica que o backfill da Matriz j\u00e1 rodou para esta empresa."
     },
     "whatsapp_settings": {
       "type": "object",

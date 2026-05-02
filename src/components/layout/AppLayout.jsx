@@ -9,6 +9,7 @@ import BillingPastDueBanner from '@/components/billing/BillingPastDueBanner';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useCompany } from '@/hooks/useCompany';
 import { isPastDueLimited } from '@/lib/billingMode';
+import UnitSwitcher from '@/components/units/UnitSwitcher';
 
 // key = identificador no rolePermissions; default visível para todos os papéis com acesso à rota
 const navItemsAll = [
@@ -40,6 +41,17 @@ export default function AppLayout({ children }) {
   const { data: teamRole, isLoading: loadingRole } = useTeamRole();
   const { company } = useCompany();
   const showPastDue = isPastDueLimited(company);
+
+  // Auto-trigger do backfill: roda 1x quando o owner abre o app pós-deploy.
+  // O backend é idempotente (Company.units_backfilled_at).
+  useEffect(() => {
+    if (!company?.id) return;
+    if (company.units_backfilled_at) return;
+    if (company.owner_email && teamRole?.role && teamRole.role !== 'admin') return; // só owner/admin dispara
+    base44.functions.invoke('backfillUnits', {}).catch(err => {
+      console.warn('[AppLayout] backfillUnits falhou (pode ser ignorado):', err?.message);
+    });
+  }, [company?.id, company?.units_backfilled_at, teamRole?.role]);
 
   // Fechar drawer ao trocar de rota
   useEffect(() => { setOpen(false); }, [location.pathname]);
@@ -116,7 +128,7 @@ export default function AppLayout({ children }) {
   return (
     <div className="min-h-screen bg-[#F7F8FB] font-inter">
       {/* Mobile top bar */}
-      <header className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-14 flex items-center justify-between px-4">
+      <header className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-14 flex items-center justify-between px-4 gap-2">
         <button
           onClick={() => setOpen(true)}
           className="p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-700"
@@ -124,13 +136,13 @@ export default function AppLayout({ children }) {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <Link to="/app/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center overflow-hidden">
+        <Link to="/app/dashboard" className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
             <Logo size={32} className="rounded-none" />
           </div>
-          <span className="font-bold text-[15px] text-[#0F172A] tracking-tight">BarberTrimly</span>
+          <span className="font-bold text-[15px] text-[#0F172A] tracking-tight truncate">BarberTrimly</span>
         </Link>
-        <div className="w-9" />
+        <div className="ml-auto"><UnitSwitcher /></div>
       </header>
 
       {/* Desktop sidebar — DARK */}
@@ -153,6 +165,7 @@ export default function AppLayout({ children }) {
 
       {/* Desktop top header — saudação + avatar */}
       <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-16 items-center justify-end px-8 gap-3">
+        <UnitSwitcher />
         <div className="text-right">
           <div className="text-[11px] text-gray-400 leading-none">Olá,</div>
           <div className="text-sm font-bold text-[#0F172A] mt-0.5">{company?.owner_name?.split(' ')[0] || 'Bem-vindo'}</div>

@@ -11,6 +11,7 @@ import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/toke
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import AgendaProColumns from '@/components/agenda/AgendaProColumns';
+import { useActiveUnit } from '@/hooks/useActiveUnit';
 
 const statusConfig = {
   agendado: { label: 'Agendado', color: 'border-l-blue-400 bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
@@ -30,6 +31,7 @@ const emptyForm = {
 
 export default function AppAgenda() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const { activeUnitId, isMultiUnit } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
   const isBarbeiro = teamRole?.role === 'barbeiro';
   const myProId = teamRole?.professional_id || null;
@@ -118,8 +120,17 @@ export default function AppAgenda() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const filteredAppts = filterPro === 'all' ? appointments : appointments.filter(a => a.professional_id === filterPro);
-  const visiblePros = filterPro === 'all' ? professionals : professionals.filter(p => p.id === filterPro);
+  // Multi-unidade: filtra agendamentos e profissionais pela unidade ativa.
+  // Mono-unidade ou com unit_id ausente => mostra tudo (compatibilidade com dados legados).
+  const apptsByUnit = isMultiUnit && activeUnitId
+    ? appointments.filter(a => !a.unit_id || a.unit_id === activeUnitId)
+    : appointments;
+  const prosByUnit = isMultiUnit && activeUnitId
+    ? professionals.filter(p => !p.unit_ids || p.unit_ids.length === 0 || p.unit_ids.includes(activeUnitId))
+    : professionals;
+
+  const filteredAppts = filterPro === 'all' ? apptsByUnit : apptsByUnit.filter(a => a.professional_id === filterPro);
+  const visiblePros = filterPro === 'all' ? prosByUnit : prosByUnit.filter(p => p.id === filterPro);
 
   // Conflict + block check via lib reutilizável
   const apptsWithDuration = appointments.map(a => ({
@@ -151,6 +162,7 @@ export default function AppAgenda() {
     createMutation.mutate({
       ...form,
       company_id: companyId,
+      unit_id: activeUnitId || pro?.unit_ids?.[0] || undefined,
       professional_name: pro?.name || '',
       service_name: svc?.name || '',
       customer_name: customer?.name || form.customer_name,
@@ -295,7 +307,7 @@ export default function AppAgenda() {
           <AgendaProColumns
             selectedDate={currentDate}
             professionals={visiblePros}
-            appointments={appointments}
+            appointments={apptsByUnit}
             services={services}
             blocks={blockedTimes}
             onCardClick={setSelectedAppt}
