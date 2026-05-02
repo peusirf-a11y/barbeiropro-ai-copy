@@ -18,9 +18,17 @@ import RoleRoute from '@/components/guards/RoleRoute';
 import LandingPage from './pages/LandingPage';
 import PublicBooking from './pages/PublicBooking';
 import Onboarding from './pages/Onboarding';
-import MasterPanel from './pages/MasterPanel';
 import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
+
+// Master pages (super admin)
+import MasterLayout from './components/master/MasterLayout';
+import MasterDashboard from './pages/master/MasterDashboard';
+import MasterBarbearias from './pages/master/MasterBarbearias';
+import MasterAssinaturas from './pages/master/MasterAssinaturas';
+import MasterFinanceiro from './pages/master/MasterFinanceiro';
+import MasterUsuarios from './pages/master/MasterUsuarios';
+import MasterConfiguracoes from './pages/master/MasterConfiguracoes';
 
 // Demo pages (public)
 import DemoDashboard from './pages/demo/DemoDashboard.jsx';
@@ -57,6 +65,7 @@ import TermosDeUso from './pages/legal/TermosDeUso';
 import PoliticaDePrivacidade from './pages/legal/PoliticaDePrivacidade';
 import ConfirmAppointment from './pages/public/ConfirmAppointment';
 import ReviewAppointment from './pages/public/ReviewAppointment';
+import { Navigate } from 'react-router-dom';
 
 function App() {
   return (
@@ -92,14 +101,22 @@ function App() {
               </OnboardingGuard>
             } />
 
-            {/* ── MASTER PANEL (super admin only) ── */}
+            {/* ── MASTER PANEL (super admin only) — sidebar + rotas aninhadas ── */}
             <Route path="/master" element={
               <SuperAdminRoute>
                 <TotpGate>
-                  <MasterPanel />
+                  <MasterLayout />
                 </TotpGate>
               </SuperAdminRoute>
-            } />
+            }>
+              <Route index element={<Navigate to="/master/dashboard" replace />} />
+              <Route path="dashboard" element={<MasterDashboard />} />
+              <Route path="barbearias" element={<MasterBarbearias />} />
+              <Route path="assinaturas" element={<MasterAssinaturas />} />
+              <Route path="financeiro" element={<MasterFinanceiro />} />
+              <Route path="usuarios" element={<MasterUsuarios />} />
+              <Route path="configuracoes" element={<MasterConfiguracoes />} />
+            </Route>
 
             {/* ── PRIVATE APP ROUTES (authenticated users only) ── */}
             <Route path="/app/dashboard" element={<PrivateRoute><AppDashboard /></PrivateRoute>} />
