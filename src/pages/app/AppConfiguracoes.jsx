@@ -178,9 +178,16 @@ export default function AppConfiguracoes() {
 
         {/* Multi-unidade */}
         <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-          <h2 className="font-bold text-[#111827] mb-2">Unidades</h2>
+          <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
+            <h2 className="font-bold text-[#111827]">Unidades</h2>
+            {company?.multi_unit_enabled && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Ativo
+              </span>
+            )}
+          </div>
           <p className="text-sm text-[#6B7280] mb-4">
-            Gerencie filiais da sua barbearia. Quando houver 2 ou mais unidades, um seletor aparece automaticamente no topo do app.
+            Gerencie filiais da sua barbearia, defina como os clientes são organizados entre unidades e ative o seletor no topo do app.
           </p>
           <Link
             to="/app/configuracoes/unidades"

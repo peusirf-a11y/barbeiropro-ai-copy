@@ -6,10 +6,12 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Building2, Plus, Pencil, Trash2, X, Star } from 'lucide-react';
+import { Building2, Pencil, Trash2, X, Star, MapPin, Phone } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import { useToast } from '@/components/ui/use-toast';
+import MultiUnitToggle from '@/components/units/MultiUnitToggle';
+import CustomerScopeToggle from '@/components/units/CustomerScopeToggle';
 
 const empty = { name: '', address: '', phone: '', whatsapp: '', active: true };
 
@@ -85,20 +87,16 @@ export default function AppUnidades() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
         <AppPageHeader
           title="Unidades"
-          subtitle={`${units.length} ${units.length === 1 ? 'unidade ativa' : 'unidades cadastradas'}`}
+          subtitle={`${units.length} ${units.length === 1 ? 'unidade cadastrada' : 'unidades cadastradas'}`}
           icon={Building2}
         >
-          <PrimaryButton onClick={() => setShowForm(true)}>Nova unidade</PrimaryButton>
+          {company?.multi_unit_enabled && (
+            <PrimaryButton onClick={() => setShowForm(true)}>Nova unidade</PrimaryButton>
+          )}
         </AppPageHeader>
 
-        {units.length <= 1 && (
-          <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-2xl p-5 mb-6">
-            <h3 className="font-bold text-[#2563EB] text-sm mb-1">💡 Multi-unidade</h3>
-            <p className="text-sm text-gray-700">
-              Cadastre uma 2ª unidade para ativar o seletor no topo do app. Cada unidade pode ter seus próprios profissionais e agendamentos.
-            </p>
-          </div>
-        )}
+        {/* Toggle principal: liga/desliga multi-unidade */}
+        {company && <MultiUnitToggle company={company} />}
 
         {isLoading ? (
           <div className="bg-white rounded-2xl border border-black/5 p-12 text-center text-gray-400 shadow-[var(--shadow-sm)]">
@@ -113,41 +111,62 @@ export default function AppUnidades() {
             </button>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {units.map(u => (
-              <div key={u.id} className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] ring-1 ring-[#DBEAFE] flex items-center justify-center flex-shrink-0">
-                      <Building2 className="w-5 h-5 text-[#2563EB]" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-[#111827] truncate flex items-center gap-1.5">
-                        {u.name}
-                        {u.is_default && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
-                      </h3>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <div className={`w-2 h-2 rounded-full ${u.active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                        <span className="text-xs text-[#6B7280]">{u.active ? 'Ativa' : 'Inativa'}</span>
+          <>
+            <div className="flex items-center justify-between mb-3 mt-2">
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Suas unidades</h2>
+              <span className="text-xs text-[#6B7280]">{units.filter(u => u.active).length} ativa(s)</span>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {units.map(u => (
+                <div key={u.id} className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] ring-1 ring-[#DBEAFE] flex items-center justify-center flex-shrink-0">
+                        <Building2 className="w-5 h-5 text-[#2563EB]" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-[#111827] truncate flex items-center gap-1.5">
+                          {u.name}
+                          {u.is_default && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
+                        </h3>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <div className={`w-2 h-2 rounded-full ${u.active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                          <span className="text-xs text-[#6B7280]">{u.active ? 'Ativa' : 'Inativa'}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={() => openEdit(u)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="Editar">
-                      <Pencil className="w-3.5 h-3.5 text-gray-400" />
-                    </button>
-                    {!u.is_default && (
-                      <button onClick={() => removeUnit(u)} className="p-1.5 hover:bg-red-50 rounded-lg" title="Excluir">
-                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button onClick={() => openEdit(u)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="Editar">
+                        <Pencil className="w-3.5 h-3.5 text-gray-400" />
                       </button>
-                    )}
+                      {!u.is_default && (
+                        <button onClick={() => removeUnit(u)} className="p-1.5 hover:bg-red-50 rounded-lg" title="Excluir">
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  {u.address && (
+                    <div className="text-xs text-gray-500 mb-1 truncate flex items-center gap-1.5">
+                      <MapPin className="w-3 h-3 flex-shrink-0" /> {u.address}
+                    </div>
+                  )}
+                  {u.phone && (
+                    <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <Phone className="w-3 h-3 flex-shrink-0" /> {u.phone}
+                    </div>
+                  )}
                 </div>
-                {u.address && <div className="text-xs text-gray-500 mb-1 truncate">📍 {u.address}</div>}
-                {u.phone && <div className="text-xs text-gray-500">📞 {u.phone}</div>}
+              ))}
+            </div>
+
+            {/* Toggle de modo de clientes — só faz sentido com multi_unit ligado */}
+            {company?.multi_unit_enabled && units.length > 0 && (
+              <div className="mt-6">
+                <CustomerScopeToggle company={company} />
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
 
         {showForm && (
