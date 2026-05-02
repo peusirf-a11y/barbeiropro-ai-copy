@@ -10,12 +10,15 @@ import { BarChart2 } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit } from '@/lib/unitFilter';
+import { useUnits } from '@/hooks/useUnits';
+import UnitBreakdownTable from '@/components/relatorios/UnitBreakdownTable';
 
 const COLORS = ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'];
 
 export default function AppRelatorios() {
   const { companyId, isLoading: loadingCompany } = useCompany();
-  const { activeUnitId, isMultiUnit } = useActiveUnit();
+  const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
+  const { units } = useUnits();
   const [period, setPeriod] = useState('this_month');
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
@@ -104,6 +107,15 @@ export default function AppRelatorios() {
             <option value="all">Todo o período</option>
           </select>
         </AppPageHeader>
+
+        {/* Comparativo por unidade — só aparece em modo "Todas as unidades" */}
+        {isAllUnits && isMultiUnit && (
+          <UnitBreakdownTable
+            units={units}
+            appointments={periodAppts}
+            financial={periodFinancial}
+          />
+        )}
 
         {/* KPI */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4 mb-6">
