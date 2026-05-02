@@ -12,6 +12,7 @@ import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit, filterProfessionalsByUnit } from '@/lib/unitFilter';
+import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 
 const emptyForm = {
   mode: 'once',           // 'once' | 'recurring'
@@ -28,7 +29,7 @@ const WEEKDAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sex
 
 export default function AppBloqueios() {
   const { companyId, isLoading: loadingCompany } = useCompany();
-  const { activeUnitId, isMultiUnit } = useActiveUnit();
+  const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const queryClient = useQueryClient();
@@ -123,8 +124,12 @@ export default function AppBloqueios() {
           subtitle="Almoço, folgas, eventos — horários indisponíveis para agendamento"
           icon={Lock}
         >
-          <PrimaryButton onClick={() => setShowForm(true)}>Novo bloqueio</PrimaryButton>
+          {!isAllUnits && <PrimaryButton onClick={() => setShowForm(true)}>Novo bloqueio</PrimaryButton>}
         </AppPageHeader>
+
+        {isAllUnits && (
+          <AllUnitsNotice message="Visão consolidada de bloqueios de todas as unidades. Para criar um novo bloqueio, selecione uma unidade específica." />
+        )}
 
         {blocks.length === 0 ? (
           <div className="bg-white rounded-2xl border border-black/8">

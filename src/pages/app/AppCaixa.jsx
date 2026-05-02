@@ -13,10 +13,11 @@ import AppPageHeader from '@/components/app/AppPageHeader';
 import KpiCard from '@/components/dashboard/KpiCard';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit } from '@/lib/unitFilter';
+import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 
 export default function AppCaixa() {
   const { companyId, isLoading: loadingCompany } = useCompany();
-  const { activeUnitId, isMultiUnit } = useActiveUnit();
+  const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
   const { user } = useAuth();
   const [showOpen, setShowOpen] = useState(false);
   const [showClose, setShowClose] = useState(false);
@@ -118,7 +119,11 @@ export default function AppCaixa() {
           icon={Wallet}
         />
 
-        {!openCash ? (
+        {isAllUnits && (
+          <AllUnitsNotice message="Histórico consolidado de caixas de todas as unidades. Para abrir/fechar um caixa, selecione uma unidade específica." />
+        )}
+
+        {isAllUnits ? null : !openCash ? (
           <div className="bg-white rounded-2xl border border-black/8">
             <EmptyState
               icon={Wallet}

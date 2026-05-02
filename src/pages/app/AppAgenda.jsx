@@ -12,6 +12,7 @@ import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import AgendaProColumns from '@/components/agenda/AgendaProColumns';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
+import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 
 const statusConfig = {
   agendado: { label: 'Agendado', color: 'border-l-blue-400 bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
@@ -31,7 +32,7 @@ const emptyForm = {
 
 export default function AppAgenda() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
-  const { activeUnitId, isMultiUnit } = useActiveUnit();
+  const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
   const isBarbeiro = teamRole?.role === 'barbeiro';
   const myProId = teamRole?.professional_id || null;
@@ -249,13 +250,17 @@ export default function AppAgenda() {
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-            {!isBarbeiro && (
+            {!isBarbeiro && !isAllUnits && (
               <button onClick={() => setShowNewForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1d4ed8] transition-all flex items-center gap-2 shadow-[0_4px_12px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.35)]">
                 <Plus className="w-4 h-4" />Novo
               </button>
             )}
           </div>
         </div>
+
+        {isAllUnits && (
+          <AllUnitsNotice message="Você está vendo a agenda consolidada de todas as unidades. Para criar um novo agendamento, selecione uma unidade específica." />
+        )}
 
         {/* Seletor de dias da semana — pílulas */}
         <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">

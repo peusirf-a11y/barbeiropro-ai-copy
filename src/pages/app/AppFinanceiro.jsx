@@ -13,13 +13,14 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import FinancialExport from '@/components/financeiro/FinancialExport';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit } from '@/lib/unitFilter';
+import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
 
 export default function AppFinanceiro() {
   const { companyId, company, isLoading: loadingCompany } = useCompany();
-  const { activeUnitId, isMultiUnit } = useActiveUnit();
+  const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
   const [showForm, setShowForm] = useState(false);
   const [period, setPeriod] = useState('this_month'); // 'this_month' | 'last_month' | 'all'
   const [form, setForm] = useState({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' });
@@ -89,8 +90,12 @@ export default function AppFinanceiro() {
             <option value="all">Todo o período</option>
           </select>
           <FinancialExport companyId={companyId} companyName={company?.name} />
-          <PrimaryButton onClick={() => setShowForm(true)}>Lançamento</PrimaryButton>
+          {!isAllUnits && <PrimaryButton onClick={() => setShowForm(true)}>Lançamento</PrimaryButton>}
         </AppPageHeader>
+
+        {isAllUnits && (
+          <AllUnitsNotice message="Visão financeira consolidada de todas as unidades. Para criar um novo lançamento, selecione uma unidade específica." />
+        )}
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
