@@ -26,21 +26,21 @@ export default function OfferPlanInlineBanner({ companyId, customerId, onOffer }
     <button
       type="button"
       onClick={onOffer}
-      className="w-full flex items-center gap-3 mb-4 p-3 rounded-xl bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-200 hover:border-violet-400 hover:shadow-sm transition-all text-left group"
+      className="w-full flex items-center gap-3 mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 hover:border-[#2563EB] hover:shadow-sm transition-all text-left group"
     >
-      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-white flex-shrink-0">
+      <div className="w-9 h-9 rounded-lg bg-[#2563EB] flex items-center justify-center text-white flex-shrink-0">
         <Sparkles className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-violet-700">Oportunidade</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB]">Oportunidade</div>
         <div className="text-sm font-bold text-[#111827] truncate">
-          Esse cliente economizaria <span className="text-violet-700">R${r.monthly_savings}/mês</span>
+          Esse cliente economizaria <span className="text-[#2563EB]">R${r.monthly_savings}/mês</span>
         </div>
         <div className="text-[11px] text-gray-500 truncate">
           Vem {r.visits_per_month}x/mês · Plano "{r.recommended_plan.name}" R${r.recommended_plan.price_monthly}
         </div>
       </div>
-      <div className="flex items-center gap-1 text-xs font-bold text-violet-700 group-hover:translate-x-0.5 transition-transform flex-shrink-0">
+      <div className="flex items-center gap-1 text-xs font-bold text-[#2563EB] group-hover:translate-x-0.5 transition-transform flex-shrink-0">
         Oferecer<ChevronRight className="w-4 h-4" />
       </div>
     </button>

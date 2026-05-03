@@ -36,9 +36,9 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
   return (
     <div className="bg-white rounded-2xl border border-black/5 p-5 mb-6">
       <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="w-4 h-4 text-violet-600" />
+        <TrendingUp className="w-4 h-4 text-[#2563EB]" />
         <h3 className="text-sm font-bold text-[#111827]">Impacto dos planos no negócio</h3>
-        <span className="text-[10px] font-semibold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full uppercase tracking-wide">Últimos 180 dias</span>
+        <span className="text-[10px] font-semibold bg-blue-100 text-[#2563EB] px-2 py-0.5 rounded-full uppercase tracking-wide">Últimos 180 dias</span>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -61,7 +61,7 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
           label="Potencial de assinatura"
           value={proj.projected_mrr ? `+R$${proj.projected_mrr.toLocaleString('pt-BR')}` : '—'}
           sublabel="MRR adicional projetado"
-          color="text-violet-600"
+          color="text-[#2563EB]"
         />
         <ImpactCard
           icon={Calendar}
@@ -86,8 +86,8 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
               label="Clientes elegíveis"
               value={`${conv.eligible_pct || 0}%`}
               sublabel={`${conv.eligible_count || 0} de ${conv.active_customers_30d || 0} clientes ativos`}
-              color="text-violet-600"
-              bg="bg-violet-50 border-violet-200"
+              color="text-[#2563EB]"
+              bg="bg-blue-50 border-blue-200"
             />
             <ConversionCard
               icon={Zap}
@@ -107,7 +107,7 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
             />
           </div>
           {conv.eligible_count > 0 && conv.converted_pct < 30 && (
-            <div className="mt-3 px-3 py-2 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg text-xs text-orange-900">
+            <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
               🔥 <strong>{conv.eligible_count} {conv.eligible_count === 1 ? 'cliente está' : 'clientes estão'} pronto{conv.eligible_count === 1 ? '' : 's'} para virar assinante.</strong> Use o botão "Oferecer plano" na tela de Clientes ou aproveite o gatilho na Agenda.
             </div>
           )}
@@ -122,10 +122,10 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
             <span className="text-gray-400">% da receita total</span>
           </div>
           <div className="flex h-3 rounded-full overflow-hidden bg-gray-100">
-            <div className="bg-violet-500 transition-all" style={{ width: `${Math.min(100, (currentMRR / Math.max(totalAvulsoMonthly + currentMRR, 1)) * 100)}%` }} title="Recorrente" />
+            <div className="bg-[#2563EB] transition-all" style={{ width: `${Math.min(100, (currentMRR / Math.max(totalAvulsoMonthly + currentMRR, 1)) * 100)}%` }} title="Recorrente" />
           </div>
           <div className="flex justify-between text-[11px] mt-1.5">
-            <span className="text-violet-600 font-semibold">Recorrente: R${currentMRR.toFixed(0)}</span>
+            <span className="text-[#2563EB] font-semibold">Recorrente: R${currentMRR.toFixed(0)}</span>
             <span className="text-gray-500">Avulso: R${Math.round(totalAvulsoMonthly).toLocaleString('pt-BR')}</span>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
 
 function ImpactCard({ icon: Icon, label, value, sublabel, color }) {
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-white border border-black/5 rounded-xl p-3">
+    <div className="bg-gray-50 border border-black/5 rounded-xl p-3">
       <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-1">
         <Icon className="w-3 h-3" /> {label}
       </div>

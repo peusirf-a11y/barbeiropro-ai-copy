@@ -46,8 +46,8 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
   return (
     <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        {/* Header com gradiente */}
-        <div className="relative bg-gradient-to-br from-violet-600 to-fuchsia-600 p-6 text-white">
+        {/* Header */}
+        <div className="relative bg-[#2563EB] p-6 text-white">
           <button onClick={onClose} className="absolute top-3 right-3 p-1.5 hover:bg-white/20 rounded-lg">
             <X className="w-5 h-5" />
           </button>
@@ -62,7 +62,7 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
         <div className="p-6">
           {isLoading && (
             <div className="text-center py-8">
-              <Loader2 className="w-6 h-6 text-violet-600 animate-spin mx-auto mb-2" />
+              <Loader2 className="w-6 h-6 text-[#2563EB] animate-spin mx-auto mb-2" />
               <p className="text-sm text-gray-500">Analisando histórico do cliente…</p>
             </div>
           )}
@@ -84,18 +84,18 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
           {!isLoading && plan && (
             <>
               {/* Card do plano */}
-              <div className="bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200 rounded-xl p-4 mb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-violet-600 mb-1">Plano sugerido</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB] mb-1">Plano sugerido</div>
                     <div className="font-black text-xl text-[#111827]">{plan.name}</div>
                     <div className="text-xs text-gray-500 mt-0.5">
                       {plan.type === 'unlimited' ? 'Cortes ilimitados' : `${plan.usage_limit} ${plan.usage_limit === 1 ? 'corte' : 'cortes'} por mês`}
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-2xl font-black text-violet-700">R${plan.price_monthly}</div>
-                    <div className="text-[10px] text-violet-500 uppercase">por mês</div>
+                    <div className="text-2xl font-black text-[#2563EB]">R${plan.price_monthly}</div>
+                    <div className="text-[10px] text-[#2563EB]/70 uppercase">por mês</div>
                   </div>
                 </div>
               </div>
@@ -149,7 +149,7 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
                 <button
                   onClick={() => subscribeMutation.mutate()}
                   disabled={subscribeMutation.isPending}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50 shadow-[0_4px_12px_rgba(139,92,246,0.3)]"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#2563EB] hover:bg-[#1d4ed8] text-white rounded-xl text-sm font-bold disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-colors"
                 >
                   {subscribeMutation.isPending ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Ativando…</>

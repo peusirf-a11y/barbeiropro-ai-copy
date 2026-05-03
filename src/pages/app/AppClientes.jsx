@@ -208,7 +208,7 @@ export default function AppClientes() {
                           {!subByCustomer[c.id] && (
                             <button
                               onClick={() => setOfferingTo(c)}
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-2 py-1 rounded-lg"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2563EB] bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-1 rounded-lg"
                               title="Oferecer plano de assinatura"
                             >
                               <Sparkles className="w-3 h-3" /> Oferecer plano

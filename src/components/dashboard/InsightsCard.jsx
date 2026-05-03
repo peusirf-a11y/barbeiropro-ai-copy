@@ -15,7 +15,7 @@ export default function InsightsCard({ alerts = [] }) {
   return (
     <div className="bg-white rounded-2xl border border-black/5 p-5 sm:p-6 shadow-[var(--shadow-sm)]">
       <div className="flex items-center gap-2 mb-1">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center">
+        <div className="w-7 h-7 rounded-lg bg-[#2563EB] flex items-center justify-center">
           <Sparkles className="w-3.5 h-3.5 text-white" />
         </div>
         <h3 className="font-bold text-[#111827] text-base">Insights inteligentes</h3>

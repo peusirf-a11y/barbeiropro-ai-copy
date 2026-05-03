@@ -25,7 +25,7 @@ export default function CustomerPlanRecommendation({ companyId, customerId, onOf
   return (
     <div className="inline-flex items-center gap-1.5 max-w-full flex-wrap">
       <span
-        className="inline-flex items-center gap-1 text-[10px] font-bold bg-violet-50 text-violet-700 px-2 py-1 rounded-md border border-violet-100"
+        className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-50 text-[#2563EB] px-2 py-1 rounded-md border border-blue-100"
         title={`Vem ${r.visits_per_month}x/mês. Plano "${r.recommended_plan.name}" economiza R$${r.monthly_savings}/mês (R$${r.annual_savings}/ano).`}
       >
         <Sparkles className="w-2.5 h-2.5 flex-shrink-0" />
@@ -34,7 +34,7 @@ export default function CustomerPlanRecommendation({ companyId, customerId, onOf
       {onOffer && (
         <button
           onClick={(e) => { e.stopPropagation(); onOffer(); }}
-          className="text-[10px] font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white px-2 py-1 rounded-md hover:opacity-90 shadow-sm"
+          className="text-[10px] font-bold bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-2 py-1 rounded-md transition-colors"
         >
           Oferecer plano
         </button>

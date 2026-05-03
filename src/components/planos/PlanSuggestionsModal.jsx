@@ -76,7 +76,7 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-black/5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white">
+            <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center text-white">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
@@ -136,7 +136,7 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
                   <MetricCard icon={Activity} label="Ocupação atual" value={`${m.occupancy_pct}%`}
                     color={m.occupancy_pct > 85 ? 'text-emerald-600' : m.occupancy_pct < 60 ? 'text-amber-600' : 'text-blue-600'} />
                 </div>
-                <div className="mt-3 px-3 py-2 bg-violet-50 border border-violet-200 rounded-lg text-xs text-violet-900">
+                <div className="mt-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-[#1e3a8a]">
                   <strong>Estratégia:</strong> {analysis.discount_strategy.label}
                 </div>
                 {analysis.low_data && (
@@ -164,22 +164,22 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
 
               {/* Projeção */}
               {analysis.projections?.projected_mrr > 0 && (
-                <div className="bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200 rounded-xl p-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-4 h-4 text-violet-700" />
-                    <span className="text-xs font-bold uppercase tracking-wide text-violet-900">Projeção conservadora</span>
+                    <TrendingUp className="w-4 h-4 text-[#2563EB]" />
+                    <span className="text-xs font-bold uppercase tracking-wide text-[#1e3a8a]">Projeção conservadora</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <div className="text-xs text-violet-700">MRR adicional projetado</div>
-                      <div className="text-2xl font-black text-violet-900">R${analysis.projections.projected_mrr.toLocaleString('pt-BR')}</div>
+                      <div className="text-xs text-[#2563EB]">MRR adicional projetado</div>
+                      <div className="text-2xl font-black text-[#1e3a8a]">R${analysis.projections.projected_mrr.toLocaleString('pt-BR')}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-violet-700">ARR adicional projetado</div>
-                      <div className="text-2xl font-black text-violet-900">R${analysis.projections.projected_arr.toLocaleString('pt-BR')}</div>
+                      <div className="text-xs text-[#2563EB]">ARR adicional projetado</div>
+                      <div className="text-2xl font-black text-[#1e3a8a]">R${analysis.projections.projected_arr.toLocaleString('pt-BR')}</div>
                     </div>
                   </div>
-                  <p className="text-[11px] text-violet-700 mt-2">
+                  <p className="text-[11px] text-[#2563EB] mt-2">
                     Estimativa baseada em conversão de {Math.round(analysis.projections.conversion_rate_assumed * 100)}% dos clientes elegíveis para cada plano.
                   </p>
                 </div>
@@ -200,7 +200,7 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
                 Cancelar
               </button>
               <button onClick={handleCreate} disabled={selectedCount === 0 || creating}
-                className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
+                className="px-5 py-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 {creating ? 'Criando...' : 'Criar planos sugeridos'}
               </button>
             </div>

@@ -106,7 +106,7 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
             <div className="flex items-start justify-between mb-2">
               <div>
                 <div className="font-bold text-[#111827]">{activeSub.plan_name_snapshot}</div>

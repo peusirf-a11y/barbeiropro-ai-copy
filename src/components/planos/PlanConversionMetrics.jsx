@@ -74,9 +74,9 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
   return (
     <div className="bg-white rounded-2xl border border-black/5 p-5 mb-6">
       <div className="flex items-center gap-2 mb-4">
-        <Target className="w-4 h-4 text-fuchsia-600" />
+        <Target className="w-4 h-4 text-[#2563EB]" />
         <h3 className="text-sm font-bold text-[#111827]">Conversão em planos</h3>
-        <span className="text-[10px] font-semibold bg-fuchsia-100 text-fuchsia-700 px-2 py-0.5 rounded-full uppercase tracking-wide">Crítico</span>
+        <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-wide">Crítico</span>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
@@ -106,7 +106,7 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
           label="MRR potencial"
           value={`R$${Math.round(potentialMRR)}`}
           sublabel={`+R$${Math.round(potentialMRRFromEligibleNonSubscribers)} se converter todos`}
-          color="text-violet-600"
+          color="text-[#2563EB]"
         />
       </div>
 
@@ -118,7 +118,7 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
         </div>
         <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all"
+            className="h-full bg-[#2563EB] transition-all"
             style={{ width: `${Math.min(100, conversionRate)}%` }}
           />
         </div>
@@ -140,7 +140,7 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
 
 function ConversionCard({ icon: Icon, label, value, sublabel, color }) {
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-white border border-black/5 rounded-xl p-3">
+    <div className="bg-gray-50 border border-black/5 rounded-xl p-3">
       <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-1">
         <Icon className="w-3 h-3" /> {label}
       </div>

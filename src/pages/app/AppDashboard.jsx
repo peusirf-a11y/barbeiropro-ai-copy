@@ -238,7 +238,7 @@ export default function AppDashboard() {
             value={todayCustomers}
             sub="Hoje"
             icon={Users}
-            tone="violet"
+            tone="blue"
           />
           {showFinance && (
             <KpiCard
@@ -275,7 +275,7 @@ export default function AppDashboard() {
               value={`R$ ${mrr.toFixed(2).replace('.', ',')}`}
               sub="Soma das mensalidades ativas"
               icon={TrendingUp}
-              tone="violet"
+              tone="blue"
             />
             <KpiCard
               label="ARR projetado"

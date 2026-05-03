@@ -79,7 +79,7 @@ export default function AppPlanos() {
         >
           <button
             onClick={() => setShowSuggestions(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 shadow-[0_4px_12px_rgba(139,92,246,0.3)] transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-[#2563EB] bg-white border border-[#2563EB]/30 hover:bg-blue-50 transition-all"
           >
             <Sparkles className="w-4 h-4" />
             Gerar planos automaticamente

@@ -3,12 +3,14 @@
 
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
+// Paleta oficial: apenas variações dos tokens de status do sistema.
+// "violet" foi removido — qualquer chamada com tone=violet cai no fallback "blue".
 const TONES = {
   blue:    { bg: 'bg-[#EFF6FF]', icon: 'text-[#2563EB]', ring: 'ring-[#DBEAFE]' },
   green:   { bg: 'bg-[#ECFDF5]', icon: 'text-emerald-600', ring: 'ring-emerald-100' },
   amber:   { bg: 'bg-[#FFFBEB]', icon: 'text-amber-600', ring: 'ring-amber-100' },
   red:     { bg: 'bg-[#FEF2F2]', icon: 'text-red-600', ring: 'ring-red-100' },
-  violet:  { bg: 'bg-[#F5F3FF]', icon: 'text-violet-600', ring: 'ring-violet-100' },
+  gray:    { bg: 'bg-gray-50',   icon: 'text-gray-600', ring: 'ring-gray-100' },
 };
 
 export default function KpiCard({ label, value, sub, icon: Icon, tone = 'blue', delta }) {

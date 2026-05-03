@@ -201,7 +201,7 @@ function SubscriptionCard({ sub, primaryColor, onPause, onCancel, isPending }) {
         </div>
         <div className="text-right">
           {isUnlimited ? (
-            <div className="text-xs font-bold px-2 py-1 rounded-full bg-violet-100 text-violet-700">Ilimitado</div>
+            <div className="text-xs font-bold px-2 py-1 rounded-full bg-blue-100 text-[#2563EB]">Ilimitado</div>
           ) : (
             <>
               <div className="text-2xl font-black" style={{ color: primaryColor }}>{sub.uses_remaining ?? 0}</div>
@@ -263,7 +263,7 @@ function AppointmentCard({ appt, primaryColor, muted }) {
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
         <div className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">{statusLabel}</div>
         {appt.payment_method === 'subscription' && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">PLANO</span>
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-[#2563EB]">PLANO</span>
         )}
       </div>
     </div>
