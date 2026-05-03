@@ -63,6 +63,13 @@ export default function PublicBooking() {
   });
   const activeSubscription = customerSubs[0] || null;
 
+  // Carrega o plano vinculado para conhecer regras (off-peak, serviços, unidades)
+  const { data: activePlan } = useQuery({
+    queryKey: ['public-customer-plan', activeSubscription?.plan_id],
+    queryFn: () => base44.entities.CustomerPlan.get(activeSubscription.plan_id),
+    enabled: !!activeSubscription?.plan_id,
+  });
+
   const { data: services = [] } = useQuery({
     queryKey: ['public-services', company?.id],
     queryFn: () => base44.entities.Service.filter({ company_id: company.id, active: true }),
@@ -282,23 +289,36 @@ export default function PublicBooking() {
 
   const availableSlots = getAvailableSlots();
 
-  // Valida se a assinatura ativa pode cobrir o serviço selecionado.
+  // Valida se a assinatura ativa pode cobrir o serviço selecionado neste horário.
   // Retorna string com o motivo do bloqueio quando NÃO pode usar.
   const subscriptionBlocker = (() => {
     if (!activeSubscription || !selected.service) return null;
     const sub = activeSubscription;
     if (new Date(sub.current_cycle_end) <= new Date()) return 'Sua assinatura está com o ciclo vencido.';
     if (sub.plan_type_snapshot !== 'unlimited' && (sub.uses_remaining ?? 0) <= 0) return 'Você já usou todos os seus cortes deste mês.';
-    // Plano restrito a serviços específicos
+    // Plano off-peak: valida horário escolhido
+    if (activePlan?.off_peak_enabled && selected.date && selected.time) {
+      const [h, m] = selected.time.split(':');
+      const when = new Date(selected.date);
+      when.setHours(+h, +m, 0, 0);
+      const start = activePlan.off_peak_start || '00:00';
+      const end = activePlan.off_peak_end || '23:59';
+      const weekdays = activePlan.off_peak_weekdays || [];
+      const hhmm = `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`;
+      const dayOk = weekdays.length === 0 || weekdays.includes(when.getDay());
+      if (!dayOk || hhmm < start || hhmm > end) {
+        return `Seu plano (${activePlan.name}) só vale entre ${start} e ${end}. Neste horário você paga à parte.`;
+      }
+    }
     return null;
   })();
   const canUseSubscription = !!activeSubscription && !subscriptionBlocker;
 
-  // Pré-seleciona "subscription" automaticamente quando entra no step 3 e tem plano válido
+  // Pré-seleciona "subscription" quando válido; força "avulso" quando bloqueado
   useEffect(() => {
-    if (step === 3 && canUseSubscription && paymentMethod === 'avulso') {
-      setPaymentMethod('subscription');
-    }
+    if (step !== 3) return;
+    if (canUseSubscription && paymentMethod === 'avulso') setPaymentMethod('subscription');
+    if (!canUseSubscription && paymentMethod === 'subscription') setPaymentMethod('avulso');
   }, [step, canUseSubscription]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Error state if slug not found
