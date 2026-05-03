@@ -3,11 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
-import { Save, Globe, Copy, CheckCircle, Settings } from 'lucide-react';
+import { Save, Globe, Copy, CheckCircle, Settings, CreditCard } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
-import StripeConnectCard from '@/components/billing/StripeConnectCard';
 import { Link } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
 
@@ -177,10 +176,27 @@ export default function AppConfiguracoes() {
           </button>
         </div>
 
-        {/* Stripe Connect — receber pagamentos online */}
+        {/* Stripe Connect — atalho para a página dedicada */}
         {company && (
-          <div className="mt-6">
-            <StripeConnectCard company={company} />
+          <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+            <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
+              <h2 className="font-bold text-[#111827]">Pagamentos online</h2>
+              {company?.stripe_connect_charges_enabled && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Ativo
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-[#6B7280] mb-4">
+              Conecte sua conta Stripe para receber pagamentos via Pix e cartão direto pelo seu link público.
+            </p>
+            <Link
+              to="/app/configuracoes/pagamentos"
+              className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
+            >
+              <CreditCard className="w-4 h-4" />
+              Gerenciar pagamentos
+            </Link>
           </div>
         )}
 
