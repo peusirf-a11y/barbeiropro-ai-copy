@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { action, company_id, token, plan_id } = body;
+    const { action, company_id, token, plan_id, subscription_id } = body;
 
     if (!company_id || !action) {
       return Response.json({ error: 'Parâmetros incompletos' }, { status: 400 });
@@ -78,6 +78,51 @@ Deno.serve(async (req) => {
       });
 
       return Response.json({ success: true, subscription_id: sub.id });
+    }
+
+    // ─── ACTIONS: PAUSE / RESUME / CANCEL ─────────────────────────────────
+    if (['pause', 'resume', 'cancel'].includes(action)) {
+      if (!subscription_id) {
+        return Response.json({ error: 'subscription_id obrigatório' }, { status: 400 });
+      }
+
+      // Carrega a assinatura e valida ownership
+      const sub = await base44.asServiceRole.entities.CustomerSubscription.get(subscription_id).catch(() => null);
+      if (!sub || sub.company_id !== company_id || sub.customer_id !== customer.id) {
+        return Response.json({ error: 'Assinatura não encontrada' }, { status: 404 });
+      }
+
+      const nowISO = new Date().toISOString();
+
+      if (action === 'pause') {
+        if (sub.status !== 'active') {
+          return Response.json({ error: 'Apenas assinaturas ativas podem ser pausadas.' }, { status: 400 });
+        }
+        await base44.asServiceRole.entities.CustomerSubscription.update(subscription_id, {
+          status: 'paused', paused_at: nowISO,
+        });
+        return Response.json({ success: true });
+      }
+
+      if (action === 'resume') {
+        if (sub.status !== 'paused') {
+          return Response.json({ error: 'Apenas assinaturas pausadas podem ser retomadas.' }, { status: 400 });
+        }
+        await base44.asServiceRole.entities.CustomerSubscription.update(subscription_id, {
+          status: 'active', paused_at: null,
+        });
+        return Response.json({ success: true });
+      }
+
+      if (action === 'cancel') {
+        if (!['active', 'paused', 'pending_payment'].includes(sub.status)) {
+          return Response.json({ error: 'Esta assinatura não pode ser cancelada.' }, { status: 400 });
+        }
+        await base44.asServiceRole.entities.CustomerSubscription.update(subscription_id, {
+          status: 'canceled', canceled_at: nowISO,
+        });
+        return Response.json({ success: true });
+      }
     }
 
     return Response.json({ error: 'Ação inválida' }, { status: 400 });
