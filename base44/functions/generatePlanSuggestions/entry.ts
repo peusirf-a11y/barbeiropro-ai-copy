@@ -38,6 +38,41 @@ function roundPrice(value) {
   return Math.round(value / 10) * 10 - 1; // 89, 99, 119, 149...
 }
 
+// REGRA CRÍTICA: nenhum plano pode ter margem negativa.
+// Custo assumido por atendimento = 60% do ticket médio (insumos + comissão típica).
+// Margem mínima saudável = 25%. Margem aceitável (atenção) = 10%.
+const COST_RATIO = 0.60;
+const SAFE_MARGIN_PCT = 25;
+const WARN_MARGIN_PCT = 10;
+
+// Calcula preço mínimo seguro para garantir margem >= SAFE_MARGIN_PCT
+// Fórmula: margin = (price - cost) / price >= 0.25  →  price >= cost / 0.75
+function minSafePrice(expectedUses, ticketMedio) {
+  const cost = expectedUses * ticketMedio * COST_RATIO;
+  return cost / (1 - SAFE_MARGIN_PCT / 100);
+}
+
+function classifyMargin(marginPct) {
+  if (marginPct >= SAFE_MARGIN_PCT) return 'safe';      // 🟢 saudável
+  if (marginPct >= WARN_MARGIN_PCT) return 'warn';      // 🟡 atenção
+  return 'risk';                                         // 🔴 prejuízo / risco
+}
+
+// Aplica preço mínimo seguro e recalcula margem.
+// Retorna { price, marginPct, adjusted }
+function ensureSafePrice(rawPrice, expectedUses, ticketMedio) {
+  const minPrice = minSafePrice(expectedUses, ticketMedio);
+  let finalPrice = rawPrice;
+  let adjusted = false;
+  if (finalPrice < minPrice) {
+    finalPrice = roundPrice(minPrice);
+    adjusted = true;
+  }
+  const cost = expectedUses * ticketMedio * COST_RATIO;
+  const marginPct = finalPrice > 0 ? Math.round(((finalPrice - cost) / finalPrice) * 100) : 0;
+  return { price: finalPrice, marginPct, adjusted, health: classifyMargin(marginPct) };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -163,89 +198,100 @@ Deno.serve(async (req) => {
 
     // Plano 1: Básico (1 corte/mês) — alvo: clientes esporádicos (segments.low)
     {
-      const baseValue = ticketMedio * 1;
+      const expectedUses = 1;
+      const baseValue = ticketMedio * expectedUses;
       const factor = (discount.min + discount.max) / 2;
-      const price = roundPrice(baseValue * factor);
-      const margin = ((price - ticketMedio * 1 * 0.6) / price) * 100; // assume 60% custo do serviço
+      const rawPrice = roundPrice(baseValue * factor);
+      const safe = ensureSafePrice(rawPrice, expectedUses, ticketMedio);
       suggestions.push({
         name: 'Plano Essencial',
         description: '1 corte por mês — ideal para quem mantém o visual em dia.',
-        price_monthly: price,
+        price_monthly: safe.price,
         type: 'limited',
         usage_limit: 1,
         target_segment: 'Clientes que vêm 1x/mês',
         target_count: segments.low,
-        avulso_equivalent: Math.round(ticketMedio * 1),
-        savings: Math.max(0, Math.round(ticketMedio * 1 - price)),
-        margin_pct: Math.round(margin),
+        avulso_equivalent: Math.round(baseValue),
+        savings: Math.max(0, Math.round(baseValue - safe.price)),
+        margin_pct: safe.marginPct,
+        margin_health: safe.health,
+        price_adjusted: safe.adjusted,
         discount_pct: Math.round((1 - factor) * 100),
       });
     }
 
     // Plano 2: Intermediário (2 cortes/mês) — alvo: clientes regulares
     {
-      const baseValue = ticketMedio * 2;
+      const expectedUses = 2;
+      const baseValue = ticketMedio * expectedUses;
       const factor = discount.min; // desconto maior em volume
-      const price = roundPrice(baseValue * factor);
-      const margin = ((price - ticketMedio * 2 * 0.6) / price) * 100;
+      const rawPrice = roundPrice(baseValue * factor);
+      const safe = ensureSafePrice(rawPrice, expectedUses, ticketMedio);
       suggestions.push({
         name: 'Plano Regular',
         description: '2 cortes por mês — para quem se cuida com frequência.',
-        price_monthly: price,
+        price_monthly: safe.price,
         type: 'limited',
         usage_limit: 2,
         target_segment: 'Clientes que vêm 2x/mês',
         target_count: segments.mid,
-        avulso_equivalent: Math.round(ticketMedio * 2),
-        savings: Math.max(0, Math.round(ticketMedio * 2 - price)),
-        margin_pct: Math.round(margin),
+        avulso_equivalent: Math.round(baseValue),
+        savings: Math.max(0, Math.round(baseValue - safe.price)),
+        margin_pct: safe.marginPct,
+        margin_health: safe.health,
+        price_adjusted: safe.adjusted,
         discount_pct: Math.round((1 - factor) * 100),
-        recommended: segments.mid >= segments.low && segments.mid >= segments.high, // destaca o de maior demanda
+        recommended: segments.mid >= segments.low && segments.mid >= segments.high,
       });
     }
 
     // Plano 3: Premium — 4 cortes ou ilimitado (decisão depende da ocupação)
     {
       const useUnlimited = occupancyPct < 70 && segments.high > 0;
-      const expectedUses = useUnlimited ? 4.5 : 4; // ilimitado costuma render ~4.5 usos/mês
+      const expectedUses = useUnlimited ? 4.5 : 4;
       const baseValue = ticketMedio * expectedUses;
-      const factor = discount.min - 0.05; // desconto ainda mais agressivo no premium
-      const price = roundPrice(baseValue * Math.max(0.55, factor));
-      const margin = ((price - ticketMedio * expectedUses * 0.6) / price) * 100;
+      const factor = discount.min - 0.05;
+      const rawPrice = roundPrice(baseValue * Math.max(0.55, factor));
+      const safe = ensureSafePrice(rawPrice, expectedUses, ticketMedio);
       suggestions.push({
         name: useUnlimited ? 'Plano VIP Ilimitado' : 'Plano Premium',
         description: useUnlimited
           ? 'Cortes ilimitados durante o mês. Para os mais exigentes.'
           : '4 cortes por mês — barba e cabelo sempre no ponto.',
-        price_monthly: price,
+        price_monthly: safe.price,
         type: useUnlimited ? 'unlimited' : 'limited',
         usage_limit: useUnlimited ? undefined : 4,
         target_segment: useUnlimited ? 'Clientes alto volume' : 'Clientes 3-4x/mês',
         target_count: segments.high,
-        avulso_equivalent: Math.round(ticketMedio * expectedUses),
-        savings: Math.max(0, Math.round(ticketMedio * expectedUses - price)),
-        margin_pct: Math.round(margin),
+        avulso_equivalent: Math.round(baseValue),
+        savings: Math.max(0, Math.round(baseValue - safe.price)),
+        margin_pct: safe.marginPct,
+        margin_health: safe.health,
+        price_adjusted: safe.adjusted,
         discount_pct: Math.round((1 - Math.max(0.55, factor)) * 100),
       });
     }
 
     // Plano 4: Off-peak — só quando ocupação <70% (ociosidade real)
     if (occupancyPct < 70) {
-      const baseValue = ticketMedio * 2;
+      const expectedUses = 2;
+      const baseValue = ticketMedio * expectedUses;
       const factor = 0.55; // desconto bem agressivo
-      const price = roundPrice(baseValue * factor);
-      const margin = ((price - ticketMedio * 2 * 0.6) / price) * 100;
+      const rawPrice = roundPrice(baseValue * factor);
+      const safe = ensureSafePrice(rawPrice, expectedUses, ticketMedio);
       suggestions.push({
         name: 'Plano Off-Peak',
         description: '2 cortes/mês em horários de menor movimento (manhãs/cedo).',
-        price_monthly: price,
+        price_monthly: safe.price,
         type: 'limited',
         usage_limit: 2,
         target_segment: 'Clientes flexíveis',
         target_count: Math.round(totalCustomers * 0.2),
-        avulso_equivalent: Math.round(ticketMedio * 2),
-        savings: Math.max(0, Math.round(ticketMedio * 2 - price)),
-        margin_pct: Math.round(margin),
+        avulso_equivalent: Math.round(baseValue),
+        savings: Math.max(0, Math.round(baseValue - safe.price)),
+        margin_pct: safe.marginPct,
+        margin_health: safe.health,
+        price_adjusted: safe.adjusted,
         discount_pct: Math.round((1 - factor) * 100),
         off_peak: true,
       });
@@ -286,8 +332,12 @@ Deno.serve(async (req) => {
       ? eligibleIds.length * cheapestEligiblePlan.price_monthly : 0;
     const currentMRR = activeSubs.reduce((s, sub) => s + (sub.plan_price_snapshot || 0), 0);
 
+    // Detecta base de dados frágil — sugestões serão "chutes". Mostra aviso na UI.
+    const lowData = totalCustomers < 10 || concluded.length < 30 || occupancyPct < 5;
+
     return Response.json({
       success: true,
+      low_data: lowData,
       metrics: {
         analysis_window_days: ANALYSIS_DAYS,
         total_concluded: concluded.length,

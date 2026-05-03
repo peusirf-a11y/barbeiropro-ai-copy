@@ -139,6 +139,12 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
                 <div className="mt-3 px-3 py-2 bg-violet-50 border border-violet-200 rounded-lg text-xs text-violet-900">
                   <strong>Estratégia:</strong> {analysis.discount_strategy.label}
                 </div>
+                {analysis.low_data && (
+                  <div className="mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span><strong>Poucos dados:</strong> sua base ainda é pequena. As estimativas podem não ser precisas — revise os preços antes de ativar.</span>
+                  </div>
+                )}
               </div>
 
               {/* Sugestões */}
@@ -195,7 +201,7 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
               </button>
               <button onClick={handleCreate} disabled={selectedCount === 0 || creating}
                 className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
-                {creating ? 'Criando...' : `Criar ${selectedCount > 0 ? selectedCount : ''} ${selectedCount === 1 ? 'rascunho' : 'rascunhos'}`}
+                {creating ? 'Criando...' : 'Criar planos sugeridos'}
               </button>
             </div>
           </div>
@@ -216,7 +222,14 @@ function MetricCard({ icon: Icon, label, value, color = 'text-[#111827]' }) {
   );
 }
 
+const HEALTH_STYLES = {
+  safe: { badge: 'bg-emerald-100 text-emerald-700', dot: '🟢', label: 'Margem saudável', boxBg: 'bg-emerald-50', boxText: 'text-emerald-700', boxLabel: 'text-emerald-600' },
+  warn: { badge: 'bg-amber-100 text-amber-800',     dot: '🟡', label: 'Atenção',          boxBg: 'bg-amber-50',   boxText: 'text-amber-800',   boxLabel: 'text-amber-600' },
+  risk: { badge: 'bg-red-100 text-red-700',         dot: '🔴', label: 'Risco',            boxBg: 'bg-red-50',     boxText: 'text-red-700',     boxLabel: 'text-red-600' },
+};
+
 function SuggestionCard({ suggestion: s, checked, onToggle }) {
+  const health = HEALTH_STYLES[s.margin_health || 'safe'];
   return (
     <label className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition-all ${checked ? 'border-[#2563EB] bg-blue-50/50 shadow-sm' : 'border-black/10 bg-white hover:border-gray-300'}`}>
       <input type="checkbox" checked={checked} onChange={onToggle} className="mt-1 w-4 h-4 rounded text-[#2563EB] focus:ring-[#2563EB]" />
@@ -227,8 +240,14 @@ function SuggestionCard({ suggestion: s, checked, onToggle }) {
               {s.name}
               {s.recommended && <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">⭐ Recomendado</span>}
               {s.off_peak && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Off-Peak</span>}
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${health.badge}`} title={health.label}>
+                {health.dot} {health.label}
+              </span>
             </div>
             <div className="text-xs text-gray-500 mt-0.5">{s.description}</div>
+            {s.price_adjusted && (
+              <div className="text-[10px] text-amber-700 mt-1 font-medium">⚙️ Preço ajustado automaticamente para garantir margem saudável</div>
+            )}
           </div>
           <div className="text-right flex-shrink-0">
             <div className="text-xl font-black text-[#2563EB]">R${s.price_monthly}</div>
@@ -244,9 +263,9 @@ function SuggestionCard({ suggestion: s, checked, onToggle }) {
             <div className="text-emerald-600">Cliente economiza</div>
             <div className="font-bold text-emerald-700">R${s.savings}/mês</div>
           </div>
-          <div className="bg-blue-50 rounded px-2 py-1">
-            <div className="text-blue-600">Margem estimada</div>
-            <div className="font-bold text-blue-700">{s.margin_pct}%</div>
+          <div className={`${health.boxBg} rounded px-2 py-1`}>
+            <div className={health.boxLabel}>Margem estimada</div>
+            <div className={`font-bold ${health.boxText}`}>{s.margin_pct}%</div>
           </div>
         </div>
         <div className="text-[11px] text-gray-500 mt-2">
