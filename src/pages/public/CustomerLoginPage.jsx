@@ -19,18 +19,30 @@ export default function CustomerLoginPage() {
 
   const { customer, login, loading: loadingAuth } = useCustomerAuth(company?.id);
 
-  // Modo: 'check' (1ª tela com email) → 'login' (já tem senha) ou 'signup' (criar senha)
+  // Modo: 'check' → 'login' / 'signup' / 'forgot' / 'reset'
   const [mode, setMode] = useState('check');
-  const [form, setForm] = useState({ email: '', password: '', name: '', phone: '' });
+  const [form, setForm] = useState({ email: '', password: '', name: '', phone: '', resetToken: '' });
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Se já está logado, redireciona para dashboard
+  // Detecta link de reset vindo do e-mail (?reset_token=...&email=...)
   useEffect(() => {
-    if (!loadingAuth && customer) {
+    const params = new URLSearchParams(window.location.search);
+    const rt = params.get('reset_token');
+    const em = params.get('email');
+    if (rt && em) {
+      setForm(p => ({ ...p, resetToken: rt, email: em }));
+      setMode('reset');
+    }
+  }, []);
+
+  // Se já está logado, redireciona para dashboard (exceto durante reset)
+  useEffect(() => {
+    if (!loadingAuth && customer && mode !== 'reset') {
       navigate(`/cliente/${slug}`, { replace: true });
     }
-  }, [customer, loadingAuth, navigate, slug]);
+  }, [customer, loadingAuth, navigate, slug, mode]);
 
   const handleCheck = async (e) => {
     e.preventDefault();
@@ -112,6 +124,51 @@ export default function CustomerLoginPage() {
     }
   };
 
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    if (!form.email.trim()) { setError('Informe seu e-mail'); return; }
+    setError(''); setInfo(''); setSubmitting(true);
+    try {
+      await base44.functions.invoke('customerAuth', {
+        action: 'request_reset',
+        company_id: company.id,
+        email: form.email.trim().toLowerCase(),
+      });
+      setInfo('Se este e-mail tiver cadastro, enviamos um link para redefinir sua senha. Verifique sua caixa de entrada (e o spam).');
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || 'Erro ao solicitar redefinição');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReset = async (e) => {
+    e.preventDefault();
+    if (!form.password || form.password.length < 6) {
+      setError('A senha precisa ter pelo menos 6 caracteres'); return;
+    }
+    setError(''); setSubmitting(true);
+    try {
+      const res = await base44.functions.invoke('customerAuth', {
+        action: 'reset_password',
+        company_id: company.id,
+        email: form.email.trim().toLowerCase(),
+        reset_token: form.resetToken,
+        password: form.password,
+      });
+      if (res?.data?.success) {
+        login(res.data.token, res.data.customer);
+        navigate(`/cliente/${slug}`, { replace: true });
+      } else {
+        setError(res?.data?.error || 'Erro ao redefinir senha');
+      }
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || 'Erro ao redefinir senha');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loadingCo || loadingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8F7F3]">
@@ -151,11 +208,15 @@ export default function CustomerLoginPage() {
             {mode === 'check' && 'Entrar / Criar conta'}
             {mode === 'login' && 'Bem-vindo de volta'}
             {mode === 'signup' && 'Criar sua conta'}
+            {mode === 'forgot' && 'Esqueci minha senha'}
+            {mode === 'reset' && 'Criar nova senha'}
           </h1>
           <p className="text-sm text-gray-500 mb-6">
             {mode === 'check' && 'Acesse sua conta para gerenciar seus agendamentos e planos.'}
             {mode === 'login' && `Entre com sua senha para continuar.`}
             {mode === 'signup' && 'Crie uma senha para acompanhar seus agendamentos e planos.'}
+            {mode === 'forgot' && 'Informe seu e-mail e enviaremos um link para criar uma nova senha.'}
+            {mode === 'reset' && 'Defina uma nova senha para sua conta.'}
           </p>
 
           {mode === 'check' && (
@@ -194,9 +255,62 @@ export default function CustomerLoginPage() {
                 style={{ backgroundColor: primaryColor }}>
                 {submitting ? 'Entrando...' : 'Entrar'}
               </button>
-              <button type="button" onClick={() => { setMode('check'); setError(''); setForm(p => ({ ...p, password: '' })); }}
+              <div className="flex items-center justify-between mt-2">
+                <button type="button" onClick={() => { setMode('check'); setError(''); setForm(p => ({ ...p, password: '' })); }}
+                  className="text-xs text-gray-500 hover:text-gray-700">
+                  Usar outro e-mail
+                </button>
+                <button type="button" onClick={() => { setMode('forgot'); setError(''); setInfo(''); setForm(p => ({ ...p, password: '' })); }}
+                  className="text-xs font-semibold hover:underline" style={{ color: primaryColor }}>
+                  Esqueci minha senha
+                </button>
+              </div>
+            </form>
+          )}
+
+          {mode === 'forgot' && (
+            <form onSubmit={handleForgot} className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">E-mail</label>
+                <input type="email" autoFocus value={form.email}
+                  onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  placeholder="seu@email.com"
+                  className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm" />
+              </div>
+              {error && <div className="text-sm text-red-600 flex items-center gap-2"><AlertCircle className="w-4 h-4 flex-shrink-0" />{error}</div>}
+              {info && <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3">{info}</div>}
+              {!info && (
+                <button type="submit" disabled={submitting}
+                  className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: primaryColor }}>
+                  {submitting ? 'Enviando...' : 'Enviar link de redefinição'}
+                </button>
+              )}
+              <button type="button" onClick={() => { setMode('check'); setError(''); setInfo(''); }}
                 className="w-full text-xs text-gray-500 hover:text-gray-700 mt-2">
-                Usar outro e-mail
+                Voltar
+              </button>
+            </form>
+          )}
+
+          {mode === 'reset' && (
+            <form onSubmit={handleReset} className="space-y-3">
+              <div className="bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600">
+                <span className="text-xs text-gray-400">E-mail</span>
+                <div className="font-semibold truncate">{form.email}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Nova senha</label>
+                <input type="password" autoFocus value={form.password}
+                  onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                  placeholder="Mínimo 6 caracteres"
+                  className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm" />
+              </div>
+              {error && <div className="text-sm text-red-600 flex items-center gap-2"><AlertCircle className="w-4 h-4 flex-shrink-0" />{error}</div>}
+              <button type="submit" disabled={submitting}
+                className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: primaryColor }}>
+                {submitting ? 'Salvando...' : 'Salvar nova senha'}
               </button>
             </form>
           )}
