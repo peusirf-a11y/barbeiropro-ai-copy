@@ -31,14 +31,21 @@ export default function StripeConnectCard({ company }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const connectMutation = useMutation({
-    mutationFn: () => base44.functions.invoke('createConnectOnboardingLink', {
-      company_id: company.id,
-      return_url: window.location.origin + window.location.pathname,
-    }).then(r => r.data),
+    mutationFn: async () => {
+      const res = await base44.functions.invoke('createConnectOnboardingLink', {
+        company_id: company.id,
+        return_url: window.location.origin + window.location.pathname,
+      });
+      if (res?.data?.error) throw new Error(res.data.error);
+      return res.data;
+    },
     onSuccess: (data) => {
       if (data?.url) window.location.href = data.url;
     },
   });
+
+  const errorMsg = connectMutation.error?.message || '';
+  const isConnectNotEnabled = errorMsg.includes('signed up for Connect');
 
   const isConnected = status?.connected && status?.charges_enabled;
   const isPending = status?.connected && !status?.charges_enabled;
@@ -107,6 +114,29 @@ export default function StripeConnectCard({ company }) {
           <p className="text-xs text-emerald-800 leading-relaxed">
             Sua barbearia está aceitando pagamentos via Pix e cartão pelo link público. O dinheiro cai direto na sua conta Stripe.
           </p>
+        </div>
+      )}
+
+      {connectMutation.isError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+          {isConnectNotEnabled ? (
+            <>
+              <div className="text-sm font-bold text-red-900 mb-1">Stripe Connect ainda não está ativado</div>
+              <p className="text-xs text-red-800 leading-relaxed mb-2">
+                A plataforma de pagamentos da BarberTrimly ainda não foi habilitada na conta Stripe. Para resolver, o administrador da BarberTrimly precisa:
+              </p>
+              <ol className="text-xs text-red-800 list-decimal pl-4 space-y-0.5 mb-2">
+                <li>Acessar <a href="https://dashboard.stripe.com/connect/overview" target="_blank" rel="noopener noreferrer" className="font-semibold underline">dashboard.stripe.com/connect/overview</a></li>
+                <li>Clicar em "Get started" e ativar o Connect</li>
+                <li>Voltar aqui e tentar novamente</li>
+              </ol>
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-bold text-red-900 mb-1">Não foi possível conectar</div>
+              <p className="text-xs text-red-800 leading-relaxed">{errorMsg || 'Tente novamente em alguns instantes.'}</p>
+            </>
+          )}
         </div>
       )}
 
