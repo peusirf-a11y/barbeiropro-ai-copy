@@ -10,6 +10,7 @@ import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } f
 import UnitPicker from '@/components/booking/UnitPicker';
 import PhoneIdentificationStep from '@/components/booking/PhoneIdentificationStep';
 import PaymentMethodChooser from '@/components/booking/PaymentMethodChooser';
+import BookingPaymentStep from '@/components/booking/BookingPaymentStep';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 
 function generateTimeSlots(openTime, closeTime, durationMin) {
@@ -49,6 +50,16 @@ export default function PublicBooking() {
     enabled: !!slug,
   });
   const company = companies[0];
+
+  // Verifica se a barbearia pode aceitar pagamentos online (Stripe Connect ativo).
+  // Se não puder, o link público fica indisponível.
+  const { data: connectStatus, isLoading: loadingConnect } = useQuery({
+    queryKey: ['public-connect-status', company?.id],
+    queryFn: () => base44.functions.invoke('getCompanyConnectStatus', { company_id: company.id })
+      .then(r => r.data),
+    enabled: !!company?.id,
+  });
+  const canAcceptPayments = !!connectStatus?.can_accept_payments;
 
   // Auth do cliente final (área pública). Quando logado, podemos detectar
   // assinatura e oferecer "usar plano" no momento da confirmação.
@@ -138,10 +149,9 @@ export default function PublicBooking() {
   const customersSharedMode = company?.customers_shared_across_units !== false;
   const scopeCustomerByUnit = isMultiUnit && !customersSharedMode && !!selected.unit?.id;
 
-  // Cria agendamento via backend (asServiceRole) — garante criação/vinculação do Customer
-  // mesmo sem usuário autenticado.
-  // Quando o cliente escolhe "usar plano" no step 3, consumimos o uso da assinatura
-  // logo após a criação (chamada idempotente — já lida no backend).
+  // Mutation usada APENAS quando o cliente paga com plano (subscription).
+  // Para Pix/Cartão, o appointment é criado dentro do BookingPaymentStep
+  // (createBookingPaymentIntent) e só é confirmado pelo webhook após pagamento.
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
       const res = await base44.functions.invoke('createPublicAppointment', {
@@ -151,8 +161,7 @@ export default function PublicBooking() {
       if (!res?.data?.success) {
         throw new Error(res?.data?.error || 'Falha ao criar agendamento');
       }
-      // Se cliente optou por usar plano, consome 1 uso vinculado a este agendamento
-      if (paymentMethod === 'subscription' && activeSubscription && customerToken && res.data.appointment_id) {
+      if (activeSubscription && customerToken && res.data.appointment_id) {
         const consumeRes = await base44.functions.invoke('consumeSubscriptionUse', {
           action: 'consume',
           subscription_id: activeSubscription.id,
@@ -229,36 +238,13 @@ export default function PublicBooking() {
     return annotated;
   };
 
-  const handleBook = () => {
-    // Telefone e nome já foram validados na etapa de identificação — apenas reforço de segurança.
-    if (!form.phone.trim()) { setFormError('Telefone obrigatório. Volte e informe seu WhatsApp.'); return; }
-    if (!form.name.trim()) { setFormError('Nome obrigatório. Volte e informe seu nome.'); return; }
-    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      setFormError('Por favor, informe um e-mail válido');
-      return;
-    }
-    setFormError('');
+  // Monta o payload comum do agendamento (usado tanto pelo plano quanto pelo pagamento online)
+  const buildBookingPayload = () => {
     const [h, m] = selected.time.split(':');
     const dt = new Date(selected.date);
     dt.setHours(+h, +m, 0, 0);
     const proId = selected.professional?.id === 'any' ? professionals[0]?.id : selected.professional?.id;
-
-    // Re-valida no momento do submit (slot pode ter sido pego enquanto o usuário preenchia)
-    const apptsWithDuration = existingAppointments.map(a => ({
-      ...a,
-      __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
-    }));
-    const dur = selected.service.duration_minutes || 30;
-    if (appointmentConflict({ professionalId: proId, dateTime: dt, durationMin: dur, appointments: apptsWithDuration })) {
-      setFormError('Horário indisponível — alguém acabou de pegar esse horário. Escolha outro.');
-      return;
-    }
-    if (blockedConflict({ professionalId: proId, dateTime: dt, durationMin: dur, blocks: blockedTimes })) {
-      setFormError('Horário indisponível neste momento.');
-      return;
-    }
-
-    createApptMutation.mutate({
+    return {
       company_id: company.id,
       unit_id: selected.unit?.id || undefined,
       professional_id: proId,
@@ -270,14 +256,54 @@ export default function PublicBooking() {
       customer_email: form.email.trim() || undefined,
       scheduled_at: dt.toISOString(),
       notes: form.notes,
-      status: 'agendado',
       price: selected.service.price,
       source: 'online',
       confirm_token: generateToken(),
       review_token: generateToken(),
-      confirm_token_expires_at: confirmTokenExpiry(dt),
-      review_token_expires_at: reviewTokenExpiry(dt),
-    });
+      confirm_token_expires_at: confirmTokenExpiry(dt.toISOString()),
+      review_token_expires_at: reviewTokenExpiry(dt.toISOString()),
+      scope_customer_by_unit: scopeCustomerByUnit,
+    };
+  };
+
+  const validateBeforeSubmit = () => {
+    if (!form.phone.trim()) { setFormError('Telefone obrigatório.'); return false; }
+    if (!form.name.trim()) { setFormError('Nome obrigatório.'); return false; }
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setFormError('Informe um e-mail válido'); return false;
+    }
+    const [h, m] = selected.time.split(':');
+    const dt = new Date(selected.date);
+    dt.setHours(+h, +m, 0, 0);
+    const proId = selected.professional?.id === 'any' ? professionals[0]?.id : selected.professional?.id;
+    const apptsWithDuration = existingAppointments.map(a => ({
+      ...a,
+      __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
+    }));
+    const dur = selected.service.duration_minutes || 30;
+    if (appointmentConflict({ professionalId: proId, dateTime: dt, durationMin: dur, appointments: apptsWithDuration })) {
+      setFormError('Horário indisponível — alguém acabou de pegar esse horário. Escolha outro.');
+      return false;
+    }
+    if (blockedConflict({ professionalId: proId, dateTime: dt, durationMin: dur, blocks: blockedTimes })) {
+      setFormError('Horário indisponível neste momento.');
+      return false;
+    }
+    setFormError('');
+    return true;
+  };
+
+  // Click em "Confirmar agendamento":
+  //  - Se plano cobre → cria direto e consome
+  //  - Senão → vai para step 4 (pagamento online obrigatório)
+  const handleBook = () => {
+    if (!validateBeforeSubmit()) return;
+    if (paymentMethod === 'subscription' && canUseSubscription) {
+      const payload = buildBookingPayload();
+      createApptMutation.mutate({ ...payload, status: 'agendado' });
+    } else {
+      setStep(4);
+    }
   };
 
   // Inclui o dia de hoje (i começa em 0). Horários passados são filtrados em getAvailableSlots.
@@ -348,6 +374,38 @@ export default function PublicBooking() {
           <AlertCircle className="w-12 h-12 text-orange-400 mx-auto mb-4" />
           <p className="font-semibold text-gray-700">Barbearia não encontrada</p>
           <p className="text-sm text-gray-400 mt-2">Verifique o link e tente novamente</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Bloqueio rígido: barbearia precisa ter Stripe Connect ativo para receber agendamentos online.
+  if (!loadingConnect && !canAcceptPayments) {
+    return (
+      <div className="min-h-screen bg-[#F8F7F3] flex flex-col">
+        <header className="bg-white border-b border-black/10 px-6 py-4 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
+            <Scissors className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-bold text-[#1B1C1E]">{company.name}</span>
+        </header>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl border border-black/8 p-8 text-center max-w-sm w-full shadow-lg">
+            <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-7 h-7 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-black text-[#1B1C1E] mb-2">Agendamento online indisponível</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {company.name} ainda não está aceitando pagamentos online. Entre em contato direto pelo WhatsApp para marcar.
+            </p>
+            {company.whatsapp && (
+              <a href={`https://wa.me/55${company.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                className="block w-full text-center text-white text-sm font-bold py-3 rounded-xl transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#25D366' }}>
+                Falar pelo WhatsApp
+              </a>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -453,14 +511,14 @@ export default function PublicBooking() {
         <div className="bg-white border-b border-black/10">
           <div className="max-w-xl mx-auto px-6 py-3">
             <div className="flex items-center gap-2">
-              {['Serviço', 'Profissional', 'Horário', 'Confirmar'].map((s, i) => (
+              {['Serviço', 'Profissional', 'Horário', 'Confirmar', 'Pagar'].map((s, i) => (
                 <div key={s} className="flex items-center gap-2 flex-1">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < step ? 'text-white' : i === step ? 'text-white' : 'bg-gray-100 text-gray-400'}`}
                     style={{ backgroundColor: i <= step ? primaryColor : undefined }}>
                     {i < step ? <Check className="w-3 h-3" /> : i + 1}
                   </div>
                   <span className={`text-xs font-medium hidden sm:block ${i === step ? 'text-[#1B1C1E]' : 'text-gray-400'}`}>{s}</span>
-                  {i < 3 && <div className={`flex-1 h-px`} style={{ backgroundColor: i < step ? primaryColor : '#e5e7eb' }} />}
+                  {i < 4 && <div className={`flex-1 h-px`} style={{ backgroundColor: i < step ? primaryColor : '#e5e7eb' }} />}
                 </div>
               ))}
             </div>
@@ -755,9 +813,23 @@ export default function PublicBooking() {
             <button onClick={handleBook} disabled={!form.name || !form.phone || createApptMutation.isPending}
               className="mt-6 w-full text-white font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
               style={{ backgroundColor: primaryColor }}>
-              {createApptMutation.isPending ? 'Confirmando...' : 'Confirmar agendamento'}
+              {createApptMutation.isPending
+                ? 'Confirmando...'
+                : (paymentMethod === 'subscription' && canUseSubscription)
+                  ? 'Confirmar agendamento'
+                  : 'Continuar para pagamento →'}
             </button>
           </div>
+        )}
+
+        {/* Step 4: Pagamento online (Pix ou Cartão) */}
+        {step === 4 && (
+          <BookingPaymentStep
+            payload={buildBookingPayload()}
+            primaryColor={primaryColor}
+            onBack={() => setStep(3)}
+            onSucceeded={(intent) => setBookingDone({ appointment_id: intent.appointment_id, paid_online: true })}
+          />
         )}
         </>)}
       </div>

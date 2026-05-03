@@ -249,6 +249,85 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── BOOKING PAYMENTS (Stripe Connect) ───────────────────────────
+    // Eventos vindos de contas conectadas trazem `event.account`.
+    // Tratamos payment_intent.{succeeded,payment_failed,canceled} para appointments.
+    if (
+      event.type === 'payment_intent.succeeded' ||
+      event.type === 'payment_intent.payment_failed' ||
+      event.type === 'payment_intent.canceled'
+    ) {
+      const pi = event.data.object;
+      const apptId = pi.metadata?.appointment_id;
+      const kind = pi.metadata?.payment_kind;
+      // Ignoramos PIs que não são de booking (evita conflito com assinatura SaaS)
+      if (kind === 'booking' && apptId) {
+        try {
+          const appts = await base44.asServiceRole.entities.Appointment.filter({ id: apptId });
+          const appt = appts?.[0];
+          if (appt) {
+            if (event.type === 'payment_intent.succeeded') {
+              // Idempotente: só promove se ainda estiver aguardando
+              if (appt.status === 'aguardando_pagamento' || appt.payment_status !== 'succeeded') {
+                await base44.asServiceRole.entities.Appointment.update(appt.id, {
+                  status: 'agendado',
+                  payment_status: 'succeeded',
+                  paid_online: true,
+                });
+                console.log('[stripeWebhook] booking confirmed by payment:', apptId);
+                // Dispara e-mail de confirmação (não bloqueia)
+                if (appt.customer_email) {
+                  base44.asServiceRole.functions
+                    .invoke('sendBookingConfirmation', { appointment_id: apptId })
+                    .catch(err => console.warn('[stripeWebhook] booking email failed:', err.message));
+                }
+              }
+            } else if (event.type === 'payment_intent.payment_failed') {
+              // Mantém o appointment como aguardando_pagamento — frontend permite retry
+              await base44.asServiceRole.entities.Appointment.update(appt.id, {
+                payment_status: 'failed',
+              });
+              console.log('[stripeWebhook] booking payment failed:', apptId);
+            } else if (event.type === 'payment_intent.canceled') {
+              // Libera o slot
+              if (appt.status === 'aguardando_pagamento') {
+                await base44.asServiceRole.entities.Appointment.update(appt.id, {
+                  status: 'cancelado',
+                  payment_status: 'canceled',
+                });
+                console.log('[stripeWebhook] booking canceled:', apptId);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[stripeWebhook] booking handler error:', err.message);
+        }
+      }
+    }
+
+    // ─── CONNECT ACCOUNT UPDATES ─────────────────────────────────────
+    if (event.type === 'account.updated') {
+      const acc = event.data.object;
+      try {
+        const companies = await base44.asServiceRole.entities.Company.filter({
+          stripe_connect_account_id: acc.id,
+        });
+        if (companies.length) {
+          const charges = !!acc.charges_enabled;
+          const payouts = !!acc.payouts_enabled;
+          const status = charges ? 'enabled' : (acc.requirements?.disabled_reason ? 'disabled' : 'pending');
+          await base44.asServiceRole.entities.Company.update(companies[0].id, {
+            stripe_connect_status: status,
+            stripe_connect_charges_enabled: charges,
+            stripe_connect_payouts_enabled: payouts,
+          });
+          console.log('[stripeWebhook] connect account synced:', acc.id, status);
+        }
+      } catch (err) {
+        console.error('[stripeWebhook] account.updated error:', err.message);
+      }
+    }
+
     if (event.type === 'invoice.payment_failed') {
       const invoice = event.data.object;
       if (invoice.subscription) {

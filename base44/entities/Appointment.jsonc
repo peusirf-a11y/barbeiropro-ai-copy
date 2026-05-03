@@ -7,7 +7,7 @@
     },
     "unit_id": {
       "type": "string",
-      "description": "Unidade onde o agendamento ocorre. Em mono-unidade, fica vazio ou aponta para a Matriz."
+      "description": "Unidade onde o agendamento ocorre."
     },
     "customer_id": {
       "type": "string"
@@ -41,6 +41,7 @@
     "status": {
       "type": "string",
       "enum": [
+        "aguardando_pagamento",
         "agendado",
         "confirmado",
         "em_atendimento",
@@ -70,7 +71,7 @@
     },
     "custom_duration_minutes": {
       "type": "number",
-      "description": "Dura\u00e7\u00e3o customizada em minutos. Quando definida, sobrescreve a dura\u00e7\u00e3o padr\u00e3o do servi\u00e7o (usado em resize manual na agenda)."
+      "description": "Dura\u00e7\u00e3o customizada em minutos."
     },
     "confirmation_email_sent": {
       "type": "boolean",
@@ -109,14 +110,49 @@
       "type": "string",
       "enum": [
         "avulso",
-        "subscription"
+        "subscription",
+        "pix",
+        "card"
       ],
       "default": "avulso",
-      "description": "Forma de pagamento: avulso (pago no atendimento) ou subscription (consome plano do cliente)"
+      "description": "Forma de pagamento. pix/card = pagamento online via Stripe Connect."
     },
     "subscription_id": {
       "type": "string",
       "description": "Quando payment_method=subscription, ID da CustomerSubscription que cobriu o atendimento"
+    },
+    "paid_online": {
+      "type": "boolean",
+      "default": false,
+      "description": "True quando o agendamento foi pago via link p\u00fablico (Stripe). \u00datil para relat\u00f3rios e m\u00e9tricas de convers\u00e3o."
+    },
+    "payment_intent_id": {
+      "type": "string",
+      "description": "ID do PaymentIntent do Stripe vinculado a este agendamento (quando paid_online=true)."
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "succeeded",
+        "failed",
+        "canceled",
+        "expired"
+      ],
+      "description": "Status do pagamento online. Sincronizado pelo webhook do Stripe."
+    },
+    "payment_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Prazo limite para o cliente concluir o pagamento (15 min ap\u00f3s cria\u00e7\u00e3o). Job limpa appointments expirados."
+    },
+    "payment_idempotency_key": {
+      "type": "string",
+      "description": "Chave determin\u00edstica para evitar duplicidade de PaymentIntent (refresh, duplo-clique)."
+    },
+    "payer_tax_id": {
+      "type": "string",
+      "description": "CPF do pagador (necess\u00e1rio para Pix). N\u00e3o persistido ap\u00f3s pagamento conclu\u00eddo."
     }
   },
   "required": [

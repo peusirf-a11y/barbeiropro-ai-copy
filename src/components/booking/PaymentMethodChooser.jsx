@@ -1,4 +1,4 @@
-// Toggle no fluxo público: usar plano (assinatura) vs pagar à parte (avulso).
+// Toggle no fluxo público: usar plano (assinatura) vs pagar online (Pix/Cartão).
 // Aparece apenas quando o cliente identificado tem assinatura ativa com saldo.
 
 import { Check, Infinity, CreditCard, AlertTriangle } from 'lucide-react';
@@ -27,8 +27,8 @@ export default function PaymentMethodChooser({ subscription, value, onChange, pr
           active={value === 'avulso'}
           primaryColor={primaryColor}
           onClick={() => onChange('avulso')}
-          title="Pagar à parte"
-          subtitle="No atendimento (PIX, dinheiro ou cartão)"
+          title="Pagar online"
+          subtitle="Pix ou cartão na próxima etapa"
           icon={CreditCard}
         />
       </div>

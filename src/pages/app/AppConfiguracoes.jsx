@@ -7,6 +7,7 @@ import { Save, Globe, Copy, CheckCircle, Settings } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
+import StripeConnectCard from '@/components/billing/StripeConnectCard';
 import { Link } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
 
@@ -175,6 +176,13 @@ export default function AppConfiguracoes() {
             Salvar configurações
           </button>
         </div>
+
+        {/* Stripe Connect — receber pagamentos online */}
+        {company && (
+          <div className="mt-6">
+            <StripeConnectCard company={company} />
+          </div>
+        )}
 
         {/* Multi-unidade */}
         <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">

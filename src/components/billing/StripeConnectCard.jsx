@@ -1,0 +1,156 @@
+// Card no painel admin (Configurações) para conectar/gerenciar Stripe Connect.
+// É a porta de entrada para a barbearia receber pagamentos pelo link público.
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { useEffect } from 'react';
+import { CreditCard, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
+
+export default function StripeConnectCard({ company }) {
+  const queryClient = useQueryClient();
+
+  // Sincroniza o status ao montar (e quando volta do redirect com ?stripe_connect=return)
+  const { data: status, isLoading, refetch } = useQuery({
+    queryKey: ['connect-status', company?.id],
+    queryFn: () => base44.functions.invoke('getConnectAccountStatus', { company_id: company.id })
+      .then(r => r.data),
+    enabled: !!company?.id,
+    refetchOnWindowFocus: true,
+  });
+
+  // Detecta retorno do onboarding e reidrata
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('stripe_connect') === 'return' || params.get('stripe_connect') === 'refresh') {
+      refetch().then(() => queryClient.invalidateQueries({ queryKey: ['companies'] }));
+      // Limpa a URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('stripe_connect');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const connectMutation = useMutation({
+    mutationFn: () => base44.functions.invoke('createConnectOnboardingLink', {
+      company_id: company.id,
+      return_url: window.location.origin + window.location.pathname,
+    }).then(r => r.data),
+    onSuccess: (data) => {
+      if (data?.url) window.location.href = data.url;
+    },
+  });
+
+  const isConnected = status?.connected && status?.charges_enabled;
+  const isPending = status?.connected && !status?.charges_enabled;
+
+  return (
+    <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+      <div className="flex items-start gap-4 mb-4">
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+          isConnected ? 'bg-emerald-50' : 'bg-blue-50'
+        }`}>
+          <CreditCard className={`w-5 h-5 ${isConnected ? 'text-emerald-600' : 'text-[#2563EB]'}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="font-bold text-[#111827]">Receber pagamentos online</h2>
+            {isConnected && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <CheckCircle2 className="w-3 h-3" /> Ativo
+              </span>
+            )}
+            {isPending && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                <AlertCircle className="w-3 h-3" /> Pendente
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-[#6B7280] mt-1">
+            Seu link público <strong className="text-[#111827]">só funciona</strong> com pagamento online ativo. Conecte sua conta Stripe para receber via Pix e cartão direto na sua conta bancária.
+          </p>
+        </div>
+      </div>
+
+      {isLoading && (
+        <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Verificando status…
+        </div>
+      )}
+
+      {!isLoading && !status?.connected && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="text-sm font-bold text-amber-900">Pagamento online ainda não configurado</div>
+              <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                Enquanto você não conectar o Stripe, qualquer cliente que abrir seu link público verá uma mensagem de "Indisponível". Conecte agora — leva uns 5 minutos.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPending && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+          <div className="text-sm font-bold text-amber-900 mb-1">Cadastro Stripe incompleto</div>
+          <p className="text-xs text-amber-800 leading-relaxed">
+            Você criou a conta mas ainda faltam dados (documentos, dados bancários). Clique em "Continuar cadastro" para finalizar. Sem isso, pagamentos ficam bloqueados.
+          </p>
+        </div>
+      )}
+
+      {isConnected && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+          <div className="text-sm font-bold text-emerald-900 mb-1">Tudo pronto ✓</div>
+          <p className="text-xs text-emerald-800 leading-relaxed">
+            Sua barbearia está aceitando pagamentos via Pix e cartão pelo link público. O dinheiro cai direto na sua conta Stripe.
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {!status?.connected && (
+          <button
+            onClick={() => connectMutation.mutate()}
+            disabled={connectMutation.isPending}
+            className="inline-flex items-center gap-2 bg-[#2563EB] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#1d4ed8] disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
+          >
+            {connectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+            Conectar Stripe
+          </button>
+        )}
+        {isPending && (
+          <button
+            onClick={() => connectMutation.mutate()}
+            disabled={connectMutation.isPending}
+            className="inline-flex items-center gap-2 bg-amber-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-amber-600 disabled:opacity-50 transition-all"
+          >
+            {connectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+            Continuar cadastro
+          </button>
+        )}
+        {status?.connected && (
+          <>
+            <a
+              href={`https://dashboard.stripe.com/${status.account_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-100 border border-black/10"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Painel Stripe
+            </a>
+            <button
+              onClick={() => refetch()}
+              className="inline-flex items-center gap-2 bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-100 border border-black/10"
+            >
+              Atualizar status
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
