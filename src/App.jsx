@@ -66,6 +66,9 @@ import TermosDeUso from './pages/legal/TermosDeUso';
 import PoliticaDePrivacidade from './pages/legal/PoliticaDePrivacidade';
 import ConfirmAppointment from './pages/public/ConfirmAppointment';
 import ReviewAppointment from './pages/public/ReviewAppointment';
+import CustomerLoginPage from './pages/public/CustomerLoginPage.jsx';
+import CustomerDashboard from './pages/public/CustomerDashboard.jsx';
+import CustomerPlans from './pages/public/CustomerPlans.jsx';
 import { Navigate } from 'react-router-dom';
 
 function App() {
@@ -78,6 +81,9 @@ function App() {
             {/* ── PUBLIC ROUTES ── */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
+            <Route path="/cliente/:slug/login" element={<CustomerLoginPage />} />
+            <Route path="/cliente/:slug/planos" element={<CustomerPlans />} />
+            <Route path="/cliente/:slug" element={<CustomerDashboard />} />
             <Route path="/confirma/:token" element={<ConfirmAppointment />} />
             <Route path="/avaliar/:token" element={<ReviewAppointment />} />
             <Route path="/checkout" element={<Checkout />} />

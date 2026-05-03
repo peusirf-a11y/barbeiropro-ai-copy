@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
-import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle, MapPin } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle, MapPin, UserCircle2 } from 'lucide-react';
 import { format, addDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } from '@/lib/scheduling';
 import UnitPicker from '@/components/booking/UnitPicker';
 import PhoneIdentificationStep from '@/components/booking/PhoneIdentificationStep';
+import PaymentMethodChooser from '@/components/booking/PaymentMethodChooser';
+import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 
 function generateTimeSlots(openTime, closeTime, durationMin) {
   const slots = [];
@@ -38,6 +40,8 @@ export default function PublicBooking() {
   const [formError, setFormError] = useState('');
   // Cliente identificado na etapa de telefone (existente no banco)
   const [returningCustomer, setReturningCustomer] = useState(null);
+  // Forma de pagamento selecionada no step 3 (avulso ou subscription)
+  const [paymentMethod, setPaymentMethod] = useState('avulso');
 
   const { data: companies = [], isLoading: loadingCompany } = useQuery({
     queryKey: ['company-by-slug', slug],
@@ -45,6 +49,19 @@ export default function PublicBooking() {
     enabled: !!slug,
   });
   const company = companies[0];
+
+  // Auth do cliente final (área pública). Quando logado, podemos detectar
+  // assinatura e oferecer "usar plano" no momento da confirmação.
+  const { customer: loggedCustomer, token: customerToken } = useCustomerAuth(company?.id);
+
+  const { data: customerSubs = [] } = useQuery({
+    queryKey: ['public-customer-subscriptions', company?.id, loggedCustomer?.id],
+    queryFn: () => base44.entities.CustomerSubscription.filter({
+      company_id: company.id, customer_id: loggedCustomer.id, status: 'active',
+    }),
+    enabled: !!company?.id && !!loggedCustomer?.id,
+  });
+  const activeSubscription = customerSubs[0] || null;
 
   const { data: services = [] } = useQuery({
     queryKey: ['public-services', company?.id],
@@ -116,6 +133,8 @@ export default function PublicBooking() {
 
   // Cria agendamento via backend (asServiceRole) — garante criação/vinculação do Customer
   // mesmo sem usuário autenticado.
+  // Quando o cliente escolhe "usar plano" no step 3, consumimos o uso da assinatura
+  // logo após a criação (chamada idempotente — já lida no backend).
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
       const res = await base44.functions.invoke('createPublicAppointment', {
@@ -124,6 +143,21 @@ export default function PublicBooking() {
       });
       if (!res?.data?.success) {
         throw new Error(res?.data?.error || 'Falha ao criar agendamento');
+      }
+      // Se cliente optou por usar plano, consome 1 uso vinculado a este agendamento
+      if (paymentMethod === 'subscription' && activeSubscription && customerToken && res.data.appointment_id) {
+        const consumeRes = await base44.functions.invoke('consumeSubscriptionUse', {
+          action: 'consume',
+          subscription_id: activeSubscription.id,
+          appointment_id: res.data.appointment_id,
+          service_id: data.service_id,
+          service_name: data.service_name,
+          customer_token: customerToken,
+          company_id: company.id,
+        });
+        if (consumeRes?.data?.error) {
+          throw new Error(`Agendado, mas falha ao usar plano: ${consumeRes.data.error}`);
+        }
       }
       return res.data;
     },
@@ -248,6 +282,25 @@ export default function PublicBooking() {
 
   const availableSlots = getAvailableSlots();
 
+  // Valida se a assinatura ativa pode cobrir o serviço selecionado.
+  // Retorna string com o motivo do bloqueio quando NÃO pode usar.
+  const subscriptionBlocker = (() => {
+    if (!activeSubscription || !selected.service) return null;
+    const sub = activeSubscription;
+    if (new Date(sub.current_cycle_end) <= new Date()) return 'Sua assinatura está com o ciclo vencido.';
+    if (sub.plan_type_snapshot !== 'unlimited' && (sub.uses_remaining ?? 0) <= 0) return 'Você já usou todos os seus cortes deste mês.';
+    // Plano restrito a serviços específicos
+    return null;
+  })();
+  const canUseSubscription = !!activeSubscription && !subscriptionBlocker;
+
+  // Pré-seleciona "subscription" automaticamente quando entra no step 3 e tem plano válido
+  useEffect(() => {
+    if (step === 3 && canUseSubscription && paymentMethod === 'avulso') {
+      setPaymentMethod('subscription');
+    }
+  }, [step, canUseSubscription]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Error state if slug not found
   if (!slug) {
     return (
@@ -308,7 +361,14 @@ export default function PublicBooking() {
               <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold">{selected.professional?.name}</span></div>
               <div className="flex justify-between text-sm"><span className="text-gray-500">Data</span><span className="font-semibold">{selected.date ? format(selected.date, "d 'de' MMMM", { locale: ptBR }) : ''}</span></div>
               <div className="flex justify-between text-sm"><span className="text-gray-500">Horário</span><span className="font-semibold">{selected.time}</span></div>
-              <div className="flex justify-between text-sm border-t border-black/8 pt-2 mt-2"><span className="text-gray-500">Valor</span><span className="font-black text-lg" style={{ color: primaryColor }}>R${selected.service?.price}</span></div>
+              <div className="flex justify-between text-sm border-t border-black/8 pt-2 mt-2">
+                <span className="text-gray-500">Valor</span>
+                {paymentMethod === 'subscription' && activeSubscription ? (
+                  <span className="font-black text-sm text-violet-700">Pago pelo plano ✓</span>
+                ) : (
+                  <span className="font-black text-lg" style={{ color: primaryColor }}>R${selected.service?.price}</span>
+                )}
+              </div>
             </div>
             {company.whatsapp && (
               <a href={`https://wa.me/55${company.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
@@ -342,19 +402,29 @@ export default function PublicBooking() {
               ) : null}
             </div>
           </div>
-          {isMultiUnit && selected.unit && units.length > 1 && (
-            <button
-              onClick={() => {
-                setSelected({ unit: null, service: null, professional: null, date: null, time: null });
-                setStep('identify');
-              }}
-              className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg border border-black/5 flex-shrink-0"
-              title="Trocar de unidade"
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {isMultiUnit && selected.unit && units.length > 1 && (
+              <button
+                onClick={() => {
+                  setSelected({ unit: null, service: null, professional: null, date: null, time: null });
+                  setStep('identify');
+                }}
+                className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg border border-black/5"
+                title="Trocar de unidade"
+              >
+                <MapPin className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                <span className="max-w-[120px] truncate">{selected.unit.name}</span>
+              </button>
+            )}
+            <Link
+              to={loggedCustomer ? `/cliente/${slug}` : `/cliente/${slug}/login`}
+              className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg border border-black/5"
+              title={loggedCustomer ? 'Minha conta' : 'Entrar'}
             >
-              <MapPin className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-              <span className="max-w-[120px] truncate">{selected.unit.name}</span>
-            </button>
-          )}
+              <UserCircle2 className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+              <span className="hidden sm:inline">{loggedCustomer ? 'Minha conta' : 'Entrar'}</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -625,6 +695,28 @@ export default function PublicBooking() {
                   <span className="font-semibold">Cliente identificado.</span> Vamos vincular este agendamento ao seu histórico.
                 </p>
               </div>
+            )}
+
+            {/* Forma de pagamento — só aparece quando o cliente está LOGADO e tem assinatura */}
+            {activeSubscription && (
+              <PaymentMethodChooser
+                subscription={activeSubscription}
+                value={paymentMethod}
+                onChange={setPaymentMethod}
+                primaryColor={primaryColor}
+                blocker={subscriptionBlocker}
+              />
+            )}
+
+            {/* Upsell discreto — cliente logado SEM plano */}
+            {loggedCustomer && !activeSubscription && (
+              <Link
+                to={`/cliente/${slug}/planos`}
+                className="block mb-4 px-4 py-3 rounded-xl border border-dashed border-amber-300 bg-amber-50 hover:bg-amber-100 transition-colors"
+              >
+                <div className="text-xs font-semibold text-amber-900">💡 Tenha cortes garantidos todo mês</div>
+                <div className="text-[11px] text-amber-700 mt-0.5">Conheça os planos da {company.name}</div>
+              </Link>
             )}
 
             <div>
