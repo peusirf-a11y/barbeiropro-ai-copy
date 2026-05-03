@@ -86,11 +86,13 @@ Deno.serve(async (req) => {
     const sinceISO = since.toISOString();
 
     // Carrega dados (limites altos para clientes com volume)
-    const [appointments, customers, services, professionals] = await Promise.all([
+    const [appointments, customers, services, professionals, activeSubs, activePlans] = await Promise.all([
       base44.asServiceRole.entities.Appointment.filter({ company_id }, '-scheduled_at', 5000),
       base44.asServiceRole.entities.Customer.filter({ company_id }, '-created_date', 5000),
       base44.asServiceRole.entities.Service.filter({ company_id, active: true }),
       base44.asServiceRole.entities.Professional.filter({ company_id, active: true }),
+      base44.asServiceRole.entities.CustomerSubscription.filter({ company_id, status: 'active' }),
+      base44.asServiceRole.entities.CustomerPlan.filter({ company_id, active: true }),
     ]);
 
     // Filtra agendamentos da janela e somente concluídos (efetivos)
@@ -247,6 +249,34 @@ Deno.serve(async (req) => {
       return sum + (s.price_monthly * (s.target_count || 0) * conversionRate);
     }, 0);
 
+    // ─── MÉTRICAS DE CONVERSÃO (regra de ouro: plano não vendido = feature morta) ────
+    // Cliente elegível: veio 2+ vezes nos últimos 30 dias E não tem assinatura ativa.
+    const last30 = new Date();
+    last30.setDate(last30.getDate() - 30);
+    const last30ISO = last30.toISOString();
+    const visits30ByCustomer = {};
+    concluded.forEach(a => {
+      if (!a.customer_id || a.scheduled_at < last30ISO) return;
+      visits30ByCustomer[a.customer_id] = (visits30ByCustomer[a.customer_id] || 0) + 1;
+    });
+    const subscriberIds = new Set(activeSubs.map(s => s.customer_id));
+    const eligibleIds = Object.keys(visits30ByCustomer).filter(
+      cid => visits30ByCustomer[cid] >= 2 && !subscriberIds.has(cid)
+    );
+    const totalActiveCustomers = Object.keys(visits30ByCustomer).length;
+    const eligiblePct = totalActiveCustomers > 0
+      ? Math.round((eligibleIds.length / totalActiveCustomers) * 100) : 0;
+    const convertedPct = totalActiveCustomers > 0
+      ? Math.round((subscriberIds.size / totalActiveCustomers) * 100) : 0;
+
+    // Receita potencial = soma do plano mais barato que cobre cada elegível
+    const cheapestEligiblePlan = activePlans.length > 0
+      ? activePlans.reduce((min, p) => (p.price_monthly < min.price_monthly ? p : min), activePlans[0])
+      : null;
+    const potentialMRR = cheapestEligiblePlan
+      ? eligibleIds.length * cheapestEligiblePlan.price_monthly : 0;
+    const currentMRR = activeSubs.reduce((s, sub) => s + (sub.plan_price_snapshot || 0), 0);
+
     return Response.json({
       success: true,
       metrics: {
@@ -262,6 +292,15 @@ Deno.serve(async (req) => {
         segments,
         revenue_180d: Math.round(totalRevenue),
         avg_revenue_per_customer: Math.round(totalRevenue / totalCustomers),
+      },
+      conversion: {
+        eligible_count: eligibleIds.length,
+        eligible_pct: eligiblePct,
+        converted_count: subscriberIds.size,
+        converted_pct: convertedPct,
+        active_customers_30d: totalActiveCustomers,
+        current_mrr: Math.round(currentMRR),
+        potential_mrr: Math.round(potentialMRR),
       },
       discount_strategy: discount,
       suggestions,

@@ -13,6 +13,8 @@ import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import CustomerSubscriptionPanel from '@/components/clientes/CustomerSubscriptionPanel';
 import CustomerPlanRecommendation from '@/components/clientes/CustomerPlanRecommendation';
+import OfferPlanModal from '@/components/clientes/OfferPlanModal';
+import { Sparkles } from 'lucide-react';
 
 const statusBadge = {
   active: { label: 'Ativo', color: 'bg-emerald-50 text-emerald-700' },
@@ -34,6 +36,7 @@ export default function AppClientes() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [offeringTo, setOfferingTo] = useState(null); // cliente para qual estamos oferecendo plano
   const queryClient = useQueryClient();
 
   const { data: customersRaw = [], isLoading } = useQuery({
@@ -202,6 +205,15 @@ export default function AppClientes() {
                     <td className="p-4">
                       {!isBarbeiro ? (
                         <div className="flex items-center gap-1">
+                          {!subByCustomer[c.id] && (
+                            <button
+                              onClick={() => setOfferingTo(c)}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-2 py-1 rounded-lg"
+                              title="Oferecer plano de assinatura"
+                            >
+                              <Sparkles className="w-3 h-3" /> Oferecer plano
+                            </button>
+                          )}
                           <button onClick={() => openEdit(c)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
                           <button onClick={() => { if (confirm('Excluir cliente?')) deleteMutation.mutate(c.id); }} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
                         </div>
@@ -220,6 +232,15 @@ export default function AppClientes() {
             </div>
           )}
         </div>
+
+        {offeringTo && (
+          <OfferPlanModal
+            companyId={companyId}
+            customer={offeringTo}
+            onClose={() => setOfferingTo(null)}
+            onActivated={() => queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] })}
+          />
+        )}
 
         {showForm && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeForm}>

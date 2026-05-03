@@ -529,6 +529,7 @@ export default function AppAgenda() {
             onDelete={!isBarbeiro ? (id) => deleteMutation.mutate(id) : undefined}
             onClose={() => setSelectedAppt(null)}
             isSaving={updateMutation.isPending}
+            companyId={companyId}
           />
         )}
 

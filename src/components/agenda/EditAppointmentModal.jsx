@@ -6,6 +6,8 @@ import { X, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { STATUS_TOKENS } from '@/lib/statusTokens';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
+import PlanOfferBanner from '@/components/agenda/PlanOfferBanner';
+import OfferPlanModal from '@/components/planos/OfferPlanModal';
 
 const STATUS_KEYS = ['agendado', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'faltou'];
 
@@ -29,6 +31,7 @@ export default function EditAppointmentModal({
   onDelete,           // (id) => void
   onClose,            // () => void
   isSaving,
+  companyId,          // para o banner de oferta de plano
 }) {
   const [form, setForm] = useState({
     professional_id: appointment.professional_id || '',
@@ -38,6 +41,9 @@ export default function EditAppointmentModal({
     notes: appointment.notes || '',
   });
   const [error, setError] = useState('');
+  const [showOffer, setShowOffer] = useState(false);
+
+  const customerObj = customers.find(c => c.id === appointment.customer_id);
 
   const service = services.find(s => s.id === form.service_id);
   // custom_duration_minutes (definido por resize manual) sobrescreve a duração padrão
@@ -102,7 +108,7 @@ export default function EditAppointmentModal({
             <div>
               <span className="text-[11px] text-gray-400 block">Cliente</span>
               <p className="font-semibold text-sm">{appointment.customer_name}</p>
-              <div className="mt-1"><CustomerTypeBadge customer={customers.find(c => c.id === appointment.customer_id)} /></div>
+              <div className="mt-1"><CustomerTypeBadge customer={customerObj} /></div>
             </div>
             <div>
               <span className="text-[11px] text-gray-400 block">Telefone</span>
@@ -110,6 +116,16 @@ export default function EditAppointmentModal({
             </div>
           </div>
         </div>
+
+        {/* Gatilho de conversão: cliente frequente sem plano */}
+        {!isBarbeiro && companyId && customerObj && (
+          <PlanOfferBanner
+            companyId={companyId}
+            customerId={customerObj.id}
+            customerName={customerObj.name}
+            onOffer={() => setShowOffer(true)}
+          />
+        )}
 
         {/* Campos editáveis */}
         <div className="space-y-3">
@@ -221,6 +237,14 @@ export default function EditAppointmentModal({
           </button>
         )}
       </div>
+
+      {showOffer && companyId && customerObj && (
+        <OfferPlanModal
+          companyId={companyId}
+          customer={customerObj}
+          onClose={() => setShowOffer(false)}
+        />
+      )}
     </div>
   );
 }

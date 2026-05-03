@@ -10,6 +10,7 @@ import PlanCard from '@/components/planos/PlanCard';
 import PlanFormModal from '@/components/planos/PlanFormModal';
 import PlanSuggestionsModal from '@/components/planos/PlanSuggestionsModal';
 import PlanImpactDashboard from '@/components/planos/PlanImpactDashboard';
+import PlanConversionMetrics from '@/components/planos/PlanConversionMetrics';
 
 export default function AppPlanos() {
   const { companyId, company } = useCompany();
@@ -94,6 +95,15 @@ export default function AppPlanos() {
             currentMRR={subscriptions.reduce((sum, s) => sum + (s.plan_price_snapshot || 0), 0)}
             totalSubscribers={subscriptions.length}
             plansCount={plans.length}
+          />
+        )}
+
+        {/* Métrica crítica: % elegíveis, % convertidos, receita potencial */}
+        {companyId && plans.length > 0 && (
+          <PlanConversionMetrics
+            companyId={companyId}
+            plans={plans}
+            subscriptions={subscriptions}
           />
         )}
 
