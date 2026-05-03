@@ -5,7 +5,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { canViewFinance } from '@/lib/rolePermissions';
 import { useState, useEffect, useMemo } from 'react';
-import { Calendar, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Calendar, Users, DollarSign, TrendingUp, Repeat } from 'lucide-react';
 import { format, startOfMonth, startOfDay, differenceInMinutes, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
@@ -49,6 +49,15 @@ export default function AppDashboard() {
     queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }),
     enabled: !!companyId && showFinance,
   });
+
+  // Assinaturas ativas — KPIs de receita recorrente
+  const { data: activeSubs = [] } = useQuery({
+    queryKey: ['customer-subscriptions-active', companyId],
+    queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
+    enabled: !!companyId && showFinance,
+  });
+  const mrr = useMemo(() => activeSubs.reduce((s, sub) => s + (sub.plan_price_snapshot || 0), 0), [activeSubs]);
+  const overdueSubs = useMemo(() => activeSubs.filter(s => s.last_payment_status === 'atrasado').length, [activeSubs]);
 
   const now = new Date();
   const todayStr = now.toDateString();
@@ -246,6 +255,33 @@ export default function AppDashboard() {
             />
           )}
         </div>
+
+        {/* KPIs de Assinaturas (recorrência) */}
+        {showFinance && activeSubs.length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mb-6">
+            <KpiCard
+              label="Assinantes ativos"
+              value={activeSubs.length}
+              sub={overdueSubs > 0 ? `${overdueSubs} com pagamento atrasado` : 'Todos em dia'}
+              icon={Repeat}
+              tone={overdueSubs > 0 ? 'amber' : 'green'}
+            />
+            <KpiCard
+              label="MRR (receita recorrente)"
+              value={`R$ ${mrr.toFixed(2).replace('.', ',')}`}
+              sub="Soma das mensalidades ativas"
+              icon={TrendingUp}
+              tone="violet"
+            />
+            <KpiCard
+              label="ARR projetado"
+              value={`R$ ${(mrr * 12).toFixed(2).replace('.', ',')}`}
+              sub="MRR × 12 meses"
+              icon={DollarSign}
+              tone="green"
+            />
+          </div>
+        )}
 
         {/* Gráfico + Ranking */}
         {showFinance && (

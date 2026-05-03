@@ -352,8 +352,13 @@ function ProColumn({
             title={`${appt.customer_name || 'Cliente'} · ${appt.service_name} · ${startTime}–${endTime}`}
           >
             {height >= 36 && renderCardIcons(appt)}
-            <div className="font-semibold text-[12px] leading-tight truncate">
+            <div className="font-semibold text-[12px] leading-tight truncate flex items-center gap-1">
               {appt.customer_name || 'Cliente'}
+              {appt.payment_method === 'subscription' && (
+                <span className="text-[9px] font-bold px-1 py-px rounded bg-violet-100 text-violet-700 border border-violet-200" title="Pago pelo plano de assinatura">
+                  PLANO
+                </span>
+              )}
             </div>
             <div className="text-[11px] opacity-80 truncate leading-tight mt-0.5">{appt.service_name}</div>
             {height > 56 && (
