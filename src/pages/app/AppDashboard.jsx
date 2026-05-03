@@ -17,6 +17,7 @@ import ProfessionalRanking from '@/components/dashboard/ProfessionalRanking';
 import QuickActions from '@/components/dashboard/QuickActions';
 import InsightsCard from '@/components/dashboard/InsightsCard';
 import TodayAgendaList from '@/components/dashboard/TodayAgendaList';
+import PendingSubscriptionsBanner from '@/components/planos/PendingSubscriptionsBanner';
 
 export default function AppDashboard() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
@@ -205,6 +206,9 @@ export default function AppDashboard() {
             {format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} · {company?.name || 'Sua barbearia'}
           </p>
         </div>
+
+        {/* Banner: assinaturas pendentes de pagamento (link público) */}
+        {showFinance && companyId && <PendingSubscriptionsBanner companyId={companyId} companyName={company?.name} />}
 
         {/* Quick Actions */}
         <div className="mb-6">

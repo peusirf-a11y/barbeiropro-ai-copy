@@ -11,6 +11,7 @@ import PlanFormModal from '@/components/planos/PlanFormModal';
 import PlanSuggestionsModal from '@/components/planos/PlanSuggestionsModal';
 import PlanImpactDashboard from '@/components/planos/PlanImpactDashboard';
 import PlanConversionMetrics from '@/components/planos/PlanConversionMetrics';
+import PendingSubscriptionsBanner from '@/components/planos/PendingSubscriptionsBanner';
 
 export default function AppPlanos() {
   const { companyId, company } = useCompany();
@@ -87,6 +88,9 @@ export default function AppPlanos() {
             Novo plano
           </PrimaryButton>
         </AppPageHeader>
+
+        {/* Banner: assinaturas pendentes de pagamento (link público) */}
+        {companyId && <PendingSubscriptionsBanner companyId={companyId} companyName={company?.name} />}
 
         {/* Dashboard de impacto: avulso vs recorrente, MRR projetado, ocupação */}
         {companyId && (
