@@ -10,11 +10,29 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
     const body = await req.json();
-    const { action, subscription_id, appointment_id, service_id, service_name } = body;
+    const { action, subscription_id, appointment_id, service_id, service_name, customer_token, company_id } = body;
+
+    // Aceita autenticação via:
+    //  (a) usuário Base44 logado (atendente da barbearia), OU
+    //  (b) customer_token válido (cliente final agendando pelo link público).
+    let authed = false;
+    try {
+      const user = await base44.auth.me();
+      if (user) authed = true;
+    } catch (_) { /* sem sessão Base44 — segue para validar customer_token */ }
+
+    if (!authed && customer_token && company_id) {
+      const matches = await base44.asServiceRole.entities.Customer.filter({
+        company_id, auth_token: customer_token,
+      }, '-updated_date', 1);
+      const customer = matches?.[0];
+      if (customer && customer.auth_token_expires_at && new Date(customer.auth_token_expires_at) > new Date()) {
+        authed = true;
+      }
+    }
+
+    if (!authed) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     if (!action || !['consume', 'revert'].includes(action)) {
       return Response.json({ error: 'action inválida' }, { status: 400 });
