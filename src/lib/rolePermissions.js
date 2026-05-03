@@ -4,15 +4,15 @@
 export const ROLE_PERMISSIONS = {
   super_admin: ['*'], // ignorado no app de tenant; super admin usa /master
   admin: [
-    'dashboard', 'agenda', 'bloqueios', 'clientes', 'servicos', 'combos',
+    'dashboard', 'agenda', 'bloqueios', 'clientes', 'servicos', 'combos', 'planos',
     'profissionais', 'caixa', 'financeiro', 'comissoes', 'relatorios',
     'ai-growth', 'retencao', 'avaliacoes', 'indicacoes', 'equipe', 'configuracoes', 'assinatura',
   ],
   financeiro: [
-    'dashboard', 'agenda', 'clientes', 'caixa', 'financeiro', 'comissoes', 'relatorios',
+    'dashboard', 'agenda', 'clientes', 'caixa', 'financeiro', 'comissoes', 'relatorios', 'planos',
   ],
   recepcao: [
-    'dashboard', 'agenda', 'bloqueios', 'clientes', 'servicos', 'combos', 'profissionais',
+    'dashboard', 'agenda', 'bloqueios', 'clientes', 'servicos', 'combos', 'planos', 'profissionais',
   ],
   barbeiro: [
     'dashboard', 'agenda', 'clientes',

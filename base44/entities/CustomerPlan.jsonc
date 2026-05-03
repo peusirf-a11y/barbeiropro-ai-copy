@@ -1,0 +1,66 @@
+{
+  "name": "CustomerPlan",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do plano (ex: 2 cortes/m\u00eas, VIP Ilimitado)"
+    },
+    "description": {
+      "type": "string"
+    },
+    "price_monthly": {
+      "type": "number",
+      "description": "Pre\u00e7o mensal em R$"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "limited",
+        "unlimited"
+      ],
+      "default": "limited",
+      "description": "Limitado por quantidade de usos ou ilimitado"
+    },
+    "usage_limit": {
+      "type": "number",
+      "description": "Quantidade de usos por ciclo (apenas se type=limited)"
+    },
+    "service_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs dos servi\u00e7os inclusos no plano. Vazio = todos."
+    },
+    "rollover": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, usos n\u00e3o consumidos acumulam para o pr\u00f3ximo ciclo"
+    },
+    "valid_in_units": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs das unidades onde o plano vale. Vazio = todas as unidades."
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "stripe_price_id": {
+      "type": "string",
+      "description": "Preparado para Stripe Connect futuro"
+    }
+  },
+  "required": [
+    "company_id",
+    "name",
+    "price_monthly",
+    "type"
+  ]
+}

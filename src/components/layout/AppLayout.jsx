@@ -1,6 +1,6 @@
 import { Link, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Menu, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift } from 'lucide-react';
+import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Menu, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 import NavList from '@/components/layout/NavList';
@@ -19,6 +19,7 @@ const navItemsAll = [
   { key: 'clientes',      label: 'Clientes',      icon: Users,           path: '/app/clientes' },
   { key: 'servicos',      label: 'Serviços',      icon: Briefcase,       path: '/app/servicos' },
   { key: 'combos',        label: 'Combos',        icon: Package,         path: '/app/combos' },
+  { key: 'planos',        label: 'Planos',        icon: Repeat,          path: '/app/planos', badge: 'NOVO' },
   { key: 'profissionais', label: 'Profissionais', icon: Scissors,        path: '/app/profissionais' },
   { key: 'caixa',         label: 'Caixa',         icon: Wallet,          path: '/app/caixa' },
   { key: 'financeiro',    label: 'Financeiro',    icon: DollarSign,      path: '/app/financeiro' },

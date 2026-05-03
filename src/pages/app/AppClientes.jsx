@@ -6,11 +6,12 @@ import { useTeamRole } from '@/lib/useTeamRole';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { shouldScopeCustomersByUnit } from '@/lib/customerUnitMode';
 import { useState } from 'react';
-import { Search, Plus, X, Users, Pencil, Trash2, Phone } from 'lucide-react';
+import { Search, Plus, X, Users, Pencil, Trash2, Phone, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
+import CustomerSubscriptionPanel from '@/components/clientes/CustomerSubscriptionPanel';
 
 const statusBadge = {
   active: { label: 'Ativo', color: 'bg-emerald-50 text-emerald-700' },
@@ -49,6 +50,14 @@ export default function AppClientes() {
     queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
+
+  // Map customer_id => assinatura ativa, para mostrar badge na lista
+  const { data: activeSubs = [] } = useQuery({
+    queryKey: ['customer-subscriptions', companyId],
+    queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
+    enabled: !!companyId,
+  });
+  const subByCustomer = activeSubs.reduce((acc, s) => { acc[s.customer_id] = s; return acc; }, {});
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Customer.create({
@@ -156,7 +165,14 @@ export default function AppClientes() {
                           {(c.name || '?')[0].toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-semibold text-sm text-[#111827]">{c.name}</div>
+                          <div className="font-semibold text-sm text-[#111827] flex items-center gap-1.5 flex-wrap">
+                            {c.name}
+                            {subByCustomer[c.id] && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase bg-blue-100 text-[#2563EB] px-1.5 py-0.5 rounded">
+                                <Package className="w-2.5 h-2.5" /> Assinante
+                              </span>
+                            )}
+                          </div>
                           {c.email && <div className="text-xs text-[#6B7280]">{c.email}</div>}
                         </div>
                       </div>
@@ -201,7 +217,7 @@ export default function AppClientes() {
 
         {showForm && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeForm}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-bold text-[#1B1C1E]">{editing ? 'Editar Cliente' : 'Novo Cliente'}</h3>
                 <button onClick={closeForm}><X className="w-5 h-5" /></button>
@@ -248,6 +264,12 @@ export default function AppClientes() {
                   {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
+
+              {editing && (
+                <div className="mt-5 pt-5 border-t border-black/5">
+                  <CustomerSubscriptionPanel customer={editing} companyId={companyId} />
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -1,0 +1,94 @@
+{
+  "name": "CustomerSubscription",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "plan_id": {
+      "type": "string"
+    },
+    "plan_name_snapshot": {
+      "type": "string",
+      "description": "Snapshot do nome do plano no momento da assinatura"
+    },
+    "plan_price_snapshot": {
+      "type": "number",
+      "description": "Snapshot do pre\u00e7o mensal no momento da assinatura"
+    },
+    "plan_type_snapshot": {
+      "type": "string",
+      "enum": [
+        "limited",
+        "unlimited"
+      ]
+    },
+    "plan_usage_limit_snapshot": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "canceled"
+      ],
+      "default": "active"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "current_cycle_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "In\u00edcio do ciclo atual (mensal)"
+    },
+    "current_cycle_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fim do ciclo atual / pr\u00f3xima cobran\u00e7a"
+    },
+    "uses_remaining": {
+      "type": "number",
+      "description": "Usos dispon\u00edveis no ciclo atual. Sempre 9999 quando type=unlimited."
+    },
+    "uses_consumed_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de usos consumidos desde o in\u00edcio (telemetria)"
+    },
+    "last_payment_status": {
+      "type": "string",
+      "enum": [
+        "pago",
+        "pendente",
+        "atrasado"
+      ],
+      "default": "pendente"
+    },
+    "last_payment_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "canceled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "Preparado para integra\u00e7\u00e3o Stripe Connect (Fase 2)"
+    },
+    "stripe_customer_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "customer_id",
+    "plan_id"
+  ]
+}

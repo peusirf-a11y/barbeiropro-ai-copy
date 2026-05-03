@@ -11,6 +11,7 @@ import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/toke
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
 import AgendaProColumns from '@/components/agenda/AgendaProColumns';
 import EditAppointmentModal from '@/components/agenda/EditAppointmentModal';
+import UseSubscriptionDialog from '@/components/agenda/UseSubscriptionDialog';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 import { STATUS_TOKENS } from '@/lib/statusTokens';
@@ -74,6 +75,23 @@ export default function AppAgenda() {
     enabled: !!companyId,
   });
 
+  // Assinaturas ativas — para mostrar opção "usar plano" ao agendar e badge de assinante
+  const { data: activeSubs = [] } = useQuery({
+    queryKey: ['customer-subscriptions', companyId],
+    queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
+    enabled: !!companyId,
+  });
+  const { data: customerPlans = [] } = useQuery({
+    queryKey: ['customer-plans', companyId],
+    queryFn: () => base44.entities.CustomerPlan.filter({ company_id: companyId }),
+    enabled: !!companyId,
+  });
+  const subByCustomer = activeSubs.reduce((acc, s) => { acc[s.customer_id] = s; return acc; }, {});
+
+  // Dialog "usar plano vs avulso" — disparado após criar agendamento de assinante
+  const [pendingSubscriptionDialog, setPendingSubscriptionDialog] = useState(null);
+  // pendingSubscriptionDialog = { appointment, subscription, plan, servicePrice }
+
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       // Marca completed_at junto com status=concluido. As automações de entidade
@@ -104,7 +122,18 @@ export default function AppAgenda() {
     onSuccess: (_res, vars) => {
       // Reconcilia com o servidor + invalida cadeias derivadas (comissões/financeiro) quando concluído.
       const isConcluded = vars?.data?.status === 'concluido';
+      const isCanceledOrMissed = ['cancelado', 'faltou'].includes(vars?.data?.status);
       queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
+
+      // Se o agendamento estava cobrindo via plano e foi cancelado/faltou, devolve o uso
+      if (isCanceledOrMissed && selectedAppt?.payment_method === 'subscription' && selectedAppt?.subscription_id) {
+        subscriptionActionMutation.mutate({
+          action: 'revert',
+          subscription_id: selectedAppt.subscription_id,
+          appointment_id: selectedAppt.id,
+        });
+      }
+
       if (isConcluded) {
         setTimeout(() => {
           queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
@@ -121,11 +150,39 @@ export default function AppAgenda() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Appointment.create(data),
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
       queryClient.invalidateQueries({ queryKey: ['customers', companyId] });
       setShowNewForm(false);
       setForm(emptyForm);
+
+      // Se o cliente do agendamento tem assinatura ativa, abre dialog "plano vs avulso"
+      const sub = created?.customer_id ? subByCustomer[created.customer_id] : null;
+      if (sub) {
+        const plan = customerPlans.find(p => p.id === sub.plan_id);
+        const svc = services.find(s => s.id === created.service_id);
+        setPendingSubscriptionDialog({
+          appointment: created,
+          subscription: sub,
+          plan,
+          servicePrice: svc?.price || created.price || 0,
+        });
+      }
+    },
+  });
+
+  // Consome ou devolve uso de assinatura via backend (atômico)
+  const subscriptionActionMutation = useMutation({
+    mutationFn: ({ action, subscription_id, appointment_id, service_id, service_name }) =>
+      base44.functions.invoke('consumeSubscriptionUse', { action, subscription_id, appointment_id, service_id, service_name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      setPendingSubscriptionDialog(null);
+    },
+    onError: (err) => {
+      alert(err?.message || 'Erro ao processar uso da assinatura.');
     },
   });
 
@@ -437,6 +494,26 @@ export default function AppAgenda() {
             <span className="text-gray-500">Cliente sem preferência</span>
           </div>
         </div>
+
+        {/* Dialog "Usar plano vs avulso" — aparece após criar agendamento de assinante */}
+        {pendingSubscriptionDialog && (
+          <UseSubscriptionDialog
+            appointment={pendingSubscriptionDialog.appointment}
+            subscription={pendingSubscriptionDialog.subscription}
+            plan={pendingSubscriptionDialog.plan}
+            servicePrice={pendingSubscriptionDialog.servicePrice}
+            isPending={subscriptionActionMutation.isPending}
+            onUsePlan={() => subscriptionActionMutation.mutate({
+              action: 'consume',
+              subscription_id: pendingSubscriptionDialog.subscription.id,
+              appointment_id: pendingSubscriptionDialog.appointment.id,
+              service_id: pendingSubscriptionDialog.appointment.service_id,
+              service_name: pendingSubscriptionDialog.appointment.service_name,
+            })}
+            onUseAvulso={() => setPendingSubscriptionDialog(null)}
+            onClose={() => setPendingSubscriptionDialog(null)}
+          />
+        )}
 
         {/* Edit Appointment Modal — horário, profissional, serviço, status, observações */}
         {selectedAppt && (

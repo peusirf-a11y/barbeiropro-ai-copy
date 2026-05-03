@@ -1,0 +1,49 @@
+{
+  "name": "SubscriptionUsage",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "subscription_id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "appointment_id": {
+      "type": "string",
+      "description": "Agendamento que consumiu o uso"
+    },
+    "service_id": {
+      "type": "string"
+    },
+    "service_name": {
+      "type": "string"
+    },
+    "cycle_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Ciclo da assinatura em que o uso foi registrado"
+    },
+    "consumed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reverted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marcado quando agendamento \u00e9 cancelado e o uso \u00e9 devolvido"
+    },
+    "reverted_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "company_id",
+    "subscription_id",
+    "customer_id",
+    "appointment_id"
+  ]
+}
