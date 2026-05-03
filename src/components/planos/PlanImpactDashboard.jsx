@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { TrendingUp, Users, Calendar, DollarSign } from 'lucide-react';
+import { TrendingUp, Users, Calendar, DollarSign, Target, Zap, Flame } from 'lucide-react';
 
 // Dashboard de impacto: avulso vs recorrente, ocupação, MRR projetado.
 // Reaproveita o backend generatePlanSuggestions (modo analyze) que já calcula tudo.
@@ -30,6 +30,7 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
 
   const m = result.metrics || {};
   const proj = result.projections || {};
+  const conv = result.conversion || {};
   const totalAvulsoMonthly = (m.revenue_180d || 0) / 6; // média mensal últimos 180 dias
 
   return (
@@ -71,6 +72,48 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
         />
       </div>
 
+      {/* 🔥 MÉTRICAS CRÍTICAS DE CONVERSÃO — regra de ouro: plano não vendido = feature morta */}
+      {plansCount > 0 && (
+        <div className="mt-4 pt-4 border-t border-black/5">
+          <div className="flex items-center gap-2 mb-3">
+            <Flame className="w-4 h-4 text-orange-500" />
+            <h4 className="text-xs font-bold uppercase tracking-wide text-[#111827]">Conversão de planos</h4>
+            <span className="text-[10px] text-gray-400">últimos 30 dias</span>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            <ConversionCard
+              icon={Target}
+              label="Clientes elegíveis"
+              value={`${conv.eligible_pct || 0}%`}
+              sublabel={`${conv.eligible_count || 0} de ${conv.active_customers_30d || 0} clientes ativos`}
+              color="text-violet-600"
+              bg="bg-violet-50 border-violet-200"
+            />
+            <ConversionCard
+              icon={Zap}
+              label="Convertidos em plano"
+              value={`${conv.converted_pct || 0}%`}
+              sublabel={`${conv.converted_count || 0} ${(conv.converted_count || 0) === 1 ? 'assinante' : 'assinantes'}`}
+              color="text-emerald-600"
+              bg="bg-emerald-50 border-emerald-200"
+            />
+            <ConversionCard
+              icon={DollarSign}
+              label="Receita potencial vs atual"
+              value={conv.current_mrr != null ? `R$${conv.current_mrr} → R$${(conv.current_mrr || 0) + (conv.potential_mrr || 0)}` : '—'}
+              sublabel={conv.potential_mrr > 0 ? `+R$${conv.potential_mrr} se converter os elegíveis` : 'Sem oportunidades agora'}
+              color="text-orange-600"
+              bg="bg-orange-50 border-orange-200"
+            />
+          </div>
+          {conv.eligible_count > 0 && conv.converted_pct < 30 && (
+            <div className="mt-3 px-3 py-2 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg text-xs text-orange-900">
+              🔥 <strong>{conv.eligible_count} {conv.eligible_count === 1 ? 'cliente está' : 'clientes estão'} pronto{conv.eligible_count === 1 ? '' : 's'} para virar assinante.</strong> Use o botão "Oferecer plano" na tela de Clientes ou aproveite o gatilho na Agenda.
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Comparação avulso vs recorrente */}
       {plansCount > 0 && (
         <div className="mt-4 pt-4 border-t border-black/5">
@@ -99,6 +142,18 @@ function ImpactCard({ icon: Icon, label, value, sublabel, color }) {
       </div>
       <div className={`text-xl font-black ${color}`}>{value}</div>
       <div className="text-[11px] text-gray-400 mt-0.5">{sublabel}</div>
+    </div>
+  );
+}
+
+function ConversionCard({ icon: Icon, label, value, sublabel, color, bg }) {
+  return (
+    <div className={`${bg} border rounded-xl p-3`}>
+      <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide ${color} mb-1`}>
+        <Icon className="w-3 h-3" /> {label}
+      </div>
+      <div className={`text-xl font-black ${color}`}>{value}</div>
+      <div className="text-[11px] text-gray-600 mt-0.5">{sublabel}</div>
     </div>
   );
 }
