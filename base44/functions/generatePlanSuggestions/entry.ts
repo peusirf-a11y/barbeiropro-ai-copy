@@ -54,9 +54,18 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.Company.filter({ id: company_id }).catch(() => []),
     ]);
     if (companies.length === 0) return Response.json({ error: 'Empresa não encontrada' }, { status: 404 });
-    const isOwner = companies[0]?.owner_email === user.email;
+    const company = companies[0];
+    const userEmailLc = (user.email || '').toLowerCase();
+    const ownerEmailLc = (company?.owner_email || '').toLowerCase();
+    const isOwner = !!ownerEmailLc && ownerEmailLc === userEmailLc;
     const isMember = teamMembers.length > 0 && ['admin', 'recepcao', 'financeiro'].includes(teamMembers[0]?.role);
-    if (!isOwner && !isMember) return Response.json({ error: 'Sem permissão' }, { status: 403 });
+    const isSuperAdmin = user.role === 'admin'; // super admin Base44
+    if (!isOwner && !isMember && !isSuperAdmin) {
+      console.warn('[generatePlanSuggestions] sem permissão:', {
+        user_email: userEmailLc, owner_email: ownerEmailLc, team_role: teamMembers[0]?.role, base44_role: user.role,
+      });
+      return Response.json({ error: 'Sem permissão' }, { status: 403 });
+    }
 
     // ─── MODO CREATE: cria os planos como rascunho ─────────────────────────
     if (action === 'create') {
