@@ -5,15 +5,18 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Package, AlertCircle } from 'lucide-react';
+import { Package, AlertCircle, Sparkles } from 'lucide-react';
 import PlanCard from '@/components/planos/PlanCard';
 import PlanFormModal from '@/components/planos/PlanFormModal';
+import PlanSuggestionsModal from '@/components/planos/PlanSuggestionsModal';
+import PlanImpactDashboard from '@/components/planos/PlanImpactDashboard';
 
 export default function AppPlanos() {
   const { companyId, company } = useCompany();
   const isMultiUnit = !!company?.multi_unit_enabled;
   const [editingPlan, setEditingPlan] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: plans = [], isLoading } = useQuery({
@@ -72,10 +75,27 @@ export default function AppPlanos() {
           subtitle="Crie planos mensais para fidelizar seus clientes e ter receita recorrente."
           icon={Package}
         >
+          <button
+            onClick={() => setShowSuggestions(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 shadow-[0_4px_12px_rgba(139,92,246,0.3)] transition-all"
+          >
+            <Sparkles className="w-4 h-4" />
+            Gerar planos automaticamente
+          </button>
           <PrimaryButton onClick={() => { setEditingPlan(null); setShowForm(true); }}>
             Novo plano
           </PrimaryButton>
         </AppPageHeader>
+
+        {/* Dashboard de impacto: avulso vs recorrente, MRR projetado, ocupação */}
+        {companyId && (
+          <PlanImpactDashboard
+            companyId={companyId}
+            currentMRR={subscriptions.reduce((sum, s) => sum + (s.plan_price_snapshot || 0), 0)}
+            totalSubscribers={subscriptions.length}
+            plansCount={plans.length}
+          />
+        )}
 
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -139,6 +159,14 @@ export default function AppPlanos() {
             onSave={(payload) => saveMutation.mutate(payload)}
             onClose={() => { setShowForm(false); setEditingPlan(null); }}
             isSaving={saveMutation.isPending}
+          />
+        )}
+
+        {showSuggestions && (
+          <PlanSuggestionsModal
+            companyId={companyId}
+            onClose={() => setShowSuggestions(false)}
+            onCreated={() => queryClient.invalidateQueries({ queryKey: ['customer-plans', companyId] })}
           />
         )}
       </div>

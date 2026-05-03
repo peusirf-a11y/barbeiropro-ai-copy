@@ -12,6 +12,7 @@ import { ptBR } from 'date-fns/locale';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import CustomerSubscriptionPanel from '@/components/clientes/CustomerSubscriptionPanel';
+import CustomerPlanRecommendation from '@/components/clientes/CustomerPlanRecommendation';
 
 const statusBadge = {
   active: { label: 'Ativo', color: 'bg-emerald-50 text-emerald-700' },
@@ -164,7 +165,7 @@ export default function AppClientes() {
                         <div className="w-9 h-9 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 shadow-sm">
                           {(c.name || '?')[0].toUpperCase()}
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="font-semibold text-sm text-[#111827] flex items-center gap-1.5 flex-wrap">
                             {c.name}
                             {subByCustomer[c.id] && (
@@ -174,6 +175,11 @@ export default function AppClientes() {
                             )}
                           </div>
                           {c.email && <div className="text-xs text-[#6B7280]">{c.email}</div>}
+                          {!subByCustomer[c.id] && (
+                            <div className="mt-1">
+                              <CustomerPlanRecommendation companyId={companyId} customerId={c.id} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
