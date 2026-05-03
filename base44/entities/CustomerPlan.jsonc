@@ -52,6 +52,28 @@
       "type": "boolean",
       "default": true
     },
+    "off_peak_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Quando true, o plano s\u00f3 pode ser consumido dentro da janela off-peak (off_peak_start..off_peak_end nos dias off_peak_weekdays). Fora da janela, o atendimento \u00e9 cobrado avulso e n\u00e3o consome uso."
+    },
+    "off_peak_start": {
+      "type": "string",
+      "description": "Hora de in\u00edcio da janela off-peak no formato HH:MM (ex: 08:00)"
+    },
+    "off_peak_end": {
+      "type": "string",
+      "description": "Hora de fim da janela off-peak no formato HH:MM (ex: 12:00)"
+    },
+    "off_peak_weekdays": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 6
+      },
+      "description": "Dias da semana v\u00e1lidos (0=domingo \u2026 6=s\u00e1bado). Vazio = todos os dias."
+    },
     "stripe_price_id": {
       "type": "string",
       "description": "Preparado para Stripe Connect futuro"

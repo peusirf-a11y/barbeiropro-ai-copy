@@ -48,6 +48,27 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Sem usos disponíveis no ciclo atual' }, { status: 400 });
       }
 
+      // Valida janela off-peak (se o plano tiver restrição)
+      const plan = sub.plan_id
+        ? await base44.asServiceRole.entities.CustomerPlan.get(sub.plan_id).catch(() => null)
+        : null;
+      if (plan?.off_peak_enabled) {
+        const appt = await base44.asServiceRole.entities.Appointment.get(appointment_id).catch(() => null);
+        if (appt?.scheduled_at) {
+          const when = new Date(appt.scheduled_at);
+          const start = plan.off_peak_start || '00:00';
+          const end = plan.off_peak_end || '23:59';
+          const weekdays = plan.off_peak_weekdays || [];
+          const hhmm = `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`;
+          const dayOk = weekdays.length === 0 || weekdays.includes(when.getDay());
+          if (!dayOk || hhmm < start || hhmm > end) {
+            return Response.json({
+              error: `Fora da janela do plano Off-Peak (${start}–${end}). Cobre como avulso.`,
+            }, { status: 400 });
+          }
+        }
+      }
+
       // Decrementa saldo
       const newRemaining = isUnlimited ? sub.uses_remaining : (sub.uses_remaining - 1);
       await base44.asServiceRole.entities.CustomerSubscription.update(subscription_id, {

@@ -20,6 +20,7 @@ export default function UseSubscriptionDialog({
     plan,
     serviceId: appointment.service_id,
     unitId: appointment.unit_id,
+    when: appointment.scheduled_at ? new Date(appointment.scheduled_at) : new Date(),
   });
 
   return (

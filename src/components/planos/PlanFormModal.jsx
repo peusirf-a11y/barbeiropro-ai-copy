@@ -11,7 +11,16 @@ const empty = {
   rollover: false,
   valid_in_units: [],
   active: true,
+  off_peak_enabled: false,
+  off_peak_start: '08:00',
+  off_peak_end: '12:00',
+  off_peak_weekdays: [1, 2, 3, 4, 5],
 };
+
+const WEEKDAYS = [
+  { v: 0, l: 'Dom' }, { v: 1, l: 'Seg' }, { v: 2, l: 'Ter' }, { v: 3, l: 'Qua' },
+  { v: 4, l: 'Qui' }, { v: 5, l: 'Sex' }, { v: 6, l: 'Sáb' },
+];
 
 export default function PlanFormModal({ plan, services, units, isMultiUnit, onSave, onClose, isSaving }) {
   const [form, setForm] = useState(empty);
@@ -121,6 +130,55 @@ export default function PlanFormModal({ plan, services, units, isMultiUnit, onSa
             <input type="checkbox" checked={form.rollover} onChange={e => setForm(p => ({ ...p, rollover: e.target.checked }))} />
             <span>Acumula usos não utilizados para o próximo mês</span>
           </label>
+
+          {/* ── Off-peak (janela fixa) ─────────────────────────────────── */}
+          <div className="border border-black/5 rounded-xl p-3 bg-gray-50/50">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={!!form.off_peak_enabled}
+                onChange={e => setForm(p => ({ ...p, off_peak_enabled: e.target.checked }))} />
+              <span className="font-semibold">Plano Off-Peak (horário restrito)</span>
+            </label>
+            <p className="text-[11px] text-gray-500 mt-1 ml-6">
+              Fora da janela, o cliente pode agendar mas será cobrado avulso (não consome o plano).
+            </p>
+
+            {form.off_peak_enabled && (
+              <div className="mt-3 ml-6 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] font-semibold text-gray-500 block mb-1">Início</label>
+                    <input type="time" value={form.off_peak_start || '08:00'}
+                      onChange={e => setForm(p => ({ ...p, off_peak_start: e.target.value }))}
+                      className="w-full px-2 py-1.5 border border-black/10 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-gray-500 block mb-1">Fim</label>
+                    <input type="time" value={form.off_peak_end || '12:00'}
+                      onChange={e => setForm(p => ({ ...p, off_peak_end: e.target.value }))}
+                      className="w-full px-2 py-1.5 border border-black/10 rounded-lg text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-gray-500 block mb-1">Dias permitidos</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {WEEKDAYS.map(d => {
+                      const active = (form.off_peak_weekdays || []).includes(d.v);
+                      return (
+                        <button key={d.v} type="button"
+                          onClick={() => setForm(p => {
+                            const cur = p.off_peak_weekdays || [];
+                            return { ...p, off_peak_weekdays: cur.includes(d.v) ? cur.filter(x => x !== d.v) : [...cur, d.v].sort() };
+                          })}
+                          className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors ${active ? 'bg-[#2563EB] text-white border-[#2563EB]' : 'bg-white text-gray-600 border-black/10 hover:border-[#2563EB]'}`}>
+                          {d.l}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
