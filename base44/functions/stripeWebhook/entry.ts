@@ -1,6 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.0.0';
 
+// TEST MODE: força uso exclusivo de chaves de teste do Stripe.
+function getTestStripeKey() {
+  const key = Deno.env.get('STRIPE_TEST_SECRET_KEY') || '';
+  if (!key) throw new Error('TEST_MODE: STRIPE_TEST_SECRET_KEY ausente nos secrets.');
+  if (key.startsWith('sk_live_')) throw new Error('TEST_MODE: chave LIVE detectada — apenas sk_test_ é permitida.');
+  if (!key.startsWith('sk_test_')) throw new Error('TEST_MODE: chave Stripe inválida — deve começar com sk_test_.');
+  return key;
+}
+
 function slugify(text) {
   return (text || 'barbearia')
     .toString()
@@ -14,8 +23,12 @@ function slugify(text) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    const stripe = new Stripe(getTestStripeKey());
+    const webhookSecret = Deno.env.get('STRIPE_TEST_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      console.error('[stripeWebhook] TEST_MODE: STRIPE_TEST_WEBHOOK_SECRET ausente.');
+      return Response.json({ error: 'TEST_MODE: webhook secret ausente.' }, { status: 500 });
+    }
 
     const signature = req.headers.get('stripe-signature');
     const body = await req.text();
@@ -28,7 +41,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    console.log('Stripe event:', event.type);
+    // TEST MODE: rejeita eventos vindos do ambiente live.
+    if (event.livemode === true) {
+      console.warn('[stripeWebhook] TEST_MODE: evento livemode=true ignorado:', event.type, event.id);
+      return Response.json({ received: true, ignored: 'livemode_blocked' });
+    }
+
+    console.log('Stripe event:', event.type, '(test_mode)');
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;

@@ -18,7 +18,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
+    // TEST MODE: força chave de teste.
+    const stripeKey = Deno.env.get('STRIPE_TEST_SECRET_KEY') || '';
+    if (!stripeKey || !stripeKey.startsWith('sk_test_')) {
+      throw new Error('TEST_MODE: STRIPE_TEST_SECRET_KEY ausente ou inválida (deve começar com sk_test_).');
+    }
+    const stripe = new Stripe(stripeKey);
     const nowISO = new Date().toISOString();
 
     // Filtra todos os pendentes (paginação simples)

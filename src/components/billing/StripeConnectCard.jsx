@@ -53,6 +53,12 @@ export default function StripeConnectCard({ company }) {
 
   return (
     <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+      {/* Banner de modo de teste — sempre visível enquanto operamos com chaves sk_test_ */}
+      <div className="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2">
+        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-amber-500 text-white uppercase tracking-wide">Test</span>
+        <span className="text-xs text-amber-900 font-medium">Modo de teste ativo — nenhum pagamento real será processado.</span>
+      </div>
+
       <div className="flex items-start gap-4 mb-4">
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
           isConnected ? 'bg-emerald-50' : 'bg-blue-50'

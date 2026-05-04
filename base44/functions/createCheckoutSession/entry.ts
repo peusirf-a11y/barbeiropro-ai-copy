@@ -7,9 +7,18 @@ const PLANS = {
   enterprise: { price_id: 'price_1TQrZARWNwmSffsEF7agRVO9', name: 'Enterprise' },
 };
 
+// TEST MODE: força uso exclusivo de chaves de teste do Stripe.
+function getTestStripeKey() {
+  const key = Deno.env.get('STRIPE_TEST_SECRET_KEY') || '';
+  if (!key) throw new Error('TEST_MODE: STRIPE_TEST_SECRET_KEY ausente nos secrets.');
+  if (key.startsWith('sk_live_')) throw new Error('TEST_MODE: chave LIVE detectada — apenas sk_test_ é permitida.');
+  if (!key.startsWith('sk_test_')) throw new Error('TEST_MODE: chave Stripe inválida — deve começar com sk_test_.');
+  return key;
+}
+
 Deno.serve(async (req) => {
   try {
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
+    const stripe = new Stripe(getTestStripeKey());
     const body = await req.json();
     const { plan, business_name, owner_name, email, phone } = body;
 

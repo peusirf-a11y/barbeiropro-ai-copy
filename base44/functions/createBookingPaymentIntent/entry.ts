@@ -18,6 +18,15 @@ import Stripe from 'npm:stripe@17.0.0';
 
 const PAYMENT_EXPIRY_MINUTES = 15;
 
+// TEST MODE: força uso exclusivo de chaves de teste do Stripe.
+function getTestStripeKey() {
+  const key = Deno.env.get('STRIPE_TEST_SECRET_KEY') || '';
+  if (!key) throw new Error('TEST_MODE: STRIPE_TEST_SECRET_KEY ausente nos secrets.');
+  if (key.startsWith('sk_live_')) throw new Error('TEST_MODE: chave LIVE detectada — apenas sk_test_ é permitida.');
+  if (!key.startsWith('sk_test_')) throw new Error('TEST_MODE: chave Stripe inválida — deve começar com sk_test_.');
+  return key;
+}
+
 function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
@@ -29,7 +38,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const sdk = base44.asServiceRole;
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
+    const stripe = new Stripe(getTestStripeKey());
     const body = await req.json().catch(() => ({}));
 
     const {
