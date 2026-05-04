@@ -26,7 +26,50 @@
       "type": "string"
     },
     "address": {
-      "type": "string"
+      "type": "string",
+      "description": "Endere\u00e7o em texto livre (legacy). Mantido para compatibilidade. Para dados estruturados, ver address_details."
+    },
+    "address_details": {
+      "type": "object",
+      "description": "Endere\u00e7o estruturado coletado no onboarding e usado para pr\u00e9-preencher o KYC do Stripe Connect.",
+      "properties": {
+        "line1": {
+          "type": "string",
+          "description": "Rua e n\u00famero"
+        },
+        "line2": {
+          "type": "string",
+          "description": "Complemento (opcional)"
+        },
+        "neighborhood": {
+          "type": "string",
+          "description": "Bairro"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "description": "UF (sigla, ex: SP)"
+        },
+        "postal_code": {
+          "type": "string",
+          "description": "CEP (somente d\u00edgitos)"
+        },
+        "country": {
+          "type": "string",
+          "default": "BR"
+        }
+      }
+    },
+    "business_type": {
+      "type": "string",
+      "enum": [
+        "mei",
+        "cnpj",
+        "individual"
+      ],
+      "description": "Tipo de neg\u00f3cio para Stripe Connect: mei/cnpj=company, individual=pessoa f\u00edsica."
     },
     "business_hours": {
       "type": "object"

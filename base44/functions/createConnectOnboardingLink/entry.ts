@@ -50,16 +50,35 @@ Deno.serve(async (req) => {
 
     // 1) Cria conta Connect se ainda não existe
     if (!accountId) {
+      // Mapeia business_type da Company para o aceito pelo Stripe.
+      // mei/cnpj => company; individual => individual
+      const stripeBusinessType = company.business_type === 'individual' ? 'individual' : 'company';
+
+      // Monta support_address a partir do address_details estruturado (se existir).
+      const ad = company.address_details || {};
+      const supportAddress = (ad.line1 && ad.city && ad.state && ad.postal_code) ? {
+        line1: ad.line1,
+        line2: ad.line2 || undefined,
+        city: ad.city,
+        state: ad.state,
+        postal_code: String(ad.postal_code).replace(/\D/g, ''),
+        country: ad.country || 'BR',
+      } : undefined;
+
+      const supportPhone = (company.phone || '').replace(/\D/g, '');
+
       const account = await stripe.accounts.create({
         type: 'express',
         country: 'BR',
         default_currency: 'brl',
         email: company.owner_email,
-        business_type: 'company',
+        business_type: stripeBusinessType,
         business_profile: {
           name: company.name,
           mcc: '7230', // Beauty/Barber Shops
           url: `https://barbertrimly.base44.app/agendar/${company.slug || ''}`,
+          ...(supportPhone ? { support_phone: supportPhone } : {}),
+          ...(supportAddress ? { support_address: supportAddress } : {}),
         },
         capabilities: {
           card_payments: { requested: true },
@@ -68,6 +87,7 @@ Deno.serve(async (req) => {
         metadata: {
           base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
           base44_company_id: company.id,
+          business_type: company.business_type || '',
         },
       });
       accountId = account.id;

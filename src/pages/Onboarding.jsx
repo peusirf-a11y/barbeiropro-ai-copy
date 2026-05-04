@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Scissors, Check, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useNavigate } from 'react-router-dom';
+import BusinessDetailsStep, { isBusinessDetailsValid } from '@/components/onboarding/BusinessDetailsStep';
 
 function sanitizeSlug(s) {
   return (s || '')
@@ -21,10 +22,11 @@ const RESERVED_SLUGS = ['app', 'api', 'admin', 'master', 'checkout', 'onboarding
 const STEPS = [
   { id: 1, title: 'Dados da barbearia', sub: 'Informações básicas do negócio' },
   { id: 2, title: 'Branding', sub: 'Identidade visual e link público' },
-  { id: 3, title: 'Serviços iniciais', sub: 'Configure seus primeiros serviços' },
-  { id: 4, title: 'Profissionais', sub: 'Adicione os barbeiros' },
-  { id: 5, title: 'Equipe', sub: 'Quem vai acessar o sistema' },
-  { id: 6, title: 'Conclusão', sub: 'Sua barbearia está pronta!' },
+  { id: 3, title: 'Dados fiscais & endereço', sub: 'Necessários para pagamentos online' },
+  { id: 4, title: 'Serviços iniciais', sub: 'Configure seus primeiros serviços' },
+  { id: 5, title: 'Profissionais', sub: 'Adicione os barbeiros' },
+  { id: 6, title: 'Equipe', sub: 'Quem vai acessar o sistema' },
+  { id: 7, title: 'Conclusão', sub: 'Sua barbearia está pronta!' },
 ];
 
 export default function Onboarding() {
@@ -32,6 +34,11 @@ export default function Onboarding() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [company, setCompany] = useState({ name: '', phone: '', whatsapp: '', address: '', slug: '', primary_color: '#2563EB' });
+  const [businessDetails, setBusinessDetails] = useState({
+    business_type: '',
+    phone: '',
+    address_details: { line1: '', line2: '', neighborhood: '', city: '', state: '', postal_code: '', country: 'BR' },
+  });
   const [services, setServices] = useState([{ name: 'Corte Clássico', duration_minutes: 30, price: 45 }]);
   const [professionals, setProfessionals] = useState([{ name: '', specialty: '' }]);
   const [companyId, setCompanyId] = useState(null);
@@ -97,7 +104,26 @@ export default function Onboarding() {
         await base44.entities.Company.update(companyId, { slug: cleanSlug, onboarding_step: 3 });
       }
     }
+    // Step 3 (novo): persiste dados fiscais + endereço estruturado na Company.
+    // Também copia phone para Company.phone se ainda estiver vazio, e monta
+    // address (string legacy) a partir do endereço estruturado.
     if (step === 3 && companyId) {
+      const a = businessDetails.address_details || {};
+      const legacyAddress = [
+        [a.line1, a.line2].filter(Boolean).join(', '),
+        a.neighborhood,
+        a.city && a.state ? `${a.city}/${a.state}` : (a.city || a.state),
+        a.postal_code,
+      ].filter(Boolean).join(' · ');
+      await base44.entities.Company.update(companyId, {
+        business_type: businessDetails.business_type,
+        phone: businessDetails.phone || company.phone || '',
+        address_details: businessDetails.address_details,
+        address: legacyAddress,
+        onboarding_step: 4,
+      });
+    }
+    if (step === 4 && companyId) {
       // Paralelizado: todas as criações ao mesmo tempo
       await Promise.all(
         services.filter(s => s.name).map(s =>
@@ -105,7 +131,7 @@ export default function Onboarding() {
         )
       );
     }
-    if (step === 4 && companyId) {
+    if (step === 5 && companyId) {
       // Paralelizado
       await Promise.all(
         professionals.filter(p => p.name).map(p =>
@@ -120,12 +146,12 @@ export default function Onboarding() {
       metadata: { step },
     }).catch(() => {});
 
-    if (step === 6) {
+    if (step === 7) {
       // Marca como concluído SOMENTE no clique final, e invalida cache antes de navegar
       if (companyId) {
         await base44.entities.Company.update(companyId, {
           onboarding_completed: true,
-          onboarding_step: 6,
+          onboarding_step: 7,
         });
       }
       base44.functions.invoke('trackEvent', { event_type: 'onboarding_completed' }).catch(() => {});
@@ -224,6 +250,10 @@ export default function Onboarding() {
           )}
 
           {step === 3 && (
+            <BusinessDetailsStep value={businessDetails} onChange={setBusinessDetails} />
+          )}
+
+          {step === 4 && (
             <div className="space-y-3">
               {services.map((s, i) => (
                 <div key={i} className="bg-white rounded-xl border border-black/10 p-4">
@@ -253,7 +283,7 @@ export default function Onboarding() {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div className="space-y-3">
               {professionals.map((p, i) => (
                 <div key={i} className="bg-white rounded-xl border border-black/10 p-4 grid grid-cols-2 gap-3">
@@ -276,13 +306,13 @@ export default function Onboarding() {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="bg-white rounded-2xl border border-black/8 p-6 text-center">
               <p className="text-gray-500 text-sm">Você pode convidar membros da equipe mais tarde em <strong>Equipe</strong> no painel.</p>
             </div>
           )}
 
-          {step === 6 && (
+          {step === 7 && (
             <div className="text-center py-8">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Check className="w-10 h-10 text-green-600" />
@@ -305,9 +335,13 @@ export default function Onboarding() {
             </button>
           ) : <div />}
           <button onClick={handleNext}
-            disabled={(step === 1 && !company.name) || (step === 2 && (!company.slug || !!slugError || validatingSlug))}
+            disabled={
+              (step === 1 && !company.name) ||
+              (step === 2 && (!company.slug || !!slugError || validatingSlug)) ||
+              (step === 3 && !isBusinessDetailsValid(businessDetails))
+            }
             className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#2563EB]/90 disabled:opacity-50 transition-colors">
-            {step === 6 ? 'Acessar o painel' : 'Continuar'}
+            {step === 7 ? 'Acessar o painel' : 'Continuar'}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
