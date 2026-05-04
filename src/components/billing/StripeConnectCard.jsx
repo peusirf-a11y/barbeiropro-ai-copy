@@ -46,6 +46,7 @@ export default function StripeConnectCard({ company }) {
 
   const errorMsg = connectMutation.error?.message || '';
   const isConnectNotEnabled = errorMsg.includes('signed up for Connect');
+  const isPlatformProfileMissing = errorMsg.includes('responsibilities of managing losses') || errorMsg.includes('platform-profile');
 
   const isConnected = status?.connected && status?.charges_enabled;
   const isPending = status?.connected && !status?.charges_enabled;
@@ -129,6 +130,19 @@ export default function StripeConnectCard({ company }) {
                 <li>Acessar <a href="https://dashboard.stripe.com/connect/overview" target="_blank" rel="noopener noreferrer" className="font-semibold underline">dashboard.stripe.com/connect/overview</a></li>
                 <li>Clicar em "Get started" e ativar o Connect</li>
                 <li>Voltar aqui e tentar novamente</li>
+              </ol>
+            </>
+          ) : isPlatformProfileMissing ? (
+            <>
+              <div className="text-sm font-bold text-red-900 mb-1">Falta completar o perfil da plataforma no Stripe</div>
+              <p className="text-xs text-red-800 leading-relaxed mb-2">
+                O Stripe exige que o administrador da BarberTrimly preencha o perfil da plataforma e defina quem assume responsabilidade por perdas/chargebacks antes de criar contas conectadas. Passos:
+              </p>
+              <ol className="text-xs text-red-800 list-decimal pl-4 space-y-0.5 mb-2">
+                <li>Acessar <a href="https://dashboard.stripe.com/settings/connect/platform-profile" target="_blank" rel="noopener noreferrer" className="font-semibold underline">dashboard.stripe.com/settings/connect/platform-profile</a></li>
+                <li>Preencher o perfil (tipo de usuários, o que vendem, volume estimado)</li>
+                <li>Definir responsabilidade por perdas (geralmente a plataforma assume)</li>
+                <li>Salvar e tentar conectar novamente aqui</li>
               </ol>
             </>
           ) : (
