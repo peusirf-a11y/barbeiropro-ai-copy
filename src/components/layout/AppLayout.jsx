@@ -2,7 +2,7 @@ import { Link, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Menu, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import Logo from '@/components/Logo';
+import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';
 import ImpersonationBanner from '@/components/master/ImpersonationBanner';
 import BillingPastDueBanner from '@/components/billing/BillingPastDueBanner';
@@ -94,14 +94,8 @@ export default function AppLayout({ children }) {
   const SidebarContent = (
     <>
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
-        <Link to="/app/dashboard" className="flex items-center gap-3 group min-w-0">
-          <div className="w-10 h-10 bg-[#0B1020] rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(37,99,235,0.35)] transition-transform group-hover:scale-105 flex-shrink-0 overflow-hidden">
-            <Logo size={36} />
-          </div>
-          <div className="min-w-0">
-            <div className="font-bold text-[15px] text-white tracking-wider truncate">O CORTE</div>
-            <div className="text-[11px] text-gray-400 font-medium">Painel de gestão</div>
-          </div>
+        <Link to="/app/dashboard" className="group min-w-0 transition-transform group-hover:scale-[1.02]">
+          <BrandMark size={42} tone="dark" subtitle="Painel de gestão" />
         </Link>
         <button
           onClick={() => setOpen(false)}
@@ -137,11 +131,8 @@ export default function AppLayout({ children }) {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <Link to="/app/dashboard" className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 bg-[#0B1020] rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-            <Logo size={28} />
-          </div>
-          <span className="font-bold text-[15px] text-[#0F172A] tracking-wider truncate">O CORTE</span>
+        <Link to="/app/dashboard" className="min-w-0">
+          <BrandMark size={32} tone="light" />
         </Link>
         <div className="ml-auto"><UnitSwitcher /></div>
       </header>

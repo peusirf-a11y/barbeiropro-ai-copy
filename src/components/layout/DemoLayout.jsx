@@ -7,7 +7,7 @@ import {
   Calendar, Users, Briefcase, DollarSign, BarChart2, Zap,
   LayoutDashboard, Menu, X, Scissors,
 } from 'lucide-react';
-import Logo from '@/components/Logo';
+import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';
 
 const navItems = [
@@ -34,14 +34,8 @@ export default function DemoLayout({ children }) {
   const SidebarContent = (
     <>
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
-        <Link to="/demo/dashboard" className="flex items-center gap-3 group min-w-0">
-          <div className="w-10 h-10 bg-[#0B1020] rounded-xl flex items-center justify-center overflow-hidden shadow-[0_4px_12px_rgba(37,99,235,0.35)] transition-transform group-hover:scale-105 flex-shrink-0">
-            <Logo size={36} className="rounded-none" />
-          </div>
-          <div className="min-w-0">
-            <div className="font-bold text-[15px] text-white tracking-wider truncate">O CORTE</div>
-            <div className="text-[11px] text-gray-400 font-medium">Modo demonstração</div>
-          </div>
+        <Link to="/demo/dashboard" className="group min-w-0">
+          <BrandMark size={42} tone="dark" subtitle="Modo demonstração" />
         </Link>
         <button
           onClick={() => setOpen(false)}
@@ -76,11 +70,8 @@ export default function DemoLayout({ children }) {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <Link to="/demo/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#0B1020] rounded-lg flex items-center justify-center overflow-hidden">
-            <Logo size={28} className="rounded-none" />
-          </div>
-          <span className="font-bold text-[15px] text-[#0F172A] tracking-wider">O CORTE</span>
+        <Link to="/demo/dashboard">
+          <BrandMark size={32} tone="light" />
         </Link>
         <div className="w-9" />
       </header>

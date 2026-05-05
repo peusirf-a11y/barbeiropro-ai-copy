@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield } from 'lucide-react';
+import BrandMark from '@/components/BrandMark';
 import Logo from '@/components/Logo';
 
 const navItems = [
@@ -30,14 +31,14 @@ export default function MasterLayout() {
   const SidebarContent = (
     <>
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
-        <Link to="/master/dashboard" className="flex items-center gap-3 group min-w-0">
-          <div className="w-10 h-10 bg-[#0B1020] rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(37,99,235,0.35)] flex-shrink-0 overflow-hidden">
-            <Logo size={36} />
-          </div>
-          <div className="min-w-0">
-            <div className="font-bold text-[15px] text-white tracking-wider truncate">O CORTE</div>
-            <div className="text-[11px] text-gray-400 font-medium flex items-center gap-1">
-              <Shield className="w-3 h-3" /> Super Admin
+        <Link to="/master/dashboard" className="group min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Logo size={42} className="flex-shrink-0" />
+            <div className="min-w-0 leading-tight">
+              <div className="font-black tracking-[0.14em] truncate text-white" style={{ fontSize: 18 }}>O CORTE</div>
+              <div className="text-[11px] text-gray-400 font-medium flex items-center gap-1 mt-0.5">
+                <Shield className="w-3 h-3" /> Super Admin
+              </div>
             </div>
           </div>
         </Link>
@@ -97,9 +98,7 @@ export default function MasterLayout() {
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 bg-[#0B1020] rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-            <Logo size={28} />
-          </div>
+          <Logo size={30} className="flex-shrink-0" />
           <span className="font-bold text-[15px] text-[#0F172A] tracking-tight truncate">{pageTitle}</span>
         </div>
         <div className="w-9" />

@@ -20,8 +20,8 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full z-50 bg-[#2563EB] backdrop-blur border-b border-black/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Logo size={36} />
-            <span className="font-bold text-lg text-white tracking-wide">O CORTE</span>
+            <Logo size={40} />
+            <span className="font-black text-lg text-white tracking-[0.14em]">O CORTE</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/80">
             <a href="#funcionalidades" className="hover:text-white transition-colors">Funcionalidades</a>
@@ -247,8 +247,8 @@ export default function LandingPage() {
       <footer className="py-12 px-6 bg-[#111418]">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Logo size={28} />
-            <span className="font-bold text-white tracking-wide">O CORTE</span>
+            <Logo size={32} />
+            <span className="font-black text-white tracking-[0.14em]">O CORTE</span>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <Link to="/termos-de-uso" className="text-white/50 hover:text-white">Termos</Link>

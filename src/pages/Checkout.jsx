@@ -108,10 +108,8 @@ export default function Checkout() {
       <header className="bg-white border-b border-black/5 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#0B1020] rounded-lg flex items-center justify-center overflow-hidden">
-              <Logo size={28} className="rounded-none" />
-            </div>
-            <span className="font-bold text-[15px] text-[#0F172A] tracking-wider">O CORTE</span>
+            <Logo size={36} />
+            <span className="font-black text-[15px] text-[#0F172A] tracking-[0.14em]">O CORTE</span>
           </Link>
           <Link to="/" className="text-xs text-gray-500 hover:text-[#2563EB] flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Voltar
