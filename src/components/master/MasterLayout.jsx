@@ -32,13 +32,10 @@ export default function MasterLayout() {
     <>
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
         <Link to="/master/dashboard" className="group min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <Logo size={42} className="flex-shrink-0" />
-            <div className="min-w-0 leading-tight">
-              <div className="font-black tracking-[0.14em] truncate text-white" style={{ fontSize: 18 }}>O CORTE</div>
-              <div className="text-[11px] text-gray-400 font-medium flex items-center gap-1 mt-0.5">
-                <Shield className="w-3 h-3" /> Super Admin
-              </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <Logo size={40} className="flex-shrink-0" />
+            <div className="text-[11px] text-gray-400 font-medium flex items-center gap-1 hidden sm:flex">
+              <Shield className="w-3 h-3" /> Super Admin
             </div>
           </div>
         </Link>
@@ -98,7 +95,7 @@ export default function MasterLayout() {
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2 min-w-0">
-          <Logo size={30} className="flex-shrink-0" />
+          <Logo variant="icon" size={28} className="flex-shrink-0" />
           <span className="font-bold text-[15px] text-[#0F172A] tracking-tight truncate">{pageTitle}</span>
         </div>
         <div className="w-9" />

@@ -17,9 +17,8 @@ export default function CheckoutSuccess() {
     <div className="min-h-screen bg-[#F8F7F3] font-inter flex flex-col">
       <header className="bg-white border-b border-black/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center">
-          <Link to="/" className="flex items-center gap-2">
-            <Logo size={36} />
-            <span className="font-black text-[15px] text-[#0F172A] tracking-[0.14em]">O CORTE</span>
+          <Link to="/">
+            <Logo size={32} />
           </Link>
         </div>
       </header>

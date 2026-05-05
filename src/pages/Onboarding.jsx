@@ -174,9 +174,8 @@ export default function Onboarding() {
     <div className="min-h-screen bg-[#F8F7F3] flex flex-col lg:flex-row font-inter">
       {/* Sidebar */}
       <div className="w-full lg:w-72 bg-gradient-to-b from-[#2563EB] to-[#60A5FA] lg:min-h-screen p-6 lg:p-8 flex flex-col">
-        <div className="flex items-center gap-2 mb-6 lg:mb-12">
-          <Logo size={44} />
-          <span className="font-black text-white tracking-[0.14em] text-lg">O CORTE</span>
+        <div className="mb-6 lg:mb-12">
+          <Logo size={48} />
         </div>
         <div className="space-y-2 hidden lg:block">
           {STEPS.map(s => (
