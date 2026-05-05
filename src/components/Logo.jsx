@@ -1,29 +1,37 @@
-// Logo oficial "O CORTE" — SVG inline puro (sem dependência de PNG/JPG).
-// Garante nitidez perfeita em qualquer resolução e tema (claro/escuro).
+// Logo oficial "O CORTE" — SVG inline puro (vetor 100%, sem PNG/JPG).
+// Recriação fiel à arte original: emblema circular cromado/branco com clipper
+// vertical (máquina de cortar cabelo) ao centro, atravessado por uma linha
+// horizontal de "corte". Texto "O CORTE" ao lado.
 //
 // Variantes:
-//   variant="full"      (default) → símbolo circular + texto "O CORTE".
-//   variant="icon"               → ícone quadrado app-style (cantos arredondados),
-//                                   símbolo sobre fundo azul. Para favicon/mobile.
-//   variant="icon-bare"          → apenas o emblema circular branco, sem moldura.
+//   variant="full"      (default) → emblema + texto "O CORTE".
+//   variant="icon"               → ícone quadrado app-style (fundo azul).
+//   variant="icon-bare"          → apenas o emblema circular, sem moldura.
 //
-// API: <Logo size={48} />                    → full, altura=48px, largura auto
-//      <Logo variant="icon" size={48} />     → icon 48x48
-//      <Logo variant="icon-bare" size={48}/> → emblema 48x48
+// Props:
+//   size  (number)   altura do emblema em px (default 44).
+//   tone  ('dark'|'light')  cor do texto. dark→branco (sobre fundo escuro/azul);
+//                                          light→preto (sobre fundo claro).
 //
-// Cores fixas:
-//   Fundo do emblema:  #FFFFFF
-//   Símbolo interno:   #2563EB (azul O CORTE)
-//   Texto "O CORTE":   tone="dark" → #FFFFFF | tone="light" → #0F172A
-//
-// Sem <img>, sem fallback de rede — vetor 100% inline.
+// Cores oficiais:
+//   Base do emblema:  branco com gradiente cromado sutil
+//   Borda do emblema: #2563EB
+//   Clipper:          gradiente azul (#1D4ED8 → #2563EB → #60A5FA)
+//   Linha de corte:   #2563EB
 
 const BLUE = '#2563EB';
 const BLUE_DARK = '#1D4ED8';
+const BLUE_LIGHT = '#60A5FA';
 const WHITE = '#FFFFFF';
+const SILVER = '#E5E7EB';
 
-// Emblema circular: círculo branco + tesoura/máquina estilizada em azul + linha de corte.
+// Gera IDs únicos por instância para evitar conflito de <defs> em múltiplas logos na mesma página.
+let _uid = 0;
+const nextUid = () => `oc-${++_uid}`;
+
+// Emblema: círculo branco/cromado + clipper vertical azul + linha horizontal de corte.
 function Emblem({ size = 48 }) {
+  const id = nextUid();
   return (
     <svg
       width={size}
@@ -34,35 +42,93 @@ function Emblem({ size = 48 }) {
       aria-label="O CORTE"
       className="block"
     >
-      {/* Base circular branca com leve borda azul */}
-      <circle cx="50" cy="50" r="48" fill={WHITE} stroke={BLUE} strokeWidth="2" />
+      <defs>
+        {/* Gradiente cromado do círculo base */}
+        <radialGradient id={`${id}-chrome`} cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="70%" stopColor="#F8FAFC" />
+          <stop offset="100%" stopColor="#E5E7EB" />
+        </radialGradient>
+        {/* Gradiente azul do clipper */}
+        <linearGradient id={`${id}-blue`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={BLUE_LIGHT} />
+          <stop offset="50%" stopColor={BLUE} />
+          <stop offset="100%" stopColor={BLUE_DARK} />
+        </linearGradient>
+        {/* Brilho prateado da lâmina/pente */}
+        <linearGradient id={`${id}-silver`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#F1F5F9" />
+          <stop offset="100%" stopColor="#94A3B8" />
+        </linearGradient>
+      </defs>
 
-      {/* Linha horizontal de "corte" atravessando o círculo */}
+      {/* Base circular cromada */}
+      <circle cx="50" cy="50" r="48" fill={`url(#${id}-chrome)`} stroke={BLUE} strokeWidth="2" />
+
+      {/* CLIPPER VERTICAL — geometria fiel à referência */}
+      {/* Lâmina/pente superior (dentes do pente) */}
+      <g>
+        <rect x="38" y="18" width="24" height="4" rx="1" fill={`url(#${id}-silver)`} />
+        {/* Dentes do pente */}
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <rect
+            key={i}
+            x={39 + i * 2.8}
+            y="14"
+            width="1.6"
+            height="5"
+            rx="0.4"
+            fill="#CBD5E1"
+          />
+        ))}
+        {/* Suporte da lâmina */}
+        <rect x="40" y="22" width="20" height="3" rx="0.5" fill={BLUE_DARK} />
+      </g>
+
+      {/* Corpo principal do clipper (retangular com cantos arredondados) */}
+      <rect
+        x="36"
+        y="25"
+        width="28"
+        height="42"
+        rx="3"
+        fill={`url(#${id}-blue)`}
+        stroke={BLUE_DARK}
+        strokeWidth="0.8"
+      />
+
+      {/* Botão/chave de regulagem central */}
+      <circle cx="50" cy="38" r="3.2" fill={WHITE} stroke={BLUE_DARK} strokeWidth="0.6" />
+      <circle cx="50" cy="38" r="1.4" fill={BLUE_DARK} />
+
+      {/* Detalhe horizontal abaixo do botão */}
+      <rect x="40" y="46" width="20" height="1.5" rx="0.5" fill={BLUE_DARK} opacity="0.5" />
+      <rect x="40" y="50" width="20" height="1.5" rx="0.5" fill={BLUE_DARK} opacity="0.4" />
+
+      {/* Cabo inferior afilado */}
       <path
-        d="M 8 50 L 92 50"
+        d="M 40 67 L 60 67 L 56 80 L 44 80 Z"
+        fill={`url(#${id}-blue)`}
+        stroke={BLUE_DARK}
+        strokeWidth="0.6"
+      />
+      {/* Ponta do cabo */}
+      <path d="M 46 80 L 50 84 L 54 80 Z" fill={BLUE_DARK} />
+
+      {/* LINHA HORIZONTAL DE CORTE — atravessa todo o círculo, por cima de tudo */}
+      <line
+        x1="4"
+        y1="50"
+        x2="96"
+        y2="50"
         stroke={BLUE}
-        strokeWidth="2.5"
+        strokeWidth="1.8"
         strokeLinecap="round"
+        opacity="0.85"
       />
 
-      {/* Símbolo central: máquina de corte estilizada (vertical) */}
-      {/* Corpo principal */}
-      <path
-        d="M 42 28 L 58 28 L 58 64 L 50 72 L 42 64 Z"
-        fill={BLUE}
-      />
-      {/* Lâmina superior */}
-      <path
-        d="M 40 24 L 60 24 L 60 30 L 40 30 Z"
-        fill={BLUE_DARK}
-      />
-      {/* Detalhe central (botão) */}
-      <circle cx="50" cy="46" r="3" fill={WHITE} />
-      {/* Ponta inferior */}
-      <path
-        d="M 46 72 L 50 78 L 54 72 Z"
-        fill={BLUE_DARK}
-      />
+      {/* Brilho sutil no topo do círculo (highlight cromado) */}
+      <ellipse cx="42" cy="22" rx="18" ry="6" fill="#FFFFFF" opacity="0.45" />
     </svg>
   );
 }
@@ -72,28 +138,12 @@ export default function Logo({ size = 44, variant = 'full', tone = 'dark', class
   if (variant === 'icon') {
     return (
       <span
-        className={`inline-flex items-center justify-center ${className}`}
-        style={{ width: size, height: size }}
+        className={`inline-flex items-center justify-center rounded-[22%] ${className}`}
+        style={{ width: size, height: size, background: BLUE }}
       >
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 100 100"
-          xmlns="http://www.w3.org/2000/svg"
-          role="img"
-          aria-label="O CORTE"
-          className="block"
-        >
-          <rect width="100" height="100" rx="22" fill={BLUE} />
-          <g transform="translate(14 14) scale(0.72)">
-            <circle cx="50" cy="50" r="48" fill={WHITE} />
-            <path d="M 8 50 L 92 50" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" />
-            <path d="M 42 28 L 58 28 L 58 64 L 50 72 L 42 64 Z" fill={BLUE} />
-            <path d="M 40 24 L 60 24 L 60 30 L 40 30 Z" fill={BLUE_DARK} />
-            <circle cx="50" cy="46" r="3" fill={WHITE} />
-            <path d="M 46 72 L 50 78 L 54 72 Z" fill={BLUE_DARK} />
-          </g>
-        </svg>
+        <span style={{ width: size * 0.78, height: size * 0.78 }}>
+          <Emblem size={size * 0.78} />
+        </span>
       </span>
     );
   }
@@ -107,11 +157,11 @@ export default function Logo({ size = 44, variant = 'full', tone = 'dark', class
     );
   }
 
-  // FULL: emblema + texto "O CORTE" ao lado
+  // FULL: emblema + texto "O CORTE"
   const textColor = tone === 'light' ? '#0F172A' : '#FFFFFF';
   const subColor = tone === 'light' ? '#64748B' : 'rgba(255,255,255,0.7)';
   const fontSize = Math.round(size * 0.46);
-  const subFontSize = Math.round(size * 0.20);
+  const subFontSize = Math.max(9, Math.round(size * 0.20));
 
   return (
     <span
