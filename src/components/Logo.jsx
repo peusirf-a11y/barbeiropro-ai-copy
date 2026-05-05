@@ -1,67 +1,139 @@
-// Logo oficial "O CORTE" — versões em fundo escuro (alta presença visual).
+// Logo oficial "O CORTE" — SVG inline puro (sem dependência de PNG/JPG).
+// Garante nitidez perfeita em qualquer resolução e tema (claro/escuro).
 //
 // Variantes:
-//   variant="full"      (default) → logo completo: símbolo + texto "O CORTE".
-//                                   Use em sidebars dark, landing, headers grandes.
-//   variant="icon"               → ícone quadrado app-style (cantos arredondados).
-//                                   Use em favicons, mobile compacto.
-//   variant="icon-bare"          → símbolo isolado (sem moldura). Use em
-//                                   contextos onde já existe um container.
+//   variant="full"      (default) → símbolo circular + texto "O CORTE".
+//   variant="icon"               → ícone quadrado app-style (cantos arredondados),
+//                                   símbolo sobre fundo azul. Para favicon/mobile.
+//   variant="icon-bare"          → apenas o emblema circular branco, sem moldura.
 //
-// API: <Logo size={44} />                    → full, height=44px, width auto
-//      <Logo variant="icon" size={32} />     → icon 32x32
-//      <Logo variant="icon-bare" size={36}/> → símbolo bare 36x36
+// API: <Logo size={48} />                    → full, altura=48px, largura auto
+//      <Logo variant="icon" size={48} />     → icon 48x48
+//      <Logo variant="icon-bare" size={48}/> → emblema 48x48
 //
-// Tamanhos recomendados:
-//   Desktop sidebar/header:  40–44px
-//   Mobile header:           28–32px
-//   Favicon:                 32px (icon)
+// Cores fixas:
+//   Fundo do emblema:  #FFFFFF
+//   Símbolo interno:   #2563EB (azul O CORTE)
+//   Texto "O CORTE":   tone="dark" → #FFFFFF | tone="light" → #0F172A
 //
-// Fallback automático: se a imagem falhar, mostra círculo azul "OC".
+// Sem <img>, sem fallback de rede — vetor 100% inline.
 
-import { useState } from 'react';
+const BLUE = '#2563EB';
+const BLUE_DARK = '#1D4ED8';
+const WHITE = '#FFFFFF';
 
-const LOGO_FULL_URL  = 'https://media.base44.com/images/public/69edf956c00a8a48c1e17cd6/ba7649f34_generated_image.png';
-const LOGO_ICON_URL  = 'https://media.base44.com/images/public/69edf956c00a8a48c1e17cd6/c93bed24f_generated_image.png';
-const LOGO_BARE_URL  = 'https://media.base44.com/images/public/69edf956c00a8a48c1e17cd6/979797c5f_generated_image.png';
+// Emblema circular: círculo branco + tesoura/máquina estilizada em azul + linha de corte.
+function Emblem({ size = 48 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="O CORTE"
+      className="block"
+    >
+      {/* Base circular branca com leve borda azul */}
+      <circle cx="50" cy="50" r="48" fill={WHITE} stroke={BLUE} strokeWidth="2" />
 
-export default function Logo({ size = 44, variant = 'full', className = '' }) {
-  const [error, setError] = useState(false);
-  const isSquare = variant === 'icon' || variant === 'icon-bare';
+      {/* Linha horizontal de "corte" atravessando o círculo */}
+      <path
+        d="M 8 50 L 92 50"
+        stroke={BLUE}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
 
-  if (error) {
+      {/* Símbolo central: máquina de corte estilizada (vertical) */}
+      {/* Corpo principal */}
+      <path
+        d="M 42 28 L 58 28 L 58 64 L 50 72 L 42 64 Z"
+        fill={BLUE}
+      />
+      {/* Lâmina superior */}
+      <path
+        d="M 40 24 L 60 24 L 60 30 L 40 30 Z"
+        fill={BLUE_DARK}
+      />
+      {/* Detalhe central (botão) */}
+      <circle cx="50" cy="46" r="3" fill={WHITE} />
+      {/* Ponta inferior */}
+      <path
+        d="M 46 72 L 50 78 L 54 72 Z"
+        fill={BLUE_DARK}
+      />
+    </svg>
+  );
+}
+
+export default function Logo({ size = 44, variant = 'full', tone = 'dark', className = '' }) {
+  // ICON: emblema sobre quadrado azul arredondado (estilo app icon)
+  if (variant === 'icon') {
     return (
       <span
-        className={`inline-flex items-center justify-center rounded-full bg-[#2563EB] text-white font-black tracking-tight ${className}`}
-        style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
-        aria-label="O CORTE"
-        role="img"
+        className={`inline-flex items-center justify-center ${className}`}
+        style={{ width: size, height: size }}
       >
-        OC
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 100 100"
+          xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="O CORTE"
+          className="block"
+        >
+          <rect width="100" height="100" rx="22" fill={BLUE} />
+          <g transform="translate(14 14) scale(0.72)">
+            <circle cx="50" cy="50" r="48" fill={WHITE} />
+            <path d="M 8 50 L 92 50" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M 42 28 L 58 28 L 58 64 L 50 72 L 42 64 Z" fill={BLUE} />
+            <path d="M 40 24 L 60 24 L 60 30 L 40 30 Z" fill={BLUE_DARK} />
+            <circle cx="50" cy="46" r="3" fill={WHITE} />
+            <path d="M 46 72 L 50 78 L 54 72 Z" fill={BLUE_DARK} />
+          </g>
+        </svg>
       </span>
     );
   }
 
-  let src;
-  if (variant === 'icon') src = LOGO_ICON_URL;
-  else if (variant === 'icon-bare') src = LOGO_BARE_URL;
-  else src = LOGO_FULL_URL;
+  // ICON-BARE: apenas o emblema isolado
+  if (variant === 'icon-bare') {
+    return (
+      <span className={`inline-flex ${className}`} style={{ width: size, height: size }}>
+        <Emblem size={size} />
+      </span>
+    );
+  }
 
-  // Square (icon/bare): área quadrada fixa.
-  // Full: altura controlada, largura automática — preserva proporção.
-  const style = isSquare
-    ? { width: size, height: size, objectFit: 'contain' }
-    : { height: size, width: 'auto', objectFit: 'contain' };
+  // FULL: emblema + texto "O CORTE" ao lado
+  const textColor = tone === 'light' ? '#0F172A' : '#FFFFFF';
+  const subColor = tone === 'light' ? '#64748B' : 'rgba(255,255,255,0.7)';
+  const fontSize = Math.round(size * 0.46);
+  const subFontSize = Math.round(size * 0.20);
 
   return (
-    <img
-      src={src}
-      alt="O CORTE"
-      onError={() => setError(true)}
-      loading="eager"
-      className={`block select-none ${className}`}
-      style={style}
-      draggable={false}
-    />
+    <span
+      className={`inline-flex items-center gap-2.5 ${className}`}
+      aria-label="O CORTE"
+      role="img"
+    >
+      <Emblem size={size} />
+      <span className="flex flex-col leading-none select-none" style={{ height: size, justifyContent: 'center' }}>
+        <span
+          className="font-black tracking-tight"
+          style={{ color: textColor, fontSize, letterSpacing: '-0.02em', lineHeight: 1 }}
+        >
+          O CORTE
+        </span>
+        <span
+          className="font-semibold uppercase mt-1"
+          style={{ color: subColor, fontSize: subFontSize, letterSpacing: '0.18em', lineHeight: 1 }}
+        >
+          Barbearia
+        </span>
+      </span>
+    </span>
   );
 }
