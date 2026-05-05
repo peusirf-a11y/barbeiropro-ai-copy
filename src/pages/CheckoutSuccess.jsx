@@ -18,7 +18,7 @@ export default function CheckoutSuccess() {
       <header className="bg-white border-b border-black/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center">
           <Link to="/">
-            <Logo size={36} />
+            <Logo size={32} />
           </Link>
         </div>
       </header>
