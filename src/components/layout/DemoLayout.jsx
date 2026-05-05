@@ -35,11 +35,11 @@ export default function DemoLayout({ children }) {
     <>
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
         <Link to="/demo/dashboard" className="flex items-center gap-3 group min-w-0">
-          <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center overflow-hidden shadow-[0_4px_12px_rgba(37,99,235,0.35)] transition-transform group-hover:scale-105 flex-shrink-0">
-            <Logo size={40} className="rounded-none" />
+          <div className="w-10 h-10 bg-[#0B1020] rounded-xl flex items-center justify-center overflow-hidden shadow-[0_4px_12px_rgba(37,99,235,0.35)] transition-transform group-hover:scale-105 flex-shrink-0">
+            <Logo size={36} className="rounded-none" />
           </div>
           <div className="min-w-0">
-            <div className="font-bold text-[15px] text-white tracking-tight truncate">BarberTrimly</div>
+            <div className="font-bold text-[15px] text-white tracking-wider truncate">O CORTE</div>
             <div className="text-[11px] text-gray-400 font-medium">Modo demonstração</div>
           </div>
         </Link>
@@ -77,10 +77,10 @@ export default function DemoLayout({ children }) {
           <Menu className="w-5 h-5" />
         </button>
         <Link to="/demo/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center overflow-hidden">
-            <Logo size={32} className="rounded-none" />
+          <div className="w-8 h-8 bg-[#0B1020] rounded-lg flex items-center justify-center overflow-hidden">
+            <Logo size={28} className="rounded-none" />
           </div>
-          <span className="font-bold text-[15px] text-[#0F172A] tracking-tight">BarberTrimly</span>
+          <span className="font-bold text-[15px] text-[#0F172A] tracking-wider">O CORTE</span>
         </Link>
         <div className="w-9" />
       </header>
