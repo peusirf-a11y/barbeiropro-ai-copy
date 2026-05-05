@@ -108,7 +108,7 @@ export default function Checkout() {
       <header className="bg-white border-b border-black/5 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link to="/">
-            <Logo size={32} />
+            <Logo size={36} />
           </Link>
           <Link to="/" className="text-xs text-gray-500 hover:text-[#2563EB] flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Voltar

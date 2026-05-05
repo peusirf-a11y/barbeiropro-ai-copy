@@ -35,7 +35,7 @@ export default function DemoLayout({ children }) {
     <>
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
         <Link to="/demo/dashboard" className="group min-w-0">
-          <BrandMark size={42} tone="dark" subtitle="Modo demonstração" />
+          <BrandMark size={44} tone="dark" subtitle="Modo demonstração" />
         </Link>
         <button
           onClick={() => setOpen(false)}
@@ -71,7 +71,7 @@ export default function DemoLayout({ children }) {
           <Menu className="w-5 h-5" />
         </button>
         <Link to="/demo/dashboard">
-          <BrandMark size={32} tone="light" />
+          <BrandMark size={30} tone="light" />
         </Link>
         <div className="w-9" />
       </header>
