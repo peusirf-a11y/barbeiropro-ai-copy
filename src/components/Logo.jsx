@@ -16,9 +16,9 @@
 
 import { useState } from 'react';
 
-const LOGO_FULL_URL      = 'https://media.base44.com/images/public/69edf956c00a8a48c1e17cd6/0b36a7ed8_IMG_20260505_192944.png';
-const LOGO_ICON_LIGHT    = 'https://media.base44.com/images/public/69edf956c00a8a48c1e17cd6/6379bc864_IMG_20260505_193020.png';
-const LOGO_ICON_DARK     = 'https://media.base44.com/images/public/69edf956c00a8a48c1e17cd6/fe3daa542_IMG_20260505_193002.png';
+const LOGO_FULL_URL      = 'https://media.base44.com/images/public/69edf956c00a8a48c1e17cd6/65d557ec3_generated_image.png';
+const LOGO_ICON_LIGHT    = 'https://media.base44.com/images/public/69edf956c00a8a48c1e17cd6/a51a90ed6_generated_image.png';
+const LOGO_ICON_DARK     = 'https://media.base44.com/images/public/69edf956c00a8a48c1e17cd6/a51a90ed6_generated_image.png';
 
 export default function Logo({ size = 40, variant = 'full', className = '' }) {
   const [error, setError] = useState(false);
