@@ -113,14 +113,14 @@ Deno.serve(async (req) => {
         const accessLink = 'https://barbertrimly.base44.app/app/dashboard';
         const firstName = (ownerName || '').split(' ')[0] || 'tudo certo';
         const subject = isNewAccount
-          ? `Bem-vindo ao BarberTrimly, ${firstName}! 💈`
-          : `Sua assinatura BarberTrimly foi atualizada`;
+          ? `Bem-vindo ao O CORTE, ${firstName}! 💈`
+          : `Sua assinatura O CORTE foi atualizada`;
 
         const html = `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#F8F7F3;color:#0F172A;">
   <div style="background:#fff;border-radius:16px;padding:32px 28px;border:1px solid rgba(0,0,0,0.06);">
     <div style="background:linear-gradient(135deg,#2563EB 0%,#60A5FA 100%);border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-      <div style="color:#fff;font-size:22px;font-weight:900;letter-spacing:-0.02em;">BarberTrimly 💈</div>
+      <div style="color:#fff;font-size:22px;font-weight:900;letter-spacing:0.06em;">O CORTE 💈</div>
       <div style="color:rgba(255,255,255,0.85);font-size:13px;margin-top:4px;">Plano ${planName} · 7 dias grátis</div>
     </div>
     <h1 style="font-size:22px;font-weight:900;margin:0 0 12px;letter-spacing:-0.02em;">Olá ${ownerName || 'tudo certo'}, sua conta está pronta!</h1>
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     </p>
   </div>
   <p style="color:#94A3B8;font-size:11px;text-align:center;margin-top:16px;">
-    © ${new Date().getFullYear()} BarberTrimly · parte do TurboSaaS
+    © ${new Date().getFullYear()} O CORTE
   </p>
 </div>`.trim();
 
@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
           to: email,
           subject,
           body: html,
-          from_name: 'BarberTrimly',
+          from_name: 'O CORTE',
           type: 'welcome',
           company_id: companyForLog?.id || null,
           metadata: { plan_name: planName, is_new_account: isNewAccount, stripe_session_id: session.id },

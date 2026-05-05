@@ -67,7 +67,7 @@ const ROLE_LABELS = {
 
 function buildInviteEmail({ inviteeName, companyName, role, appUrl }) {
   const roleLabel = ROLE_LABELS[role] || role;
-  const subject = `Convite para a equipe ${companyName} no BarberTrimly`;
+  const subject = `Convite para a equipe ${companyName} no O CORTE`;
   const body = `
 <!DOCTYPE html>
 <html>
@@ -75,7 +75,7 @@ function buildInviteEmail({ inviteeName, companyName, role, appUrl }) {
   <div style="max-width:560px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
     <div style="background:linear-gradient(135deg,#2563EB 0%,#60A5FA 100%);padding:32px 28px;color:white;">
       <div style="font-size:13px;font-weight:600;opacity:0.85;letter-spacing:0.06em;text-transform:uppercase;">Convite de equipe</div>
-      <div style="font-size:24px;font-weight:800;margin-top:6px;">Você foi convidado para o BarberTrimly</div>
+      <div style="font-size:24px;font-weight:800;margin-top:6px;letter-spacing:0.04em;">Você foi convidado para O CORTE</div>
     </div>
     <div style="padding:28px;color:#1B1C1E;line-height:1.55;font-size:15px;">
       <p>Olá <strong>${inviteeName}</strong>,</p>
@@ -91,7 +91,7 @@ function buildInviteEmail({ inviteeName, companyName, role, appUrl }) {
       </p>
       <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0;" />
       <p style="color:#9CA3AF;font-size:12px;margin:0;">
-        BarberTrimly · Sistema de gestão para barbearias<br/>
+        O CORTE · Sistema de gestão para barbearias<br/>
         Este convite foi enviado por um administrador de ${companyName}.
       </p>
     </div>

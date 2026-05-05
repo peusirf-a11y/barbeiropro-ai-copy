@@ -21,7 +21,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Logo size={36} />
-            <span className="font-bold text-lg text-white">BarberTrimly</span>
+            <span className="font-bold text-lg text-white tracking-wide">O CORTE</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/80">
             <a href="#funcionalidades" className="hover:text-white transition-colors">Funcionalidades</a>
@@ -126,7 +126,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-[#1B1C1E] mb-4">Como funciona</h2>
-            <p className="text-gray-500 text-lg">Em minutos, sua barbearia está operando com o BarberTrimly</p>
+            <p className="text-gray-500 text-lg">Em minutos, sua barbearia está operando com O CORTE</p>
           </div>
           <div className="grid md:grid-cols-4 gap-8">
             {[
@@ -233,7 +233,7 @@ export default function LandingPage() {
       <section className="py-24 px-6 bg-gradient-to-r from-[#2563EB] to-[#60A5FA]">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Pronto para transformar sua barbearia?</h2>
-          <p className="text-white/80 text-lg mb-10">Explore a demo completa e veja como o BarberTrimly funciona na prática.</p>
+          <p className="text-white/80 text-lg mb-10">Explore a demo completa e veja como O CORTE funciona na prática.</p>
           <Link to="/checkout">
             <Button size="lg" className="bg-white text-[#2563EB] hover:bg-white/90 px-10 py-4 text-base font-bold h-auto">
               Começar agora — 7 dias grátis
@@ -248,13 +248,12 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Logo size={28} />
-            <span className="font-bold text-white">BarberTrimly</span>
-            <span className="text-white/30 text-sm ml-2">parte do TurboSaaS</span>
+            <span className="font-bold text-white tracking-wide">O CORTE</span>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <Link to="/termos-de-uso" className="text-white/50 hover:text-white">Termos</Link>
             <Link to="/politica-de-privacidade" className="text-white/50 hover:text-white">Privacidade</Link>
-            <span className="text-white/40">© 2026 BarberTrimly</span>
+            <span className="text-white/40">© 2026 O CORTE</span>
           </div>
         </div>
       </footer>

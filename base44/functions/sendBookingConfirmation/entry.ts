@@ -44,7 +44,7 @@ function buildEmailHtml({ customerName, companyName, serviceName, professionalNa
 
       <p style="font-size:12px;color:#888;text-align:center;margin:24px 0 0;line-height:1.5;">Caso precise remarcar ou cancelar, entre em contato com a barbearia.<br>Te esperamos!</p>
     </div>
-    <p style="font-size:11px;color:#aaa;text-align:center;margin-top:16px;">Enviado por ${companyName} via BarbeiroPro AI</p>
+    <p style="font-size:11px;color:#aaa;text-align:center;margin-top:16px;">Enviado por ${companyName} via O CORTE</p>
   </div>
 </body>
 </html>`;

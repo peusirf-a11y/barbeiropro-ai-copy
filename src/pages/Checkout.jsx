@@ -108,10 +108,10 @@ export default function Checkout() {
       <header className="bg-white border-b border-black/5 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center overflow-hidden">
-              <Logo size={32} className="rounded-none" />
+            <div className="w-8 h-8 bg-[#0B1020] rounded-lg flex items-center justify-center overflow-hidden">
+              <Logo size={28} className="rounded-none" />
             </div>
-            <span className="font-bold text-[15px] text-[#0F172A]">BarberTrimly</span>
+            <span className="font-bold text-[15px] text-[#0F172A] tracking-wider">O CORTE</span>
           </Link>
           <Link to="/" className="text-xs text-gray-500 hover:text-[#2563EB] flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Voltar
@@ -127,7 +127,7 @@ export default function Checkout() {
               <Zap className="w-3 h-3" /> 7 dias grátis · Cancele quando quiser
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-[#0F172A] leading-tight mb-3">
-              Comece a usar o BarberTrimly hoje
+              Comece a usar O CORTE hoje
             </h1>
             <p className="text-gray-500 mb-8">
               Cadastre sua barbearia, escolha o plano e ganhe <strong>7 dias grátis</strong>. Você só é cobrado depois desse período.
@@ -138,7 +138,7 @@ export default function Checkout() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Plano selecionado</div>
-                  <div className="text-xl font-black text-[#0F172A]">BarberTrimly {plan.name}</div>
+                  <div className="text-xl font-black text-[#0F172A]">O CORTE · {plan.name}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-black text-[#0F172A]">R${plan.price}</div>

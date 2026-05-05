@@ -835,7 +835,7 @@ export default function PublicBooking() {
       </div>
 
       <footer className="bg-white border-t border-black/10 py-4 text-center">
-        <p className="text-xs text-gray-400">Agendamento online por <span className="font-semibold text-[#2563EB]">BarberTrimly</span></p>
+        <p className="text-xs text-gray-400">Agendamento online por <span className="font-semibold text-[#2563EB] tracking-wider">O CORTE</span></p>
       </footer>
     </div>
   );

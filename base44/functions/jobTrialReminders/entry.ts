@@ -13,14 +13,14 @@ function buildEmail({ ownerName, businessName, planName, daysLeft, manageUrl }) 
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#F8F7F3;color:#0F172A;">
   <div style="background:#fff;border-radius:16px;padding:32px 28px;border:1px solid rgba(0,0,0,0.06);">
     <div style="background:linear-gradient(135deg,#2563EB 0%,#60A5FA 100%);border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-      <div style="color:#fff;font-size:22px;font-weight:900;">BarberTrimly 💈</div>
+      <div style="color:#fff;font-size:22px;font-weight:900;letter-spacing:0.06em;">O CORTE 💈</div>
       <div style="color:rgba(255,255,255,0.85);font-size:13px;margin-top:4px;">Plano ${planName}</div>
     </div>
     <h1 style="font-size:22px;font-weight:900;margin:0 0 12px;">
       ${daysLeft === 1 ? `Seu teste termina amanhã, ${firstName}!` : `Faltam ${daysLeft} dias, ${firstName}`}
     </h1>
     <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 16px;">
-      Seu período grátis no BarberTrimly está acabando. Não perca seus clientes — continue usando o sistema sem interrupção.
+      Seu período grátis no O CORTE está acabando. Não perca seus clientes — continue usando o sistema sem interrupção.
     </p>
     <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 20px;">
       <strong>${businessName}</strong> já está configurada e funcionando. Tudo que você precisa fazer é manter seu cartão atualizado.
@@ -41,7 +41,7 @@ function buildEmail({ ownerName, businessName, planName, daysLeft, manageUrl }) 
       Dúvidas? Responda este email.
     </p>
   </div>
-  <p style="color:#94A3B8;font-size:11px;text-align:center;margin-top:16px;">© ${new Date().getFullYear()} BarberTrimly</p>
+  <p style="color:#94A3B8;font-size:11px;text-align:center;margin-top:16px;">© ${new Date().getFullYear()} O CORTE</p>
 </div>`.trim();
 
   return { subject, html };
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
           to: c.owner_email,
           subject,
           body: html,
-          from_name: 'BarberTrimly',
+          from_name: 'O CORTE',
           type: target === 3 ? 'trial_reminder_d3' : 'trial_reminder_d1',
           company_id: c.id,
           metadata: { plan_name: c.plan_name, days_left: target },
