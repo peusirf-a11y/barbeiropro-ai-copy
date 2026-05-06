@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
 
     return Response.json({
       can_accept_payments: !!c.stripe_connect_charges_enabled,
+      pix_enabled: !!c.stripe_connect_pix_enabled,
       status: c.stripe_connect_status || null,
       has_account: !!c.stripe_connect_account_id,
     });

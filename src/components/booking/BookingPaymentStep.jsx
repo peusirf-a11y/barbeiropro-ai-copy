@@ -24,9 +24,10 @@ function maskCpf(value) {
     .replace(/\.(\d{3})(\d)/, '.$1-$2');
 }
 
-export default function BookingPaymentStep({ payload, primaryColor, onBack, onSucceeded }) {
+export default function BookingPaymentStep({ payload, primaryColor, pixEnabled = true, onBack, onSucceeded }) {
   const [stage, setStage] = useState('choose');
-  const [method, setMethod] = useState('pix');
+  // Se a barbearia ainda não ativou Pix na Stripe, força cartão como único método.
+  const [method, setMethod] = useState(pixEnabled ? 'pix' : 'card');
   const [cpf, setCpf] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [intentData, setIntentData] = useState(null); // { client_secret, payment_intent_id, appointment_id, expires_at, pix, stripe_account }
@@ -85,24 +86,35 @@ export default function BookingPaymentStep({ payload, primaryColor, onBack, onSu
         <div className="space-y-3">
           <div className="bg-white rounded-2xl border border-black/8 p-4">
             <div className="text-[11px] uppercase font-bold text-gray-500 tracking-wide mb-3">Como pagar</div>
-            <div className="grid grid-cols-2 gap-2">
+            {pixEnabled ? (
+              <div className="grid grid-cols-2 gap-2">
+                <MethodOption
+                  active={method === 'pix'}
+                  primaryColor={primaryColor}
+                  onClick={() => setMethod('pix')}
+                  icon={QrCode}
+                  title="Pix"
+                  subtitle="Aprovação na hora"
+                />
+                <MethodOption
+                  active={method === 'card'}
+                  primaryColor={primaryColor}
+                  onClick={() => setMethod('card')}
+                  icon={CreditCard}
+                  title="Cartão"
+                  subtitle="Crédito ou débito"
+                />
+              </div>
+            ) : (
               <MethodOption
-                active={method === 'pix'}
-                primaryColor={primaryColor}
-                onClick={() => setMethod('pix')}
-                icon={QrCode}
-                title="Pix"
-                subtitle="Aprovação na hora"
-              />
-              <MethodOption
-                active={method === 'card'}
+                active
                 primaryColor={primaryColor}
                 onClick={() => setMethod('card')}
                 icon={CreditCard}
-                title="Cartão"
-                subtitle="Crédito ou débito"
+                title="Cartão de crédito ou débito"
+                subtitle="Pagamento seguro processado pela Stripe"
               />
-            </div>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl border border-black/8 p-4">

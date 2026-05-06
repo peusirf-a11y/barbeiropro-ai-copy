@@ -60,6 +60,7 @@ export default function PublicBooking() {
     enabled: !!company?.id,
   });
   const canAcceptPayments = !!connectStatus?.can_accept_payments;
+  const pixEnabled = !!connectStatus?.pix_enabled;
 
   // Auth do cliente final (área pública). Quando logado, podemos detectar
   // assinatura e oferecer "usar plano" no momento da confirmação.
@@ -827,6 +828,7 @@ export default function PublicBooking() {
           <BookingPaymentStep
             payload={buildBookingPayload()}
             primaryColor={primaryColor}
+            pixEnabled={pixEnabled}
             onBack={() => setStep(3)}
             onSucceeded={(intent) => setBookingDone({ appointment_id: intent.appointment_id, paid_online: true })}
           />

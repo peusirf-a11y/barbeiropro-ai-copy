@@ -186,6 +186,11 @@
       "default": false,
       "description": "Se a conta conectada j\u00e1 pode receber payouts."
     },
+    "stripe_connect_pix_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a capability pix_payments est\u00e1 ativa na conta Connect. Pix em contas BR Express precisa ser ativado manualmente pelo dono no Stripe Express Dashboard."
+    },
     "whatsapp_settings": {
       "type": "object",
       "properties": {

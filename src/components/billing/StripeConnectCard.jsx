@@ -50,6 +50,7 @@ export default function StripeConnectCard({ company }) {
 
   const isConnected = status?.connected && status?.charges_enabled;
   const isPending = status?.connected && !status?.charges_enabled;
+  const pixMissing = isConnected && status?.pix_enabled === false;
 
   return (
     <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
@@ -115,12 +116,41 @@ export default function StripeConnectCard({ company }) {
         </div>
       )}
 
-      {isConnected && (
+      {isConnected && !pixMissing && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
           <div className="text-sm font-bold text-emerald-900 mb-1">Tudo pronto ✓</div>
           <p className="text-xs text-emerald-800 leading-relaxed">
             Sua barbearia está aceitando pagamentos via Pix e cartão pelo link público. O dinheiro cai direto na sua conta Stripe.
           </p>
+        </div>
+      )}
+
+      {pixMissing && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="text-sm font-bold text-amber-900 mb-1">Pix ainda não está ativo</div>
+              <p className="text-xs text-amber-800 leading-relaxed mb-2">
+                Cartão já está funcionando. Pra liberar Pix (aprovação na hora, sem taxa de cartão), você precisa ativar manualmente no seu painel da Stripe — leva uns 2 minutos:
+              </p>
+              <ol className="text-xs text-amber-800 list-decimal pl-4 space-y-0.5 mb-3">
+                <li>Acesse o <strong>Stripe Express Dashboard</strong> (botão abaixo)</li>
+                <li>Vá em <strong>Configurações → Métodos de pagamento</strong></li>
+                <li>Ative o <strong>Pix</strong></li>
+                <li>Volte aqui e clique em "Atualizar status"</li>
+              </ol>
+              <a
+                href="https://connect.stripe.com/express_login"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-600"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Abrir Stripe Express
+              </a>
+            </div>
+          </div>
         </div>
       )}
 

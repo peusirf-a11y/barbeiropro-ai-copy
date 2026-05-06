@@ -51,12 +51,14 @@ Deno.serve(async (req) => {
     const account = await stripe.accounts.retrieve(company.stripe_connect_account_id);
     const charges = !!account.charges_enabled;
     const payouts = !!account.payouts_enabled;
+    const pixEnabled = account.capabilities?.pix_payments === 'active';
     const status = charges ? 'enabled' : (account.requirements?.disabled_reason ? 'disabled' : 'pending');
 
     await base44.asServiceRole.entities.Company.update(company.id, {
       stripe_connect_status: status,
       stripe_connect_charges_enabled: charges,
       stripe_connect_payouts_enabled: payouts,
+      stripe_connect_pix_enabled: pixEnabled,
     });
 
     return Response.json({
@@ -65,6 +67,8 @@ Deno.serve(async (req) => {
       status,
       charges_enabled: charges,
       payouts_enabled: payouts,
+      pix_enabled: pixEnabled,
+      capabilities: account.capabilities || null,
       requirements: account.requirements || null,
     });
   } catch (error) {

@@ -456,13 +456,15 @@ Deno.serve(async (req) => {
         if (companies.length) {
           const charges = !!acc.charges_enabled;
           const payouts = !!acc.payouts_enabled;
+          const pixEnabled = acc.capabilities?.pix_payments === 'active';
           const status = charges ? 'enabled' : (acc.requirements?.disabled_reason ? 'disabled' : 'pending');
           await base44.asServiceRole.entities.Company.update(companies[0].id, {
             stripe_connect_status: status,
             stripe_connect_charges_enabled: charges,
             stripe_connect_payouts_enabled: payouts,
+            stripe_connect_pix_enabled: pixEnabled,
           });
-          console.log('[stripeWebhook] connect account synced:', acc.id, status);
+          console.log('[stripeWebhook] connect account synced:', acc.id, status, 'pix:', pixEnabled);
         }
       } catch (err) {
         console.error('[stripeWebhook] account.updated error:', err.message);
