@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
           charges_enabled: acct.charges_enabled,
           payouts_enabled: acct.payouts_enabled,
           details_submitted: acct.details_submitted,
+          capabilities: acct.capabilities,
         };
       } catch (e) {
         result.test = { error: e.message };
@@ -71,6 +72,7 @@ Deno.serve(async (req) => {
           charges_enabled: acct.charges_enabled,
           payouts_enabled: acct.payouts_enabled,
           details_submitted: acct.details_submitted,
+          capabilities: acct.capabilities,
         };
       } catch (e) {
         result.live = { error: e.message };

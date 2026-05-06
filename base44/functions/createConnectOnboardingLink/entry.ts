@@ -88,6 +88,8 @@ Deno.serve(async (req) => {
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
+          // Nota: pix_payments NÃO é "requestable" via API para contas BR/Express.
+          // O dono da barbearia precisa ativar Pix manualmente no Stripe Express Dashboard.
         },
         metadata: {
           base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
