@@ -54,6 +54,50 @@ Deno.serve(async (req) => {
 
     console.log(`Stripe event: ${event.type} (env=${isLive ? 'live' : 'test'})`);
 
+    // Helper: ativa uma CustomerSubscription a partir do Stripe (idempotente).
+    // Procura por: 1) subscription_id no metadata; 2) stripe_subscription_id no DB.
+    async function activateCustomerPlanSub({ metadata = {}, stripeSubId, stripeCustomerId, eventName }) {
+      try {
+        let sub = null;
+        // 1) Por metadata.subscription_id (caminho rápido)
+        if (metadata.subscription_id) {
+          sub = await base44.asServiceRole.entities.CustomerSubscription.get(metadata.subscription_id).catch(() => null);
+        }
+        // 2) Fallback: já temos stripe_subscription_id salvo de evento anterior?
+        if (!sub && stripeSubId) {
+          const list = await base44.asServiceRole.entities.CustomerSubscription.filter({ stripe_subscription_id: stripeSubId });
+          sub = list?.[0] || null;
+        }
+        if (!sub) {
+          console.warn(`[stripeWebhook] ${eventName}: customer plan sub not found`, { metadata, stripeSubId });
+          return { ok: false, reason: 'not_found' };
+        }
+        // Idempotente: só atualiza se ainda não está active
+        if (sub.status === 'active') {
+          // Mas garante que os IDs Stripe estejam salvos
+          const patch = {};
+          if (stripeSubId && !sub.stripe_subscription_id) patch.stripe_subscription_id = stripeSubId;
+          if (stripeCustomerId && !sub.stripe_customer_id) patch.stripe_customer_id = stripeCustomerId;
+          if (Object.keys(patch).length > 0) {
+            await base44.asServiceRole.entities.CustomerSubscription.update(sub.id, patch);
+          }
+          return { ok: true, status: 'already_active', sub_id: sub.id };
+        }
+        await base44.asServiceRole.entities.CustomerSubscription.update(sub.id, {
+          status: 'active',
+          last_payment_status: 'pago',
+          last_payment_at: new Date().toISOString(),
+          stripe_subscription_id: stripeSubId || sub.stripe_subscription_id || null,
+          stripe_customer_id: stripeCustomerId || sub.stripe_customer_id || null,
+        });
+        console.log(`[stripeWebhook] ${eventName}: customer plan activated`, sub.id);
+        return { ok: true, status: 'activated', sub_id: sub.id };
+      } catch (err) {
+        console.error(`[stripeWebhook] ${eventName}: activation error:`, err.message);
+        return { ok: false, reason: err.message };
+      }
+    }
+
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const md = session.metadata || {};
@@ -61,23 +105,13 @@ Deno.serve(async (req) => {
       // ─── CUSTOMER PLAN CHECKOUT (Connect) ──────────────────────────────
       // Cliente final assinou um CustomerPlan via conta Connect da barbearia.
       // Promove a CustomerSubscription pending_payment para active.
-      if (md.payment_kind === 'customer_plan' && md.subscription_id) {
-        try {
-          const subId = md.subscription_id;
-          const sub = await base44.asServiceRole.entities.CustomerSubscription.get(subId).catch(() => null);
-          if (sub && sub.status === 'pending_payment') {
-            await base44.asServiceRole.entities.CustomerSubscription.update(subId, {
-              status: 'active',
-              last_payment_status: 'pago',
-              last_payment_at: new Date().toISOString(),
-              stripe_subscription_id: session.subscription || null,
-              stripe_customer_id: session.customer || null,
-            });
-            console.log('[stripeWebhook] customer plan activated:', subId);
-          }
-        } catch (err) {
-          console.error('[stripeWebhook] customer_plan handler error:', err.message);
-        }
+      if (md.payment_kind === 'customer_plan') {
+        await activateCustomerPlanSub({
+          metadata: md,
+          stripeSubId: session.subscription || null,
+          stripeCustomerId: session.customer || null,
+          eventName: 'checkout.session.completed',
+        });
         return Response.json({ received: true });
       }
 
@@ -203,6 +237,37 @@ Deno.serve(async (req) => {
     ) {
       const sub = event.data.object;
       const priceId = sub.items?.data?.[0]?.price?.id;
+      const subMd = sub.metadata || {};
+
+      // ─── CUSTOMER PLAN (Connect) — ativação por subscription event ─────
+      // Garantia adicional: mesmo se checkout.session.completed for perdido,
+      // a subscription ativa no Stripe sincroniza para o nosso DB.
+      if (subMd.payment_kind === 'customer_plan' && event.account) {
+        if (sub.status === 'active' || sub.status === 'trialing') {
+          await activateCustomerPlanSub({
+            metadata: subMd,
+            stripeSubId: sub.id,
+            stripeCustomerId: sub.customer || null,
+            eventName: event.type,
+          });
+        } else if (['canceled', 'unpaid', 'incomplete_expired'].includes(sub.status)) {
+          // Cancela localmente quando Stripe encerra
+          try {
+            const list = await base44.asServiceRole.entities.CustomerSubscription.filter({ stripe_subscription_id: sub.id });
+            const local = list?.[0];
+            if (local && local.status !== 'canceled') {
+              await base44.asServiceRole.entities.CustomerSubscription.update(local.id, {
+                status: 'canceled',
+                canceled_at: new Date().toISOString(),
+              });
+              console.log(`[stripeWebhook] ${event.type}: customer plan canceled`, local.id);
+            }
+          } catch (err) {
+            console.error('[stripeWebhook] customer plan cancel error:', err.message);
+          }
+        }
+        return Response.json({ received: true });
+      }
 
       // Mapear price_id -> Plan (fonte da verdade para MRR)
       let matchedPlan = null;
@@ -282,8 +347,24 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (event.type === 'invoice.paid') {
+    if (event.type === 'invoice.paid' || event.type === 'invoice.payment_succeeded') {
       const invoice = event.data.object;
+      const invMd = invoice.subscription_details?.metadata || invoice.metadata || {};
+
+      // ─── CUSTOMER PLAN (Connect) — pagamento de fatura recorrente ──────
+      // Garante ativação ainda que checkout.session.completed seja perdido,
+      // e renova `last_payment_at` em renovações mensais.
+      if (invMd.payment_kind === 'customer_plan' && event.account && invoice.subscription) {
+        await activateCustomerPlanSub({
+          metadata: invMd,
+          stripeSubId: invoice.subscription,
+          stripeCustomerId: invoice.customer || null,
+          eventName: event.type,
+        });
+        return Response.json({ received: true });
+      }
+
+      // SaaS (plataforma): desbloqueia Company
       if (invoice.subscription) {
         const companies = await base44.asServiceRole.entities.Company.filter({ stripe_subscription_id: invoice.subscription });
         if (companies && companies.length > 0) {
@@ -292,7 +373,7 @@ Deno.serve(async (req) => {
             subscription_status: 'active',
             is_blocked_by_billing: false,
           });
-          console.log('[stripeWebhook] invoice.paid → unblocked', companies[0].id);
+          console.log(`[stripeWebhook] ${event.type} → unblocked`, companies[0].id);
         }
       }
     }

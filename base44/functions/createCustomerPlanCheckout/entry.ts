@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
     });
 
     // URLs de retorno (default: voltam para a página do cliente)
-    const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || 'https://barbertrimly.base44.app';
+    const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || 'https://ocorte.base44.app';
     const successURL = success_url || `${origin}/cliente/${company.slug}?subscription=success`;
     const cancelURL = cancel_url || `${origin}/cliente/${company.slug}/planos?subscription=cancel`;
 
