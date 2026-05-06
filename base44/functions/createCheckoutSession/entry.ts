@@ -1,11 +1,25 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.0.0';
 
-const PLANS = {
-  starter: { price_id: 'price_1TQrZARWNwmSffsEvByG8X2T', name: 'Starter' },
-  pro: { price_id: 'price_1TQrZARWNwmSffsELiP0sg2i', name: 'Pro' },
-  enterprise: { price_id: 'price_1TQrZARWNwmSffsEF7agRVO9', name: 'Enterprise' },
+// Price IDs por ambiente. STRIPE_ENVIRONMENT controla qual é usado.
+// Conta Stripe: acct_1SCpjhJ2xj91JA4F (test) / live correspondente.
+const PLANS_BY_ENV = {
+  test: {
+    starter:    { price_id: 'price_1TTyCLJ2xj91JA4F24Iy8taz', name: 'Starter' },
+    pro:        { price_id: 'price_1TTyCMJ2xj91JA4FBbY048ab', name: 'Pro' },
+    enterprise: { price_id: 'price_1TTyCNJ2xj91JA4FyxvExzb8', name: 'Enterprise' },
+  },
+  live: {
+    starter:    { price_id: 'price_1TTyBpJBeMzbMF7xY38K2mTE', name: 'Starter' },
+    pro:        { price_id: 'price_1TTyBpJBeMzbMF7x3Crs9tCG', name: 'Pro' },
+    enterprise: { price_id: 'price_1TTyBpJBeMzbMF7xQWzBlm3y', name: 'Enterprise' },
+  },
 };
+
+function getPlans() {
+  const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
+  return PLANS_BY_ENV[env === 'live' ? 'live' : 'test'];
+}
 
 // Resolve a chave secreta do Stripe baseado em STRIPE_ENVIRONMENT ('test' | 'live').
 function getStripeSecret() {
@@ -24,6 +38,7 @@ function getStripeSecret() {
 Deno.serve(async (req) => {
   try {
     const stripe = new Stripe(getStripeSecret(), { apiVersion: '2024-06-20' });
+    const PLANS = getPlans();
     const body = await req.json();
     const { plan, business_name, owner_name, email, phone } = body;
 
