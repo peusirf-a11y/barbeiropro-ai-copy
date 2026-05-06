@@ -49,7 +49,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Dados obrigatórios ausentes' }, { status: 400 });
     }
 
-    const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || '';
+    const origin =
+      req.headers.get('origin') ||
+      req.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
+      'https://ocorte.base44.app';
+
+    console.log('[createCheckoutSession] creating session', { plan, email, origin });
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -79,9 +84,18 @@ Deno.serve(async (req) => {
       },
     });
 
+    if (!session?.url) {
+      console.error('[createCheckoutSession] Stripe returned no url', session?.id);
+      return Response.json({ error: 'Stripe não retornou URL de checkout. Tente novamente.' }, { status: 502 });
+    }
+
+    console.log('[createCheckoutSession] session created', session.id);
     return Response.json({ url: session.url, session_id: session.id });
   } catch (error) {
-    console.error('createCheckoutSession error:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('[createCheckoutSession] Stripe error:', error?.type, error?.code, error?.message);
+    const safeMsg = error?.message?.includes('Not a valid URL')
+      ? 'Erro de configuração do checkout. Tente abrir o app em uma nova aba.'
+      : (error?.message || 'Erro ao criar checkout');
+    return Response.json({ error: safeMsg }, { status: 500 });
   }
 });
