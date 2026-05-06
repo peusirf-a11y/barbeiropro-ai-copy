@@ -138,14 +138,17 @@ export default function CustomerDashboard() {
               }}
               isPending={subActionMutation.isPending} />
           ) : pendingSub ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <Link
+              to={`/cliente/${slug}/planos`}
+              className="block bg-amber-50 border border-amber-200 rounded-2xl p-4 hover:border-amber-300 transition-colors"
+            >
               <div className="flex items-center gap-2 text-amber-900 font-bold text-sm mb-1">
                 <AlertCircle className="w-4 h-4" />
-                Aguardando confirmação de pagamento
+                Finalize o pagamento do seu plano
               </div>
               <div className="text-xs text-amber-800 mb-2">{pendingSub.plan_name_snapshot} — R${pendingSub.plan_price_snapshot}/mês</div>
-              <p className="text-xs text-amber-700">A barbearia confirmará seu plano assim que receber o pagamento.</p>
-            </div>
+              <p className="text-xs text-amber-700">Toque para concluir o pagamento. Sua assinatura é ativada automaticamente.</p>
+            </Link>
           ) : subscriptions.find(s => s.status === 'paused') ? (
             <PausedCard sub={subscriptions.find(s => s.status === 'paused')}
               onResume={(id) => subActionMutation.mutate({ action: 'resume', subscription_id: id })}
