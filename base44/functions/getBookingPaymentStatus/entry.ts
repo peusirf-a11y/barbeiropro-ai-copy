@@ -11,12 +11,17 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.0.0';
 
-// TEST MODE: força uso exclusivo de chaves de teste do Stripe.
-function getTestStripeKey() {
-  const key = Deno.env.get('STRIPE_TEST_SECRET_KEY') || '';
-  if (!key) throw new Error('TEST_MODE: STRIPE_TEST_SECRET_KEY ausente nos secrets.');
-  if (key.startsWith('sk_live_')) throw new Error('TEST_MODE: chave LIVE detectada — apenas sk_test_ é permitida.');
-  if (!key.startsWith('sk_test_')) throw new Error('TEST_MODE: chave Stripe inválida — deve começar com sk_test_.');
+// Resolve a chave secreta do Stripe baseado em STRIPE_ENVIRONMENT ('test' | 'live').
+function getStripeSecret() {
+  const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
+  const isLive = env === 'live';
+  const key = (isLive ? Deno.env.get('STRIPE_SECRET_KEY') : Deno.env.get('STRIPE_TEST_SECRET_KEY')) || '';
+  if (!key) throw new Error(`Stripe secret missing for environment=${env}`);
+  const expectedPrefix = isLive ? 'sk_live_' : 'sk_test_';
+  if (!key.startsWith(expectedPrefix)) {
+    throw new Error(`Stripe key prefix mismatch for environment=${env} (expected ${expectedPrefix})`);
+  }
+  console.log(`[stripe] environment=${env}`);
   return key;
 }
 
@@ -24,7 +29,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const sdk = base44.asServiceRole;
-    const stripe = new Stripe(getTestStripeKey());
+    const stripe = new Stripe(getStripeSecret(), { apiVersion: '2024-06-20' });
     const body = await req.json().catch(() => ({}));
     const { appointment_id, force_check } = body;
     if (!appointment_id) return Response.json({ error: 'appointment_id_required' }, { status: 400 });

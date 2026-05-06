@@ -14,12 +14,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Super admins não podem alterar billing via portal. Use o Stripe Dashboard.' }, { status: 403 });
     }
 
-    // TEST MODE: força chave de teste.
-    const stripeKey = Deno.env.get('STRIPE_TEST_SECRET_KEY') || '';
-    if (!stripeKey || !stripeKey.startsWith('sk_test_')) {
-      return Response.json({ error: 'TEST_MODE: STRIPE_TEST_SECRET_KEY ausente ou inválida.' }, { status: 500 });
+    // Seleciona chave conforme STRIPE_ENVIRONMENT ('test' | 'live').
+    const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
+    const isLive = env === 'live';
+    const stripeKey = (isLive ? Deno.env.get('STRIPE_SECRET_KEY') : Deno.env.get('STRIPE_TEST_SECRET_KEY')) || '';
+    const expectedPrefix = isLive ? 'sk_live_' : 'sk_test_';
+    if (!stripeKey || !stripeKey.startsWith(expectedPrefix)) {
+      return Response.json({ error: `Stripe key missing/invalid for environment=${env}` }, { status: 500 });
     }
-    const stripe = new Stripe(stripeKey);
+    console.log(`[stripe] environment=${env}`);
+    const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
     const { return_url } = await req.json().catch(() => ({}));
 
     // Buscar empresa do usuário

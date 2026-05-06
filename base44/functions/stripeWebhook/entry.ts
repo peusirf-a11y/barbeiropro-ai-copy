@@ -1,13 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.0.0';
 
-// TEST MODE: força uso exclusivo de chaves de teste do Stripe.
-function getTestStripeKey() {
-  const key = Deno.env.get('STRIPE_TEST_SECRET_KEY') || '';
-  if (!key) throw new Error('TEST_MODE: STRIPE_TEST_SECRET_KEY ausente nos secrets.');
-  if (key.startsWith('sk_live_')) throw new Error('TEST_MODE: chave LIVE detectada — apenas sk_test_ é permitida.');
-  if (!key.startsWith('sk_test_')) throw new Error('TEST_MODE: chave Stripe inválida — deve começar com sk_test_.');
-  return key;
+// Resolve config Stripe baseado em STRIPE_ENVIRONMENT ('test' | 'live').
+// Retorna { secretKey, webhookSecret, isLive } e valida prefixos.
+function getStripeConfig() {
+  const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
+  const isLive = env === 'live';
+  const secretKey = (isLive ? Deno.env.get('STRIPE_SECRET_KEY') : Deno.env.get('STRIPE_TEST_SECRET_KEY')) || '';
+  const webhookSecret = (isLive ? Deno.env.get('STRIPE_WEBHOOK_SECRET') : Deno.env.get('STRIPE_TEST_WEBHOOK_SECRET')) || '';
+  const expectedPrefix = isLive ? 'sk_live_' : 'sk_test_';
+  if (!secretKey || !secretKey.startsWith(expectedPrefix)) {
+    throw new Error(`Stripe secret missing/invalid for environment=${env} (expected ${expectedPrefix})`);
+  }
+  if (!webhookSecret) {
+    throw new Error(`Stripe webhook secret missing for environment=${env}`);
+  }
+  console.log(`[stripe] environment=${env}`);
+  return { secretKey, webhookSecret, isLive };
 }
 
 function slugify(text) {
@@ -23,12 +32,8 @@ function slugify(text) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const stripe = new Stripe(getTestStripeKey());
-    const webhookSecret = Deno.env.get('STRIPE_TEST_WEBHOOK_SECRET');
-    if (!webhookSecret) {
-      console.error('[stripeWebhook] TEST_MODE: STRIPE_TEST_WEBHOOK_SECRET ausente.');
-      return Response.json({ error: 'TEST_MODE: webhook secret ausente.' }, { status: 500 });
-    }
+    const { secretKey, webhookSecret, isLive } = getStripeConfig();
+    const stripe = new Stripe(secretKey, { apiVersion: '2024-06-20' });
 
     const signature = req.headers.get('stripe-signature');
     const body = await req.text();
@@ -41,13 +46,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // TEST MODE: rejeita eventos vindos do ambiente live.
-    if (event.livemode === true) {
-      console.warn('[stripeWebhook] TEST_MODE: evento livemode=true ignorado:', event.type, event.id);
-      return Response.json({ received: true, ignored: 'livemode_blocked' });
+    // Rejeita eventos do ambiente errado (livemode mismatch).
+    if (event.livemode !== isLive) {
+      console.warn(`[stripeWebhook] env mismatch: event.livemode=${event.livemode}, app=${isLive ? 'live' : 'test'} — ignored:`, event.type, event.id);
+      return Response.json({ received: true, ignored: 'environment_mismatch' });
     }
 
-    console.log('Stripe event:', event.type, '(test_mode)');
+    console.log(`Stripe event: ${event.type} (env=${isLive ? 'live' : 'test'})`);
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;

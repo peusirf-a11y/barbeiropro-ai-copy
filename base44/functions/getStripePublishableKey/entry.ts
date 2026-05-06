@@ -1,19 +1,33 @@
-// Endpoint público que devolve a STRIPE_TEST_PUBLISHABLE_KEY.
-// TEST MODE: somente chaves de teste (pk_test_) são aceitas. pk_live_ é bloqueada.
+// Endpoint PÚBLICO que devolve a publishable key + ambiente ativo.
+// Seleciona a chave conforme STRIPE_ENVIRONMENT ('test' | 'live').
+// NUNCA expõe a secret. Apenas a publishable.
 
 Deno.serve(async () => {
-  const key = Deno.env.get('STRIPE_TEST_PUBLISHABLE_KEY') || '';
-  if (!key) {
-    console.error('[getStripePublishableKey] TEST_MODE: STRIPE_TEST_PUBLISHABLE_KEY ausente.');
-    return Response.json({ error: 'TEST_MODE: STRIPE_TEST_PUBLISHABLE_KEY ausente.' }, { status: 500 });
+  try {
+    const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
+    const isLive = env === 'live';
+    const key = (isLive ? Deno.env.get('STRIPE_PUBLISHABLE_KEY') : Deno.env.get('STRIPE_TEST_PUBLISHABLE_KEY')) || '';
+    const expectedPrefix = isLive ? 'pk_live_' : 'pk_test_';
+
+    if (!key) {
+      console.error(`[getStripePublishableKey] missing publishable key for environment=${env}`);
+      return Response.json({ error: `Publishable key missing for environment=${env}` }, { status: 500 });
+    }
+    if (!key.startsWith(expectedPrefix)) {
+      console.error(`[getStripePublishableKey] prefix mismatch: env=${env} expected=${expectedPrefix}`);
+      return Response.json({ error: `Publishable key prefix mismatch for environment=${env}` }, { status: 500 });
+    }
+
+    console.log(`[stripe] environment=${env}`);
+    // Compat: mantém chaves antigas (publishable_key, test_mode) E novas (publishableKey, environment).
+    return Response.json({
+      publishableKey: key,
+      environment: env,
+      publishable_key: key,
+      test_mode: !isLive,
+    });
+  } catch (error) {
+    console.error('[getStripePublishableKey] error:', error.message);
+    return Response.json({ error: error.message }, { status: 500 });
   }
-  if (key.startsWith('pk_live_')) {
-    console.error('[getStripePublishableKey] TEST_MODE: chave LIVE detectada — bloqueada.');
-    return Response.json({ error: 'TEST_MODE: chave LIVE bloqueada. Use pk_test_.' }, { status: 500 });
-  }
-  if (!key.startsWith('pk_test_')) {
-    console.error('[getStripePublishableKey] TEST_MODE: chave inválida.');
-    return Response.json({ error: 'TEST_MODE: chave inválida — deve começar com pk_test_.' }, { status: 500 });
-  }
-  return Response.json({ publishable_key: key, test_mode: true });
 });
