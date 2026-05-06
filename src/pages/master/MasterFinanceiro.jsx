@@ -43,12 +43,51 @@ export default function MasterFinanceiro() {
       </div>
 
       <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
-        <div className="p-5 border-b border-black/5">
+        <div className="p-4 sm:p-5 border-b border-black/5">
           <h3 className="font-bold text-[#111827] tracking-tight">Status das assinaturas</h3>
           <p className="text-xs text-[#6B7280] mt-0.5">Visão consolidada por empresa</p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px]">
+
+        {/* Mobile: cards. Desktop: tabela. */}
+        <div className="md:hidden divide-y divide-black/5">
+          {isLoading && (
+            <div className="px-4 py-12 text-center text-[#6B7280] text-sm">Carregando…</div>
+          )}
+          {!isLoading && companies.length === 0 && (
+            <div className="px-4 py-12 text-center text-[#6B7280] text-sm">Nenhuma empresa encontrada</div>
+          )}
+          {companies.map(c => (
+            <div key={c.id} className="p-4 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm text-[#111827] truncate">{c.name}</div>
+                  {c.owner_email && <div className="text-xs text-[#6B7280] truncate">{c.owner_email}</div>}
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 bg-[#EFF6FF] text-[#2563EB] rounded-full border border-[#DBEAFE] flex-shrink-0">{c.plan_name || 'Starter'}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="bg-[#FAFBFC] rounded-lg px-2.5 py-1.5">
+                  <div className="text-[10px] text-[#6B7280] uppercase tracking-wider">Status</div>
+                  <div className="font-semibold text-[#111827] mt-0.5">{c.subscription_status || '–'}</div>
+                </div>
+                <div className="bg-[#FAFBFC] rounded-lg px-2.5 py-1.5">
+                  <div className="text-[10px] text-[#6B7280] uppercase tracking-wider">Próx. venc.</div>
+                  <div className="font-semibold text-[#111827] mt-0.5">
+                    {c.current_period_end ? new Date(c.current_period_end).toLocaleDateString('pt-BR') : '–'}
+                  </div>
+                </div>
+              </div>
+              {c.trial_ends_at && (
+                <div className="text-[11px] text-[#6B7280]">
+                  Trial até {new Date(c.trial_ends_at).toLocaleDateString('pt-BR')}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full">
             <thead>
               <tr className="border-b border-black/5 bg-[#FAFBFC]">
                 {['Empresa', 'Plano', 'Status Stripe', 'Próximo vencimento', 'Trial até'].map(h => (

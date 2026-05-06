@@ -137,8 +137,86 @@ export default function PlansManager() {
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px]">
+      {/* Mobile: cards. Desktop: tabela. Evita scroll horizontal no celular. */}
+      <div className="md:hidden divide-y divide-black/5">
+        {isLoading && (
+          <div className="px-4 py-12 text-center text-[#6B7280] text-sm">Carregando…</div>
+        )}
+        {!isLoading && plans.length === 0 && (
+          <div className="px-4 py-12 text-center text-[#6B7280] text-sm">Nenhum plano cadastrado.</div>
+        )}
+        {plans.map(p => (
+          <div key={p.id} className="p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-semibold text-sm text-[#111827] truncate">{p.name}</div>
+                <div className="text-[11px] text-[#6B7280] mt-0.5">Ordem: {p.sort_order || 0}</div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <div className="text-base font-bold text-[#111827]">{fmtMoney(p.price_monthly)}</div>
+                <div className="text-[10px] text-[#6B7280]">/mês</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-[11px] text-[#6B7280]">
+              <div className="bg-[#FAFBFC] rounded-lg px-2.5 py-2">
+                <div className="font-semibold text-[#111827]">
+                  {p.limits?.barbers ? p.limits.barbers : '∞'}
+                </div>
+                <div>barbeiros</div>
+              </div>
+              <div className="bg-[#FAFBFC] rounded-lg px-2.5 py-2">
+                <div className="font-semibold text-[#111827]">
+                  {p.limits?.appointments_month ? p.limits.appointments_month : '∞'}
+                </div>
+                <div>agend./mês</div>
+              </div>
+            </div>
+
+            {(p.features || []).length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {(p.features || []).slice(0, 4).map(f => (
+                  <span key={f} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE]">{f}</span>
+                ))}
+                {(p.features || []).length > 4 && (
+                  <span className="text-[10px] text-[#6B7280] self-center">+{p.features.length - 4}</span>
+                )}
+              </div>
+            )}
+
+            {p.stripe_price_id && (
+              <div className="text-[10px] font-mono text-[#6B7280] truncate">{p.stripe_price_id}</div>
+            )}
+
+            <div className="flex items-center justify-between pt-2 border-t border-black/5">
+              <button onClick={() => toggle.mutate({ id: p.id, active: !p.active })} className="flex items-center gap-1.5 text-xs font-medium text-[#374151]">
+                {p.active !== false
+                  ? <><ToggleRight className="w-6 h-6 text-emerald-500" /> Ativo</>
+                  : <><ToggleLeft className="w-6 h-6 text-gray-300" /> Inativo</>}
+              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => openEdit(p)}
+                  className="p-2 text-[#2563EB] hover:bg-[#EFF6FF] rounded-lg transition-colors"
+                  aria-label="Editar"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => { if (confirm(`Excluir plano "${p.name}"?`)) remove.mutate(p.id); }}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  aria-label="Excluir"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full">
           <thead>
             <tr className="border-b border-black/5 bg-[#FAFBFC]">
               {['Plano', 'Preço/mês', 'Stripe Price', 'Limites', 'Features', 'Status', 'Ações'].map(h => (
