@@ -57,6 +57,30 @@ Deno.serve(async (req) => {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const md = session.metadata || {};
+
+      // ─── CUSTOMER PLAN CHECKOUT (Connect) ──────────────────────────────
+      // Cliente final assinou um CustomerPlan via conta Connect da barbearia.
+      // Promove a CustomerSubscription pending_payment para active.
+      if (md.payment_kind === 'customer_plan' && md.subscription_id) {
+        try {
+          const subId = md.subscription_id;
+          const sub = await base44.asServiceRole.entities.CustomerSubscription.get(subId).catch(() => null);
+          if (sub && sub.status === 'pending_payment') {
+            await base44.asServiceRole.entities.CustomerSubscription.update(subId, {
+              status: 'active',
+              last_payment_status: 'pago',
+              last_payment_at: new Date().toISOString(),
+              stripe_subscription_id: session.subscription || null,
+              stripe_customer_id: session.customer || null,
+            });
+            console.log('[stripeWebhook] customer plan activated:', subId);
+          }
+        } catch (err) {
+          console.error('[stripeWebhook] customer_plan handler error:', err.message);
+        }
+        return Response.json({ received: true });
+      }
+
       const email = md.email || session.customer_email;
       if (!email) {
         console.error('No email in session');

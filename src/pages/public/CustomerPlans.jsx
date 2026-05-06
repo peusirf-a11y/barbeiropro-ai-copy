@@ -34,21 +34,24 @@ export default function CustomerPlans() {
   const hasActiveOrPending = existingSubs.some(s => ['active', 'pending_payment', 'paused'].includes(s.status));
 
   const [submittingPlanId, setSubmittingPlanId] = useState(null);
-  const [done, setDone] = useState(false);
 
-  const subscribeMutation = useMutation({
-    mutationFn: ({ plan_id }) => base44.functions.invoke('customerSubscriptionAction', {
-      action: 'subscribe',
+  const checkoutMutation = useMutation({
+    mutationFn: ({ plan_id }) => base44.functions.invoke('createCustomerPlanCheckout', {
       company_id: company.id,
       token,
       plan_id,
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-self'] });
-      setDone(true);
+    onSuccess: (res) => {
+      const url = res?.data?.url;
+      if (url) {
+        window.location.href = url;
+      } else {
+        alert('Não foi possível abrir o checkout.');
+        setSubmittingPlanId(null);
+      }
     },
     onError: (err) => {
-      alert(err?.response?.data?.error || err?.message || 'Erro ao assinar o plano');
+      alert(err?.response?.data?.error || err?.message || 'Erro ao iniciar pagamento');
       setSubmittingPlanId(null);
     },
   });
@@ -58,8 +61,12 @@ export default function CustomerPlans() {
       navigate(`/cliente/${slug}/login`);
       return;
     }
+    if (!plan.stripe_price_id) {
+      alert('Este plano ainda não está disponível para pagamento online. Fale com a barbearia.');
+      return;
+    }
     setSubmittingPlanId(plan.id);
-    subscribeMutation.mutate({ plan_id: plan.id });
+    checkoutMutation.mutate({ plan_id: plan.id });
   };
 
   if (loadingCo || loadingAuth) {
@@ -76,30 +83,6 @@ export default function CustomerPlans() {
         <div className="text-center">
           <AlertCircle className="w-10 h-10 text-orange-400 mx-auto mb-3" />
           <p className="font-semibold text-gray-700">Barbearia não encontrada</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (done) {
-    return (
-      <div className="min-h-screen bg-[#F8F7F3] flex flex-col">
-        <SimpleHeader company={company} primaryColor={primaryColor} slug={slug} />
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl border border-black/8 p-8 text-center max-w-sm shadow-lg">
-            <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-7 h-7 text-amber-600" />
-            </div>
-            <h2 className="text-xl font-black text-[#1B1C1E] mb-2">Pedido recebido!</h2>
-            <p className="text-sm text-gray-500 mb-5">
-              Seu plano está aguardando confirmação de pagamento. A barbearia entrará em contato pelo WhatsApp para finalizar.
-            </p>
-            <button onClick={() => navigate(`/cliente/${slug}`)}
-              className="w-full text-white font-bold py-3 rounded-xl text-sm hover:opacity-90"
-              style={{ backgroundColor: primaryColor }}>
-              Ir para minha conta
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -161,7 +144,7 @@ export default function CustomerPlans() {
         )}
 
         <p className="text-[11px] text-gray-400 text-center mt-6">
-          Pagamento via PIX ou na barbearia. A confirmação é feita pelo estabelecimento.
+          Pagamento mensal recorrente no cartão. Cancele a qualquer momento na sua conta.
         </p>
       </div>
     </div>
