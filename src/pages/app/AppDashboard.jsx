@@ -17,7 +17,6 @@ import ProfessionalRanking from '@/components/dashboard/ProfessionalRanking';
 import QuickActions from '@/components/dashboard/QuickActions';
 import InsightsCard from '@/components/dashboard/InsightsCard';
 import TodayAgendaList from '@/components/dashboard/TodayAgendaList';
-import PendingSubscriptionsBanner from '@/components/planos/PendingSubscriptionsBanner';
 import ConnectPendingBanner from '@/components/dashboard/ConnectPendingBanner';
 
 export default function AppDashboard() {
@@ -210,9 +209,6 @@ export default function AppDashboard() {
 
         {/* Banner: Stripe Connect pendente (só dono — barbeiros não veem) */}
         {!isBarbeiro && company && <ConnectPendingBanner company={company} />}
-
-        {/* Banner: assinaturas pendentes de pagamento (link público) */}
-        {showFinance && companyId && <PendingSubscriptionsBanner companyId={companyId} companyName={company?.name} />}
 
         {/* Quick Actions */}
         <div className="mb-6">

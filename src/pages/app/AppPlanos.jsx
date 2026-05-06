@@ -5,13 +5,12 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Package, AlertCircle, Sparkles } from 'lucide-react';
+import { Package, Sparkles } from 'lucide-react';
 import PlanCard from '@/components/planos/PlanCard';
 import PlanFormModal from '@/components/planos/PlanFormModal';
 import PlanSuggestionsModal from '@/components/planos/PlanSuggestionsModal';
 import PlanImpactDashboard from '@/components/planos/PlanImpactDashboard';
 import PlanConversionMetrics from '@/components/planos/PlanConversionMetrics';
-import PendingSubscriptionsBanner from '@/components/planos/PendingSubscriptionsBanner';
 
 export default function AppPlanos() {
   const { companyId, company } = useCompany();
@@ -89,9 +88,6 @@ export default function AppPlanos() {
           </PrimaryButton>
         </AppPageHeader>
 
-        {/* Banner: assinaturas pendentes de pagamento (link público) */}
-        {companyId && <PendingSubscriptionsBanner companyId={companyId} companyName={company?.name} />}
-
         {/* Dashboard de impacto: avulso vs recorrente, MRR projetado, ocupação */}
         {companyId && (
           <PlanImpactDashboard
@@ -128,15 +124,6 @@ export default function AppPlanos() {
           <div className="bg-white rounded-2xl border border-black/5 p-4">
             <div className="text-xs text-gray-500 mb-1">ARR projetado</div>
             <div className="text-2xl font-black text-[#111827]">R${(mrr * 12).toFixed(0)}</div>
-          </div>
-        </div>
-
-        {/* Aviso Stripe Connect (Fase 2) */}
-        <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-900">
-            <strong>Cobrança recorrente automática</strong> via Stripe Connect estará disponível em breve.
-            Por enquanto, você registra a cobrança manualmente no perfil de cada assinante e o sistema controla os usos automaticamente.
           </div>
         </div>
 
