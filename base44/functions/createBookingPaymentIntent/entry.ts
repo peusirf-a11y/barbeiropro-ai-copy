@@ -144,8 +144,9 @@ Deno.serve(async (req) => {
     }
 
     // ─── Idempotency key determinística ─────────────────────────────────
-    // Mesmo cliente + mesmo serviço + mesmo horário = mesmo PaymentIntent.
-    const idempotencyKey = `bk_${company_id}_${customer.id}_${service_id}_${professional_id}_${scheduledAtISO}`.slice(0, 200);
+    // Mesmo cliente + mesmo serviço + mesmo horário + mesmo método = mesmo PaymentIntent.
+    // Inclui payment_method para evitar colisão quando o cliente troca pix↔card.
+    const idempotencyKey = `bk_${company_id}_${customer.id}_${service_id}_${professional_id}_${scheduledAtISO}_${payment_method}`.slice(0, 200);
 
     // ─── Cria Appointment como aguardando_pagamento ─────────────────────
     const expiresAt = new Date(Date.now() + PAYMENT_EXPIRY_MINUTES * 60 * 1000).toISOString();
