@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
       try {
         // Stripe webhook não envia header `origin`, e `host` é a URL do Deno (que retorna 400 sem Base44-App-Id).
         // Sempre usar o domínio público do app.
-        const accessLink = 'https://barbertrimly.base44.app/app/dashboard';
+        const accessLink = 'https://ocorte.base44.app/app/dashboard';
         const firstName = (ownerName || '').split(' ')[0] || 'tudo certo';
         const subject = isNewAccount
           ? `Bem-vindo ao O CORTE, ${firstName}! 💈`

@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     }
     console.log('jobTrialReminders: companies in trial =', companies.length);
 
-    const origin = req.headers.get('origin') || `https://${req.headers.get('host') || 'barbertrimly.base44.app'}`;
+    const origin = req.headers.get('origin') || `https://${req.headers.get('host') || 'ocorte.base44.app'}`;
     const manageUrl = `${origin}/app/configuracoes/assinatura`;
 
     let sentD3 = 0, sentD1 = 0, skipped = 0;
