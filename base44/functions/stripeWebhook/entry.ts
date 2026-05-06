@@ -2,21 +2,24 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.0.0';
 
 // Resolve config Stripe baseado em STRIPE_ENVIRONMENT ('test' | 'live').
-// Retorna { secretKey, webhookSecret, isLive } e valida prefixos.
+// Retorna { secretKey, webhookSecrets[], isLive }.
+// webhookSecrets é um array porque temos 2 webhooks (Sua conta + Contas conectadas).
 function getStripeConfig() {
   const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
   const isLive = env === 'live';
   const secretKey = (isLive ? Deno.env.get('STRIPE_SECRET_KEY') : Deno.env.get('STRIPE_TEST_SECRET_KEY')) || '';
-  const webhookSecret = (isLive ? Deno.env.get('STRIPE_WEBHOOK_SECRET') : Deno.env.get('STRIPE_TEST_WEBHOOK_SECRET')) || '';
+  const wsAccount = (isLive ? Deno.env.get('STRIPE_WEBHOOK_SECRET') : Deno.env.get('STRIPE_TEST_WEBHOOK_SECRET')) || '';
+  const wsConnect = (isLive ? Deno.env.get('STRIPE_WEBHOOK_SECRET_CONNECT') : Deno.env.get('STRIPE_TEST_WEBHOOK_SECRET_CONNECT')) || '';
+  const webhookSecrets = [wsAccount, wsConnect].filter(Boolean);
   const expectedPrefix = isLive ? 'sk_live_' : 'sk_test_';
   if (!secretKey || !secretKey.startsWith(expectedPrefix)) {
     throw new Error(`Stripe secret missing/invalid for environment=${env} (expected ${expectedPrefix})`);
   }
-  if (!webhookSecret) {
-    throw new Error(`Stripe webhook secret missing for environment=${env}`);
+  if (webhookSecrets.length === 0) {
+    throw new Error(`No Stripe webhook secret configured for environment=${env}`);
   }
-  console.log(`[stripe] environment=${env}`);
-  return { secretKey, webhookSecret, isLive };
+  console.log(`[stripe] environment=${env}, webhook secrets configured=${webhookSecrets.length}`);
+  return { secretKey, webhookSecrets, isLive };
 }
 
 function slugify(text) {
@@ -32,17 +35,26 @@ function slugify(text) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { secretKey, webhookSecret, isLive } = getStripeConfig();
+    const { secretKey, webhookSecrets, isLive } = getStripeConfig();
     const stripe = new Stripe(secretKey, { apiVersion: '2024-06-20' });
 
     const signature = req.headers.get('stripe-signature');
     const body = await req.text();
 
-    let event;
-    try {
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err.message);
+    // Tenta validar contra qualquer um dos secrets configurados
+    // (Sua conta + Contas conectadas usam o mesmo endpoint mas secrets diferentes).
+    let event = null;
+    let lastErr = null;
+    for (const secret of webhookSecrets) {
+      try {
+        event = await stripe.webhooks.constructEventAsync(body, signature, secret);
+        break;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    if (!event) {
+      console.error('Webhook signature verification failed against all secrets:', lastErr?.message);
       return Response.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
