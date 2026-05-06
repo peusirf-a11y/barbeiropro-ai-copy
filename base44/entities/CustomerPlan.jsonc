@@ -74,9 +74,13 @@
       },
       "description": "Dias da semana v\u00e1lidos (0=domingo \u2026 6=s\u00e1bado). Vazio = todos os dias."
     },
+    "stripe_product_id": {
+      "type": "string",
+      "description": "Product ID na conta Stripe Connect da barbearia. Sincronizado automaticamente."
+    },
     "stripe_price_id": {
       "type": "string",
-      "description": "Preparado para Stripe Connect futuro"
+      "description": "Price ID recorrente mensal na conta Stripe Connect da barbearia. Sincronizado automaticamente."
     }
   },
   "required": [
