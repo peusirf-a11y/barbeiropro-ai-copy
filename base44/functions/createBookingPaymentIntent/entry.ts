@@ -70,24 +70,26 @@ Deno.serve(async (req) => {
     } = body;
 
     // ─── Validações ─────────────────────────────────────────────────────
-    if (!company_id) return Response.json({ error: 'company_id_required' }, { status: 400 });
-    if (!service_id) return Response.json({ error: 'service_id_required' }, { status: 400 });
-    if (!professional_id) return Response.json({ error: 'professional_id_required' }, { status: 400 });
-    if (!scheduled_at) return Response.json({ error: 'scheduled_at_required' }, { status: 400 });
-    if (!customer_name?.trim()) return Response.json({ error: 'customer_name_required' }, { status: 400 });
-    if (!customer_phone?.trim()) return Response.json({ error: 'customer_phone_required' }, { status: 400 });
-    if (!price || price <= 0) return Response.json({ error: 'invalid_price' }, { status: 400 });
-    if (!['pix', 'card'].includes(payment_method)) {
-      return Response.json({ error: 'invalid_payment_method' }, { status: 400 });
-    }
+    const fail = (code, status = 400, extra = {}) => {
+      console.warn(`[createBookingPaymentIntent] validation failed: ${code}`, {
+        company_id, service_id, professional_id, scheduled_at,
+        has_name: !!customer_name, has_phone: !!customer_phone,
+        price, payment_method, has_cpf: !!customer_cpf,
+      });
+      return Response.json({ error: code, ...extra }, { status });
+    };
+    if (!company_id) return fail('company_id_required');
+    if (!service_id) return fail('service_id_required');
+    if (!professional_id) return fail('professional_id_required');
+    if (!scheduled_at) return fail('scheduled_at_required');
+    if (!customer_name?.trim()) return fail('customer_name_required');
+    if (!customer_phone?.trim()) return fail('customer_phone_required');
+    if (!price || price <= 0) return fail('invalid_price');
+    if (!['pix', 'card'].includes(payment_method)) return fail('invalid_payment_method');
     const cpfNorm = normalizeCpf(customer_cpf);
-    if (cpfNorm.length !== 11) {
-      return Response.json({ error: 'cpf_required', message: 'CPF é obrigatório (11 dígitos)' }, { status: 400 });
-    }
+    if (cpfNorm.length !== 11) return fail('cpf_required', 400, { message: 'CPF é obrigatório (11 dígitos)' });
     const phoneNorm = normalizePhone(customer_phone);
-    if (phoneNorm.length < 10) {
-      return Response.json({ error: 'invalid_phone' }, { status: 400 });
-    }
+    if (phoneNorm.length < 10) return fail('invalid_phone');
 
     // ─── Carrega empresa e valida Connect ───────────────────────────────
     const companies = await sdk.entities.Company.filter({ id: company_id });
