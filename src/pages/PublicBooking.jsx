@@ -828,7 +828,7 @@ export default function PublicBooking() {
           <BookingPaymentStep
             payload={buildBookingPayload()}
             primaryColor={primaryColor}
-            pixEnabled={pixEnabled}
+            pixEnabled={false}
             onBack={() => setStep(3)}
             onSucceeded={(intent) => setBookingDone({ appointment_id: intent.appointment_id, paid_online: true })}
           />
