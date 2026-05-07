@@ -101,6 +101,12 @@ Deno.serve(async (req) => {
         message: 'Esta barbearia ainda não está aceitando pagamentos online.',
       }, { status: 400 });
     }
+    if (payment_method === 'pix' && !company.stripe_connect_pix_enabled) {
+      return Response.json({
+        error: 'pix_not_enabled',
+        message: 'Pix ainda não está ativo nesta barbearia. Por favor, escolha pagar com cartão.',
+      }, { status: 400 });
+    }
 
     const scheduledAtISO = new Date(scheduled_at).toISOString();
 
