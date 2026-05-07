@@ -24,7 +24,7 @@ function maskCpf(value) {
     .replace(/\.(\d{3})(\d)/, '.$1-$2');
 }
 
-export default function BookingPaymentStep({ payload, primaryColor, pixEnabled = true, onBack, onSucceeded }) {
+export default function BookingPaymentStep({ payload, primaryColor, pixEnabled = false, onBack, onSucceeded }) {
   const [stage, setStage] = useState('choose');
   // Se a barbearia ainda não ativou Pix na Stripe, força cartão como único método.
   const [method, setMethod] = useState(pixEnabled ? 'pix' : 'card');
@@ -78,7 +78,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
       {/* Banner de modo de teste — sempre visível no fluxo de pagamento público */}
       <div className="mb-5 flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2">
         <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500 text-white uppercase tracking-wide">Test</span>
-        <span className="text-[11px] text-amber-900 font-medium leading-tight">Ambiente de teste — use cartão 4242 4242 4242 4242 ou Pix sandbox.</span>
+        <span className="text-[11px] text-amber-900 font-medium leading-tight">Ambiente de teste — use cartão 4242 4242 4242 4242.</span>
       </div>
 
       {/* ─── ESCOLHA DE MÉTODO ─── */}
