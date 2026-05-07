@@ -7,6 +7,7 @@ import { AuthProvider } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ThemeSync from '@/components/ThemeSync';
+import RootRedirect from '@/components/RootRedirect';
 
 // Guards
 import PrivateRoute from '@/components/guards/PrivateRoute';
@@ -82,7 +83,10 @@ function App() {
         <Router>
           <Routes>
             {/* ── PUBLIC ROUTES ── */}
-            <Route path="/" element={<LandingPage />} />
+            {/* "/" = login automático (app/APK abre direto no login).
+                Landing pública continua acessível em /landing. */}
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
             <Route path="/cliente/:slug/login" element={<CustomerLoginPage />} />
             <Route path="/cliente/:slug/planos" element={<CustomerPlans />} />
