@@ -6,6 +6,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import ThemeSync from '@/components/ThemeSync';
 
 // Guards
 import PrivateRoute from '@/components/guards/PrivateRoute';
@@ -75,6 +76,7 @@ import { Navigate } from 'react-router-dom';
 function App() {
   return (
     <ErrorBoundary>
+    <ThemeSync />
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>

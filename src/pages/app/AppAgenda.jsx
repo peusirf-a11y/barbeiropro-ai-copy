@@ -17,6 +17,7 @@ import { useActiveUnit } from '@/hooks/useActiveUnit';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 import { STATUS_TOKENS } from '@/lib/statusTokens';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 // Status habilitados no modal de mudança — ordenados.
 const STATUS_KEYS = ['agendado', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'faltou'];
@@ -42,6 +43,16 @@ export default function AppAgenda() {
   const [slotInterval, setSlotInterval] = useState(10); // 10 ou 15 min
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { containerProps: ptrProps, indicator: ptrIndicator } = usePullToRefresh({
+    onRefresh: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['blocks'] }),
+        queryClient.invalidateQueries({ queryKey: ['professionals'] }),
+        queryClient.invalidateQueries({ queryKey: ['customers'] }),
+      ]);
+    },
+  });
 
   // Barbeiro só enxerga seus próprios atendimentos.
   const apptFilter = isBarbeiro && myProId
@@ -369,6 +380,8 @@ export default function AppAgenda() {
 
   return (
     <AppLayout>
+      <div {...ptrProps}>
+        {ptrIndicator}
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
@@ -396,12 +409,12 @@ export default function AppAgenda() {
               ))}
             </div>
             <div className="flex items-center gap-1 bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
-              <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                <ChevronLeft className="w-4 h-4" />
+              <button onClick={() => setCurrentDate(d => addDays(d, -1))} aria-label="Dia anterior" className="p-1.5 hover:bg-gray-100 rounded-lg">
+                <ChevronLeft className="w-4 h-4" aria-hidden="true" />
               </button>
               <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold px-3 py-1 rounded-lg hover:bg-gray-100">Hoje</button>
-              <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                <ChevronRight className="w-4 h-4" />
+              <button onClick={() => setCurrentDate(d => addDays(d, 1))} aria-label="Próximo dia" className="p-1.5 hover:bg-gray-100 rounded-lg">
+                <ChevronRight className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
             {!isBarbeiro && !isAllUnits && (
@@ -552,7 +565,9 @@ export default function AppAgenda() {
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-bold text-[#1B1C1E]">Novo Agendamento</h3>
-                <button onClick={() => setShowNewForm(false)}><X className="w-5 h-5" /></button>
+                <button onClick={() => setShowNewForm(false)} aria-label="Fechar formulário">
+                  <X className="w-5 h-5" aria-hidden="true" />
+                </button>
               </div>
               <div className="space-y-3">
                 {/* Customer */}
@@ -632,6 +647,7 @@ export default function AppAgenda() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </AppLayout>
   );

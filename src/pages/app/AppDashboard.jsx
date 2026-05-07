@@ -1,6 +1,7 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { canViewFinance } from '@/lib/rolePermissions';
@@ -27,6 +28,17 @@ export default function AppDashboard() {
   const myProId = teamRole?.professional_id || null;
   const showFinance = canViewFinance(teamRole?.role);
   const [alerts, setAlerts] = useState([]);
+  const queryClient = useQueryClient();
+  const { containerProps: ptrProps, indicator: ptrIndicator } = usePullToRefresh({
+    onRefresh: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['customers'] }),
+        queryClient.invalidateQueries({ queryKey: ['financial'] }),
+        queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-active'] }),
+      ]);
+    },
+  });
 
   const apptFilter = isBarbeiro && myProId
     ? { company_id: companyId, professional_id: myProId }
@@ -198,7 +210,9 @@ export default function AppDashboard() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+      <div {...ptrProps}>
+        {ptrIndicator}
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl lg:text-3xl font-black text-[#111827] tracking-tight">Dashboard</h1>
@@ -315,6 +329,7 @@ export default function AppDashboard() {
             <ActivationHealthCard />
           </div>
         </div>
+      </div>
       </div>
     </AppLayout>
   );

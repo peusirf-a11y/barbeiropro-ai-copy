@@ -1,16 +1,54 @@
-import { Link, useLocation, Navigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat } from 'lucide-react';
+import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat, ChevronLeft } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';
 import MobileBottomTabs from '@/components/layout/MobileBottomTabs';
 import ImpersonationBanner from '@/components/master/ImpersonationBanner';
 import BillingPastDueBanner from '@/components/billing/BillingPastDueBanner';
+import PageTransition from '@/components/layout/PageTransition';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useCompany } from '@/hooks/useCompany';
 import { isPastDueLimited } from '@/lib/billingMode';
 import UnitSwitcher from '@/components/units/UnitSwitcher';
+
+// Rotas "principais" do mobile — quando estamos numa subrota fora dessa lista,
+// o header mobile mostra um botão de Voltar em vez do logo.
+const MAIN_MOBILE_ROUTES = new Set([
+  '/app/dashboard',
+  '/app/agenda',
+  '/app/clientes',
+  '/app/caixa',
+  '/app/financeiro',
+]);
+
+// Mapeia início do path → título mostrado no header mobile quando voltar
+function getSubRouteTitle(pathname) {
+  const map = [
+    ['/app/configuracoes/unidades', 'Unidades'],
+    ['/app/configuracoes/pagamentos', 'Pagamentos'],
+    ['/app/configuracoes/assinatura', 'Assinatura'],
+    ['/app/configuracoes', 'Configurações'],
+    ['/app/bloqueios', 'Bloqueios'],
+    ['/app/servicos', 'Serviços'],
+    ['/app/combos', 'Combos'],
+    ['/app/planos', 'Planos'],
+    ['/app/profissionais', 'Profissionais'],
+    ['/app/comissoes', 'Comissões'],
+    ['/app/relatorios', 'Relatórios'],
+    ['/app/ai-growth', 'AI Growth'],
+    ['/app/retencao', 'Retenção'],
+    ['/app/avaliacoes', 'Avaliações'],
+    ['/app/indicacoes', 'Indique e ganhe'],
+    ['/app/equipe', 'Equipe'],
+    ['/app/assinatura-bloqueada', 'Assinatura'],
+  ];
+  for (const [prefix, title] of map) {
+    if (pathname.startsWith(prefix)) return title;
+  }
+  return '';
+}
 
 // key = identificador no rolePermissions; default visível para todos os papéis com acesso à rota
 const navItemsAll = [
@@ -39,7 +77,10 @@ import { ROLE_PERMISSIONS } from '@/lib/rolePermissions';
 
 export default function AppLayout({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const isSubRoute = !MAIN_MOBILE_ROUTES.has(location.pathname);
+  const subRouteTitle = isSubRoute ? getSubRouteTitle(location.pathname) : '';
   const { data: teamRole, isLoading: loadingRole } = useTeamRole();
   const { company } = useCompany();
   const showPastDue = isPastDueLimited(company);
@@ -112,9 +153,10 @@ export default function AppLayout({ children }) {
       <div className="px-3 py-4 border-t border-white/5">
         <button
           onClick={() => base44.auth.logout()}
+          aria-label="Sair da conta"
           className="flex items-center gap-3 text-sm text-gray-400 hover:text-red-400 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 font-medium"
         >
-          <LogOut className="w-[18px] h-[18px]" />
+          <LogOut className="w-[18px] h-[18px]" aria-hidden="true" />
           Sair
         </button>
       </div>
@@ -131,9 +173,23 @@ export default function AppLayout({ children }) {
           height: 'calc(56px + env(safe-area-inset-top, 0px))',
         }}
       >
-        <Link to="/app/dashboard" className="min-w-0">
-          <BrandMark size={32} tone="light" />
-        </Link>
+        {isSubRoute ? (
+          <button
+            type="button"
+            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/app/dashboard'))}
+            className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-gray-100 text-[#0F172A] min-w-0"
+            aria-label="Voltar"
+          >
+            <ChevronLeft className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+            <span className="text-[15px] font-semibold truncate">
+              {subRouteTitle || 'Voltar'}
+            </span>
+          </button>
+        ) : (
+          <Link to="/app/dashboard" className="min-w-0" aria-label="Ir para o dashboard">
+            <BrandMark size={32} tone="light" />
+          </Link>
+        )}
         <div className="ml-auto"><UnitSwitcher /></div>
       </header>
 
@@ -169,10 +225,10 @@ export default function AppLayout({ children }) {
 
       {/* Main content — espaço extra no mobile para a bottom tab bar (58px + safe-area).
           No desktop (lg+) a tab bar some, então não precisamos do padding inferior. */}
-      <main className="lg:ml-64 min-h-[calc(100vh-4rem)] animate-fade-in pb-[calc(58px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+      <main className="lg:ml-64 min-h-[calc(100vh-4rem)] pb-[calc(58px+env(safe-area-inset-bottom,0px))] lg:pb-0">
         <ImpersonationBanner />
         {showPastDue && <BillingPastDueBanner />}
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
 
       {/* Bottom tab bar (mobile only) */}
