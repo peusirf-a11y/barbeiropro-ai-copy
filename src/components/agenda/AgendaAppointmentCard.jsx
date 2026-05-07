@@ -32,6 +32,9 @@ export default function AgendaAppointmentCard({ appt, customer, onClick }) {
         <div className="text-xs font-semibold text-gray-800 truncate flex-1">
           {appt.customer_name || 'Cliente'}
         </div>
+        {appt.paid_online && (
+          <span className="text-[9px] font-bold flex-shrink-0 bg-emerald-100 text-emerald-700 px-1 rounded" title="Pago online">PAGO</span>
+        )}
         {badge && (
           <span className="text-[10px] flex-shrink-0" title={badge.title}>{badge.label}</span>
         )}
