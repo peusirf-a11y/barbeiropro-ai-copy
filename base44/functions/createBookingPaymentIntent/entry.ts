@@ -111,10 +111,19 @@ Deno.serve(async (req) => {
       scheduled_at: scheduledAtISO,
     });
     const blockingStatuses = ['aguardando_pagamento', 'agendado', 'confirmado', 'em_atendimento'];
+    const phoneNormForMatch = phoneNorm;
+    const ownPendingToReuse = []; // reservas do MESMO usuário que ainda estão "aguardando_pagamento"
     const conflict = sameSlot.find(a => {
       if (!blockingStatuses.includes(a.status)) return false;
       // se aguardando_pagamento e expirado, deixa passar (job vai limpar, mas seguramos aqui também)
       if (a.status === 'aguardando_pagamento' && a.payment_expires_at && new Date(a.payment_expires_at) < new Date()) {
+        return false;
+      }
+      // Se é o MESMO cliente (mesmo telefone) e ainda está apenas aguardando pagamento,
+      // isso é o usuário trocando de método (ex: cartão → pix). Não bloqueia: cancelamos
+      // o anterior e criamos um novo.
+      if (a.status === 'aguardando_pagamento' && a.customer_phone === phoneNormForMatch) {
+        ownPendingToReuse.push(a);
         return false;
       }
       return true;
@@ -124,6 +133,22 @@ Deno.serve(async (req) => {
         error: 'slot_taken',
         message: 'Este horário acabou de ser reservado por outra pessoa. Escolha outro.',
       }, { status: 409 });
+    }
+    // Cancela tentativas anteriores do MESMO usuário no mesmo slot (e seus PaymentIntents)
+    for (const old of ownPendingToReuse) {
+      try {
+        if (old.payment_intent_id && company.stripe_connect_account_id) {
+          await stripe.paymentIntents.cancel(old.payment_intent_id, {}, {
+            stripeAccount: company.stripe_connect_account_id,
+          }).catch(err => console.warn('[createBookingPaymentIntent] cancel old PI failed:', err.message));
+        }
+        await sdk.entities.Appointment.update(old.id, {
+          status: 'cancelado',
+          payment_status: 'canceled',
+        });
+      } catch (err) {
+        console.warn('[createBookingPaymentIntent] failed to release old pending appointment:', err.message);
+      }
     }
 
     // ─── Customer (lookup ou criação) ───────────────────────────────────
