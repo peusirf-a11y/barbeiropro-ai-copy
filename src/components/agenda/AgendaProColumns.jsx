@@ -176,7 +176,11 @@ export default function AgendaProColumns({
 
   return (
     <div className="bg-white rounded-2xl border border-black/5 shadow-[var(--shadow-sm)] overflow-hidden">
-      <div ref={containerRef} className="overflow-auto max-h-[680px] select-none" style={{ touchAction: 'pan-x pan-y' }}>
+      <div
+        ref={containerRef}
+        className="overflow-auto max-h-[680px] select-none"
+        style={{ touchAction: 'pan-x pan-y', overscrollBehavior: 'contain' }}
+      >
         <div style={{ minWidth: totalGridWidth }}>
           {/* Header */}
           <div className="sticky top-0 z-20 bg-white border-b border-black/5 flex">

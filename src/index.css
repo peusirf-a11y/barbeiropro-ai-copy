@@ -76,11 +76,26 @@
   html, body {
     overflow-x: hidden;
     max-width: 100vw;
+    /* Mobile/WebView: evita rubber-band em todo o app por padrão */
+    overscroll-behavior-y: none;
   }
   body {
     @apply bg-background text-foreground font-inter;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     line-height: 1.55;
+    /* WebView Android: remove highlight cinza ao tocar */
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Elementos interativos não devem permitir seleção de texto acidental no mobile */
+  button, a, [role="button"], [role="tab"], nav a {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Inputs e textareas continuam selecionáveis (texto editável) */
+  input, textarea, [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
   }
   /* Tabelas com scroll horizontal controlado no mobile */
   table { min-width: 100%; }

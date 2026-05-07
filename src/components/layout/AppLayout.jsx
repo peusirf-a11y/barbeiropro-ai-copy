@@ -1,9 +1,10 @@
 import { Link, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, Menu, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat } from 'lucide-react';
+import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';
+import MobileBottomTabs from '@/components/layout/MobileBottomTabs';
 import ImpersonationBanner from '@/components/master/ImpersonationBanner';
 import BillingPastDueBanner from '@/components/billing/BillingPastDueBanner';
 import { useTeamRole } from '@/lib/useTeamRole';
@@ -122,15 +123,14 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-[#F7F8FB] font-inter">
-      {/* Mobile top bar */}
-      <header className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-14 flex items-center justify-between px-4 gap-2">
-        <button
-          onClick={() => setOpen(true)}
-          className="p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-700"
-          aria-label="Abrir menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+      {/* Mobile top bar — safe-area-inset-top para devices com notch */}
+      <header
+        className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 flex items-center justify-between px-4 gap-2"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          height: 'calc(56px + env(safe-area-inset-top, 0px))',
+        }}
+      >
         <Link to="/app/dashboard" className="min-w-0">
           <BrandMark size={32} tone="light" />
         </Link>
@@ -167,12 +167,19 @@ export default function AppLayout({ children }) {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="lg:ml-64 min-h-[calc(100vh-4rem)] animate-fade-in">
+      {/* Main content — espaço extra no mobile para a bottom tab bar (58px + safe-area).
+          No desktop (lg+) a tab bar some, então não precisamos do padding inferior. */}
+      <main className="lg:ml-64 min-h-[calc(100vh-4rem)] animate-fade-in pb-[calc(58px+env(safe-area-inset-bottom,0px))] lg:pb-0">
         <ImpersonationBanner />
         {showPastDue && <BillingPastDueBanner />}
         {children}
       </main>
+
+      {/* Bottom tab bar (mobile only) */}
+      <MobileBottomTabs
+        allowedKeys={allowed}
+        onOpenMore={() => setOpen(true)}
+      />
     </div>
   );
 }

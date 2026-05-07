@@ -7,6 +7,7 @@ import { Save, Globe, Copy, CheckCircle, Settings, CreditCard } from 'lucide-rea
 import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
+import DeleteAccountSection from '@/components/configuracoes/DeleteAccountSection';
 import { Link } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
 
@@ -225,6 +226,14 @@ export default function AppConfiguracoes() {
         <div className="mt-8">
           <MyEmailLogs />
         </div>
+
+        {/* Zona de risco — sair / excluir conta */}
+        {company && (
+          <DeleteAccountSection
+            company={company}
+            isOwner={!!user?.email && company.owner_email === user.email}
+          />
+        )}
       </div>
     </AppLayout>
   );

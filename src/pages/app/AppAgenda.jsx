@@ -10,11 +10,13 @@ import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
 import AgendaProColumns from '@/components/agenda/AgendaProColumns';
+import AgendaMobileList from '@/components/agenda/AgendaMobileList';
 import EditAppointmentModal from '@/components/agenda/EditAppointmentModal';
 import UseSubscriptionDialog from '@/components/agenda/UseSubscriptionDialog';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 import { STATUS_TOKENS } from '@/lib/statusTokens';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Status habilitados no modal de mudança — ordenados.
 const STATUS_KEYS = ['agendado', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'faltou'];
@@ -39,6 +41,7 @@ export default function AppAgenda() {
   const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
   const [slotInterval, setSlotInterval] = useState(10); // 10 ou 15 min
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   // Barbeiro só enxerga seus próprios atendimentos.
   const apptFilter = isBarbeiro && myProId
@@ -460,17 +463,27 @@ export default function AppAgenda() {
         </div>
 
         {visiblePros.length > 0 ? (
-          <AgendaProColumns
-            selectedDate={currentDate}
-            professionals={visiblePros}
-            appointments={apptsByUnit}
-            services={services}
-            blocks={blockedTimes}
-            onCardClick={setSelectedAppt}
-            onMoveAppointment={!isBarbeiro ? handleMoveAppointment : undefined}
-            onResizeAppointment={!isBarbeiro ? handleResizeAppointment : undefined}
-            slotInterval={slotInterval}
-          />
+          isMobile ? (
+            <AgendaMobileList
+              selectedDate={currentDate}
+              professionals={visiblePros}
+              appointments={filteredAppts}
+              services={services}
+              onCardClick={setSelectedAppt}
+            />
+          ) : (
+            <AgendaProColumns
+              selectedDate={currentDate}
+              professionals={visiblePros}
+              appointments={apptsByUnit}
+              services={services}
+              blocks={blockedTimes}
+              onCardClick={setSelectedAppt}
+              onMoveAppointment={!isBarbeiro ? handleMoveAppointment : undefined}
+              onResizeAppointment={!isBarbeiro ? handleResizeAppointment : undefined}
+              slotInterval={slotInterval}
+            />
+          )
         ) : (
           <div className="bg-white rounded-2xl border border-black/5 p-12 text-center text-gray-500">
             <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
