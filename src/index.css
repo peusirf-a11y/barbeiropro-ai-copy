@@ -73,6 +73,9 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
+  html, body {
+    overscroll-behavior-y: none;
+  }
   body {
     overflow-x: hidden;
     max-width: 100vw;

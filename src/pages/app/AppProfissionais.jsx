@@ -7,6 +7,7 @@ import { Plus, X, Pencil, Scissors, Trash2 } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
+import MobileSelect from '@/components/ui/mobile-select';
 
 const DAYS = [
   { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
@@ -214,11 +215,11 @@ export default function AppProfissionais() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-semibold text-gray-500 block mb-1">Tipo comissão</label>
-                        <select value={form.commission_type} onChange={e => setForm(p => ({ ...p, commission_type: e.target.value }))}
+                        <MobileSelect value={form.commission_type} onChange={e => setForm(p => ({ ...p, commission_type: e.target.value }))}
                           className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none">
                           <option value="percent">Porcentagem (%)</option>
                           <option value="fixed">Valor fixo (R$)</option>
-                        </select>
+                        </MobileSelect>
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-gray-500 block mb-1">Valor</label>

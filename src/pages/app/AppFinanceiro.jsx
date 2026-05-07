@@ -14,6 +14,7 @@ import FinancialExport from '@/components/financeiro/FinancialExport';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit } from '@/lib/unitFilter';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
+import MobileSelect from '@/components/ui/mobile-select';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
@@ -83,12 +84,12 @@ export default function AppFinanceiro() {
           subtitle="Controle de entradas e saídas"
           icon={DollarSign}
         >
-          <select value={period} onChange={e => setPeriod(e.target.value)}
+          <MobileSelect value={period} onChange={e => setPeriod(e.target.value)}
             className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white focus:outline-none shadow-[var(--shadow-xs)]">
             <option value="this_month">Este mês</option>
             <option value="last_month">Mês passado</option>
             <option value="all">Todo o período</option>
-          </select>
+          </MobileSelect>
           <FinancialExport companyId={companyId} companyName={company?.name} />
           {!isAllUnits && <PrimaryButton onClick={() => setShowForm(true)}>Lançamento</PrimaryButton>}
         </AppPageHeader>
@@ -188,10 +189,10 @@ export default function AppFinanceiro() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Categoria</label>
-                  <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
+                  <MobileSelect value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
                     className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none">
                     {(form.type === 'entrada' ? CATEGORIES_IN : CATEGORIES_OUT).map(c => <option key={c}>{c}</option>)}
-                  </select>
+                  </MobileSelect>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>

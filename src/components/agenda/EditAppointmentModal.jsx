@@ -9,6 +9,7 @@ import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import OfferPlanInlineBanner from '@/components/agenda/OfferPlanInlineBanner';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import { useCompany } from '@/hooks/useCompany';
+import MobileSelect from '@/components/ui/mobile-select';
 
 const STATUS_KEYS = ['agendado', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'faltou'];
 
@@ -130,30 +131,32 @@ export default function EditAppointmentModal({
         <div className="space-y-3">
           <div>
             <label className="text-xs font-semibold text-gray-500 block mb-1">Serviço *</label>
-            <select
+            <MobileSelect
               value={form.service_id}
               onChange={e => setForm(p => ({ ...p, service_id: e.target.value }))}
               disabled={isBarbeiro}
+              placeholder="Selecionar serviço"
               className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
             >
               <option value="">Selecionar serviço</option>
               {services.map(s => (
                 <option key={s.id} value={s.id}>{s.name} · {s.duration_minutes}min · R${s.price}</option>
               ))}
-            </select>
+            </MobileSelect>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional *</label>
-            <select
+            <MobileSelect
               value={form.professional_id}
               onChange={e => setForm(p => ({ ...p, professional_id: e.target.value }))}
               disabled={isBarbeiro}
+              placeholder="Selecionar profissional"
               className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
             >
               <option value="">Selecionar profissional</option>
               {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </MobileSelect>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

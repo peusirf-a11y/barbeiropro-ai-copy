@@ -24,13 +24,17 @@ export default function MobileBottomTabs({ allowedKeys, onOpenMore }) {
     : TABS;
 
   const handleTabClick = (e, tab) => {
-    // Re-clicar aba ativa → scrolla para o topo (reset visual da rota)
-    if (location.pathname === tab.path) {
-      e.preventDefault();
+    e.preventDefault();
+    const onExactRoot = location.pathname === tab.path;
+    const onSubRoute = location.pathname.startsWith(tab.path + '/');
+    if (onExactRoot) {
+      // Já na raiz da aba → scrolla para o topo
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (onSubRoute) {
+      // Em uma sub-rota da aba (ex: detalhe) → volta para a raiz da aba
+      navigate(tab.path);
     } else {
       navigate(tab.path);
-      e.preventDefault();
     }
   };
 
