@@ -23,7 +23,7 @@ export default function StandardModal({
   title,
   children,
   footer,
-  size = 'md', // 'sm' | 'md' | 'lg'
+  size = 'lg', // 'sm' | 'md' | 'lg'
   hideCloseButton = false,
   className = '',
 }) {
