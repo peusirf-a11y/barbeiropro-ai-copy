@@ -60,13 +60,10 @@ export default function StandardModal({
         className={cn(
           'bg-white w-full shadow-2xl flex flex-col',
           'rounded-t-2xl sm:rounded-2xl',
-          'max-h-[90dvh] sm:max-h-[88vh] sm:m-4',
+          'h-[92dvh] sm:h-auto sm:max-h-[88vh] sm:m-4',
           maxW,
           className
         )}
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        }}
         onClick={(e) => e.stopPropagation()}
       >
         {(title || !hideCloseButton) && (
