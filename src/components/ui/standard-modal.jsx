@@ -50,7 +50,11 @@ export default function StandardModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4"
+      style={{
+        paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+      }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -58,7 +62,7 @@ export default function StandardModal({
     >
       <div
         className={cn(
-          'bg-white rounded-2xl w-full shadow-2xl flex flex-col max-h-[92vh]',
+          'bg-white rounded-2xl w-full shadow-2xl flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[92vh] my-auto',
           maxW,
           className
         )}
