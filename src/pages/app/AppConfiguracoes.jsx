@@ -118,14 +118,14 @@ export default function AppConfiguracoes() {
                   <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
                   <input type="text" value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
               ))}
               <div className="md:col-span-2">
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Endereço</label>
                 <input type="text" value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
                   placeholder="Rua, número, bairro, cidade"
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Cor principal</label>
@@ -133,7 +133,7 @@ export default function AppConfiguracoes() {
                   <input type="color" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
                     className="w-10 h-10 rounded-lg border border-black/10 cursor-pointer" />
                   <input type="text" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                    className="flex-1 px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                    className="flex-1 px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                 </div>
               </div>
             </div>
