@@ -565,6 +565,7 @@ export default function AppAgenda() {
           open={showNewForm}
           onClose={() => setShowNewForm(false)}
           title="Novo Agendamento"
+          size="xl"
           footer={
             <>
               <button onClick={() => setShowNewForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
