@@ -77,6 +77,11 @@ export function getStatusToken(status) {
 }
 
 // Helper: cliente "sem preferência" → borda tracejada.
-export function isClientWithoutPreference(appt) {
-  return !appt?.customer_id;
+// Recebe o appointment e (opcionalmente) o objeto Customer correspondente.
+// Sem preferência = cliente não tem profissional favorito cadastrado, OU
+// agendamento foi feito sem cliente vinculado (walk-in).
+export function isClientWithoutPreference(appt, customer = null) {
+  if (!appt?.customer_id) return true;
+  if (customer && !customer.favorite_professional) return true;
+  return false;
 }

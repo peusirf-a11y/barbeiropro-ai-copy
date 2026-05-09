@@ -483,6 +483,7 @@ export default function AppAgenda() {
               professionals={visiblePros}
               appointments={filteredAppts}
               services={services}
+              customers={customers}
               onCardClick={setSelectedAppt}
             />
           ) : (

@@ -13,8 +13,12 @@ export default function AgendaMobileList({
   professionals,
   appointments,
   services,
+  customers = [],
   onCardClick,
 }) {
+  const customerById = useMemo(() => {
+    return customers.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
+  }, [customers]);
   const dayAppts = useMemo(() => {
     return appointments
       .filter(a => {
@@ -47,7 +51,7 @@ export default function AgendaMobileList({
         const endTime = format(addMinutes(start, dur), 'HH:mm');
         const startTime = format(start, 'HH:mm');
         const token = getStatusToken(appt.status);
-        const noPreference = isClientWithoutPreference(appt);
+        const noPreference = isClientWithoutPreference(appt, customerById[appt.customer_id]);
         const pro = proById[appt.professional_id];
 
         return (
