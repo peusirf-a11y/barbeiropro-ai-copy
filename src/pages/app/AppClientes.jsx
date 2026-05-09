@@ -250,7 +250,7 @@ export default function AppClientes() {
           title={editing ? 'Editar Cliente' : 'Novo Cliente'}
           footer={
             <>
-              <button onClick={closeForm} className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50 active:bg-gray-100">Cancelar</button>
+              <button onClick={closeForm} className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium text-[#111827] hover:bg-gray-50 active:bg-gray-100">Cancelar</button>
               <button onClick={handleSave} disabled={!form.name || !form.phone || createMutation.isPending || updateMutation.isPending}
                 className="flex-1 min-h-[48px] px-4 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] active:scale-[0.98] disabled:opacity-50 transition-all">
                 {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}

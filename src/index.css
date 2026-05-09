@@ -117,6 +117,11 @@
     color: #9CA3AF;
     opacity: 1;
   }
+  /* Botão sem variante explícita herda cor do body (#111827) — evita texto invisível
+     em botões custom (Cancelar, filtros mobile) que esquecerem text-* class. */
+  button {
+    color: inherit;
+  }
   input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):focus,
   textarea:focus,
   select:focus {

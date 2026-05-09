@@ -96,12 +96,12 @@ export default function MobileSelect({
         aria-haspopup="dialog"
         aria-expanded={open}
         className={cn(
-          'w-full flex items-center justify-between gap-2 px-3 py-2 border border-black/10 rounded-xl text-sm bg-white text-left',
+          'w-full flex items-center justify-between gap-2 px-3 py-2 border border-black/10 rounded-xl text-sm bg-white text-left text-[#111827]',
           disabled && 'opacity-50 cursor-not-allowed',
           className
         )}
       >
-        <span className={cn('truncate', !current && 'text-gray-400')}>
+        <span className={cn('truncate', current ? 'text-[#111827]' : 'text-gray-400')}>
           {current?.label || placeholder}
         </span>
         <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
