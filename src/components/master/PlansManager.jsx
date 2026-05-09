@@ -4,8 +4,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, X, Edit2, Trash2, ToggleLeft, ToggleRight, Package } from 'lucide-react';
+import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Package } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import StandardModal from '@/components/ui/standard-modal';
 
 const FEATURE_OPTIONS = [
   { key: 'financial', label: 'Financeiro' },
@@ -284,14 +285,21 @@ export default function PlansManager() {
         </table>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowForm(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-[var(--shadow-xl)]" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-[#111827] text-lg tracking-tight">{editing ? 'Editar plano' : 'Novo plano'}</h3>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><X className="w-5 h-5" /></button>
-            </div>
-
+      <StandardModal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={editing ? 'Editar plano' : 'Novo plano'}
+        size="lg"
+        footer={
+          <>
+            <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-xl text-sm font-semibold text-[#111827] hover:bg-gray-50 transition-colors">Cancelar</button>
+            <button onClick={handleSave} disabled={!form.name || upsert.isPending}
+              className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all">
+              {upsert.isPending ? 'Salvando…' : (editing ? 'Salvar alterações' : 'Criar plano')}
+            </button>
+          </>
+        }
+      >
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -365,17 +373,7 @@ export default function PlansManager() {
                 Plano ativo (disponível para novos clientes)
               </label>
             </div>
-
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-xl text-sm font-semibold text-[#111827] hover:bg-gray-50 transition-colors">Cancelar</button>
-              <button onClick={handleSave} disabled={!form.name || upsert.isPending}
-                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all">
-                {upsert.isPending ? 'Salvando…' : (editing ? 'Salvar alterações' : 'Criar plano')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </StandardModal>
     </div>
   );
 }
