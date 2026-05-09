@@ -112,7 +112,7 @@ export default function EditAppointmentModal({
     <>
       <button
         onClick={onClose}
-        className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50 active:bg-gray-100"
+        className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium text-[#111827] bg-white hover:bg-gray-50 active:bg-gray-100"
       >
         Cancelar
       </button>
@@ -148,13 +148,13 @@ export default function EditAppointmentModal({
         <div className="bg-gray-50 rounded-xl p-3 mb-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <span className="text-[11px] text-gray-400 block">Cliente</span>
-              <p className="font-semibold text-sm">{appointment.customer_name}</p>
+              <span className="text-[11px] text-gray-500 block">Cliente</span>
+              <p className="font-semibold text-sm text-[#111827]">{appointment.customer_name}</p>
               <div className="mt-1"><CustomerTypeBadge customer={customers.find(c => c.id === appointment.customer_id)} /></div>
             </div>
             <div>
-              <span className="text-[11px] text-gray-400 block">Telefone</span>
-              <p className="font-semibold text-sm">{appointment.customer_phone || '–'}</p>
+              <span className="text-[11px] text-gray-500 block">Telefone</span>
+              <p className="font-semibold text-sm text-[#111827]">{appointment.customer_phone || '–'}</p>
             </div>
           </div>
         </div>
