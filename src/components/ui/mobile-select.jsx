@@ -26,21 +26,25 @@ function extractOptions(children) {
   Children.forEach(children, (child) => {
     if (!child || typeof child !== 'object') return;
     if (child.type === 'option') {
+      const label = typeof child.props.children === 'string'
+        ? child.props.children
+        : String(child.props.children ?? '');
       opts.push({
-        value: child.props.value ?? '',
-        label: typeof child.props.children === 'string'
-          ? child.props.children
-          : String(child.props.children ?? ''),
+        // Fallback: se <option> não tem value explícito, usa o próprio label
+        // (espelha comportamento do <select> nativo do HTML).
+        value: child.props.value ?? label,
+        label,
         disabled: !!child.props.disabled,
       });
     } else if (child.type === 'optgroup' && child.props.children) {
       Children.forEach(child.props.children, (sub) => {
         if (sub && sub.type === 'option') {
+          const subLabel = typeof sub.props.children === 'string'
+            ? sub.props.children
+            : String(sub.props.children ?? '');
           opts.push({
-            value: sub.props.value ?? '',
-            label: typeof sub.props.children === 'string'
-              ? sub.props.children
-              : String(sub.props.children ?? ''),
+            value: sub.props.value ?? subLabel,
+            label: subLabel,
             disabled: !!sub.props.disabled,
             group: child.props.label,
           });
