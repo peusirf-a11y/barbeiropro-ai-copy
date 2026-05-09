@@ -1,21 +1,21 @@
-// StandardModal — modal padrão do sistema (premium, mobile-first).
+// StandardModal — modal padrão do sistema (premium, mobile-first, à prova de teclado).
 //
 // Comportamento:
 // - Mobile: bottom-sheet (cola no rodapé, cantos arredondados em cima)
 // - Desktop: card centralizado
-// - Footer sempre visível (sticky), respeita safe-area
-// - Body com scroll interno (nunca sobrepõe footer)
-// - Z-index acima da bottom navigation do app
+// - Footer SEMPRE visível (sticky), respeita safe-area-inset-bottom
+// - Body com scroll interno (nunca empurra o footer pra fora)
+// - Z-index 9999 (acima da bottom navigation do app)
+// - Acompanha o teclado mobile via window.visualViewport (input focado nunca fica escondido)
 // - Fecha com ESC, click fora e botão X
-// - Animação suave de entrada
-// - Compatível com teclado mobile (usa 100dvh + scroll interno)
+// - Anti-zoom iOS já garantido no index.css (font-size: 16px nos inputs <640px)
 //
 // Uso:
-//   <StandardModal open={open} onClose={...} title="Novo Lançamento" footer={<botoes/>}>
+//   <StandardModal open={...} onClose={...} title="..." footer={<botoes/>}>
 //     ...form...
 //   </StandardModal>
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,22 +37,46 @@ export default function StandardModal({
   hideCloseButton = false,
   className = '',
 }) {
-  // ESC fecha + lock do scroll do body
+  // Altura disponível ajustada conforme o teclado (visualViewport).
+  // Quando o teclado abre no mobile, visualViewport.height encolhe — usamos isso
+  // para fixar a altura do modal de forma que footer + último campo continuem visíveis.
+  const [viewportHeight, setViewportHeight] = useState(null);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
     document.addEventListener('keydown', onKey);
+
+    // Lock scroll do body
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
+    // visualViewport: API moderna que reflete a área visível REAL (descontando teclado)
+    const vv = window.visualViewport;
+    const updateVH = () => {
+      if (vv) setViewportHeight(vv.height);
+    };
+    updateVH();
+    vv?.addEventListener('resize', updateVH);
+    vv?.addEventListener('scroll', updateVH);
+
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
+      vv?.removeEventListener('resize', updateVH);
+      vv?.removeEventListener('scroll', updateVH);
     };
   }, [open, onClose]);
 
   if (!open) return null;
 
   const sizeCls = SIZE_MAP[size] || SIZE_MAP.lg;
+
+  // Estilo de altura: usa visualViewport.height (em px) quando disponível;
+  // fallback: 92dvh. Subtrai pequena margem de segurança para a status bar.
+  const containerStyle = viewportHeight
+    ? { maxHeight: `${Math.max(viewportHeight - 8, 240)}px` }
+    : { maxHeight: '92dvh' };
 
   return (
     <div
@@ -61,15 +85,20 @@ export default function StandardModal({
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      style={{
+        // Fixa o overlay na altura visível REAL — evita que ele "vaze" atrás do teclado
+        height: viewportHeight ? `${viewportHeight}px` : '100dvh',
+      }}
     >
       <div
+        style={containerStyle}
         className={cn(
           'bg-white w-full shadow-2xl flex flex-col overflow-hidden',
           // Bottom-sheet no mobile, card no desktop
           'rounded-t-3xl sm:rounded-2xl',
-          // Altura: 90dvh no mobile, auto até 88vh no desktop
-          'max-h-[90dvh] sm:max-h-[88vh] sm:m-4',
-          // Animação de slide-up no mobile
+          // Mobile: ocupa quase toda a tela visível. Desktop: max-w + margem.
+          'sm:max-h-[88vh] sm:m-4',
+          // Animação
           'animate-slide-up sm:animate-fade-in',
           sizeCls,
           className
@@ -83,7 +112,7 @@ export default function StandardModal({
 
         {/* Header — fixo, compacto */}
         {(title || !hideCloseButton) && (
-          <div className="flex items-center justify-between px-5 sm:px-6 pt-3 sm:pt-5 pb-3 flex-shrink-0">
+          <div className="flex items-center justify-between px-5 sm:px-6 pt-2 sm:pt-5 pb-3 flex-shrink-0">
             <h3 className="font-bold text-[#1B1C1E] text-base sm:text-lg truncate pr-2">{title}</h3>
             {!hideCloseButton && (
               <button
@@ -98,15 +127,18 @@ export default function StandardModal({
           </div>
         )}
 
-        {/* Body — scroll interno */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 pb-4 modal-scroll">
+        {/* Body — scroll interno; pb extra garante que último input nunca encoste no footer */}
+        <div
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 pb-6 modal-scroll"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {children}
         </div>
 
         {/* Footer — sticky, sempre visível, respeita safe-area */}
         {footer && (
           <div
-            className="flex-shrink-0 border-t border-black/5 bg-white px-5 sm:px-6 py-3 sm:py-4 flex gap-3"
+            className="flex-shrink-0 border-t border-black/5 bg-white px-5 sm:px-6 pt-3 flex gap-3"
             style={{ paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0px))` }}
           >
             {footer}
