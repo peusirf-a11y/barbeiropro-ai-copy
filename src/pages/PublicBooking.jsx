@@ -434,12 +434,12 @@ export default function PublicBooking() {
             {!form.email && <div className="mb-6" />}
             <div className="bg-[#F8F7F3] rounded-xl p-4 text-left space-y-2 mb-6">
               {selected.unit && (
-                <div className="flex justify-between text-sm"><span className="text-gray-500">Unidade</span><span className="font-semibold">{selected.unit.name}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-gray-500">Unidade</span><span className="font-semibold text-[#1B1C1E]">{selected.unit.name}</span></div>
               )}
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Serviço</span><span className="font-semibold">{selected.service?.name}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold">{selected.professional?.name}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Data</span><span className="font-semibold">{selected.date ? format(selected.date, "d 'de' MMMM", { locale: ptBR }) : ''}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Horário</span><span className="font-semibold">{selected.time}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-500">Serviço</span><span className="font-semibold text-[#1B1C1E]">{selected.service?.name}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold text-[#1B1C1E]">{selected.professional?.name}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-500">Data</span><span className="font-semibold text-[#1B1C1E]">{selected.date ? format(selected.date, "d 'de' MMMM", { locale: ptBR }) : ''}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-500">Horário</span><span className="font-semibold text-[#1B1C1E]">{selected.time}</span></div>
               <div className="flex justify-between text-sm border-t border-black/8 pt-2 mt-2">
                 <span className="text-gray-500">Valor</span>
                 {paymentMethod === 'subscription' && activeSubscription ? (
@@ -750,16 +750,16 @@ export default function PublicBooking() {
 
             {/* Summary completo */}
             <div className="bg-white rounded-2xl border border-black/8 p-4 mb-6 space-y-2">
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Cliente</span><span className="font-semibold truncate ml-2">{form.name}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">WhatsApp</span><span className="font-semibold">{form.phone}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-500">Cliente</span><span className="font-semibold text-[#1B1C1E] truncate ml-2">{form.name}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-500">WhatsApp</span><span className="font-semibold text-[#1B1C1E]">{form.phone}</span></div>
               {selected.unit && (
-                <div className="flex justify-between text-sm"><span className="text-gray-500">Unidade</span><span className="font-semibold">{selected.unit.name}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-gray-500">Unidade</span><span className="font-semibold text-[#1B1C1E]">{selected.unit.name}</span></div>
               )}
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Serviço</span><span className="font-semibold">{selected.service?.name}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold">{selected.professional?.name}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-500">Serviço</span><span className="font-semibold text-[#1B1C1E]">{selected.service?.name}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold text-[#1B1C1E]">{selected.professional?.name}</span></div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Data e hora</span>
-                <span className="font-semibold">{selected.date ? format(selected.date, "d 'de' MMM", { locale: ptBR }) : ''} às {selected.time}</span>
+                <span className="font-semibold text-[#1B1C1E]">{selected.date ? format(selected.date, "d 'de' MMM", { locale: ptBR }) : ''} às {selected.time}</span>
               </div>
               <div className="flex justify-between text-sm border-t border-black/8 pt-2 mt-2">
                 <span className="text-gray-500">Valor</span>
