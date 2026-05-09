@@ -71,8 +71,8 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl my-8" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[92vh]" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-black/5">
           <div className="flex items-center gap-3">
@@ -88,7 +88,7 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
         </div>
 
         {/* Body */}
-        <div className="p-6 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 overflow-y-auto flex-1">
           {loading && (
             <div className="text-center py-12">
               <Loader2 className="w-8 h-8 text-[#2563EB] animate-spin mx-auto mb-3" />
