@@ -7,6 +7,8 @@ import { Plus, X, Mail, Loader2, Send, UserCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
+import StandardModal from '@/components/ui/standard-modal';
+import FilterSelect from '@/components/ui/filter-select';
 
 const roleLabels = { admin: 'Admin', recepcao: 'Recepção', barbeiro: 'Barbeiro', financeiro: 'Financeiro' };
 const roleColors = { admin: 'bg-violet-50 text-violet-700', recepcao: 'bg-blue-50 text-blue-700', barbeiro: 'bg-emerald-50 text-emerald-700', financeiro: 'bg-amber-50 text-amber-700' };
@@ -157,53 +159,50 @@ export default function AppEquipe() {
          </div>
         </div>
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-[#1B1C1E]">Convidar Membro</h3>
-                <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
+        <StandardModal
+          open={showForm}
+          onClose={() => setShowForm(false)}
+          title="Convidar Membro"
+          footer={
+            <>
+              <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
+              <button
+                onClick={() => inviteMutation.mutate(form)}
+                disabled={!form.name || !form.email || inviteMutation.isPending}
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              >
+                {inviteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Enviar convite
+              </button>
+            </>
+          }
+        >
+          <p className="text-xs text-gray-500 mb-5 flex items-start gap-1.5">
+            <Mail className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            Um e-mail será enviado automaticamente com o link de acesso.
+          </p>
+          <div className="space-y-4">
+            {[
+              { label: 'Nome *', key: 'name', type: 'text' },
+              { label: 'E-mail *', key: 'email', type: 'email' },
+            ].map(f => (
+              <div key={f.key}>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
+                <input type={f.type} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
-              <p className="text-xs text-gray-500 mb-5 flex items-start gap-1.5">
-                <Mail className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                Um e-mail será enviado automaticamente com o link de acesso.
-              </p>
-              <div className="space-y-4">
-                {[
-                  { label: 'Nome *', key: 'name', type: 'text' },
-                  { label: 'E-mail *', key: 'email', type: 'email' },
-                ].map(f => (
-                  <div key={f.key}>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
-                    <input type={f.type} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                ))}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Papel</label>
-                  <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
-                    <option value="admin">Admin</option>
-                    <option value="recepcao">Recepção</option>
-                    <option value="barbeiro">Barbeiro</option>
-                    <option value="financeiro">Financeiro</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
-                <button
-                  onClick={() => inviteMutation.mutate(form)}
-                  disabled={!form.name || !form.email || inviteMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                >
-                  {inviteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Enviar convite
-                </button>
-              </div>
+            ))}
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Papel</label>
+              <FilterSelect value={form.role} onChange={(v) => setForm(p => ({ ...p, role: v }))} className="w-full">
+                <option value="admin">Admin</option>
+                <option value="recepcao">Recepção</option>
+                <option value="barbeiro">Barbeiro</option>
+                <option value="financeiro">Financeiro</option>
+              </FilterSelect>
             </div>
           </div>
-        )}
+        </StandardModal>
       </div>
     </AppLayout>
   );

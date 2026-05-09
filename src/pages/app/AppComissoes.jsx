@@ -12,6 +12,7 @@ import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import KpiCard from '@/components/dashboard/KpiCard';
+import FilterSelect from '@/components/ui/filter-select';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit, filterProfessionalsByUnit } from '@/lib/unitFilter';
 
@@ -94,16 +95,16 @@ export default function AppComissoes() {
           icon={Percent}
         >
           {!isBarbeiro && (
-            <select value={filterPro} onChange={e => setFilterPro(e.target.value)} className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white shadow-[var(--shadow-xs)]">
+            <FilterSelect value={filterPro} onChange={setFilterPro} aria-label="Filtrar por profissional">
               <option value="all">Todos os profissionais</option>
               {filterProfessionalsByUnit(professionals, activeUnitId, isMultiUnit).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </FilterSelect>
           )}
-          <select value={period} onChange={e => setPeriod(e.target.value)} className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white shadow-[var(--shadow-xs)]">
+          <FilterSelect value={period} onChange={setPeriod} aria-label="Período">
             <option value="this_month">Este mês</option>
             <option value="last_month">Mês passado</option>
             <option value="all">Todo o período</option>
-          </select>
+          </FilterSelect>
         </AppPageHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

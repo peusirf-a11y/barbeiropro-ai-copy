@@ -11,6 +11,7 @@ import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import KpiCard from '@/components/dashboard/KpiCard';
+import StandardModal from '@/components/ui/standard-modal';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit } from '@/lib/unitFilter';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
@@ -298,15 +299,9 @@ function Stat({ icon: Icon, label, value, positive, negative }) {
 
 function Modal({ title, onClose, children }) {
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-bold text-[#0F172A]">{title}</h3>
-          <button onClick={onClose}><X className="w-5 h-5" /></button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <StandardModal open={true} onClose={onClose} title={title}>
+      {children}
+    </StandardModal>
   );
 }
 

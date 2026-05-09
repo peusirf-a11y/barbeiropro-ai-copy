@@ -10,6 +10,8 @@ import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
+import StandardModal from '@/components/ui/standard-modal';
+import FilterSelect from '@/components/ui/filter-select';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit, filterProfessionalsByUnit } from '@/lib/unitFilter';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
@@ -154,14 +156,25 @@ export default function AppBloqueios() {
           </div>
         )}
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-[#0F172A]">Novo bloqueio</h3>
-                <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
-              </div>
-              <div className="space-y-3">
+        <StandardModal
+          open={showForm}
+          onClose={() => setShowForm(false)}
+          title="Novo bloqueio"
+          footer={
+            <>
+              <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
+              <button onClick={handleCreate}
+                disabled={
+                  createMutation.isPending ||
+                  (form.mode === 'once' ? (!form.start_time || !form.end_time) : (!form.time_start || !form.time_end))
+                }
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
+                {createMutation.isPending ? 'Salvando...' : 'Bloquear'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
                 {/* Tipo de bloqueio */}
                 <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
                   <button
@@ -180,14 +193,13 @@ export default function AppBloqueios() {
                   </button>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional</label>
-                  <select value={form.professional_id} onChange={e => setForm(p => ({ ...p, professional_id: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm">
-                    <option value="">Toda a barbearia</option>
-                    {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional</label>
+              <FilterSelect value={form.professional_id} onChange={(v) => setForm(p => ({ ...p, professional_id: v }))} className="w-full">
+                <option value="">Toda a barbearia</option>
+                {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </FilterSelect>
+            </div>
 
                 {form.mode === 'once' ? (
                   <div className="grid grid-cols-2 gap-3">
@@ -206,12 +218,11 @@ export default function AppBloqueios() {
                   <>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 block mb-1">Dia da semana *</label>
-                      <select value={form.weekday} onChange={e => setForm(p => ({ ...p, weekday: Number(e.target.value) }))}
-                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm">
+                      <FilterSelect value={String(form.weekday)} onChange={(v) => setForm(p => ({ ...p, weekday: Number(v) }))} className="w-full">
                         {WEEKDAY_LABELS.map((label, i) => (
-                          <option key={i} value={i}>Toda {label.toLowerCase()}</option>
+                          <option key={i} value={String(i)}>Toda {label.toLowerCase()}</option>
                         ))}
-                      </select>
+                      </FilterSelect>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -231,27 +242,14 @@ export default function AppBloqueios() {
                   </>
                 )}
 
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Motivo</label>
-                  <input type="text" value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))}
-                    placeholder="Ex: Almoço, Folga, Evento"
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
-                </div>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
-                <button onClick={handleCreate}
-                  disabled={
-                    createMutation.isPending ||
-                    (form.mode === 'once' ? (!form.start_time || !form.end_time) : (!form.time_start || !form.time_end))
-                  }
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
-                  {createMutation.isPending ? 'Salvando...' : 'Bloquear'}
-                </button>
-              </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Motivo</label>
+              <input type="text" value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))}
+                placeholder="Ex: Almoço, Folga, Evento"
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
             </div>
           </div>
-        )}
+        </StandardModal>
       </div>
     </AppLayout>
   );
