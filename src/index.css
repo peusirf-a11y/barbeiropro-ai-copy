@@ -110,6 +110,12 @@
   textarea,
   select {
     transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+    color: #111827;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: #9CA3AF;
+    opacity: 1;
   }
   input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):focus,
   textarea:focus,
