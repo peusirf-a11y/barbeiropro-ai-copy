@@ -146,18 +146,18 @@ export default function AppConfiguracoes() {
               {DAYS.map(({ key, label }) => {
                 const h = form.business_hours[key] || { open: '09:00', close: '19:00', active: false };
                 return (
-                  <div key={key} className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 w-32">
+                  <div key={key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-1.5 border-b border-black/5 last:border-b-0">
+                    <label className="flex items-center gap-2 sm:w-32 flex-shrink-0">
                       <input type="checkbox" checked={h.active} onChange={e => setHour(key, 'active', e.target.checked)} />
                       <span className={`text-sm font-semibold ${h.active ? 'text-[#111827]' : 'text-[#6B7280]'}`}>{label}</span>
                     </label>
                     {h.active ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <input type="time" value={h.open} onChange={e => setHour(key, 'open', e.target.value)}
-                          className="px-3 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                        <span className="text-gray-400 text-sm">até</span>
+                          className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                        <span className="text-gray-400 text-sm flex-shrink-0">até</span>
                         <input type="time" value={h.close} onChange={e => setHour(key, 'close', e.target.value)}
-                          className="px-3 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                          className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                       </div>
                     ) : (
                       <span className="text-sm text-gray-400">Fechado</span>
