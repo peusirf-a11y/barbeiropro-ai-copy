@@ -72,8 +72,28 @@ Deno.serve(async (req) => {
       sdk.entities.FinancialEntry.filter({ company_id, type: 'entrada' }, '-created_date', 1),
     ]);
 
+    // Se a empresa já tem profissional + cliente cadastrados, consideramos o
+    // onboarding "implicitamente concluído" — evita travar o card "Complete o
+    // onboarding" para empresas que já estão usando o sistema mas ficaram com
+    // a flag false por algum motivo (ex: pulo manual, falha no setStep final).
+    const onboardingDone = !!company.onboarding_completed
+      || (pros.length > 0 && customers.length > 0);
+
+    // Auto-cura: se detectamos onboarding implícito mas a flag está false,
+    // atualiza a Company para destravar o fluxo (PrivateRoute, banners, etc.).
+    if (onboardingDone && !company.onboarding_completed) {
+      try {
+        await sdk.entities.Company.update(company_id, {
+          onboarding_completed: true,
+          onboarding_step: Math.max(company.onboarding_step || 0, 7),
+        });
+      } catch (e) {
+        console.warn('[getActivationScore] auto-heal onboarding flag failed:', e?.message);
+      }
+    }
+
     const checks = {
-      onboarding: !!company.onboarding_completed,
+      onboarding: onboardingDone,
       first_appointment: appts.length > 0,
       first_customer: customers.length > 0,
       first_professional: pros.length > 0,
