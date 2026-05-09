@@ -50,7 +50,7 @@ export default function StandardModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -60,10 +60,11 @@ export default function StandardModal({
         className={cn(
           'bg-white w-full shadow-2xl flex flex-col',
           'rounded-t-2xl sm:rounded-2xl',
-          'h-[92dvh] sm:h-auto sm:max-h-[88vh] sm:m-4',
+          'h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:m-4',
           maxW,
           className
         )}
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {(title || !hideCloseButton) && (
