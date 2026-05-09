@@ -133,7 +133,7 @@ export default function EditAppointmentModal({
             <label className="text-xs font-semibold text-gray-500 block mb-1">Serviço *</label>
             <MobileSelect
               value={form.service_id}
-              onChange={e => setForm(p => ({ ...p, service_id: e.target.value }))}
+              onChange={v => setForm(p => ({ ...p, service_id: v }))}
               disabled={isBarbeiro}
               placeholder="Selecionar serviço"
               className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
@@ -149,7 +149,7 @@ export default function EditAppointmentModal({
             <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional *</label>
             <MobileSelect
               value={form.professional_id}
-              onChange={e => setForm(p => ({ ...p, professional_id: e.target.value }))}
+              onChange={v => setForm(p => ({ ...p, professional_id: v }))}
               disabled={isBarbeiro}
               placeholder="Selecionar profissional"
               className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 disabled:bg-gray-50 disabled:cursor-not-allowed"

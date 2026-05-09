@@ -215,7 +215,7 @@ export default function AppProfissionais() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-semibold text-gray-500 block mb-1">Tipo comissão</label>
-                        <MobileSelect value={form.commission_type} onChange={e => setForm(p => ({ ...p, commission_type: e.target.value }))}
+                        <MobileSelect value={form.commission_type} onChange={v => setForm(p => ({ ...p, commission_type: v }))}
                           className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none">
                           <option value="percent">Porcentagem (%)</option>
                           <option value="fixed">Valor fixo (R$)</option>

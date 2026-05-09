@@ -84,7 +84,7 @@ export default function AppFinanceiro() {
           subtitle="Controle de entradas e saídas"
           icon={DollarSign}
         >
-          <MobileSelect value={period} onChange={e => setPeriod(e.target.value)}
+          <MobileSelect value={period} onChange={setPeriod}
             className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white focus:outline-none shadow-[var(--shadow-xs)]">
             <option value="this_month">Este mês</option>
             <option value="last_month">Mês passado</option>
@@ -189,7 +189,7 @@ export default function AppFinanceiro() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Categoria</label>
-                  <MobileSelect value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
+                  <MobileSelect value={form.category} onChange={v => setForm(p => ({ ...p, category: v }))}
                     className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none">
                     {(form.type === 'entrada' ? CATEGORIES_IN : CATEGORIES_OUT).map(c => <option key={c}>{c}</option>)}
                   </MobileSelect>
