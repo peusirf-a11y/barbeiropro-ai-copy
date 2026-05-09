@@ -140,27 +140,27 @@ export default function AppConfiguracoes() {
           </div>
 
           {/* Business hours */}
-          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-            <h2 className="font-bold text-[#111827] mb-5">Horários de funcionamento</h2>
-            <div className="space-y-3">
+          <div className="bg-white rounded-2xl border border-black/5 p-4 sm:p-6 shadow-[var(--shadow-sm)]">
+            <h2 className="font-bold text-[#111827] mb-4">Horários de funcionamento</h2>
+            <div className="space-y-1">
               {DAYS.map(({ key, label }) => {
                 const h = form.business_hours[key] || { open: '09:00', close: '19:00', active: false };
                 return (
-                  <div key={key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-1.5 border-b border-black/5 last:border-b-0">
-                    <label className="flex items-center gap-2 sm:w-32 flex-shrink-0">
-                      <input type="checkbox" checked={h.active} onChange={e => setHour(key, 'active', e.target.checked)} />
-                      <span className={`text-sm font-semibold ${h.active ? 'text-[#111827]' : 'text-[#6B7280]'}`}>{label}</span>
+                  <div key={key} className="grid grid-cols-[88px_1fr_auto_1fr] items-center gap-2 py-1.5 border-b border-black/5 last:border-b-0">
+                    <label className="flex items-center gap-1.5 min-w-0">
+                      <input type="checkbox" checked={h.active} onChange={e => setHour(key, 'active', e.target.checked)} className="flex-shrink-0" />
+                      <span className={`text-sm font-semibold truncate ${h.active ? 'text-[#111827]' : 'text-[#6B7280]'}`}>{label}</span>
                     </label>
                     {h.active ? (
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <>
                         <input type="time" value={h.open} onChange={e => setHour(key, 'open', e.target.value)}
-                          className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                        <span className="text-gray-400 text-sm flex-shrink-0">até</span>
+                          className="w-full min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                        <span className="text-gray-400 text-xs px-1">até</span>
                         <input type="time" value={h.close} onChange={e => setHour(key, 'close', e.target.value)}
-                          className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                      </div>
+                          className="w-full min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                      </>
                     ) : (
-                      <span className="text-sm text-gray-400">Fechado</span>
+                      <span className="text-sm text-gray-400 col-span-3">Fechado</span>
                     )}
                   </div>
                 );
