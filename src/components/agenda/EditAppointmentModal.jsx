@@ -2,7 +2,7 @@
 // Valida conflitos antes de salvar e usa update otimista no parent para UI imediata.
 
 import { useState, useMemo } from 'react';
-import { X, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { STATUS_TOKENS } from '@/lib/statusTokens';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
@@ -10,6 +10,7 @@ import OfferPlanInlineBanner from '@/components/agenda/OfferPlanInlineBanner';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import { useCompany } from '@/hooks/useCompany';
 import MobileSelect from '@/components/ui/mobile-select';
+import StandardModal from '@/components/ui/standard-modal';
 
 const STATUS_KEYS = ['agendado', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'faltou'];
 
@@ -95,14 +96,33 @@ export default function EditAppointmentModal({
     });
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-bold text-[#1B1C1E]">Editar agendamento</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
-        </div>
+  const footer = (
+    <>
+      <button
+        onClick={onClose}
+        className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50 active:bg-gray-100"
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={handleSave}
+        disabled={isSaving}
+        className="flex-1 min-h-[48px] px-4 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] active:scale-[0.98] disabled:opacity-50 transition-all"
+      >
+        {isSaving ? 'Salvando…' : 'Salvar'}
+      </button>
+    </>
+  );
 
+  return (
+    <>
+      <StandardModal
+        open
+        onClose={onClose}
+        title="Editar agendamento"
+        size="lg"
+        footer={footer}
+      >
         {/* Gatilho inteligente: cliente frequente sem assinatura → oferece plano */}
         {!isBarbeiro && companyId && appointment.customer_id && (
           <OfferPlanInlineBanner
@@ -214,22 +234,6 @@ export default function EditAppointmentModal({
           </div>
         )}
 
-        <div className="flex gap-3 mt-5">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50"
-          >
-            {isSaving ? 'Salvando…' : 'Salvar alterações'}
-          </button>
-        </div>
-
         {!isBarbeiro && onDelete && (
           <button
             onClick={() => { if (confirm('Excluir este agendamento?')) onDelete(appointment.id); }}
@@ -238,7 +242,7 @@ export default function EditAppointmentModal({
             Excluir agendamento
           </button>
         )}
-      </div>
+      </StandardModal>
 
       {showOffer && customer && (
         <OfferPlanModal
@@ -247,6 +251,6 @@ export default function EditAppointmentModal({
           onClose={() => setShowOffer(false)}
         />
       )}
-    </div>
+    </>
   );
 }
