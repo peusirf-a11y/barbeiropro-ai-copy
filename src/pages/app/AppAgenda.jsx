@@ -22,7 +22,7 @@ import StandardModal from '@/components/ui/standard-modal';
 import FilterSelect from '@/components/ui/filter-select';
 
 // Status habilitados no modal de mudança — ordenados.
-const STATUS_KEYS = ['agendado', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'faltou'];
+const STATUS_KEYS = ['agendado', 'confirmado', 'concluido', 'cancelado', 'faltou'];
 
 const hours = Array.from({ length: 13 }, (_, i) => i + 8);
 
