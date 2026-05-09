@@ -8,6 +8,7 @@ import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import MobileSelect from '@/components/ui/mobile-select';
+import StandardModal from '@/components/ui/standard-modal';
 
 const DAYS = [
   { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
@@ -169,16 +170,24 @@ export default function AppProfissionais() {
           </div>
         )}
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeForm}>
-            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-              <div className="p-6 border-b border-black/8 flex items-center justify-between">
-                <h3 className="font-bold text-[#1B1C1E]">{editing ? 'Editar Profissional' : 'Novo Profissional'}</h3>
-                <button onClick={closeForm}><X className="w-5 h-5" /></button>
-              </div>
-
+        <StandardModal
+          open={showForm}
+          onClose={closeForm}
+          title={editing ? 'Editar Profissional' : 'Novo Profissional'}
+          size="lg"
+          footer={
+            <>
+              <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
+              <button onClick={handleSave} disabled={!form.name || createMutation.isPending || updateMutation.isPending}
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
+                {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </button>
+            </>
+          }
+        >
+          <div>
               {/* Tabs */}
-              <div className="flex border-b border-black/8">
+              <div className="flex border-b border-black/8 -mx-6 mb-4">
                 {[
                   { id: 'info', label: 'Dados' },
                   { id: 'schedule', label: 'Horários' },
@@ -192,7 +201,7 @@ export default function AppProfissionais() {
                 ))}
               </div>
 
-              <div className="p-6 overflow-y-auto flex-1">
+              <div className="">
                 {tab === 'info' && (
                   <div className="space-y-3">
                     <div>
@@ -298,17 +307,8 @@ export default function AppProfissionais() {
                   </div>
                 )}
               </div>
-
-              <div className="p-6 border-t border-black/8 flex gap-3">
-                <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
-                <button onClick={handleSave} disabled={!form.name || createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
-                  {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
-                </button>
-              </div>
-            </div>
           </div>
-        )}
+        </StandardModal>
       </div>
     </AppLayout>
   );

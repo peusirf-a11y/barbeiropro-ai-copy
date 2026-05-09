@@ -18,6 +18,8 @@ import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 import { STATUS_TOKENS } from '@/lib/statusTokens';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import StandardModal from '@/components/ui/standard-modal';
+import FilterSelect from '@/components/ui/filter-select';
 
 // Status habilitados no modal de mudança — ordenados.
 const STATUS_KEYS = ['agendado', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'faltou'];
@@ -390,11 +392,10 @@ export default function AppAgenda() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {!isBarbeiro && professionals.length > 0 && (
-              <select value={filterPro} onChange={e => setFilterPro(e.target.value)}
-                className="px-3 py-2 border border-black/10 rounded-xl text-sm focus:outline-none bg-white shadow-[var(--shadow-xs)]">
+              <FilterSelect value={filterPro} onChange={setFilterPro} aria-label="Filtrar por profissional">
                 <option value="all">Todos os profissionais</option>
                 {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              </FilterSelect>
             )}
             <div className="hidden sm:flex items-center bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
               {[10, 15].map(v => (
@@ -560,93 +561,89 @@ export default function AppAgenda() {
         )}
 
         {/* New Appointment Form */}
-        {showNewForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowNewForm(false)}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-[#1B1C1E]">Novo Agendamento</h3>
-                <button onClick={() => setShowNewForm(false)} aria-label="Fechar formulário">
-                  <X className="w-5 h-5" aria-hidden="true" />
-                </button>
+        <StandardModal
+          open={showNewForm}
+          onClose={() => setShowNewForm(false)}
+          title="Novo Agendamento"
+          footer={
+            <>
+              <button onClick={() => setShowNewForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
+              <button onClick={handleCreate} disabled={!form.customer_name || !form.service_id || !form.professional_id || !form.scheduled_at || createMutation.isPending}
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
+                {createMutation.isPending ? 'Salvando...' : 'Confirmar'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            {/* Customer */}
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Cliente</label>
+              <FilterSelect
+                value={form.customer_id}
+                onChange={(v) => {
+                  const c = customers.find(x => x.id === v);
+                  setForm(p => ({ ...p, customer_id: v, customer_name: c?.name || '', customer_phone: c?.phone || '' }));
+                }}
+                className="w-full"
+              >
+                <option value="">Selecionar cliente cadastrado</option>
+                {customers.map(c => <option key={c.id} value={c.id}>{c.name} · {c.phone}</option>)}
+              </FilterSelect>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Nome do cliente *</label>
+                <input type="text" value={form.customer_name} onChange={e => setForm(p => ({ ...p, customer_name: e.target.value }))}
+                  placeholder="Ou digite o nome"
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
-              <div className="space-y-3">
-                {/* Customer */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Cliente</label>
-                  <select value={form.customer_id} onChange={e => {
-                    const c = customers.find(x => x.id === e.target.value);
-                    setForm(p => ({ ...p, customer_id: e.target.value, customer_name: c?.name || '', customer_phone: c?.phone || '' }));
-                  }} className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
-                    <option value="">Selecionar cliente cadastrado</option>
-                    {customers.map(c => <option key={c.id} value={c.id}>{c.name} · {c.phone}</option>)}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Nome do cliente *</label>
-                    <input type="text" value={form.customer_name} onChange={e => setForm(p => ({ ...p, customer_name: e.target.value }))}
-                      placeholder="Ou digite o nome"
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone</label>
-                    <input type="text" value={form.customer_phone}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setForm(p => ({
-                          ...p,
-                          customer_phone: val,
-                          // se o usuário começa a digitar telefone novo, desvincula cliente anterior
-                          customer_id: p.customer_id && normalizePhone(p.customer_phone) !== normalizePhone(val) ? '' : p.customer_id,
-                        }));
-                        // lookup imediato quando atinge tamanho mínimo
-                        if (normalizePhone(val).length >= 10) handlePhoneLookup(val);
-                      }}
-                      onBlur={e => handlePhoneLookup(e.target.value)}
-                      placeholder="(11) 99999-9999"
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                    {form.customer_id && (
-                      <span className="text-[11px] text-green-600 font-medium mt-1 block">✓ Cliente identificado</span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Serviço *</label>
-                  <select value={form.service_id} onChange={e => handleServiceChange(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
-                    <option value="">Selecionar serviço</option>
-                    {services.map(s => <option key={s.id} value={s.id}>{s.name} · {s.duration_minutes}min · R${s.price}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional *</label>
-                  <select value={form.professional_id} onChange={e => setForm(p => ({ ...p, professional_id: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
-                    <option value="">Selecionar profissional</option>
-                    {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Data e hora *</label>
-                  <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm(p => ({ ...p, scheduled_at: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
-                  <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                </div>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <button onClick={() => setShowNewForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
-                <button onClick={handleCreate} disabled={!form.customer_name || !form.service_id || !form.professional_id || !form.scheduled_at || createMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
-                  {createMutation.isPending ? 'Salvando...' : 'Confirmar'}
-                </button>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone</label>
+                <input type="text" value={form.customer_phone}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(p => ({
+                      ...p,
+                      customer_phone: val,
+                      customer_id: p.customer_id && normalizePhone(p.customer_phone) !== normalizePhone(val) ? '' : p.customer_id,
+                    }));
+                    if (normalizePhone(val).length >= 10) handlePhoneLookup(val);
+                  }}
+                  onBlur={e => handlePhoneLookup(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                {form.customer_id && (
+                  <span className="text-[11px] text-green-600 font-medium mt-1 block">✓ Cliente identificado</span>
+                )}
               </div>
             </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Serviço *</label>
+              <FilterSelect value={form.service_id} onChange={handleServiceChange} className="w-full">
+                <option value="">Selecionar serviço</option>
+                {services.map(s => <option key={s.id} value={s.id}>{s.name} · {s.duration_minutes}min · R${s.price}</option>)}
+              </FilterSelect>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional *</label>
+              <FilterSelect value={form.professional_id} onChange={(v) => setForm(p => ({ ...p, professional_id: v }))} className="w-full">
+                <option value="">Selecionar profissional</option>
+                {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </FilterSelect>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Data e hora *</label>
+              <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm(p => ({ ...p, scheduled_at: e.target.value }))}
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
+              <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+            </div>
           </div>
-        )}
+        </StandardModal>
       </div>
       </div>
     </AppLayout>

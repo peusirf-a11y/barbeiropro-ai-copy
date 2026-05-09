@@ -11,6 +11,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
+import StandardModal from '@/components/ui/standard-modal';
+import FilterSelect from '@/components/ui/filter-select';
 import CustomerSubscriptionPanel from '@/components/clientes/CustomerSubscriptionPanel';
 import CustomerPlanRecommendation from '@/components/clientes/CustomerPlanRecommendation';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
@@ -242,64 +244,65 @@ export default function AppClientes() {
           />
         )}
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeForm}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-[#1B1C1E]">{editing ? 'Editar Cliente' : 'Novo Cliente'}</h3>
-                <button onClick={closeForm}><X className="w-5 h-5" /></button>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
-                  <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone *</label>
-                    <input type="text" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                      placeholder="(11) 99999-9999"
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">E-mail</label>
-                    <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Status</label>
-                  <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20">
-                    <option value="active">Ativo</option>
-                    <option value="vip">VIP</option>
-                    <option value="inactive">Inativo</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
-                  <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
-                    placeholder="Preferências, alergias, observações..."
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none" />
-                </div>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
-                <button onClick={handleSave} disabled={!form.name || !form.phone || createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
-                  {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
-                </button>
-              </div>
-
-              {editing && (
-                <div className="mt-5 pt-5 border-t border-black/5">
-                  <CustomerSubscriptionPanel customer={editing} companyId={companyId} />
-                </div>
-              )}
+        <StandardModal
+          open={showForm}
+          onClose={closeForm}
+          title={editing ? 'Editar Cliente' : 'Novo Cliente'}
+          footer={
+            <>
+              <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
+              <button onClick={handleSave} disabled={!form.name || !form.phone || createMutation.isPending || updateMutation.isPending}
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
+                {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
+              <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone *</label>
+                <input type="text" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                  placeholder="(11) 99999-9999"
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">E-mail</label>
+                <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Status</label>
+              <FilterSelect
+                value={form.status}
+                onChange={(v) => setForm(p => ({ ...p, status: v }))}
+                className="w-full"
+              >
+                <option value="active">Ativo</option>
+                <option value="vip">VIP</option>
+                <option value="inactive">Inativo</option>
+              </FilterSelect>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
+              <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
+                placeholder="Preferências, alergias, observações..."
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none" />
+            </div>
+
+            {editing && (
+              <div className="mt-5 pt-5 border-t border-black/5">
+                <CustomerSubscriptionPanel customer={editing} companyId={companyId} />
+              </div>
+            )}
           </div>
-        )}
+        </StandardModal>
       </div>
     </AppLayout>
   );

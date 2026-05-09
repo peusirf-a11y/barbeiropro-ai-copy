@@ -8,6 +8,7 @@ import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
+import StandardModal from '@/components/ui/standard-modal';
 
 const emptyForm = { name: '', description: '', service_ids: [], price: '', duration_minutes: '', active: true, featured: false };
 
@@ -147,14 +148,21 @@ export default function AppCombos() {
           </div>
         )}
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={resetForm}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-[#0F172A]">{editing ? 'Editar combo' : 'Novo combo'}</h3>
-                <button onClick={resetForm}><X className="w-5 h-5" /></button>
-              </div>
-              <div className="space-y-3">
+        <StandardModal
+          open={showForm}
+          onClose={resetForm}
+          title={editing ? 'Editar combo' : 'Novo combo'}
+          footer={
+            <>
+              <button onClick={resetForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
+              <button onClick={handleSubmit} disabled={!form.name || !form.price || (createMutation.isPending || updateMutation.isPending)}
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
+                {(createMutation.isPending || updateMutation.isPending) ? 'Salvando...' : 'Salvar'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-500 block mb-1">Nome do combo *</label>
                   <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
@@ -191,27 +199,18 @@ export default function AppCombos() {
                       className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
                   </div>
                 </div>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
-                    Ativo
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} />
-                    Destaque
-                  </label>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <button onClick={resetForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
-                <button onClick={handleSubmit} disabled={!form.name || !form.price || (createMutation.isPending || updateMutation.isPending)}
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
-                  {(createMutation.isPending || updateMutation.isPending) ? 'Salvando...' : 'Salvar'}
-                </button>
-              </div>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
+                Ativo
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} />
+                Destaque
+              </label>
             </div>
           </div>
-        )}
+        </StandardModal>
       </div>
     </AppLayout>
   );

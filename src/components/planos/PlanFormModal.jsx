@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import StandardModal from '@/components/ui/standard-modal';
+import MobileSelect from '@/components/ui/mobile-select';
 
 const empty = {
   name: '',
@@ -51,13 +52,21 @@ export default function PlanFormModal({ plan, services, units, isMultiUnit, onSa
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-bold text-[#111827] text-lg">{plan ? 'Editar plano' : 'Novo plano'}</h3>
-          <button onClick={onClose}><X className="w-5 h-5" /></button>
-        </div>
-
+    <StandardModal
+      open={true}
+      onClose={onClose}
+      title={plan ? 'Editar plano' : 'Novo plano'}
+      size="lg"
+      footer={
+        <>
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
+          <button onClick={handleSubmit} disabled={!form.name || !form.price_monthly || isSaving}
+            className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
+            {isSaving ? 'Salvando...' : plan ? 'Salvar' : 'Criar plano'}
+          </button>
+        </>
+      }
+    >
         <div className="space-y-3">
           <div>
             <label className="text-xs font-semibold text-gray-500 block mb-1">Nome do plano *</label>
@@ -81,11 +90,11 @@ export default function PlanFormModal({ plan, services, units, isMultiUnit, onSa
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 block mb-1">Tipo *</label>
-              <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
+              <MobileSelect value={form.type} onChange={(v) => setForm(p => ({ ...p, type: v }))}
                 className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm bg-white">
                 <option value="limited">Limitado</option>
                 <option value="unlimited">Ilimitado</option>
-              </select>
+              </MobileSelect>
             </div>
           </div>
 
@@ -185,15 +194,6 @@ export default function PlanFormModal({ plan, services, units, isMultiUnit, onSa
             <span>Plano ativo (disponível para venda)</span>
           </label>
         </div>
-
-        <div className="flex gap-3 mt-5">
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
-          <button onClick={handleSubmit} disabled={!form.name || !form.price_monthly || isSaving}
-            className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
-            {isSaving ? 'Salvando...' : plan ? 'Salvar' : 'Criar plano'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </StandardModal>
   );
 }

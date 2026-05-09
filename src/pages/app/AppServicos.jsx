@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Plus, X, Star, Clock, Pencil, Trash2, Briefcase } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
+import StandardModal from '@/components/ui/standard-modal';
 
 const emptyForm = { name: '', description: '', duration_minutes: 30, price: 0, active: true, featured: false, category_id: '' };
 
@@ -118,58 +119,56 @@ export default function AppServicos() {
           </div>
         )}
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeForm}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-[#1B1C1E]">{editing ? 'Editar Serviço' : 'Novo Serviço'}</h3>
-                <button onClick={closeForm}><X className="w-5 h-5" /></button>
+        <StandardModal
+          open={showForm}
+          onClose={closeForm}
+          title={editing ? 'Editar Serviço' : 'Novo Serviço'}
+          footer={
+            <>
+              <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
+              <button onClick={handleSave} disabled={!form.name || createMutation.isPending || updateMutation.isPending}
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
+                {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
+              <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                placeholder="Ex: Corte Clássico"
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
+              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2}
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Duração (min) *</label>
+                <input type="number" min="5" step="5" value={form.duration_minutes} onChange={e => setForm(p => ({ ...p, duration_minutes: +e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
-                  <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                    placeholder="Ex: Corte Clássico"
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
-                  <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Duração (min) *</label>
-                    <input type="number" min="5" step="5" value={form.duration_minutes} onChange={e => setForm(p => ({ ...p, duration_minutes: +e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Preço (R$) *</label>
-                    <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(p => ({ ...p, price: +e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                </div>
-                <div className="flex gap-5">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
-                    Ativo
-                  </label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} />
-                    <Star className="w-3.5 h-3.5 text-yellow-500" /> Destaque
-                  </label>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
-                <button onClick={handleSave} disabled={!form.name || createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
-                  {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
-                </button>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Preço (R$) *</label>
+                <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(p => ({ ...p, price: +e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
             </div>
+            <div className="flex gap-5">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
+                Ativo
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} />
+                <Star className="w-3.5 h-3.5 text-yellow-500" /> Destaque
+              </label>
+            </div>
           </div>
-        )}
+        </StandardModal>
       </div>
     </AppLayout>
   );
