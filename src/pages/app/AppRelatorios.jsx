@@ -8,6 +8,7 @@ import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart2 } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
+import FilterSelect from '@/components/ui/filter-select';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit } from '@/lib/unitFilter';
 import { useUnits } from '@/hooks/useUnits';
@@ -100,12 +101,11 @@ export default function AppRelatorios() {
           subtitle="Dados reais da sua operação"
           icon={BarChart2}
         >
-          <select value={period} onChange={e => setPeriod(e.target.value)}
-            className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white focus:outline-none shadow-[var(--shadow-xs)]">
+          <FilterSelect value={period} onChange={setPeriod} aria-label="Período">
             <option value="this_month">Este mês</option>
             <option value="last_month">Mês passado</option>
             <option value="all">Todo o período</option>
-          </select>
+          </FilterSelect>
         </AppPageHeader>
 
         {/* Comparativo por unidade — só aparece em modo "Todas as unidades" */}

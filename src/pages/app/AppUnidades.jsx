@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Building2, Pencil, Trash2, X, Star, MapPin, Phone } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
+import StandardModal from '@/components/ui/standard-modal';
 import { useToast } from '@/components/ui/use-toast';
 import MultiUnitToggle from '@/components/units/MultiUnitToggle';
 import CustomerScopeToggle from '@/components/units/CustomerScopeToggle';
@@ -169,54 +170,52 @@ export default function AppUnidades() {
           </>
         )}
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={close}>
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="p-6 border-b border-black/8 flex items-center justify-between">
-                <h3 className="font-bold text-[#111827]">{editing ? 'Editar unidade' : 'Nova unidade'}</h3>
-                <button onClick={close}><X className="w-5 h-5" /></button>
+        <StandardModal
+          open={showForm}
+          onClose={close}
+          title={editing ? 'Editar unidade' : 'Nova unidade'}
+          footer={
+            <>
+              <button onClick={close} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">
+                Cancelar
+              </button>
+              <button onClick={save} disabled={!form.name.trim() || createM.isPending || updateM.isPending}
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
+                {createM.isPending || updateM.isPending ? 'Salvando...' : 'Salvar'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
+              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                placeholder="Ex: Matriz, Filial Centro, Loja Shopping"
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Endereço</label>
+              <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone</label>
+                <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
-              <div className="p-6 space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
-                  <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                    placeholder="Ex: Matriz, Filial Centro, Loja Shopping"
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Endereço</label>
-                  <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone</label>
-                    <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">WhatsApp</label>
-                    <input value={form.whatsapp} onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-sm cursor-pointer pt-2">
-                  <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
-                  Unidade ativa
-                </label>
-              </div>
-              <div className="p-6 border-t border-black/8 flex gap-3">
-                <button onClick={close} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">
-                  Cancelar
-                </button>
-                <button onClick={save} disabled={!form.name.trim() || createM.isPending || updateM.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
-                  {createM.isPending || updateM.isPending ? 'Salvando...' : 'Salvar'}
-                </button>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">WhatsApp</label>
+                <input value={form.whatsapp} onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
             </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer pt-2">
+              <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
+              Unidade ativa
+            </label>
           </div>
-        )}
+        </StandardModal>
       </div>
     </AppLayout>
   );
