@@ -121,6 +121,16 @@
       "type": "string",
       "description": "Quando payment_method=subscription, ID da CustomerSubscription que cobriu o atendimento"
     },
+    "paid": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marca\u00e7\u00e3o paralela ao status indicando que o pagamento foi recebido (presencial, Pix, m\u00e1quina, etc.). Independente de paid_online (que \u00e9 exclusivo do Stripe)."
+    },
+    "paid_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o pagamento foi marcado como recebido."
+    },
     "paid_online": {
       "type": "boolean",
       "default": false,

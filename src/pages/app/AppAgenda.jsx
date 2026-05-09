@@ -49,7 +49,7 @@ export default function AppAgenda() {
     onRefresh: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
-        queryClient.invalidateQueries({ queryKey: ['blocks'] }),
+        queryClient.invalidateQueries({ queryKey: ['blocked-times'] }),
         queryClient.invalidateQueries({ queryKey: ['professionals'] }),
         queryClient.invalidateQueries({ queryKey: ['customers'] }),
       ]);
@@ -62,13 +62,13 @@ export default function AppAgenda() {
     : { company_id: companyId };
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
-    queryKey: ['appointments', companyId, isBarbeiro ? myProId : 'all'],
+    queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
     queryFn: () => base44.entities.Appointment.filter(apptFilter, '-scheduled_at', 500),
     enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
   const { data: professionals = [] } = useQuery({
-    queryKey: ['professionals', companyId],
+    queryKey: ['professionals', companyId, activeUnitId],
     queryFn: () => base44.entities.Professional.filter({ company_id: companyId, active: true }),
     enabled: !!companyId,
   });
@@ -80,20 +80,20 @@ export default function AppAgenda() {
   });
 
   const { data: customers = [] } = useQuery({
-    queryKey: ['customers', companyId],
+    queryKey: ['customers', companyId, activeUnitId],
     queryFn: () => base44.entities.Customer.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
 
   const { data: blockedTimes = [] } = useQuery({
-    queryKey: ['blocks', companyId],
+    queryKey: ['blocked-times', companyId, activeUnitId],
     queryFn: () => base44.entities.BlockedTime.filter({ company_id: companyId }, '-start_time', 200),
     enabled: !!companyId,
   });
 
   // Assinaturas ativas — para mostrar opção "usar plano" ao agendar e badge de assinante
   const { data: activeSubs = [] } = useQuery({
-    queryKey: ['customer-subscriptions', companyId],
+    queryKey: ['customer-subscriptions', companyId, activeUnitId],
     queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
     enabled: !!companyId,
   });

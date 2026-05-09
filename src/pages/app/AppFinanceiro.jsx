@@ -30,26 +30,26 @@ export default function AppFinanceiro() {
   const queryClient = useQueryClient();
 
   const { data: financial = [], isLoading } = useQuery({
-    queryKey: ['financial', companyId],
+    queryKey: ['financial', companyId, activeUnitId],
     queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }, '-date', 300),
     enabled: !!companyId,
   });
 
   // Also pull from completed appointments to auto-calculate revenue
   const { data: appointments = [] } = useQuery({
-    queryKey: ['appointments', companyId],
+    queryKey: ['appointments', companyId, activeUnitId],
     queryFn: () => base44.entities.Appointment.filter({ company_id: companyId, status: 'concluido' }),
     enabled: !!companyId,
   });
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.FinancialEntry.create({ ...data, company_id: companyId, unit_id: activeUnitId || undefined, amount: +data.amount }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['financial', companyId] }); setShowForm(false); setForm({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['financial'] }); setShowForm(false); setForm({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' }); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.FinancialEntry.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financial', companyId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financial'] }),
   });
 
   const now = new Date();

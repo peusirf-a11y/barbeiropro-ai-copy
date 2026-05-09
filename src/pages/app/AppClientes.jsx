@@ -42,7 +42,7 @@ export default function AppClientes() {
   const queryClient = useQueryClient();
 
   const { data: customersRaw = [], isLoading } = useQuery({
-    queryKey: ['customers', companyId],
+    queryKey: ['customers', companyId, activeUnitId],
     queryFn: () => base44.entities.Customer.filter({ company_id: companyId }, '-created_date', 500),
     enabled: !!companyId,
   });
@@ -52,14 +52,14 @@ export default function AppClientes() {
     : customersRaw;
 
   const { data: appointments = [] } = useQuery({
-    queryKey: ['appointments', companyId],
+    queryKey: ['appointments', companyId, activeUnitId],
     queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
 
   // Map customer_id => assinatura ativa, para mostrar badge na lista
   const { data: activeSubs = [] } = useQuery({
-    queryKey: ['customer-subscriptions', companyId],
+    queryKey: ['customer-subscriptions', companyId, activeUnitId],
     queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
     enabled: !!companyId,
   });
@@ -72,17 +72,17 @@ export default function AppClientes() {
       // Só grava unit_id quando estamos no modo "clientes por unidade"
       unit_id: scopeByUnit ? activeUnitId : undefined,
     }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers', companyId] }); closeForm(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers'] }); closeForm(); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Customer.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers', companyId] }); closeForm(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers'] }); closeForm(); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Customer.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customers', companyId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customers'] }),
   });
 
   const closeForm = () => { setShowForm(false); setEditing(null); setForm(emptyForm); };

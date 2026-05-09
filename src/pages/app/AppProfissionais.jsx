@@ -9,6 +9,7 @@ import PrimaryButton from '@/components/app/PrimaryButton';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
+import PhotoUpload from '@/components/ui/photo-upload';
 
 const DAYS = [
   { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
@@ -29,7 +30,7 @@ export default function AppProfissionais() {
   const queryClient = useQueryClient();
 
   const { data: professionals = [], isLoading } = useQuery({
-    queryKey: ['professionals', companyId],
+    queryKey: ['professionals', companyId, activeUnitId],
     queryFn: () => base44.entities.Professional.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
@@ -42,17 +43,17 @@ export default function AppProfissionais() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Professional.create({ ...data, company_id: companyId }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['professionals', companyId] }); closeForm(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['professionals'] }); closeForm(); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Professional.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['professionals', companyId] }); closeForm(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['professionals'] }); closeForm(); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Professional.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['professionals', companyId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['professionals'] }),
   });
 
   const closeForm = () => { setShowForm(false); setEditing(null); setForm(emptyForm); setTab('info'); };
@@ -216,10 +217,12 @@ export default function AppProfissionais() {
                         className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 block mb-1">URL da Foto</label>
-                      <input type="url" value={form.photo_url} onChange={e => setForm(p => ({ ...p, photo_url: e.target.value }))}
-                        placeholder="https://..."
-                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                      <label className="text-xs font-semibold text-gray-500 block mb-1">Foto do barbeiro</label>
+                      <PhotoUpload
+                        value={form.photo_url}
+                        onChange={(url) => setForm(p => ({ ...p, photo_url: url }))}
+                        fallbackText={form.name}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>

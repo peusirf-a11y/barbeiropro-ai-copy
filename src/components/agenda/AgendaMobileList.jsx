@@ -4,8 +4,9 @@
 
 import { format, addMinutes } from 'date-fns';
 import { useMemo } from 'react';
-import { Calendar, Smartphone, MessageCircle } from 'lucide-react';
+import { Calendar, Smartphone } from 'lucide-react';
 import { getStatusToken, isClientWithoutPreference } from '@/lib/statusTokens';
+import AppointmentNoteIcon from '@/components/agenda/AppointmentNoteIcon';
 
 export default function AgendaMobileList({
   selectedDate,
@@ -77,8 +78,8 @@ export default function AgendaMobileList({
                     PLANO
                   </span>
                 )}
-                {appt.paid_online && (
-                  <span className="text-[9px] font-bold px-1 py-px rounded bg-emerald-100 text-emerald-700 border border-emerald-200 flex-shrink-0">
+                {(appt.paid || appt.paid_online) && (
+                  <span className="text-[9px] font-bold px-1 py-px rounded bg-emerald-100 text-emerald-700 border border-emerald-200 flex-shrink-0" title={appt.paid_online ? 'Pago online' : 'Pago'}>
                     PAGO
                   </span>
                 )}
@@ -87,10 +88,10 @@ export default function AgendaMobileList({
               {pro && (
                 <div className="text-[11px] opacity-60 mt-0.5 truncate">com {pro.name}</div>
               )}
-              <div className="flex items-center gap-2 mt-1.5 opacity-60">
-                <Smartphone className="w-3 h-3" />
-                <MessageCircle className="w-3 h-3" />
-                <span className="ml-auto text-[10px] font-medium">{token.label}</span>
+              <div className="flex items-center gap-2 mt-1.5">
+                <Smartphone className="w-3 h-3 opacity-60" />
+                <AppointmentNoteIcon note={appt.notes} />
+                <span className="ml-auto text-[10px] font-medium opacity-60">{token.label}</span>
               </div>
             </div>
           </button>

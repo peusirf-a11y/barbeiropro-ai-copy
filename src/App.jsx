@@ -8,6 +8,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ThemeSync from '@/components/ThemeSync';
 import RootRedirect from '@/components/RootRedirect';
+import { ActiveUnitProvider } from '@/hooks/useActiveUnit';
 
 // Guards
 import PrivateRoute from '@/components/guards/PrivateRoute';
@@ -80,6 +81,7 @@ function App() {
     <ThemeSync />
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
+       <ActiveUnitProvider>
         <Router>
           <Routes>
             {/* ── PUBLIC ROUTES ── */}
@@ -160,6 +162,7 @@ function App() {
           </Routes>
         </Router>
         <Toaster />
+       </ActiveUnitProvider>
       </QueryClientProvider>
     </AuthProvider>
     </ErrorBoundary>

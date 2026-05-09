@@ -41,6 +41,7 @@ export default function EditAppointmentModal({
     scheduled_at: toLocalInput(appointment.scheduled_at),
     status: appointment.status || 'agendado',
     notes: appointment.notes || '',
+    paid: !!appointment.paid || !!appointment.paid_online,
   });
   const [error, setError] = useState('');
   const [showOffer, setShowOffer] = useState(false);
@@ -81,6 +82,16 @@ export default function EditAppointmentModal({
     }
     const pro = professionals.find(p => p.id === form.professional_id);
     const svc = services.find(s => s.id === form.service_id);
+    // Marcação paralela "pago": só altera quando o usuário mexeu no toggle.
+    // Não toca em paid_online (que é exclusivo do Stripe).
+    const wasPaid = !!appointment.paid;
+    const paidPatch = form.paid !== wasPaid
+      ? {
+          paid: form.paid,
+          paid_at: form.paid ? new Date().toISOString() : null,
+        }
+      : {};
+
     onSave({
       id: appointment.id,
       data: {
@@ -92,6 +103,7 @@ export default function EditAppointmentModal({
         status: form.status,
         notes: form.notes,
         price: svc?.price ?? appointment.price,
+        ...paidPatch,
       },
     });
   };
@@ -215,6 +227,33 @@ export default function EditAppointmentModal({
                 );
               })}
             </div>
+          </div>
+
+          {/* Marcação paralela: pago. Independe do status (cliente pode estar
+              "agendado" mas já ter pago; ou "concluído" mas ainda não ter pago). */}
+          <div>
+            <span className="text-xs font-semibold text-gray-500 block mb-1.5">Pagamento</span>
+            <button
+              type="button"
+              onClick={() => setForm(p => ({ ...p, paid: !p.paid }))}
+              disabled={appointment.paid_online}
+              title={appointment.paid_online ? 'Pago online via Stripe — não é possível alterar' : ''}
+              className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border text-sm font-semibold transition-all ${
+                form.paid
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-200'
+                  : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+              } disabled:opacity-60 disabled:cursor-not-allowed`}
+            >
+              <span className="flex items-center gap-2">
+                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${form.paid ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 bg-white'}`}>
+                  {form.paid && <span className="text-white text-[10px] leading-none">✓</span>}
+                </span>
+                {form.paid ? 'Pago' : 'Marcar como pago'}
+              </span>
+              {appointment.paid_online && (
+                <span className="text-[10px] font-bold uppercase bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">Online</span>
+              )}
+            </button>
           </div>
 
           <div>

@@ -37,13 +37,13 @@ export default function AppBloqueios() {
   const queryClient = useQueryClient();
 
   const { data: blocksRaw = [], isLoading } = useQuery({
-    queryKey: ['blocks', companyId],
+    queryKey: ['blocked-times', companyId, activeUnitId],
     queryFn: () => base44.entities.BlockedTime.filter({ company_id: companyId }, '-start_time', 200),
     enabled: !!companyId,
   });
 
   const { data: professionalsRaw = [] } = useQuery({
-    queryKey: ['professionals', companyId],
+    queryKey: ['professionals', companyId, activeUnitId],
     queryFn: () => base44.entities.Professional.filter({ company_id: companyId, active: true }),
     enabled: !!companyId,
   });
@@ -77,7 +77,7 @@ export default function AppBloqueios() {
       return base44.entities.BlockedTime.create(payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['blocks', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['blocked-times'] });
       setShowForm(false);
       setForm(emptyForm);
     },
@@ -85,7 +85,7 @@ export default function AppBloqueios() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.BlockedTime.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['blocks', companyId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['blocked-times'] }),
   });
 
   const proName = (id) => professionals.find(p => p.id === id)?.name || 'Toda a barbearia';

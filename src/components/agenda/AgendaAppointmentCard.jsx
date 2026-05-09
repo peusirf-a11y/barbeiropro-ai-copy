@@ -2,6 +2,7 @@
 // Cores via tokens centrais (lib/statusTokens.js) para consistência em todo o sistema.
 
 import { getStatusToken, isClientWithoutPreference } from '@/lib/statusTokens';
+import AppointmentNoteIcon from '@/components/agenda/AppointmentNoteIcon';
 
 const CLIENT_BADGE = {
   vip: { label: '⭐', title: 'Cliente VIP', ring: 'ring-1 ring-amber-400' },
@@ -32,8 +33,9 @@ export default function AgendaAppointmentCard({ appt, customer, onClick }) {
         <div className="text-xs font-semibold text-gray-800 truncate flex-1">
           {appt.customer_name || 'Cliente'}
         </div>
-        {appt.paid_online && (
-          <span className="text-[9px] font-bold flex-shrink-0 bg-emerald-100 text-emerald-700 px-1 rounded" title="Pago online">PAGO</span>
+        <AppointmentNoteIcon note={appt.notes} />
+        {(appt.paid || appt.paid_online) && (
+          <span className="text-[9px] font-bold flex-shrink-0 bg-emerald-100 text-emerald-700 px-1 rounded" title={appt.paid_online ? 'Pago online' : 'Pago'}>PAGO</span>
         )}
         {badge && (
           <span className="text-[10px] flex-shrink-0" title={badge.title}>{badge.label}</span>

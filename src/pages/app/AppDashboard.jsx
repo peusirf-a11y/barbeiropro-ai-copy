@@ -45,27 +45,27 @@ export default function AppDashboard() {
     : { company_id: companyId };
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
-    queryKey: ['appointments', companyId, isBarbeiro ? myProId : 'all'],
+    queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
     queryFn: () => base44.entities.Appointment.filter(apptFilter, '-scheduled_at', 200),
     enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
   const { data: customers = [] } = useQuery({
-    queryKey: ['customers', companyId],
+    queryKey: ['customers', companyId, activeUnitId],
     queryFn: () => base44.entities.Customer.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
 
   // Barbeiro não acessa financeiro — query disabled.
   const { data: financial = [] } = useQuery({
-    queryKey: ['financial', companyId],
+    queryKey: ['financial', companyId, activeUnitId],
     queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }),
     enabled: !!companyId && showFinance,
   });
 
   // Assinaturas ativas — KPIs de receita recorrente
   const { data: activeSubs = [] } = useQuery({
-    queryKey: ['customer-subscriptions-active', companyId],
+    queryKey: ['customer-subscriptions-active', companyId, activeUnitId],
     queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
     enabled: !!companyId && showFinance,
   });

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { getStatusToken } from '@/lib/statusTokens';
+import AppointmentNoteIcon from '@/components/agenda/AppointmentNoteIcon';
 
 export default function TodayAgendaList({ appointments = [] }) {
   const sorted = [...appointments].sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
@@ -31,7 +32,13 @@ export default function TodayAgendaList({ appointments = [] }) {
                 <div className="font-bold text-sm text-[#111827]">{format(new Date(appt.scheduled_at), 'HH:mm')}</div>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm text-[#111827] truncate">{appt.customer_name || 'Cliente'}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-sm text-[#111827] truncate">{appt.customer_name || 'Cliente'}</span>
+                  <AppointmentNoteIcon note={appt.notes} />
+                  {(appt.paid || appt.paid_online) && (
+                    <span className="text-[9px] font-bold flex-shrink-0 bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded" title={appt.paid_online ? 'Pago online' : 'Pago'}>PAGO</span>
+                  )}
+                </div>
                 <div className="text-xs text-[#6B7280] truncate">{appt.service_name} · {appt.professional_name}</div>
               </div>
               {(() => {
