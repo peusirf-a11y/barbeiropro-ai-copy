@@ -12,7 +12,7 @@ import { useCompany } from '@/hooks/useCompany';
 import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
 
-const STATUS_KEYS = ['agendado', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'faltou'];
+const STATUS_KEYS = ['agendado', 'confirmado', 'concluido', 'cancelado', 'faltou'];
 
 // Converte ISO/Date para o formato exigido pelo input datetime-local (sem TZ)
 function toLocalInput(iso) {

@@ -12,7 +12,7 @@
 
 export const STATUS_TOKENS = {
   agendado: {
-    label: 'Pendente',
+    label: 'Agendado',
     // Pill (badge) — usado em listas/dashboard
     pill: 'bg-amber-50 text-amber-700 border-amber-200',
     // Card grande — usado nas colunas da agenda pro
