@@ -11,6 +11,7 @@ import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import { useCompany } from '@/hooks/useCompany';
 import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
+import { buildConfirmationMessage, openWhatsAppCompose } from '@/lib/whatsappCompose';
 
 const STATUS_KEYS = ['agendado', 'confirmado', 'concluido', 'cancelado', 'faltou'];
 
@@ -45,8 +46,22 @@ export default function EditAppointmentModal({
   });
   const [error, setError] = useState('');
   const [showOffer, setShowOffer] = useState(false);
-  const { companyId } = useCompany();
+  const { company, companyId } = useCompany();
   const customer = customers.find(c => c.id === appointment.customer_id);
+
+  // Ao clicar no status "Confirmado" (vindo de outro status), abre o WhatsApp do cliente
+  // com a mensagem de confirmação pré-preenchida — barbearia envia manualmente.
+  const handleStatusClick = (key) => {
+    if (
+      key === 'confirmado' &&
+      form.status !== 'confirmado' &&
+      appointment.customer_phone
+    ) {
+      const message = buildConfirmationMessage({ company, appointment });
+      openWhatsAppCompose({ phone: appointment.customer_phone, message });
+    }
+    setForm(p => ({ ...p, status: key }));
+  };
 
   const service = services.find(s => s.id === form.service_id);
   // custom_duration_minutes (definido por resize manual) sobrescreve a duração padrão
@@ -219,7 +234,7 @@ export default function EditAppointmentModal({
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setForm(p => ({ ...p, status: key }))}
+                    onClick={() => handleStatusClick(key)}
                     className={`text-xs font-medium px-2 py-2 rounded-lg border ${active ? `${t.pill} ring-2 ring-offset-1 ring-current` : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'}`}
                   >
                     {t.label}
