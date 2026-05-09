@@ -16,6 +16,7 @@
 //   </StandardModal>
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -72,33 +73,29 @@ export default function StandardModal({
 
   const sizeCls = SIZE_MAP[size] || SIZE_MAP.lg;
 
-  // Estilo de altura: usa visualViewport.height (em px) quando disponível;
-  // fallback: 92dvh. Subtrai pequena margem de segurança para a status bar.
-  const containerStyle = viewportHeight
+  // Altura do modal interno: usa visualViewport quando disponível (encolhe com teclado),
+  // senão 92dvh. Mobile-only — desktop usa max-h-[88vh] via classe.
+  const innerStyle = viewportHeight
     ? { maxHeight: `${Math.max(viewportHeight - 8, 240)}px` }
     : { maxHeight: '92dvh' };
 
-  return (
+  // CRÍTICO: renderizar via Portal no document.body para escapar do stacking context
+  // criado pelo `transform` do framer-motion (PageTransition). Sem isso, o overlay
+  // ficaria preso dentro do <main> e a bottom navigation apareceria por cima.
+  const modal = (
     <div
-      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-[3px] animate-fade-in"
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[3px] animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      style={{
-        // Fixa o overlay na altura visível REAL — evita que ele "vaze" atrás do teclado
-        height: viewportHeight ? `${viewportHeight}px` : '100dvh',
-      }}
     >
       <div
-        style={containerStyle}
+        style={innerStyle}
         className={cn(
           'bg-white w-full shadow-2xl flex flex-col overflow-hidden',
-          // Bottom-sheet no mobile, card no desktop
           'rounded-t-3xl sm:rounded-2xl',
-          // Mobile: ocupa quase toda a tela visível. Desktop: max-w + margem.
           'sm:max-h-[88vh] sm:m-4',
-          // Animação
           'animate-slide-up sm:animate-fade-in',
           sizeCls,
           className
@@ -147,4 +144,9 @@ export default function StandardModal({
       </div>
     </div>
   );
+
+  // Renderiza no body para escapar de qualquer stacking context (framer-motion, transform, etc.)
+  return typeof document !== 'undefined'
+    ? createPortal(modal, document.body)
+    : null;
 }
