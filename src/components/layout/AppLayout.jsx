@@ -20,7 +20,6 @@ const MAIN_MOBILE_ROUTES = new Set([
   '/app/agenda',
   '/app/clientes',
   '/app/caixa',
-  '/app/financeiro',
 ]);
 
 // Mapeia início do path → título mostrado no header mobile quando voltar

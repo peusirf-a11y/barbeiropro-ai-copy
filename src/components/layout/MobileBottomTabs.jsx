@@ -5,13 +5,13 @@
 // - user-select: none para evitar highlight acidental ao tocar.
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, Users, Wallet, DollarSign, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, Wallet, MoreHorizontal } from 'lucide-react';
 
 const TABS = [
-  { key: 'agenda',     label: 'Agenda',     icon: Calendar,    path: '/app/agenda' },
-  { key: 'clientes',   label: 'Clientes',   icon: Users,       path: '/app/clientes' },
-  { key: 'caixa',      label: 'Caixa',      icon: Wallet,      path: '/app/caixa' },
-  { key: 'financeiro', label: 'Financeiro', icon: DollarSign,  path: '/app/financeiro' },
+  { key: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard, path: '/app/dashboard' },
+  { key: 'agenda',     label: 'Agenda',     icon: Calendar,        path: '/app/agenda' },
+  { key: 'clientes',   label: 'Clientes',   icon: Users,           path: '/app/clientes' },
+  { key: 'caixa',      label: 'Caixa',      icon: Wallet,          path: '/app/caixa' },
 ];
 
 export default function MobileBottomTabs({ allowedKeys, onOpenMore }) {
