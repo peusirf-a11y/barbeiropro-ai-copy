@@ -14,6 +14,8 @@ import FinancialExport from '@/components/financeiro/FinancialExport';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { filterByUnit } from '@/lib/unitFilter';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
+import FilterSelect from '@/components/ui/filter-select';
+import StandardModal from '@/components/ui/standard-modal';
 import MobileSelect from '@/components/ui/mobile-select';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
@@ -84,12 +86,11 @@ export default function AppFinanceiro() {
           subtitle="Controle de entradas e saídas"
           icon={DollarSign}
         >
-          <MobileSelect value={period} onChange={setPeriod}
-            className="px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white focus:outline-none shadow-[var(--shadow-xs)]">
+          <FilterSelect value={period} onChange={setPeriod} aria-label="Período">
             <option value="this_month">Este mês</option>
             <option value="last_month">Mês passado</option>
             <option value="all">Todo o período</option>
-          </MobileSelect>
+          </FilterSelect>
           <FinancialExport companyId={companyId} companyName={company?.name} />
           {!isAllUnits && <PrimaryButton onClick={() => setShowForm(true)}>Lançamento</PrimaryButton>}
         </AppPageHeader>
@@ -168,61 +169,59 @@ export default function AppFinanceiro() {
         </div>
 
         {/* Form modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-[#1B1C1E]">Novo Lançamento</h3>
-                <button onClick={() => setShowForm(false)}><X className="w-5 h-5" /></button>
+        <StandardModal
+          open={showForm}
+          onClose={() => setShowForm(false)}
+          title="Novo Lançamento"
+          footer={
+            <>
+              <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
+              <button onClick={() => createMutation.mutate(form)} disabled={!form.amount || !form.date || createMutation.isPending}
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
+                {createMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Tipo</label>
+              <div className="flex gap-3">
+                {[{ v: 'entrada', l: 'Entrada' }, { v: 'saida', l: 'Saída' }].map(t => (
+                  <button key={t.v} onClick={() => setForm(p => ({ ...p, type: t.v, category: t.v === 'entrada' ? 'Atendimento' : 'Aluguel' }))}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-all ${form.type === t.v ? (t.v === 'entrada' ? 'bg-green-600 text-white border-green-600' : 'bg-red-600 text-white border-red-600') : 'border-black/10 text-gray-600'}`}>
+                    {t.l}
+                  </button>
+                ))}
               </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Tipo</label>
-                  <div className="flex gap-3">
-                    {[{ v: 'entrada', l: 'Entrada' }, { v: 'saida', l: 'Saída' }].map(t => (
-                      <button key={t.v} onClick={() => setForm(p => ({ ...p, type: t.v, category: t.v === 'entrada' ? 'Atendimento' : 'Aluguel' }))}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-all ${form.type === t.v ? (t.v === 'entrada' ? 'bg-green-600 text-white border-green-600' : 'bg-red-600 text-white border-red-600') : 'border-black/10 text-gray-600'}`}>
-                        {t.l}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Categoria</label>
-                  <MobileSelect value={form.category} onChange={v => setForm(p => ({ ...p, category: v }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none">
-                    {(form.type === 'entrada' ? CATEGORIES_IN : CATEGORIES_OUT).map(c => <option key={c}>{c}</option>)}
-                  </MobileSelect>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
-                  <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                    placeholder="Ex: Corte Clássico - João Silva"
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Valor (R$) *</label>
-                    <input type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Data *</label>
-                    <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                  </div>
-                </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Categoria</label>
+              <MobileSelect value={form.category} onChange={v => setForm(p => ({ ...p, category: v }))}
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none">
+                {(form.type === 'entrada' ? CATEGORIES_IN : CATEGORIES_OUT).map(c => <option key={c}>{c}</option>)}
+              </MobileSelect>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
+              <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                placeholder="Ex: Corte Clássico - João Silva"
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Valor (R$) *</label>
+                <input type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
-              <div className="flex gap-3 mt-5">
-                <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
-                <button onClick={() => createMutation.mutate(form)} disabled={!form.amount || !form.date || createMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
-                  {createMutation.isPending ? 'Salvando...' : 'Salvar'}
-                </button>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Data *</label>
+                <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
             </div>
           </div>
-        )}
+        </StandardModal>
       </div>
     </AppLayout>
   );
