@@ -23,6 +23,27 @@ import { FileDown, FileSpreadsheet, FileText, X, Filter } from 'lucide-react';
 const fmtBRL = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtDate = (d) => d ? format(new Date(d), 'dd/MM/yyyy', { locale: ptBR }) : '–';
 
+// Download cross-ambiente: tenta <a download>; se o navegador (ex: WebView Android)
+// não suportar o atributo download ou bloquear o clique programático, abre em nova aba.
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement('a');
+    const supportsDownload = 'download' in a;
+    a.href = url;
+    if (supportsDownload) a.download = filename;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) {
+    window.open(url, '_blank');
+  }
+  // Revoga depois de um tempo (Safari/WebView precisam do URL ainda vivo durante o open)
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 function inRange(dateStr, from, to) {
   if (!dateStr) return false;
   const d = new Date(dateStr);
@@ -207,14 +228,7 @@ export default function FinancialExport({ companyId, companyName }) {
 
     const csv = '\uFEFF' + lines.join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `financeiro-${from}-a-${to}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `financeiro-${from}-a-${to}.csv`);
   };
 
   /* ─────────────── EXPORT: PDF ─────────────── */
@@ -354,7 +368,8 @@ export default function FinancialExport({ companyId, companyName }) {
       doc.text(`${companyName || 'Barbearia'} · ${i}/${pageCount}`, pageWidth / 2, 290, { align: 'center' });
     }
 
-    doc.save(`financeiro-${from}-a-${to}.pdf`);
+    const blob = doc.output('blob');
+    downloadBlob(blob, `financeiro-${from}-a-${to}.pdf`);
   };
 
   return (
