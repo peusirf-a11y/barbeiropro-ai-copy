@@ -5,7 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { canViewFinance } from '@/lib/rolePermissions';
-import { useFeature } from '@/hooks/useFeatures';
+import { useFeatures } from '@/hooks/useFeatures';
 import { useFeatures } from '@/hooks/useFeatures';
 import { useState, useEffect, useMemo } from 'react';
 import { Calendar, Users, DollarSign, TrendingUp, Repeat } from 'lucide-react';
@@ -30,7 +30,6 @@ export default function AppDashboard() {
   const isBarbeiro = teamRole?.role === 'barbeiro';
   const myProId = teamRole?.professional_id || null;
   const showFinance = canViewFinance(teamRole?.role);
-  const showCrm = useFeature('crm_retention');
   const { has } = useFeatures();
   const showSubscriptions = showFinance && has('subscriptions');
   const showCrm = has('crm_retention');

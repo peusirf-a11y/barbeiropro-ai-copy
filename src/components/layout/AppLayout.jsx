@@ -108,7 +108,7 @@ export default function AppLayout({ children }) {
   }, [open]);
 
   // Plano da empresa (para filtrar menu por feature). Não bloqueia render.
-  // IMPORTANTE: hooks devem ser chamados sempre na mesma ordem — antes de qualquer early return.
+  // ⚠️ Hook deve vir ANTES de qualquer early return (rules-of-hooks).
   const { data: plan } = useQuery({
     queryKey: ['app-layout-plan', company?.plan_id],
     queryFn: () => base44.entities.Plan.get(company.plan_id),
