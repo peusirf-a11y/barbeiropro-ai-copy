@@ -19,6 +19,7 @@ import QuickActions from '@/components/dashboard/QuickActions';
 import InsightsCard from '@/components/dashboard/InsightsCard';
 import TodayAgendaList from '@/components/dashboard/TodayAgendaList';
 import ConnectPendingBanner from '@/components/dashboard/ConnectPendingBanner';
+import RetentionCampaignsCard from '@/components/dashboard/RetentionCampaignsCard';
 
 export default function AppDashboard() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
@@ -326,6 +327,9 @@ export default function AppDashboard() {
           </div>
           <div className="space-y-4 lg:space-y-6">
             <InsightsCard alerts={alerts} />
+            {!isBarbeiro && companyId && (
+              <RetentionCampaignsCard companyId={companyId} customers={customers} />
+            )}
             <ActivationHealthCard />
           </div>
         </div>

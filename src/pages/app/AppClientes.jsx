@@ -14,6 +14,7 @@ import PrimaryButton from '@/components/app/PrimaryButton';
 import StandardModal from '@/components/ui/standard-modal';
 import FilterSelect from '@/components/ui/filter-select';
 import CustomerSubscriptionPanel from '@/components/clientes/CustomerSubscriptionPanel';
+import CustomerCampaignsHistory from '@/components/clientes/CustomerCampaignsHistory';
 import CustomerPlanRecommendation from '@/components/clientes/CustomerPlanRecommendation';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
@@ -315,8 +316,9 @@ export default function AppClientes() {
             </div>
 
             {editing && (
-              <div className="mt-5 pt-5 border-t border-black/5">
+              <div className="mt-5 pt-5 border-t border-black/5 space-y-4">
                 <CustomerSubscriptionPanel customer={editing} companyId={companyId} />
+                <CustomerCampaignsHistory customer={editing} />
               </div>
             )}
           </div>
