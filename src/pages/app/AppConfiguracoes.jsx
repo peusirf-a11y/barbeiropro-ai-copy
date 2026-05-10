@@ -10,6 +10,7 @@ import AppPageHeader from '@/components/app/AppPageHeader';
 import DeleteAccountSection from '@/components/configuracoes/DeleteAccountSection';
 import { Link } from 'react-router-dom';
 import { Building2, Sparkles } from 'lucide-react';
+import { useFeatures } from '@/hooks/useFeatures';
 
 const DAYS = [
   { key: 'seg', label: 'Segunda' }, { key: 'ter', label: 'Terça' }, { key: 'qua', label: 'Quarta' },
@@ -31,6 +32,7 @@ export default function AppConfiguracoes() {
   });
 
   const company = companies.find(c => c.owner_email === user?.email) || companies[0];
+  const { has } = useFeatures();
 
   const [form, setForm] = useState({
     name: '', slug: '', phone: '', whatsapp: '', address: '', primary_color: '#2563EB', business_hours: defaultHours,
@@ -178,7 +180,7 @@ export default function AppConfiguracoes() {
         </div>
 
         {/* Stripe Connect — atalho para a página dedicada */}
-        {company && (
+        {company && has('stripe_payments') && (
           <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
             <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
               <h2 className="font-bold text-[#111827]">Pagamentos online</h2>
@@ -202,6 +204,7 @@ export default function AppConfiguracoes() {
         )}
 
         {/* Multi-unidade */}
+        {has('multi_units') && (
         <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
           <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
             <h2 className="font-bold text-[#111827]">Unidades</h2>
@@ -222,8 +225,10 @@ export default function AppConfiguracoes() {
             Gerenciar unidades
           </Link>
         </div>
+        )}
 
         {/* CRM & Retenção — central unificada */}
+        {has('crm_retention') && (
         <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
           <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
             <h2 className="font-bold text-[#111827]">CRM & Retenção</h2>
@@ -239,6 +244,7 @@ export default function AppConfiguracoes() {
             Abrir central de CRM
           </Link>
         </div>
+        )}
 
         <div className="mt-8">
           <MyEmailLogs />

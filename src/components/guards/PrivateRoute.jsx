@@ -98,8 +98,8 @@ export default function PrivateRoute({ children }) {
     return <Navigate to="/app/assinatura-bloqueada" replace />;
   }
 
-  // Feature gating por plano (usa lista canônica em lib/featureGate.js)
-  if (myCompany?.plan_id && plan && !isRouteAllowedByPlan(location.pathname, plan)) {
+  // Feature gating: company.feature_overrides > Plan.features (ver lib/featureGate.js)
+  if (!isRouteAllowedByPlan(location.pathname, plan, myCompany)) {
     return <Navigate to="/app/configuracoes/assinatura?upgrade=1" replace />;
   }
 

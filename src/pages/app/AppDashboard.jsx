@@ -5,6 +5,8 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { canViewFinance } from '@/lib/rolePermissions';
+import { useFeature } from '@/hooks/useFeatures';
+import { useFeatures } from '@/hooks/useFeatures';
 import { useState, useEffect, useMemo } from 'react';
 import { Calendar, Users, DollarSign, TrendingUp, Repeat } from 'lucide-react';
 import { format, startOfMonth, startOfDay, differenceInMinutes, differenceInDays } from 'date-fns';
@@ -28,6 +30,10 @@ export default function AppDashboard() {
   const isBarbeiro = teamRole?.role === 'barbeiro';
   const myProId = teamRole?.professional_id || null;
   const showFinance = canViewFinance(teamRole?.role);
+  const showCrm = useFeature('crm_retention');
+  const { has } = useFeatures();
+  const showSubscriptions = showFinance && has('subscriptions');
+  const showCrm = has('crm_retention');
   const [alerts, setAlerts] = useState([]);
   const queryClient = useQueryClient();
   const { containerProps: ptrProps, indicator: ptrIndicator } = usePullToRefresh({
@@ -276,7 +282,7 @@ export default function AppDashboard() {
         </div>
 
         {/* KPIs de Assinaturas (recorrência) */}
-        {showFinance && activeSubs.length > 0 && (
+        {showSubscriptions && activeSubs.length > 0 && (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mb-6">
             <KpiCard
               label="Assinantes ativos"
@@ -327,7 +333,7 @@ export default function AppDashboard() {
           </div>
           <div className="space-y-4 lg:space-y-6">
             <InsightsCard alerts={alerts} />
-            {!isBarbeiro && companyId && (
+            {!isBarbeiro && companyId && showCrm && (
               <RetentionCampaignsCard companyId={companyId} customers={customers} />
             )}
             <ActivationHealthCard />

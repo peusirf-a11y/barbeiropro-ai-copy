@@ -7,18 +7,8 @@ import { base44 } from '@/api/base44Client';
 import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Package } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import StandardModal from '@/components/ui/standard-modal';
-
-const FEATURE_OPTIONS = [
-  { key: 'financial', label: 'Financeiro' },
-  { key: 'commissions', label: 'Comissões' },
-  { key: 'reports', label: 'Relatórios' },
-  { key: 'ai_growth', label: 'AI Growth' },
-  { key: 'whatsapp_automation', label: 'WhatsApp automático' },
-  { key: 'reviews', label: 'Avaliações' },
-  { key: 'referrals', label: 'Indique e ganhe' },
-  { key: 'cash_register', label: 'Caixa' },
-  { key: 'combos', label: 'Combos' },
-];
+import FeatureToggleGrid from '@/components/master/FeatureToggleGrid';
+import { canonicalFeatureKey } from '@/lib/featureCatalog';
 
 const emptyForm = {
   name: '',
@@ -85,7 +75,8 @@ export default function PlansManager() {
       stripe_price_id: p.stripe_price_id || '',
       active: p.active !== false,
       sort_order: p.sort_order || 0,
-      features: Array.isArray(p.features) ? p.features : [],
+      // Migra keys legadas para as canônicas ao abrir
+      features: (Array.isArray(p.features) ? p.features : []).map(canonicalFeatureKey),
       limits: {
         barbers: p.limits?.barbers || 0,
         appointments_month: p.limits?.appointments_month || 0,
@@ -93,15 +84,6 @@ export default function PlansManager() {
       },
     });
     setShowForm(true);
-  };
-
-  const toggleFeature = (key) => {
-    setForm(p => ({
-      ...p,
-      features: p.features.includes(key)
-        ? p.features.filter(f => f !== key)
-        : [...p.features, key],
-    }));
   };
 
   const handleSave = () => {
@@ -354,18 +336,11 @@ export default function PlansManager() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#6B7280] block mb-2">Features</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {FEATURE_OPTIONS.map(opt => {
-                    const checked = form.features.includes(opt.key);
-                    return (
-                      <button key={opt.key} type="button" onClick={() => toggleFeature(opt.key)}
-                        className={`text-left text-xs font-medium px-3 py-2 rounded-lg border transition-all ${checked ? 'bg-[#EFF6FF] border-[#2563EB]/40 text-[#2563EB]' : 'bg-white border-black/10 text-[#6B7280] hover:border-[#2563EB]/30'}`}>
-                        {checked ? '✓ ' : ''}{opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                <label className="text-xs font-semibold text-[#6B7280] block mb-2">Features liberadas no plano</label>
+                <FeatureToggleGrid
+                  value={form.features}
+                  onChange={(features) => setForm(p => ({ ...p, features }))}
+                />
               </div>
 
               <label className="flex items-center gap-2 text-sm text-[#111827]">

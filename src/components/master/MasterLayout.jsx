@@ -2,17 +2,18 @@
 // Responsivo: no mobile, sidebar vira drawer (menu hambúrguer).
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield } from 'lucide-react';
+import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import Logo from '@/components/Logo';
 
 const navItems = [
   { label: 'Dashboard',     icon: LayoutDashboard, path: '/master/dashboard' },
-  { label: 'Barbearias',    icon: Building2,       path: '/master/barbearias' },
-  { label: 'Assinaturas',   icon: CreditCard,      path: '/master/assinaturas' },
-  { label: 'Financeiro',    icon: DollarSign,      path: '/master/financeiro' },
-  { label: 'Usuários',      icon: Users,           path: '/master/usuarios' },
-  { label: 'Configurações', icon: Settings,        path: '/master/configuracoes' },
+  { label: 'Barbearias',     icon: Building2,       path: '/master/barbearias' },
+  { label: 'Funcionalidades', icon: Layers,         path: '/master/funcionalidades' },
+  { label: 'Assinaturas',    icon: CreditCard,      path: '/master/assinaturas' },
+  { label: 'Financeiro',     icon: DollarSign,      path: '/master/financeiro' },
+  { label: 'Usuários',       icon: Users,           path: '/master/usuarios' },
+  { label: 'Configurações',  icon: Settings,        path: '/master/configuracoes' },
 ];
 
 export default function MasterLayout() {

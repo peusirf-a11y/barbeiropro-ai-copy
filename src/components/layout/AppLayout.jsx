@@ -74,6 +74,8 @@ const navItemsAll = [
 ];
 
 import { ROLE_PERMISSIONS } from '@/lib/rolePermissions';
+import { NAV_KEY_FEATURE_MAP, hasFeature } from '@/lib/featureGate';
+import { useQuery } from '@tanstack/react-query';
 
 export default function AppLayout({ children }) {
   const location = useLocation();
@@ -105,6 +107,15 @@ export default function AppLayout({ children }) {
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
+  // Plano da empresa (para filtrar menu por feature). Não bloqueia render.
+  // IMPORTANTE: hooks devem ser chamados sempre na mesma ordem — antes de qualquer early return.
+  const { data: plan } = useQuery({
+    queryKey: ['app-layout-plan', company?.plan_id],
+    queryFn: () => base44.entities.Plan.get(company.plan_id),
+    enabled: !!company?.plan_id,
+    staleTime: 5 * 60_000,
+  });
+
   // 🔒 Bloqueio rígido: NÃO renderizar nada até saber o role.
   // Evita flash de menu completo antes do RBAC carregar.
   if (loadingRole) {
@@ -119,9 +130,17 @@ export default function AppLayout({ children }) {
   const allowed = teamRole?.role && ROLE_PERMISSIONS[teamRole.role]
     ? ROLE_PERMISSIONS[teamRole.role]
     : null;
-  const navItems = allowed && !allowed.includes('*')
+  const navItemsByRole = allowed && !allowed.includes('*')
     ? navItemsAll.filter(i => allowed.includes(i.key))
     : navItemsAll;
+
+  // Filtra menu por feature: se a key do nav tem requisito de feature e a feature
+  // não está liberada (override company > plano), esconde o item.
+  const navItems = navItemsByRole.filter(item => {
+    const requiredFeature = NAV_KEY_FEATURE_MAP[item.key];
+    if (!requiredFeature) return true;
+    return hasFeature(plan, company, requiredFeature);
+  });
 
   // 🔒 Proteção extra contra acesso direto via URL — se a rota atual exigir uma key
   // que o papel não possui, redireciona para o dashboard.

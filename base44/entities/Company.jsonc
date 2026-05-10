@@ -92,6 +92,26 @@
       "type": "string",
       "description": "Refer\u00eancia \u00e0 entity Plan (fonte da verdade para pre\u00e7o/MRR/features)"
     },
+    "feature_overrides": {
+      "type": "object",
+      "description": "Overrides de features por empresa. Tem prioridade sobre Plan.features. enabled[] for\u00e7a ON, disabled[] for\u00e7a OFF. Usado pelo Master para liberar/bloquear features individualmente.",
+      "properties": {
+        "enabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Keys de features for\u00e7adas ON (mesmo se o plano n\u00e3o inclui)."
+        },
+        "disabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Keys de features for\u00e7adas OFF (mesmo se o plano inclui)."
+        }
+      }
+    },
     "onboarding_step": {
       "type": "number",
       "default": 1

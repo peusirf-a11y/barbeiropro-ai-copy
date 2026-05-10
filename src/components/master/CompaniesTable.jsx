@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Search, Globe, CheckCircle, Clock, Eye, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react';
+import { Search, Globe, CheckCircle, Clock, Eye, ChevronLeft, ChevronRight, Loader2, Trash2, ExternalLink } from 'lucide-react';
 import { startImpersonation } from '@/lib/impersonation';
 import { useNavigate } from 'react-router-dom';
 import ConfirmDestructiveDialog from '@/components/ConfirmDestructiveDialog';
@@ -174,6 +174,13 @@ export default function CompaniesTable() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={() => navigate(`/master/barbearias/${c.id}`)}
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] border border-[#DBEAFE] flex items-center gap-1 transition-colors"
+                      title="Detalhes da empresa (funcionalidades, plano, etc.)"
+                    >
+                      <ExternalLink className="w-3 h-3" /> Detalhes
+                    </button>
                     <button
                       onClick={() => impersonate.mutate(c)}
                       disabled={impersonate.isPending}

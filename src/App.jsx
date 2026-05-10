@@ -28,6 +28,8 @@ import CheckoutSuccess from './pages/CheckoutSuccess';
 import MasterLayout from './components/master/MasterLayout';
 import MasterDashboard from './pages/master/MasterDashboard';
 import MasterBarbearias from './pages/master/MasterBarbearias';
+import MasterCompanyDetail from './pages/master/MasterCompanyDetail';
+import MasterFuncionalidades from './pages/master/MasterFuncionalidades';
 import MasterAssinaturas from './pages/master/MasterAssinaturas';
 import MasterFinanceiro from './pages/master/MasterFinanceiro';
 import MasterUsuarios from './pages/master/MasterUsuarios';
@@ -128,6 +130,8 @@ function App() {
               <Route index element={<Navigate to="/master/dashboard" replace />} />
               <Route path="dashboard" element={<MasterDashboard />} />
               <Route path="barbearias" element={<MasterBarbearias />} />
+              <Route path="barbearias/:id" element={<MasterCompanyDetail />} />
+              <Route path="funcionalidades" element={<MasterFuncionalidades />} />
               <Route path="assinaturas" element={<MasterAssinaturas />} />
               <Route path="financeiro" element={<MasterFinanceiro />} />
               <Route path="usuarios" element={<MasterUsuarios />} />
