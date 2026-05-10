@@ -6,7 +6,6 @@ import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { canViewFinance } from '@/lib/rolePermissions';
 import { useFeatures } from '@/hooks/useFeatures';
-import { useFeatures } from '@/hooks/useFeatures';
 import { useState, useEffect, useMemo } from 'react';
 import { Calendar, Users, DollarSign, TrendingUp, Repeat } from 'lucide-react';
 import { format, startOfMonth, startOfDay, differenceInMinutes, differenceInDays } from 'date-fns';
