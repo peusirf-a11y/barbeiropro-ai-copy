@@ -9,6 +9,7 @@ import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import DeleteAccountSection from '@/components/configuracoes/DeleteAccountSection';
 import CrmSettingsSection from '@/components/configuracoes/CrmSettingsSection';
+import LifecycleCampaignsSection from '@/components/configuracoes/LifecycleCampaignsSection';
 import { Link } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
 
@@ -228,6 +229,13 @@ export default function AppConfiguracoes() {
         {company && (
           <div className="mt-6">
             <CrmSettingsSection company={company} />
+          </div>
+        )}
+
+        {/* CRM — Automações de retenção (Fase 3) */}
+        {company && (
+          <div className="mt-6">
+            <LifecycleCampaignsSection company={company} />
           </div>
         )}
 
