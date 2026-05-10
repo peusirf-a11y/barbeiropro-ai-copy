@@ -65,7 +65,7 @@ function FeatureCard({ feature, mode, state, onClick }) {
   );
 }
 
-export default function FeatureToggleGrid({ value = [], onChange, triState = null }) {
+export default function FeatureToggleGrid({ value = [], onChange, triState = null, includeHidden = false }) {
   const isTri = !!triState;
   const inheritedSet = new Set((triState?.inheritedKeys || []));
   const enabledSet = new Set(value);
@@ -97,7 +97,7 @@ export default function FeatureToggleGrid({ value = [], onChange, triState = nul
   return (
     <div className="space-y-5">
       {sortedCategories.map(([catKey, cat]) => {
-        const items = FEATURE_CATALOG.filter(f => f.category === catKey);
+        const items = FEATURE_CATALOG.filter(f => f.category === catKey && (includeHidden || !f.hidden));
         if (items.length === 0) return null;
         return (
           <div key={catKey}>
