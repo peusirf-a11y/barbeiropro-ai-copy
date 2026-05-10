@@ -152,7 +152,7 @@ export default function AppClientes() {
             {[
               { v: 'all', l: 'Todos', count: customers.length },
               { v: 'vip', l: '👑 VIP', count: counts.vip },
-              { v: 'primeira_visita', l: '✦ 1ª visita', count: counts.primeira_visita },
+              { v: 'primeira_visita', l: '✦ Visitante', count: counts.primeira_visita },
               { v: 'fiel', l: '✓ Fiéis', count: counts.fiel },
               { v: 'em_risco', l: '⚠️ Em risco', count: counts.em_risco },
               { v: 'inativo', l: '💤 Inativos', count: counts.inativo },

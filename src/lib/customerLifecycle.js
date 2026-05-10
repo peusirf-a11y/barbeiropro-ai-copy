@@ -63,7 +63,7 @@ export function computeLifecycleStatus(customer, settings = DEFAULT_CRM_SETTINGS
 export const LIFECYCLE_TOKENS = {
   primeira_visita: {
     key: 'primeira_visita',
-    label: 'Primeira visita',
+    label: 'Visitante',
     icon: '✦',
     badge: 'bg-blue-50 text-blue-700 border-blue-200',
     dot: 'bg-blue-500',
