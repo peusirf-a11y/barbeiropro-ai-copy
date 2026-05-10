@@ -16,6 +16,7 @@ import FilterSelect from '@/components/ui/filter-select';
 import CustomerSubscriptionPanel from '@/components/clientes/CustomerSubscriptionPanel';
 import CustomerCampaignsHistory from '@/components/clientes/CustomerCampaignsHistory';
 import CustomerPlanRecommendation from '@/components/clientes/CustomerPlanRecommendation';
+import LifecycleStatusCard from '@/components/clientes/LifecycleStatusCard';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import VipCandidatesCard from '@/components/clientes/VipCandidatesCard';
@@ -297,17 +298,22 @@ export default function AppClientes() {
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Status</label>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Relacionamento</label>
               <FilterSelect
                 value={form.status}
                 onChange={(v) => setForm(p => ({ ...p, status: v }))}
                 className="w-full"
               >
-                <option value="active">Ativo</option>
+                <option value="active">Cliente normal</option>
                 <option value="vip">VIP</option>
-                <option value="inactive">Inativo</option>
+                <option value="inactive">Inativo manual</option>
               </FilterSelect>
+              <p className="text-[11px] text-[#6B7280] mt-1 leading-snug">
+                Marcação manual da equipe. Para o ciclo de vida automático, veja o card abaixo.
+              </p>
             </div>
+
+            {editing && <LifecycleStatusCard customer={editing} />}
             <div>
               <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
               <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
