@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import DeleteAccountSection from '@/components/configuracoes/DeleteAccountSection';
+import CrmSettingsSection from '@/components/configuracoes/CrmSettingsSection';
 import { Link } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
 
@@ -222,6 +223,13 @@ export default function AppConfiguracoes() {
             Gerenciar unidades
           </Link>
         </div>
+
+        {/* CRM — ciclo de vida dos clientes */}
+        {company && (
+          <div className="mt-6">
+            <CrmSettingsSection company={company} />
+          </div>
+        )}
 
         <div className="mt-8">
           <MyEmailLogs />

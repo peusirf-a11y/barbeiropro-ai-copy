@@ -132,6 +132,22 @@ Deno.serve(async (req) => {
       result.review = { error: e.message };
     }
 
+    // ── 3) Recalcula lifecycle_status do cliente (CRM) ──
+    // Atualiza last_completed_at + total_appointments + lifecycle_status do cliente
+    // de forma idempotente. Se o appointment não tiver customer_id (atendimento sem
+    // cliente cadastrado), pula.
+    try {
+      if (appt.customer_id) {
+        await sdk.functions.invoke('recomputeCustomerLifecycle', { customer_id: appt.customer_id });
+        result.lifecycle = { recomputed: true };
+      } else {
+        result.lifecycle = { skipped: 'no_customer_id' };
+      }
+    } catch (e) {
+      console.error('[onAppointmentConcluded] lifecycle error:', e.message);
+      result.lifecycle = { error: e.message };
+    }
+
     console.log('[onAppointmentConcluded] ok', { appointment_id: appt.id, result });
     return Response.json({ success: true, result });
   } catch (error) {

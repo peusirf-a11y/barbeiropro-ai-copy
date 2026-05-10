@@ -1,31 +1,67 @@
-// Badge maior de tipo de cliente — usado em telas de detalhe.
-// Reutiliza a mesma lógica de classificação dos cards da agenda.
+// Badge de classificação de cliente — combina:
+// 1) Camada manual (VIP) — sempre tem prioridade visual quando ativa
+// 2) Camada automática (lifecycle_status) — calculada por lib/customerLifecycle
+//
+// Para clientes legados que ainda não foram classificados (lifecycle_status vazio),
+// faz fallback baseado em total_appointments (mantém compatibilidade visual).
 
-const TYPES = {
-  vip:      { label: 'VIP',           icon: '⭐', cls: 'bg-amber-100 text-amber-800 border-amber-200' },
-  inactive: { label: 'Inativo',       icon: '💤', cls: 'bg-gray-100 text-gray-700 border-gray-200' },
-  new:      { label: 'Primeira visita', icon: '🆕', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  regular:  { label: 'Cliente fiel',   icon: '✓',  cls: 'bg-green-50 text-green-700 border-green-200' },
+import { getLifecycleToken } from '@/lib/customerLifecycle';
+
+const VIP_TOKEN = {
+  key: 'vip',
+  label: 'VIP',
+  icon: '👑',
+  badge: 'bg-amber-100 text-amber-800 border-amber-300',
 };
 
+// Mantida para compat com chamadas antigas (ex: AgendaAppointmentCard).
+// Retorna apenas o tipo "principal" (vip > lifecycle).
 export function getCustomerType(customer) {
-  if (!customer) return 'new';
+  if (!customer) return 'primeira_visita';
   if (customer.status === 'vip') return 'vip';
-  if (customer.status === 'inactive') return 'inactive';
-  if ((customer.total_appointments || 0) === 0) return 'new';
-  if ((customer.total_appointments || 0) >= 5) return 'regular';
+  if (customer.lifecycle_status) return customer.lifecycle_status;
+  // Fallback para clientes antigos
+  if (customer.status === 'inactive') return 'inativo';
+  const total = Number(customer.total_appointments) || 0;
+  if (total === 0) return 'primeira_visita';
+  if (total >= 5) return 'fiel';
   return null;
 }
 
-export default function CustomerTypeBadge({ customer }) {
-  const type = getCustomerType(customer);
-  if (!type) return null;
-  const t = TYPES[type];
+export default function CustomerTypeBadge({ customer, showVisits = true }) {
+  if (!customer) return null;
+
+  const isVip = customer.status === 'vip';
+  const lifecycle = customer.lifecycle_status
+    ? getLifecycleToken(customer.lifecycle_status)
+    : null;
+
+  // VIP tem precedência — quando o cliente é VIP, mostramos o selo VIP
+  // e (opcionalmente) o lifecycle ao lado como contexto.
+  if (isVip) {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${VIP_TOKEN.badge}`}>
+          <span>{VIP_TOKEN.icon}</span>{VIP_TOKEN.label}
+        </span>
+        {lifecycle && (
+          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${lifecycle.badge} opacity-80`}>
+            <span>{lifecycle.icon}</span>{lifecycle.label}
+          </span>
+        )}
+      </span>
+    );
+  }
+
+  // Fallback para cliente novo sem nenhuma classificação
+  const t = lifecycle || getLifecycleToken('primeira_visita');
+  const total = Number(customer.total_appointments) || 0;
+
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${t.cls}`}>
+    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${t.badge}`}>
       <span>{t.icon}</span>{t.label}
-      {customer?.total_appointments > 0 && (
-        <span className="opacity-70">· {customer.total_appointments} visita{customer.total_appointments > 1 ? 's' : ''}</span>
+      {showVisits && total > 0 && (
+        <span className="opacity-70">· {total} visita{total > 1 ? 's' : ''}</span>
       )}
     </span>
   );

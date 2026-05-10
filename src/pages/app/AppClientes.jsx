@@ -16,13 +16,8 @@ import FilterSelect from '@/components/ui/filter-select';
 import CustomerSubscriptionPanel from '@/components/clientes/CustomerSubscriptionPanel';
 import CustomerPlanRecommendation from '@/components/clientes/CustomerPlanRecommendation';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
+import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import { Sparkles } from 'lucide-react';
-
-const statusBadge = {
-  active: { label: 'Ativo', color: 'bg-emerald-50 text-emerald-700' },
-  inactive: { label: 'Inativo', color: 'bg-red-50 text-red-600' },
-  vip: { label: 'VIP ⭐', color: 'bg-amber-50 text-amber-700' },
-};
 
 const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
 
@@ -105,9 +100,20 @@ export default function AppClientes() {
 
   const filtered = customers.filter(c => {
     const matchSearch = (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search);
-    const matchFilter = filter === 'all' || c.status === filter;
+    let matchFilter = true;
+    if (filter === 'vip') matchFilter = c.status === 'vip';
+    else if (['primeira_visita', 'fiel', 'em_risco', 'inativo', 'perdido'].includes(filter)) {
+      matchFilter = c.lifecycle_status === filter;
+    }
     return matchSearch && matchFilter;
   });
+
+  // Contadores por categoria — exibidos nos chips de filtro
+  const counts = customers.reduce((acc, c) => {
+    if (c.status === 'vip') acc.vip++;
+    if (c.lifecycle_status) acc[c.lifecycle_status] = (acc[c.lifecycle_status] || 0) + 1;
+    return acc;
+  }, { vip: 0, primeira_visita: 0, fiel: 0, em_risco: 0, inativo: 0, perdido: 0 });
 
   if (loadingCompany || isLoading) {
     return (
@@ -139,10 +145,21 @@ export default function AppClientes() {
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-black/10 rounded-xl text-sm focus:outline-none shadow-[var(--shadow-xs)]" />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {[{ v: 'all', l: 'Todos' }, { v: 'active', l: 'Ativos' }, { v: 'vip', l: 'VIP' }, { v: 'inactive', l: 'Inativos' }].map(f => (
+            {[
+              { v: 'all', l: 'Todos', count: customers.length },
+              { v: 'vip', l: '👑 VIP', count: counts.vip },
+              { v: 'primeira_visita', l: '🆕 1ª visita', count: counts.primeira_visita },
+              { v: 'fiel', l: '✓ Fiéis', count: counts.fiel },
+              { v: 'em_risco', l: '⚠️ Em risco', count: counts.em_risco },
+              { v: 'inativo', l: '💤 Inativos', count: counts.inativo },
+              { v: 'perdido', l: '🚫 Perdidos', count: counts.perdido },
+            ].map(f => (
               <button key={f.v} onClick={() => setFilter(f.v)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ${filter === f.v ? 'bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)]' : 'bg-white border border-black/10 text-gray-600 hover:border-[#2563EB] hover:text-[#2563EB]'}`}>
-                {f.l}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 ${filter === f.v ? 'bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)]' : 'bg-white border border-black/10 text-gray-600 hover:border-[#2563EB] hover:text-[#2563EB]'}`}>
+                <span>{f.l}</span>
+                {f.count > 0 && (
+                  <span className={`text-[10px] font-bold ${filter === f.v ? 'text-white/80' : 'text-gray-400'}`}>{f.count}</span>
+                )}
               </button>
             ))}
           </div>
@@ -200,9 +217,7 @@ export default function AppClientes() {
                       {c.last_appointment_at ? format(new Date(c.last_appointment_at), "d MMM yyyy", { locale: ptBR }) : '–'}
                     </td>
                     <td className="p-4">
-                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${statusBadge[c.status || 'active'].color}`}>
-                        {statusBadge[c.status || 'active'].label}
-                      </span>
+                      <CustomerTypeBadge customer={c} showVisits={false} />
                     </td>
                     <td className="p-4">
                       {!isBarbeiro ? (
