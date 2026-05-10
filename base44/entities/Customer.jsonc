@@ -77,6 +77,41 @@
       "format": "date-time",
       "description": "\u00daltima vez que o dono dispensou a sugest\u00e3o de VIP para este cliente. Suprime a sugest\u00e3o por 60 dias."
     },
+    "lifecycle_campaigns_log": {
+      "type": "object",
+      "description": "Marcadores idempotentes das campanhas de lifecycle j\u00e1 enviadas para este cliente. Cada chave guarda o ISO datetime do \u00faltimo envio bem-sucedido. Usado pelo job runLifecycleCampaigns para respeitar o cooldown configurado em Company.lifecycle_campaigns.",
+      "properties": {
+        "primeira_visita_sent_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "em_risco_sent_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "inativo_sent_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "perdido_sent_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "vip_inativo_sent_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "vip_inativo_alerted_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "\u00daltima vez que o sistema gerou alerta interno (n\u00e3o-WhatsApp) para o dono."
+        },
+        "fiel_sem_plano_sent_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
     "password_hash": {
       "type": "string",
       "description": "Hash bcrypt da senha do cliente (\u00e1rea p\u00fablica). Vazio = cliente nunca criou conta."

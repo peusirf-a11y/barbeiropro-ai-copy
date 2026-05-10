@@ -28,9 +28,15 @@
         "lembrete_24h",
         "lembrete_2h",
         "pos_atendimento",
-        "reativacao"
+        "reativacao",
+        "crm_primeira_visita",
+        "crm_em_risco",
+        "crm_inativo",
+        "crm_perdido",
+        "crm_vip_inativo",
+        "crm_fiel_sem_plano"
       ],
-      "description": "Tipo de mensagem autom\u00e1tica"
+      "description": "Tipo de mensagem autom\u00e1tica. crm_* s\u00e3o campanhas baseadas em lifecycle_status (Fase 3)."
     },
     "message_text": {
       "type": "string"

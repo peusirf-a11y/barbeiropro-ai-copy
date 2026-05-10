@@ -277,6 +277,126 @@
           "description": "Dias sem atendimento conclu\u00eddo para virar 'Perdido'."
         }
       }
+    },
+    "lifecycle_campaigns": {
+      "type": "object",
+      "description": "Campanhas autom\u00e1ticas de reten\u00e7\u00e3o baseadas em lifecycle_status. Cada campanha tem toggle, mensagem edit\u00e1vel (templates: {nome}, {barbearia}, {link_agendamento}) e cooldown configur\u00e1vel em dias. Quando enabled=true, o job runLifecycleCampaigns dispara mensagens eleg\u00edveis automaticamente.",
+      "properties": {
+        "primeira_visita": {
+          "type": "object",
+          "description": "Mensagem de boas-vindas enviada ~2h ap\u00f3s 1\u00aa visita conclu\u00edda (delay configur\u00e1vel).",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "delay_hours": {
+              "type": "number",
+              "default": 2,
+              "description": "Quantas horas ap\u00f3s o atendimento conclu\u00eddo disparar."
+            },
+            "message": {
+              "type": "string",
+              "default": "Ea\u00ed {nome}, foi um prazer te receber na {barbearia} hoje! \ud83d\udd25 Esperamos te ver de volta em breve. Quando quiser marcar de novo, \u00e9 s\u00f3 chamar: {link_agendamento}"
+            }
+          }
+        },
+        "em_risco": {
+          "type": "object",
+          "description": "Reengajamento leve para clientes em risco (sumiram h\u00e1 ~30 dias).",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "cooldown_days": {
+              "type": "number",
+              "default": 14
+            },
+            "message": {
+              "type": "string",
+              "default": "Fala {nome}! Faz um tempinho que voc\u00ea n\u00e3o passa aqui na {barbearia} \ud83d\udc40 Bora marcar aquele trato? {link_agendamento}"
+            }
+          }
+        },
+        "inativo": {
+          "type": "object",
+          "description": "Tentativa de recupera\u00e7\u00e3o para clientes inativos (~60 dias).",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "cooldown_days": {
+              "type": "number",
+              "default": 30
+            },
+            "message": {
+              "type": "string",
+              "default": "Oi {nome}! Sentimos sua falta na {barbearia} \ud83d\udc88 Que tal voltar com a gente? Marca seu hor\u00e1rio: {link_agendamento}"
+            }
+          }
+        },
+        "perdido": {
+          "type": "object",
+          "description": "\u00daltima cartada para clientes considerados perdidos (~90+ dias).",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "cooldown_days": {
+              "type": "number",
+              "default": 60
+            },
+            "message": {
+              "type": "string",
+              "default": "{nome}, faz tempo n\u00e9? \ud83d\ude05 Se voc\u00ea quiser dar uma chance pra gente de novo, a {barbearia} t\u00e1 te esperando. Marca a\u00ed: {link_agendamento}"
+            }
+          }
+        },
+        "vip_inativo": {
+          "type": "object",
+          "description": "Alerta priorit\u00e1rio quando um cliente VIP entra em risco/inativo. Pode notificar o dono e/ou enviar mensagem direta ao cliente.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "cooldown_days": {
+              "type": "number",
+              "default": 15
+            },
+            "alert_owner": {
+              "type": "boolean",
+              "default": true,
+              "description": "Quando true, registra alerta para o dono ver no painel (n\u00e3o envia WhatsApp ao dono ainda)."
+            },
+            "message": {
+              "type": "string",
+              "default": "Oi {nome}! Faz um tempo que n\u00e3o te vemos por aqui e quer\u00edamos muito te receber de novo na {barbearia} \ud83d\udc51 Posso te garantir um hor\u00e1rio VIP essa semana? {link_agendamento}"
+            }
+          }
+        },
+        "fiel_sem_plano": {
+          "type": "object",
+          "description": "Sugest\u00e3o de assinatura para clientes fi\u00e9is que ainda n\u00e3o t\u00eam plano ativo.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "cooldown_days": {
+              "type": "number",
+              "default": 45
+            },
+            "message": {
+              "type": "string",
+              "default": "Ea\u00ed {nome}! Como voc\u00ea \u00e9 cliente da casa aqui na {barbearia}, queria te oferecer nossos planos com desconto. Vale muito a pena, d\u00e1 uma olhada: {link_agendamento}"
+            }
+          }
+        }
+      }
     }
   },
   "required": [
