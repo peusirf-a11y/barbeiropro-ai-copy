@@ -4,9 +4,11 @@
 
 import { format, addMinutes } from 'date-fns';
 import { useMemo } from 'react';
-import { Calendar, Smartphone } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { getStatusToken, isClientWithoutPreference } from '@/lib/statusTokens';
 import AppointmentNoteIcon from '@/components/agenda/AppointmentNoteIcon';
+import AppointmentSourceIcon from '@/components/agenda/AppointmentSourceIcon';
+import FirstVisitBadge from '@/components/agenda/FirstVisitBadge';
 
 export default function AgendaMobileList({
   selectedDate,
@@ -51,7 +53,9 @@ export default function AgendaMobileList({
         const endTime = format(addMinutes(start, dur), 'HH:mm');
         const startTime = format(start, 'HH:mm');
         const token = getStatusToken(appt.status);
-        const noPreference = isClientWithoutPreference(appt, customerById[appt.customer_id]);
+        const customer = customerById[appt.customer_id];
+        const noPreference = isClientWithoutPreference(appt, customer);
+        const isFirstVisit = customer && (customer.total_appointments || 0) === 0;
         const pro = proById[appt.professional_id];
 
         return (
@@ -77,6 +81,7 @@ export default function AgendaMobileList({
                 <span className="font-semibold text-[13px] truncate">
                   {appt.customer_name || 'Cliente'}
                 </span>
+                {isFirstVisit && <FirstVisitBadge />}
                 {appt.payment_method === 'subscription' && (
                   <span className="text-[9px] font-bold px-1 py-px rounded bg-violet-100 text-violet-700 border border-violet-200 flex-shrink-0">
                     PLANO
@@ -93,7 +98,7 @@ export default function AgendaMobileList({
                 <div className="text-[11px] opacity-60 mt-0.5 truncate">com {pro.name}</div>
               )}
               <div className="flex items-center gap-2 mt-1.5">
-                <Smartphone className="w-3 h-3 opacity-60" />
+                <AppointmentSourceIcon source={appt.source} className="w-3 h-3 opacity-60" />
                 <AppointmentNoteIcon note={appt.notes} />
                 <span className="ml-auto text-[10px] font-medium opacity-60">{token.label}</span>
               </div>
