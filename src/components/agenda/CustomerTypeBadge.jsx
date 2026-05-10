@@ -5,6 +5,7 @@
 // Para clientes legados que ainda não foram classificados (lifecycle_status vazio),
 // faz fallback baseado em total_appointments (mantém compatibilidade visual).
 
+import { Sparkles } from 'lucide-react';
 import { getLifecycleToken } from '@/lib/customerLifecycle';
 
 const VIP_TOKEN = {
@@ -56,10 +57,12 @@ export default function CustomerTypeBadge({ customer, showVisits = true }) {
   // Fallback para cliente novo sem nenhuma classificação
   const t = lifecycle || getLifecycleToken('primeira_visita');
   const total = Number(customer.total_appointments) || 0;
+  const isFirst = t.key === 'primeira_visita';
 
   return (
     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${t.badge}`}>
-      <span>{t.icon}</span>{t.label}
+      {isFirst ? <Sparkles className="w-3 h-3" strokeWidth={2.5} /> : <span>{t.icon}</span>}
+      {t.label}
       {showVisits && total > 0 && (
         <span className="opacity-70">· {total} visita{total > 1 ? 's' : ''}</span>
       )}
