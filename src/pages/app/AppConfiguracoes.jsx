@@ -8,10 +8,8 @@ import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import DeleteAccountSection from '@/components/configuracoes/DeleteAccountSection';
-import CrmSettingsSection from '@/components/configuracoes/CrmSettingsSection';
-import LifecycleCampaignsSection from '@/components/configuracoes/LifecycleCampaignsSection';
 import { Link } from 'react-router-dom';
-import { Building2 } from 'lucide-react';
+import { Building2, Sparkles } from 'lucide-react';
 
 const DAYS = [
   { key: 'seg', label: 'Segunda' }, { key: 'ter', label: 'Terça' }, { key: 'qua', label: 'Quarta' },
@@ -225,19 +223,22 @@ export default function AppConfiguracoes() {
           </Link>
         </div>
 
-        {/* CRM — ciclo de vida dos clientes */}
-        {company && (
-          <div className="mt-6">
-            <CrmSettingsSection company={company} />
+        {/* CRM & Retenção — central unificada */}
+        <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+          <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
+            <h2 className="font-bold text-[#111827]">CRM & Retenção</h2>
           </div>
-        )}
-
-        {/* CRM — Automações de retenção (Fase 3) */}
-        {company && (
-          <div className="mt-6">
-            <LifecycleCampaignsSection company={company} />
-          </div>
-        )}
+          <p className="text-sm text-[#6B7280] mb-4">
+            Lifecycle dos clientes, sugestões de VIP, campanhas automáticas e mensagens transacionais — tudo em um só lugar.
+          </p>
+          <Link
+            to="/app/crm"
+            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
+          >
+            <Sparkles className="w-4 h-4" />
+            Abrir central de CRM
+          </Link>
+        </div>
 
         <div className="mt-8">
           <MyEmailLogs />

@@ -54,7 +54,7 @@ import AppRelatorios from './pages/app/AppRelatorios';
 import AppAIGrowth from './pages/app/AppAIGrowth';
 import AppEquipe from './pages/app/AppEquipe';
 import AppConfiguracoes from './pages/app/AppConfiguracoes';
-import AppRetencao from './pages/app/AppRetencao';
+import AppCRM from './pages/app/AppCRM';
 import AppAssinatura from './pages/app/AppAssinatura';
 import AppBloqueios from './pages/app/AppBloqueios';
 import AppCaixa from './pages/app/AppCaixa';
@@ -150,7 +150,9 @@ function App() {
             <Route path="/app/indicacoes" element={<PrivateRoute><RoleRoute roles={['admin']}><AppIndicacoes /></RoleRoute></PrivateRoute>} />
             <Route path="/app/relatorios" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppRelatorios /></RoleRoute></PrivateRoute>} />
             <Route path="/app/ai-growth" element={<PrivateRoute><RoleRoute roles={['admin']}><AppAIGrowth /></RoleRoute></PrivateRoute>} />
-            <Route path="/app/retencao" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppRetencao /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/crm" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppCRM /></RoleRoute></PrivateRoute>} />
+            {/* Compat: rota antiga /app/retencao redireciona para a central unificada */}
+            <Route path="/app/retencao" element={<Navigate to="/app/crm" replace />} />
             <Route path="/app/equipe" element={<PrivateRoute><RoleRoute roles={['admin']}><AppEquipe /></RoleRoute></PrivateRoute>} />
             <Route path="/app/configuracoes" element={<PrivateRoute><RoleRoute roles={['admin']}><AppConfiguracoes /></RoleRoute></PrivateRoute>} />
             <Route path="/app/configuracoes/unidades" element={<PrivateRoute><RoleRoute roles={['admin']}><AppUnidades /></RoleRoute></PrivateRoute>} />

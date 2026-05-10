@@ -6,7 +6,7 @@ export const ROLE_PERMISSIONS = {
   admin: [
     'dashboard', 'agenda', 'bloqueios', 'clientes', 'servicos', 'combos', 'planos',
     'profissionais', 'caixa', 'financeiro', 'comissoes', 'relatorios',
-    'ai-growth', 'retencao', 'avaliacoes', 'indicacoes', 'equipe', 'configuracoes', 'assinatura',
+    'ai-growth', 'crm', 'avaliacoes', 'indicacoes', 'equipe', 'configuracoes', 'assinatura',
   ],
   financeiro: [
     'dashboard', 'agenda', 'clientes', 'caixa', 'financeiro', 'comissoes', 'relatorios', 'planos',
