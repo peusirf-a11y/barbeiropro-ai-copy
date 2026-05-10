@@ -247,26 +247,34 @@ export default function AppProfissionais() {
                 )}
 
                 {tab === 'schedule' && (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <p className="text-xs text-gray-500 mb-3">Configure os dias e horários de atendimento</p>
                     {DAYS.map(({ key, label }) => {
                       const h = form.work_schedule[key] || { open: '09:00', close: '18:00', active: false };
                       return (
-                        <div key={key} className="flex items-center gap-3">
-                          <label className="flex items-center gap-2 w-16">
+                        <div key={key} className="flex items-center gap-2 sm:gap-3">
+                          <label className="flex items-center gap-1.5 w-[68px] flex-shrink-0">
                             <input type="checkbox" checked={h.active} onChange={e => setSchedule(key, 'active', e.target.checked)} />
-                            <span className={`text-sm font-medium ${h.active ? 'text-[#1B1C1E]' : 'text-gray-400'}`}>{label}</span>
+                            <span className={`text-sm font-semibold ${h.active ? 'text-[#1B1C1E]' : 'text-gray-400'}`}>{label}</span>
                           </label>
                           {h.active ? (
-                            <div className="flex items-center gap-2">
-                              <input type="time" value={h.open} onChange={e => setSchedule(key, 'open', e.target.value)}
-                                className="px-2 py-1.5 border border-black/10 rounded-lg text-xs focus:outline-none" />
-                              <span className="text-gray-400 text-xs">até</span>
-                              <input type="time" value={h.close} onChange={e => setSchedule(key, 'close', e.target.value)}
-                                className="px-2 py-1.5 border border-black/10 rounded-lg text-xs focus:outline-none" />
+                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                              <input
+                                type="time"
+                                value={h.open}
+                                onChange={e => setSchedule(key, 'open', e.target.value)}
+                                className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                              />
+                              <span className="text-gray-400 text-xs flex-shrink-0">até</span>
+                              <input
+                                type="time"
+                                value={h.close}
+                                onChange={e => setSchedule(key, 'close', e.target.value)}
+                                className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                              />
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-400">Folga</span>
+                            <span className="text-xs text-gray-400 flex-1">Folga</span>
                           )}
                         </div>
                       );
