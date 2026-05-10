@@ -72,6 +72,11 @@
       "format": "date-time",
       "description": "\u00daltima vez que lifecycle_status foi recalculado."
     },
+    "vip_dismissed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima vez que o dono dispensou a sugest\u00e3o de VIP para este cliente. Suprime a sugest\u00e3o por 60 dias."
+    },
     "password_hash": {
       "type": "string",
       "description": "Hash bcrypt da senha do cliente (\u00e1rea p\u00fablica). Vazio = cliente nunca criou conta."

@@ -17,6 +17,7 @@ import CustomerSubscriptionPanel from '@/components/clientes/CustomerSubscriptio
 import CustomerPlanRecommendation from '@/components/clientes/CustomerPlanRecommendation';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
+import VipCandidatesCard from '@/components/clientes/VipCandidatesCard';
 import { Sparkles } from 'lucide-react';
 
 const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
@@ -137,6 +138,8 @@ export default function AppClientes() {
             <PrimaryButton onClick={() => setShowForm(true)}>Novo cliente</PrimaryButton>
           )}
         </AppPageHeader>
+
+        {!isBarbeiro && companyId && <VipCandidatesCard companyId={companyId} />}
 
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
