@@ -108,10 +108,36 @@ function _blockedConflict({ professionalId, dateTime, durationMin, blocks }) {
   });
 }
 
-// Sanitiza string vinda de payload público: trim + limite de tamanho.
+// Sanitiza string vinda de payload público.
+//  - trim
+//  - strip tags HTML (`<...>`) — evita stored XSS quando o texto for exibido em outras telas
+//  - normaliza whitespace excessivo
+//  - limita tamanho
+// WHY (M10): mesmo que o frontend escape o texto na exibição, o app exporta dados,
+// envia por e-mail e por WhatsApp — três superfícies onde HTML/scripts injetados
+// causam dano real. Sanitizar no ingestion é defesa em profundidade.
 function _sanitizeText(v, max) {
   if (v == null) return '';
-  return String(v).trim().slice(0, max);
+  let s = String(v).trim();
+  s = s.replace(/<[^>]*>/g, '');     // strip tags
+  s = s.replace(/[\u0000-\u001F\u007F]/g, ' '); // strip control chars
+  s = s.replace(/\s{3,}/g, '  ');    // colapsa whitespace exagerado
+  return s.slice(0, max);
+}
+
+// M5 — Tokens públicos gerados no servidor (nunca no frontend).
+// Web Crypto via crypto.randomUUID() (RFC 4122 v4 — cripto-seguro).
+// Removendo "-" fica um identificador opaco de 32 chars, mantendo compat com tokens antigos.
+function _generateToken() {
+  return crypto.randomUUID().replace(/-/g, '');
+}
+function _confirmTokenExpiry(scheduledAtISO) {
+  if (!scheduledAtISO) return null;
+  return new Date(new Date(scheduledAtISO).getTime() + 30 * 60 * 1000).toISOString();
+}
+function _reviewTokenExpiry(scheduledAtISO) {
+  if (!scheduledAtISO) return null;
+  return new Date(new Date(scheduledAtISO).getTime() + 72 * 60 * 60 * 1000).toISOString();
 }
 
 Deno.serve(async (req) => {
@@ -130,15 +156,14 @@ Deno.serve(async (req) => {
       customer_email,
       scheduled_at,
       notes,
-      confirm_token,
-      review_token,
-      confirm_token_expires_at,
-      review_token_expires_at,
       scope_customer_by_unit,
     } = body;
     // WHY (P0.2): NÃO desestruturamos professional_name, service_name nem price.
     // Esses campos são AUTORITATIVOS DO BANCO. Carregamos abaixo via .get().
     // Ignorar payload evita: cliente injetar preço 0, nome falso, serviço inexistente.
+    //
+    // WHY (M5): tokens de confirmação e avaliação são confiança de negócio.
+    // Não aceitamos do frontend — geramos no servidor com crypto.randomUUID().
 
     // Validações mínimas
     if (!company_id) return Response.json({ success: false, error: 'company_id_required' }, { status: 400 });
@@ -279,7 +304,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3) Cria Appointment vinculado — usa dados AUTORITATIVOS do banco.
+    // 3) Cria Appointment vinculado — usa dados AUTORITATIVOS do banco
+    //    e tokens gerados no SERVIDOR (M5).
+    const confirmToken = _generateToken();
+    const reviewToken = _generateToken();
     const appointment = await sdk.entities.Appointment.create({
       company_id,
       unit_id: unit_id || undefined,
@@ -296,10 +324,10 @@ Deno.serve(async (req) => {
       status: 'agendado',
       price: realPrice,
       source: 'online',
-      confirm_token,
-      review_token,
-      confirm_token_expires_at,
-      review_token_expires_at,
+      confirm_token: confirmToken,
+      review_token: reviewToken,
+      confirm_token_expires_at: _confirmTokenExpiry(scheduled_at),
+      review_token_expires_at: _reviewTokenExpiry(scheduled_at),
     });
 
     console.log(`[createPublicAppointment] agendamento criado: ${appointment.id} para customer ${customer.id}`);

@@ -116,9 +116,29 @@ function _blockedConflict({ professionalId, dateTime, durationMin, blocks }) {
 }
 
 // Sanitiza texto vindo do payload público.
+//  - trim + strip tags HTML + strip control chars (M10).
+//  - Espelha createPublicAppointment._sanitizeText (mantido inline porque
+//    backend functions são deploy independente, sem local imports).
 function _sanitizeText(v, max) {
   if (v == null) return '';
-  return String(v).trim().slice(0, max);
+  let s = String(v).trim();
+  s = s.replace(/<[^>]*>/g, '');
+  s = s.replace(/[\u0000-\u001F\u007F]/g, ' ');
+  s = s.replace(/\s{3,}/g, '  ');
+  return s.slice(0, max);
+}
+
+// M5 — Tokens server-side. Ver createPublicAppointment para racional.
+function _generateToken() {
+  return crypto.randomUUID().replace(/-/g, '');
+}
+function _confirmTokenExpiry(scheduledAtISO) {
+  if (!scheduledAtISO) return null;
+  return new Date(new Date(scheduledAtISO).getTime() + 30 * 60 * 1000).toISOString();
+}
+function _reviewTokenExpiry(scheduledAtISO) {
+  if (!scheduledAtISO) return null;
+  return new Date(new Date(scheduledAtISO).getTime() + 72 * 60 * 60 * 1000).toISOString();
 }
 
 // Resolve a chave secreta do Stripe baseado em STRIPE_ENVIRONMENT ('test' | 'live').
@@ -163,14 +183,13 @@ Deno.serve(async (req) => {
       notes,
       payment_method, // 'pix' ou 'card'
       scope_customer_by_unit,
-      confirm_token,
-      review_token,
-      confirm_token_expires_at,
-      review_token_expires_at,
     } = body;
     // WHY (P0.2): NÃO desestruturamos price, service_name, professional_name.
     // Esses são AUTORITATIVOS DO BANCO. Carregamos via .get() abaixo.
     // Cliente malicioso poderia mandar price=0.01 ou serviço de outra barbearia.
+    //
+    // WHY (M5): tokens (confirm_token, review_token) também NÃO vêm do payload —
+    // são gerados aqui via crypto.randomUUID().
 
     // ─── Validações ─────────────────────────────────────────────────────
     const fail = (code, status = 400, extra = {}) => {
@@ -407,10 +426,10 @@ Deno.serve(async (req) => {
       payment_idempotency_key: idempotencyKey,
       payer_tax_id: cpfNorm,
       paid_online: false,
-      confirm_token,
-      review_token,
-      confirm_token_expires_at,
-      review_token_expires_at,
+      confirm_token: _generateToken(),
+      review_token: _generateToken(),
+      confirm_token_expires_at: _confirmTokenExpiry(scheduledAtISO),
+      review_token_expires_at: _reviewTokenExpiry(scheduledAtISO),
     });
 
     // ─── Cria PaymentIntent na conta CONNECT ───────────────────────────

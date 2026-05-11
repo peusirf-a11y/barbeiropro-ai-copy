@@ -19,6 +19,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
 import { FileDown, FileSpreadsheet, FileText, X, Filter } from 'lucide-react';
+import { csvCell } from '@/lib/csvSafe';
 
 const fmtBRL = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtDate = (d) => d ? format(new Date(d), 'dd/MM/yyyy', { locale: ptBR }) : '–';
@@ -161,14 +162,13 @@ export default function FinancialExport({ companyId, companyName }) {
   const proLabel = professionalId === 'all' ? 'Todos' : (professionals.find(p => p.id === professionalId)?.name || '–');
   const svcLabel = serviceId === 'all' ? 'Todos' : (services.find(s => s.id === serviceId)?.name || '–');
 
-  /* ─────────────── EXPORT: EXCEL (CSV com BOM, abre no Excel) ─────────────── */
+  /* ─────────────── EXPORT: EXCEL (CSV com BOM, abre no Excel) ───────────────
+   * M10 — usamos csvCell de lib/csvSafe.js que ALÉM de escapar aspas/separador,
+   * bloqueia CSV injection (valores que começam com =, +, -, @, etc.).
+   */
   const exportExcel = () => {
     const sep = ';';
-    const escape = (v) => {
-      const s = String(v ?? '');
-      if (s.includes(sep) || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`;
-      return s;
-    };
+    const escape = (v) => csvCell(v, sep);
     const lines = [];
     lines.push(`DRE - ${companyName || 'Barbearia'}`);
     lines.push(`Período: ${periodLabel}`);

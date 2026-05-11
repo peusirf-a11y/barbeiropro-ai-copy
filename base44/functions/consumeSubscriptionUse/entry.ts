@@ -188,6 +188,23 @@ Deno.serve(async (req) => {
       }
       const usage = usages[0];
 
+      // M3 — defesa em profundidade: o filter usa só appointment_id (sem company_id),
+      // então em teoria 2 tenants poderiam compartilhar um appointment_id colidente.
+      // Já validamos appt.company_id == sub.company_id acima, mas reforçamos aqui:
+      // o usage TEM de pertencer ao MESMO tenant da sub que o caller já provou ser dele.
+      if (usage.company_id && usage.company_id !== sub.company_id) {
+        console.warn('[consumeSubscriptionUse] usage/sub tenant mismatch', {
+          usage_company: usage.company_id, sub_company: sub.company_id,
+        });
+        return Response.json({ error: 'TENANT_MISMATCH_USAGE' }, { status: 403 });
+      }
+      if (usage.subscription_id !== subscription_id) {
+        console.warn('[consumeSubscriptionUse] usage/sub mismatch', {
+          usage_subscription: usage.subscription_id, requested: subscription_id,
+        });
+        return Response.json({ error: 'SUBSCRIPTION_MISMATCH' }, { status: 403 });
+      }
+
       // Só devolve saldo se ainda estamos no mesmo ciclo
       const sameCycle = new Date(usage.cycle_start).getTime() === new Date(sub.current_cycle_start).getTime();
       if (sameCycle && sub.plan_type_snapshot !== 'unlimited') {

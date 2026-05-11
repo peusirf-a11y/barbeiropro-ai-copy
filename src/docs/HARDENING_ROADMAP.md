@@ -287,6 +287,23 @@ ensureSameCompany(caller, target);
 - A2: `unitFilter` ganhou `STRICT_UNIT_ISOLATION` flag (default OFF) + telemetria `warnOnce` por entidade/id. Strict mode ativável via `localStorage.bt:strict_unit=1` ou `setStrictUnitIsolation(true)` no boot.
 - A5: `AppLayout` agora usa `useRef` lock (`inFlight` + `attempted`) — no retry automático em caso de falha, eliminando loop. `backfillUnits` no servidor ganhou recovery defensivo (se units existem mas flag está vazia, marca flag e retorna).
 
+### Sprint M1 — Segurança residual ✅ (2026-05-11)
+
+**M3 — `consumeSubscriptionUse.revert` sem tenant check (defesa em profundidade)**
+- O fluxo principal já validava `sub.company_id == caller.company_id` no topo.
+- Adicionados 2 checks no caminho `revert`: `usage.company_id == sub.company_id` e `usage.subscription_id == subscription_id`. Bloqueia qualquer edge case onde 2 tenants tenham appointment_id colidente.
+
+**M5 — Tokens de confirmação/avaliação gerados no servidor**
+- `confirm_token` e `review_token` agora gerados em `createPublicAppointment` e `createBookingPaymentIntent` via `crypto.randomUUID()` (Web Crypto, RFC 4122 v4).
+- Payload do frontend **ignorado**: mesmo se o cliente injetar, backend sobrescreve.
+- Expiries (`confirm_token_expires_at`, `review_token_expires_at`) também calculadas no servidor a partir de `scheduled_at`.
+- `pages/PublicBooking.jsx` removeu import de `@/lib/tokens` e geração local — payload mais enxuto.
+
+**M10 — Sanitização e CSV injection**
+- `_sanitizeText` no backend (createPublicAppointment + createBookingPaymentIntent) agora faz: trim, strip HTML tags (`<...>`), strip control chars, colapsa whitespace exagerado.
+- Novo `lib/csvSafe.js` com `csvCell` + `csvLine` + `buildCsv`: bloqueia CSV injection (`=`, `+`, `-`, `@`, `\t`, `\r` no início). Padrão OWASP.
+- `FinancialExport` migrado para usar `csvCell`. Próximos exports (auditoria, comissões) podem adotar incrementalmente.
+
 ### Salto arquitetural — BFF (Backend-for-Frontend) ⏳ em execução
 
 **Princípio**: Frontend → backend functions controladas → entities (em vez de frontend → entities direto). Reduz superfície de leak, centraliza auditoria, prepara versionamento.

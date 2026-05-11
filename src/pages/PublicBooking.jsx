@@ -5,7 +5,8 @@ import { useParams, Link } from 'react-router-dom';
 import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle, MapPin, UserCircle2 } from 'lucide-react';
 import { format, addDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
+// M5 — Tokens públicos (confirm_token / review_token) NÃO são mais gerados no frontend.
+// O backend (createPublicAppointment / createBookingPaymentIntent) gera com crypto.randomUUID().
 import { nextDaysRange, dateRangeFilter } from '@/lib/dateRangeQueries';
 import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } from '@/lib/scheduling';
 import UnitPicker from '@/components/booking/UnitPicker';
@@ -280,10 +281,7 @@ export default function PublicBooking() {
       notes: form.notes,
       price: selected.service.price,
       source: 'online',
-      confirm_token: generateToken(),
-      review_token: generateToken(),
-      confirm_token_expires_at: confirmTokenExpiry(dt.toISOString()),
-      review_token_expires_at: reviewTokenExpiry(dt.toISOString()),
+      // M5: tokens gerados no backend; payload não envia mais.
       scope_customer_by_unit: scopeCustomerByUnit,
     };
   };
