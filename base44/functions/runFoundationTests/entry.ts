@@ -97,6 +97,26 @@ function sumBRL(values) {
   return roundBRL(values.reduce((acc, v) => acc + (Number(v) || 0), 0));
 }
 
+// ── lib/whatsappCompose.js (subset) ────────────────────────────────────
+function normalizeWhatsAppNumber(raw, defaultCountry = '55') {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length >= 12) return digits;
+  return `${defaultCountry}${digits}`;
+}
+function buildWhatsAppLink(phone, message) {
+  const intl = normalizeWhatsAppNumber(phone);
+  if (!intl) return null;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message || '')}`;
+}
+function interpolateTemplate(template, vars = {}) {
+  if (!template) return '';
+  return Object.entries(vars).reduce((acc, [k, v]) => {
+    const value = String(v ?? '');
+    return acc.replaceAll(`{{${k}}}`, value).replaceAll(`{${k}}`, value);
+  }, template);
+}
+
 // ── lib/errorCodes.js (subset) ──────────────────────────────────────────
 const ERROR_MESSAGES = {
   SLOT_TAKEN: 'Este horário acabou de ser reservado. Escolha outro.',
@@ -337,10 +357,50 @@ const mockTests = {
   },
 };
 
+const whatsappTests = {
+  'normalize adiciona DDI 55': () => {
+    if (normalizeWhatsAppNumber('11987654321') !== '5511987654321') throw new Error('DDI não adicionado');
+  },
+  'normalize preserva DDI existente': () => {
+    if (normalizeWhatsAppNumber('5511987654321') !== '5511987654321') throw new Error('DDI duplicado');
+  },
+  'normalize remove formatação': () => {
+    if (normalizeWhatsAppNumber('(11) 98765-4321') !== '5511987654321') throw new Error('formatação não removida');
+  },
+  'normalize entrada inválida vira vazia': () => {
+    if (normalizeWhatsAppNumber('') !== '') throw new Error('vazia');
+    if (normalizeWhatsAppNumber(null) !== '') throw new Error('null');
+    if (normalizeWhatsAppNumber('abc') !== '') throw new Error('só letras');
+  },
+  'buildWhatsAppLink encoda texto': () => {
+    const url = buildWhatsAppLink('11987654321', 'Olá tudo bem?');
+    if (url !== 'https://wa.me/5511987654321?text=Ol%C3%A1%20tudo%20bem%3F') throw new Error(`bad: ${url}`);
+  },
+  'buildWhatsAppLink encoda emoji e \\n': () => {
+    const url = buildWhatsAppLink('11987654321', 'A\nB 🙌');
+    if (!url.includes('%0A')) throw new Error('newline não encodado');
+    if (!url.includes('%F0%9F%99%8C')) throw new Error('emoji não encodado');
+  },
+  'buildWhatsAppLink retorna null sem telefone': () => {
+    if (buildWhatsAppLink('', 'oi') !== null) throw new Error('vazio deveria ser null');
+    if (buildWhatsAppLink('xxx', 'oi') !== null) throw new Error('lixo deveria ser null');
+  },
+  'interpolate {nome}': () => {
+    if (interpolateTemplate('Oi {nome}', { nome: 'João' }) !== 'Oi João') throw new Error('bad');
+  },
+  'interpolate {{first_name}}': () => {
+    if (interpolateTemplate('Hi {{first_name}}', { first_name: 'João' }) !== 'Hi João') throw new Error('bad');
+  },
+  'interpolate undefined vira vazio': () => {
+    if (interpolateTemplate('A{x}B', { x: undefined }) !== 'AB') throw new Error('bad');
+  },
+};
+
 const TEST_MODULES = {
   'lib/dates': dateTests,
   'lib/money': moneyTests,
   'lib/errorCodes': errorTests,
+  'lib/whatsappCompose': whatsappTests,
   'mockBase44': mockTests,
 };
 

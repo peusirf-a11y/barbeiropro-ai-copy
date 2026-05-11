@@ -10,6 +10,8 @@ import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
+import WhatsAppButton from '@/components/whatsapp/WhatsAppButton';
+import { interpolateTemplate } from '@/lib/whatsappCompose';
 
 const TABS = [
   { id: 'pending', label: 'Pendentes', filter: (r) => !r.published },
@@ -17,8 +19,18 @@ const TABS = [
   { id: 'all', label: 'Todas', filter: () => true },
 ];
 
+// Mensagem manual de agradecimento — usada quando o dono quer responder
+// individualmente uma avaliação. Curto e cordial; nada de promoção.
+function buildThankYouMessage({ company, review }) {
+  const first = (review?.customer_name || '').split(' ')[0] || '';
+  return interpolateTemplate(
+    'Olá {nome} 🙌\n\nMuito obrigado pela sua avaliação na {barbearia}! Sua opinião faz a gente melhorar todo dia. Te esperamos em breve ✂️',
+    { nome: first, barbearia: company?.name || '' }
+  );
+}
+
 export default function AppAvaliacoes() {
-  const { companyId, isLoading: loadingCompany } = useCompany();
+  const { company, companyId, isLoading: loadingCompany } = useCompany();
   const { user } = useAuth();
   const [tab, setTab] = useState('pending');
   const queryClient = useQueryClient();
@@ -28,6 +40,21 @@ export default function AppAvaliacoes() {
     queryFn: () => base44.entities.Review.filter({ company_id: companyId }, '-created_date', 200),
     enabled: !!companyId,
   });
+
+  // Carregamos clientes só para conseguir o telefone na ação manual de "Agradecer".
+  // Review não guarda telefone, então fazemos lookup por customer_id.
+  const { data: customersData } = useQuery({
+    queryKey: ['customers-for-reviews', companyId],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listCustomers', { limit: 500 });
+      return res?.data || { customers: [] };
+    },
+    enabled: !!companyId,
+  });
+  const phoneByCustomerId = (customersData?.customers || []).reduce((acc, c) => {
+    if (c.id && c.phone) acc[c.id] = c.phone;
+    return acc;
+  }, {});
 
   const moderateMutation = useMutation({
     mutationFn: ({ id, published }) =>
@@ -162,6 +189,13 @@ export default function AppAvaliacoes() {
                         <EyeOff className="w-3.5 h-3.5" /> Despublicar
                       </button>
                     )}
+                    <WhatsAppButton
+                      phone={r.customer_phone || phoneByCustomerId[r.customer_id]}
+                      message={buildThankYouMessage({ company, review: r })}
+                      variant="inline"
+                      label="Agradecer"
+                      title="Mandar mensagem de agradecimento"
+                    />
                     <button onClick={() => { if (confirm('Excluir esta avaliação? Essa ação não pode ser desfeita.')) deleteMutation.mutate(r.id); }}
                       className="text-gray-400 hover:text-red-500 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                       <Trash2 className="w-3.5 h-3.5" /> Excluir

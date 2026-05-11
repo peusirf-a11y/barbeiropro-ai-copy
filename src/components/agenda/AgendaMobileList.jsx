@@ -9,6 +9,9 @@ import { getStatusToken, isClientWithoutPreference } from '@/lib/statusTokens';
 import AppointmentNoteIcon from '@/components/agenda/AppointmentNoteIcon';
 import AppointmentSourceIcon from '@/components/agenda/AppointmentSourceIcon';
 import FirstVisitBadge from '@/components/agenda/FirstVisitBadge';
+import WhatsAppButton from '@/components/whatsapp/WhatsAppButton';
+import { useCompany } from '@/hooks/useCompany';
+import { buildConfirmationMessage, buildReminderMessage } from '@/lib/whatsappCompose';
 
 export default function AgendaMobileList({
   selectedDate,
@@ -18,6 +21,7 @@ export default function AgendaMobileList({
   customers = [],
   onCardClick,
 }) {
+  const { company } = useCompany();
   const customerById = useMemo(() => {
     return customers.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
   }, [customers]);
@@ -101,6 +105,22 @@ export default function AgendaMobileList({
                 <AppointmentSourceIcon source={appt.source} className="w-3 h-3 opacity-60" />
                 <AppointmentNoteIcon note={appt.notes} />
                 <span className="ml-auto text-[10px] font-medium opacity-60">{token.label}</span>
+                {/* WhatsApp manual — usa template de confirmação se ainda não confirmado,
+                    senão lembrete. Para appointments concluídos, oculta (já houve o pós-atendimento). */}
+                {appt.customer_phone && !['concluido', 'cancelado', 'faltou'].includes(appt.status) && (
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <WhatsAppButton
+                      phone={appt.customer_phone}
+                      message={
+                        appt.status === 'confirmado'
+                          ? buildReminderMessage({ company, appointment: appt })
+                          : buildConfirmationMessage({ company, appointment: appt })
+                      }
+                      title={appt.status === 'confirmado' ? 'Enviar lembrete' : 'Enviar confirmação'}
+                      className="w-7 h-7"
+                    />
+                  </span>
+                )}
               </div>
             </div>
           </button>

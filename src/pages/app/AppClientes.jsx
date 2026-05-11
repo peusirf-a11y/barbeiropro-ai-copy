@@ -20,6 +20,8 @@ import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import VipCandidatesCard from '@/components/clientes/VipCandidatesCard';
 import { Sparkles } from 'lucide-react';
+import WhatsAppButton from '@/components/whatsapp/WhatsAppButton';
+import { buildReactivationMessage } from '@/lib/whatsappCompose';
 
 const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
 
@@ -240,6 +242,11 @@ export default function AppClientes() {
                     <td className="p-4">
                       {!isBarbeiro ? (
                         <div className="flex items-center gap-1">
+                          <WhatsAppButton
+                            phone={c.phone}
+                            message={buildReactivationMessage({ company, customer: c })}
+                            title={`Enviar WhatsApp para ${c.name}`}
+                          />
                           {!subByCustomer[c.id] && (
                             <button
                               onClick={() => setOfferingTo(c)}
@@ -325,6 +332,18 @@ export default function AppClientes() {
                 Marcação manual da equipe. Para o ciclo de vida automático, veja o card abaixo.
               </p>
             </div>
+
+            {editing && form.phone && (
+              <div className="flex flex-wrap gap-2">
+                <WhatsAppButton
+                  phone={form.phone}
+                  message={buildReactivationMessage({ company, customer: editing })}
+                  variant="inline"
+                  label="Enviar WhatsApp"
+                  title="Abrir WhatsApp deste cliente"
+                />
+              </div>
+            )}
 
             {editing && <LifecycleStatusCard customer={editing} />}
             <div>
