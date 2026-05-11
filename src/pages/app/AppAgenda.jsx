@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
 import AgendaProColumns from '@/components/agenda/AgendaProColumns';
 import AgendaMobileList from '@/components/agenda/AgendaMobileList';
@@ -56,14 +55,17 @@ export default function AppAgenda() {
     },
   });
 
-  // Barbeiro só enxerga seus próprios atendimentos.
-  const apptFilter = isBarbeiro && myProId
-    ? { company_id: companyId, professional_id: myProId }
-    : { company_id: companyId };
-
+  // BFF Fase 3: leitura passa pelo backend. Tenant + role (barbeiro) +
+  // unit scope são aplicados server-side. O front só passa active_unit_id.
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
     queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
-    queryFn: () => base44.entities.Appointment.filter(apptFilter, '-scheduled_at', 500),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listAppointments', {
+        active_unit_id: activeUnitId || undefined,
+        limit: 500,
+      });
+      return res?.data?.appointments || [];
+    },
     enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
@@ -108,16 +110,21 @@ export default function AppAgenda() {
   const [pendingSubscriptionDialog, setPendingSubscriptionDialog] = useState(null);
   // pendingSubscriptionDialog = { appointment, subscription, plan, servicePrice }
 
+  // BFF Fase 3 helper — todas as mutations passam por mutateAppointment.
+  // O servidor faz allow-list, conflict check, completed_at auto-stamp e
+  // bloqueia tentativa de mexer em campos sensíveis (paid_online, etc).
+  const invokeMutation = async (payload) => {
+    const res = await base44.functions.invoke('mutateAppointment', payload);
+    if (res?.data?.error) {
+      const err = new Error(res.data.error);
+      err.code = res.data.error;
+      throw err;
+    }
+    return res?.data;
+  };
+
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      // Marca completed_at junto com status=concluido. As automações de entidade
-      // criam comissão (registerCommission) + entrada financeira + link de avaliação
-      // (onAppointmentConcluded) de forma idempotente.
-      const payload = data.status === 'concluido' && !data.completed_at
-        ? { ...data, completed_at: new Date().toISOString() }
-        : data;
-      return base44.entities.Appointment.update(id, payload);
-    },
+    mutationFn: ({ id, data }) => invokeMutation({ action: 'update', id, data }),
     // Update otimista — UI reflete a mudança imediatamente, sem esperar o servidor.
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ['appointments', companyId] });
@@ -128,12 +135,19 @@ export default function AppAgenda() {
       });
       return { previous };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       // Reverte em caso de falha
       if (context?.previous) {
         context.previous.forEach(([key, value]) => queryClient.setQueryData(key, value));
       }
-      alert('Não foi possível salvar a alteração. Tente novamente.');
+      // Mensagens humanas para os erros mais comuns do BFF
+      const msg = {
+        SLOT_CONFLICT: 'Conflito de horário: este profissional já tem outro agendamento neste horário.',
+        SLOT_BLOCKED: 'Horário bloqueado (almoço/folga/evento). Escolha outro horário.',
+        FORBIDDEN_ROLE: 'Seu perfil não tem permissão para essa ação.',
+        NOT_FOUND: 'Agendamento não encontrado.',
+      }[err?.code] || 'Não foi possível salvar a alteração. Tente novamente.';
+      alert(msg);
     },
     onSuccess: (_res, vars) => {
       // Reconcilia com o servidor + invalida cadeias derivadas (comissões/financeiro) quando concluído.
@@ -165,8 +179,14 @@ export default function AppAgenda() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Appointment.create(data),
-    onSuccess: (created) => {
+    mutationFn: (data) => invokeMutation({
+      action: 'create',
+      data,
+      active_unit_id: activeUnitId || undefined,
+    }),
+    onSuccess: (res) => {
+      // BFF retorna { appointment } — sem unwrapping vinha como undefined.
+      const created = res?.appointment;
       queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
       queryClient.invalidateQueries({ queryKey: ['customers', companyId] });
       setShowNewForm(false);
@@ -184,6 +204,17 @@ export default function AppAgenda() {
           servicePrice: svc?.price || created.price || 0,
         });
       }
+    },
+    onError: (err) => {
+      const msg = {
+        SLOT_CONFLICT: 'Conflito de horário: este profissional já tem outro agendamento neste horário.',
+        SLOT_BLOCKED: 'Horário bloqueado (almoço/folga/evento).',
+        INVALID_SERVICE: 'Serviço inválido.',
+        INVALID_PROFESSIONAL: 'Profissional inválido.',
+        MISSING_FIELDS: 'Preencha profissional, serviço e horário.',
+        FORBIDDEN_ROLE: 'Seu perfil não tem permissão para criar agendamentos.',
+      }[err?.code] || 'Não foi possível criar o agendamento. Tente novamente.';
+      alert(msg);
     },
   });
 
@@ -223,7 +254,7 @@ export default function AppAgenda() {
   };
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Appointment.delete(id),
+    mutationFn: (id) => invokeMutation({ action: 'delete', id }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments', companyId] }); setSelectedAppt(null); },
   });
 
@@ -267,8 +298,6 @@ export default function AppAgenda() {
       alert('Horário bloqueado (almoço/folga/evento). Escolha outro horário.');
       return;
     }
-    const pro = professionals.find(p => p.id === form.professional_id);
-    const svc = services.find(s => s.id === form.service_id);
 
     // Identificação/criação automática de cliente:
     // 1) Se já houver customer_id selecionado, usa.
@@ -282,34 +311,32 @@ export default function AppAgenda() {
     }
     if (!customer && phoneNorm.length >= 10 && form.customer_name?.trim()) {
       try {
-        customer = await base44.entities.Customer.create({
-          company_id: companyId,
-          unit_id: activeUnitId || undefined,
-          name: form.customer_name.trim(),
-          phone: phoneNorm,
-          status: 'active',
+        // Cliente criado via BFF (Fase 2) — servidor decide company_id/unit_id
+        const res = await base44.functions.invoke('mutateCustomer', {
+          action: 'create',
+          data: { name: form.customer_name.trim(), phone: phoneNorm, status: 'active' },
+          active_unit_id: activeUnitId || undefined,
         });
-        queryClient.invalidateQueries({ queryKey: ['customers', companyId] });
+        if (res?.data?.customer) {
+          customer = res.data.customer;
+          queryClient.invalidateQueries({ queryKey: ['customers', companyId] });
+        }
       } catch (err) {
         console.warn('[AppAgenda] falha ao criar cliente automaticamente:', err.message);
       }
     }
 
+    // BFF Fase 3: o servidor preenche service_name/professional_name/price/tokens.
+    // O front só manda dados de UI; tudo derivado vem do banco.
     createMutation.mutate({
-      ...form,
-      company_id: companyId,
-      unit_id: activeUnitId || pro?.unit_ids?.[0] || undefined,
       customer_id: customer?.id || form.customer_id || undefined,
-      professional_name: pro?.name || '',
-      service_name: svc?.name || '',
       customer_name: customer?.name || form.customer_name,
       customer_phone: customer?.phone || phoneNorm || form.customer_phone,
-      price: svc?.price || form.price,
-      source: 'interno',
-      confirm_token: generateToken(),
-      review_token: generateToken(),
-      confirm_token_expires_at: confirmTokenExpiry(form.scheduled_at),
-      review_token_expires_at: reviewTokenExpiry(form.scheduled_at),
+      professional_id: form.professional_id,
+      service_id: form.service_id,
+      scheduled_at: form.scheduled_at,
+      status: form.status || 'agendado',
+      notes: form.notes,
     });
   };
 
@@ -335,12 +362,11 @@ export default function AppAgenda() {
       alert('Horário bloqueado (almoço/folga/evento).');
       return;
     }
-    const pro = professionals.find(p => p.id === targetProId);
+    // BFF Fase 3: o servidor sobrescreve professional_name a partir do banco.
     updateMutation.mutate({
       id: appointment.id,
       data: {
         professional_id: targetProId,
-        professional_name: pro?.name || appointment.professional_name,
         scheduled_at: new Date(targetStart).toISOString(),
       },
     });

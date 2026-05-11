@@ -321,8 +321,25 @@ ensureSameCompany(caller, target);
 - `AppClientes` migrado: removidos `shouldScopeCustomersByUnit` e import de `customerUnitMode`. Mutations passam por `base44.functions.invoke('mutateCustomer', ...)`.
 - Smoke test: INVALID_ACTION → 400; cross-tenant update → 404 genérico (não vaza existência).
 
-**Fase 3 — Appointment (read + write)** ⏳
-- Query mais pesada do app + maior superfície de leak. Aplicar mesmo padrão.
+**Fase 3 — Appointment (read + write)** ✅ (2026-05-11)
+- Criada `functions/listAppointments`: tenant + role (barbeiro força `professional_id`) + unit scope server-side. Suporta janela temporal (`from`/`to`) e limit configurável (max 2000). Removeu necessidade do front montar `apptFilter` para barbeiro.
+- Criada `functions/mutateAppointment` (create/update/delete) com:
+  - Allow-list rígida — bloqueia `paid_online`, `payment_intent_id`, `payment_status`, `payment_*`, `subscription_id`, `commission_created`, `confirm_token`, `review_token` e seus `*_expires_at`. Cliente NUNCA seta esses campos.
+  - Conflict + block re-check server-side (porta `appointmentConflict`/`blockedConflict` do `lib/scheduling.js` para Deno). Front mantém checagem otimista para UX.
+  - Tokens `confirm_token` e `review_token` gerados via `crypto.randomUUID()` no servidor (consistência com Fase M5).
+  - Snapshots de `service_name`, `professional_name`, `price` lidos do banco — paylod do front é ignorado.
+  - Auto-stamp `completed_at` quando `status='concluido'`.
+  - `barbeiro` só pode `update` em appointments próprios; `create`/`delete` bloqueados.
+  - Cross-tenant retorna 404 genérico (não vaza existência).
+  - Update bloqueia mexer em `paid` se `paid_online=true` (Stripe é fonte da verdade).
+- `AppAgenda` migrado:
+  - Read via `listAppointments` (sem `Appointment.filter` direto).
+  - Mutations create/update/delete via `mutateAppointment` (helper `invokeMutation`).
+  - Auto-criação de cliente via `mutateCustomer` (Fase 2) — não usa mais `Customer.create` direto.
+  - Removidos imports `generateToken`, `confirmTokenExpiry`, `reviewTokenExpiry` (gerados no servidor).
+  - Erros do BFF (`SLOT_CONFLICT`, `SLOT_BLOCKED`, `FORBIDDEN_ROLE`, etc.) mapeados para mensagens humanas.
+- Smoke test: listAppointments 200 OK retorna 500+ appointments; mutateAppointment → INVALID_ACTION 400 + cross-tenant 404 genérico.
+- Páginas que ainda LEEM Appointment via SDK direto (Dashboard, Relatórios, AppFinanceiro, AppCRM, etc.) seguem na próxima fase — Fase 3 cobriu o único módulo com WRITE path.
 
 **Fase 4 — Outras listas tenant-sensitive** ⏳
 - `CustomerSubscription`, `WhatsAppMessage`, `Commission` listadas no app passam pelo BFF.
