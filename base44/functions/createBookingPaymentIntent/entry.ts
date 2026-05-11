@@ -74,6 +74,53 @@ async function releaseSlotLock(sdk, reservation_id) {
   try { await sdk.entities.SlotReservation.update(reservation_id, { status: 'released' }); } catch {}
 }
 
+// ─── Rate limit (P0.2) — inline. Espelha lib/rateLimit.js ─────────────
+const BOOKING_LIMIT_DEFAULT = 5;
+function _bookingLimit() {
+  const n = parseInt(Deno.env.get('BOOKING_RATE_LIMIT_PER_HOUR') || '', 10);
+  return Number.isFinite(n) && n > 0 ? n : BOOKING_LIMIT_DEFAULT;
+}
+async function _checkBookingRateLimit(sdk, customer_phone) {
+  if (!customer_phone) return { allowed: true };
+  const limit = _bookingLimit();
+  const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
+  const recent = await sdk.entities.Appointment.filter(
+    { customer_phone, created_date: { $gte: oneHourAgo } },
+    '-created_date',
+    Math.max(limit + 5, 20),
+  );
+  return { allowed: recent.length < limit, count: recent.length, limit };
+}
+
+// ─── Validação de bloqueio (P0.2) — inline. Espelha lib/scheduling.js ─
+function _blockedConflict({ professionalId, dateTime, durationMin, blocks }) {
+  if (!dateTime) return false;
+  const start = new Date(dateTime);
+  const end = new Date(start.getTime() + (durationMin || 30) * 60000);
+  return blocks.some(b => {
+    if (b.professional_id && b.professional_id !== professionalId) return false;
+    if (b.recurring) {
+      if (typeof b.weekday !== 'number' || !b.time_start || !b.time_end) return false;
+      if (start.getDay() !== b.weekday) return false;
+      const [sh, sm] = String(b.time_start).split(':').map(Number);
+      const [eh, em] = String(b.time_end).split(':').map(Number);
+      const bStart = new Date(start); bStart.setHours(sh || 0, sm || 0, 0, 0);
+      const bEnd = new Date(start);   bEnd.setHours(eh || 0, em || 0, 0, 0);
+      return start < bEnd && end > bStart;
+    }
+    if (!b.start_time || !b.end_time) return false;
+    const bStart = new Date(b.start_time);
+    const bEnd = new Date(b.end_time);
+    return start < bEnd && end > bStart;
+  });
+}
+
+// Sanitiza texto vindo do payload público.
+function _sanitizeText(v, max) {
+  if (v == null) return '';
+  return String(v).trim().slice(0, max);
+}
+
 // Resolve a chave secreta do Stripe baseado em STRIPE_ENVIRONMENT ('test' | 'live').
 // Default = 'test' por segurança. Valida o prefixo da chave para evitar mismatch.
 function getStripeSecret() {
@@ -107,16 +154,13 @@ Deno.serve(async (req) => {
       company_id,
       unit_id,
       professional_id,
-      professional_name,
       service_id,
-      service_name,
       customer_name,
       customer_phone,
       customer_email,
       customer_cpf,
       scheduled_at,
       notes,
-      price,
       payment_method, // 'pix' ou 'card'
       scope_customer_by_unit,
       confirm_token,
@@ -124,13 +168,16 @@ Deno.serve(async (req) => {
       confirm_token_expires_at,
       review_token_expires_at,
     } = body;
+    // WHY (P0.2): NÃO desestruturamos price, service_name, professional_name.
+    // Esses são AUTORITATIVOS DO BANCO. Carregamos via .get() abaixo.
+    // Cliente malicioso poderia mandar price=0.01 ou serviço de outra barbearia.
 
     // ─── Validações ─────────────────────────────────────────────────────
     const fail = (code, status = 400, extra = {}) => {
       console.warn(`[createBookingPaymentIntent] validation failed: ${code}`, {
         company_id, service_id, professional_id, scheduled_at,
         has_name: !!customer_name, has_phone: !!customer_phone,
-        price, payment_method, has_cpf: !!customer_cpf,
+        payment_method, has_cpf: !!customer_cpf,
       });
       return Response.json({ error: code, ...extra }, { status });
     };
@@ -140,12 +187,29 @@ Deno.serve(async (req) => {
     if (!scheduled_at) return fail('scheduled_at_required');
     if (!customer_name?.trim()) return fail('customer_name_required');
     if (!customer_phone?.trim()) return fail('customer_phone_required');
-    if (!price || price <= 0) return fail('invalid_price');
     if (!['pix', 'card'].includes(payment_method)) return fail('invalid_payment_method');
     const cpfNorm = normalizeCpf(customer_cpf);
     if (cpfNorm.length !== 11) return fail('cpf_required', 400, { message: 'CPF é obrigatório (11 dígitos)' });
     const phoneNorm = normalizePhone(customer_phone);
     if (phoneNorm.length < 10) return fail('invalid_phone');
+
+    // Sanitização (P0.2).
+    const customerNameClean = _sanitizeText(customer_name, 100);
+    const customerEmailClean = _sanitizeText(customer_email, 200);
+    const notesClean = _sanitizeText(notes, 500);
+    if (!customerNameClean) return fail('customer_name_required');
+
+    // ─── RATE LIMIT (P0.2) ──────────────────────────────────────────────
+    // WHY: cliente malicioso pode tentar criar bookings/PaymentIntents em massa.
+    // Aplicado ANTES de chamar Stripe (caro) e antes de criar Appointment.
+    const rl = await _checkBookingRateLimit(sdk, phoneNorm);
+    if (!rl.allowed) {
+      console.warn('[createBookingPaymentIntent] RATE_LIMITED', { phone: phoneNorm, count: rl.count, limit: rl.limit });
+      return Response.json({
+        error: 'rate_limited',
+        message: `Limite de ${rl.limit} agendamentos por hora atingido. Tente novamente mais tarde.`,
+      }, { status: 429 });
+    }
 
     // ─── Carrega empresa e valida Connect ───────────────────────────────
     const companies = await sdk.entities.Company.filter({ id: company_id });
@@ -164,7 +228,63 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
+    // ─── VALIDAÇÃO AUTORITATIVA (P0.2) ─────────────────────────────────
+    // Carrega Service e Professional do banco. Ignora payload do frontend.
+    // WHY: cliente malicioso pode mandar:
+    //  - service_id de outra barbearia → cobramos errado
+    //  - price=0.01 → pagamos só centavos
+    //  - service_name fake → exibe nome errado no receipt
+    //  - professional_id que não atende esse serviço → fura regra de negócio
+    let service, professional;
+    try {
+      service = await sdk.entities.Service.get(service_id);
+    } catch { service = null; }
+    if (!service || service.company_id !== company_id) {
+      console.warn('[createBookingPaymentIntent] cross-tenant or missing service', { company_id, service_id });
+      return Response.json({ error: 'service_not_found' }, { status: 404 });
+    }
+    if (service.active === false) {
+      return Response.json({ error: 'service_inactive' }, { status: 400 });
+    }
+
+    try {
+      professional = await sdk.entities.Professional.get(professional_id);
+    } catch { professional = null; }
+    if (!professional || professional.company_id !== company_id) {
+      console.warn('[createBookingPaymentIntent] cross-tenant or missing professional', { company_id, professional_id });
+      return Response.json({ error: 'professional_not_found' }, { status: 404 });
+    }
+    if (professional.active === false) {
+      return Response.json({ error: 'professional_inactive' }, { status: 400 });
+    }
+    if (professional.service_ids?.length && !professional.service_ids.includes(service_id)) {
+      return Response.json({ error: 'service_not_offered_by_professional' }, { status: 400 });
+    }
+    if (unit_id && professional.unit_ids?.length && !professional.unit_ids.includes(unit_id)) {
+      return Response.json({ error: 'professional_not_in_unit' }, { status: 400 });
+    }
+
+    // Dados autoritativos — usados daqui pra frente. Payload original IGNORADO.
+    const realPrice = Number(service.price) || 0;
+    if (realPrice <= 0) {
+      // Defesa: serviço grátis não passa por pagamento online. Frontend deve usar createPublicAppointment.
+      return Response.json({ error: 'invalid_price', message: 'Serviço sem preço definido — pague no balcão.' }, { status: 400 });
+    }
+    const realServiceName = service.name;
+    const realProfessionalName = professional.name;
+    const realDuration = service.duration_minutes || 30;
+
     const scheduledAtISO = new Date(scheduled_at).toISOString();
+
+    // ─── VALIDAÇÃO DE BLOQUEIOS (P0.2) ─────────────────────────────────
+    try {
+      const blocks = await sdk.entities.BlockedTime.filter({ company_id }, '-created_date', 200);
+      if (_blockedConflict({ professionalId: professional_id, dateTime: scheduledAtISO, durationMin: realDuration, blocks })) {
+        return Response.json({ error: 'time_blocked', message: 'Horário indisponível.' }, { status: 409 });
+      }
+    } catch (err) {
+      console.warn('[createBookingPaymentIntent] block validation skipped:', err.message);
+    }
 
     // ─── LOCK ATÔMICO (P0.1) ────────────────────────────────────────────
     // Primeira camada de defesa: SlotReservation com TTL curto.
@@ -247,13 +367,13 @@ Deno.serve(async (req) => {
       customer = await sdk.entities.Customer.create({
         company_id,
         unit_id: scope_customer_by_unit ? unit_id : undefined,
-        name: customer_name.trim(),
+        name: customerNameClean,
         phone: phoneNorm,
-        email: customer_email?.trim() || undefined,
+        email: customerEmailClean || undefined,
         status: 'active',
       });
-    } else if (customer_email?.trim() && !customer.email) {
-      try { await sdk.entities.Customer.update(customer.id, { email: customer_email.trim() }); } catch {}
+    } else if (customerEmailClean && !customer.email) {
+      try { await sdk.entities.Customer.update(customer.id, { email: customerEmailClean }); } catch {}
     }
 
     // ─── Idempotency key determinística ─────────────────────────────────
@@ -262,22 +382,24 @@ Deno.serve(async (req) => {
     const idempotencyKey = `bk_${company_id}_${customer.id}_${service_id}_${professional_id}_${scheduledAtISO}_${payment_method}`.slice(0, 200);
 
     // ─── Cria Appointment como aguardando_pagamento ─────────────────────
+    // WHY (P0.2): TODOS os campos canônicos vêm de realPrice/realServiceName/realProfessionalName.
     const expiresAt = new Date(Date.now() + PAYMENT_EXPIRY_MINUTES * 60 * 1000).toISOString();
     const appointment = await sdk.entities.Appointment.create({
       company_id,
       unit_id: unit_id || undefined,
       customer_id: customer.id,
       professional_id,
-      professional_name,
+      professional_name: realProfessionalName,
       service_id,
-      service_name,
-      customer_name: customer_name.trim(),
+      service_name: realServiceName,
+      customer_name: customerNameClean,
       customer_phone: phoneNorm,
-      customer_email: customer_email?.trim() || undefined,
+      customer_email: customerEmailClean || undefined,
       scheduled_at: scheduledAtISO,
-      notes,
+      notes: notesClean || undefined,
       status: 'aguardando_pagamento',
-      price,
+      price: realPrice,
+      custom_duration_minutes: realDuration,
       source: 'online',
       payment_method,
       payment_status: 'pending',
@@ -295,7 +417,7 @@ Deno.serve(async (req) => {
     let paymentIntent;
     try {
       paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(price * 100),
+        amount: Math.round(realPrice * 100),
         currency: 'brl',
         payment_method_types: payment_method === 'pix' ? ['pix'] : ['card'],
         // application_fee_amount: 0, // preparado para futura monetização por transação
@@ -306,8 +428,8 @@ Deno.serve(async (req) => {
           customer_id: customer.id,
           payment_kind: 'booking',
         },
-        description: `Agendamento ${service_name} — ${company.name}`,
-        receipt_email: customer_email?.trim() || undefined,
+        description: `Agendamento ${realServiceName} — ${company.name}`,
+        receipt_email: customerEmailClean || undefined,
       }, {
         stripeAccount: company.stripe_connect_account_id,
         idempotencyKey,
@@ -345,8 +467,8 @@ Deno.serve(async (req) => {
           payment_method_data: {
             type: 'pix',
             billing_details: {
-              name: customer_name.trim(),
-              email: customer_email?.trim() || undefined,
+              name: customerNameClean,
+              email: customerEmailClean || undefined,
             },
           },
         }, {

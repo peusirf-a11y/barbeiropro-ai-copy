@@ -66,6 +66,54 @@ async function releaseSlotLock(sdk, reservation_id) {
   try { await sdk.entities.SlotReservation.update(reservation_id, { status: 'released' }); } catch {}
 }
 
+// ─── Rate limit (P0.2) — inline. Espelha lib/rateLimit.js ─────────────
+const BOOKING_LIMIT_DEFAULT = 5;
+function _bookingLimit() {
+  const n = parseInt(Deno.env.get('BOOKING_RATE_LIMIT_PER_HOUR') || '', 10);
+  return Number.isFinite(n) && n > 0 ? n : BOOKING_LIMIT_DEFAULT;
+}
+async function _checkBookingRateLimit(sdk, customer_phone) {
+  if (!customer_phone) return { allowed: true };
+  const limit = _bookingLimit();
+  const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
+  const recent = await sdk.entities.Appointment.filter(
+    { customer_phone, created_date: { $gte: oneHourAgo } },
+    '-created_date',
+    Math.max(limit + 5, 20),
+  );
+  return { allowed: recent.length < limit, count: recent.length, limit };
+}
+
+// ─── Validação de bloqueio (P0.2) — inline. Espelha lib/scheduling.js ─
+// WHY: frontend já valida visualmente, mas backend NUNCA pode confiar nisso.
+function _blockedConflict({ professionalId, dateTime, durationMin, blocks }) {
+  if (!dateTime) return false;
+  const start = new Date(dateTime);
+  const end = new Date(start.getTime() + (durationMin || 30) * 60000);
+  return blocks.some(b => {
+    if (b.professional_id && b.professional_id !== professionalId) return false;
+    if (b.recurring) {
+      if (typeof b.weekday !== 'number' || !b.time_start || !b.time_end) return false;
+      if (start.getDay() !== b.weekday) return false;
+      const [sh, sm] = String(b.time_start).split(':').map(Number);
+      const [eh, em] = String(b.time_end).split(':').map(Number);
+      const bStart = new Date(start); bStart.setHours(sh || 0, sm || 0, 0, 0);
+      const bEnd = new Date(start);   bEnd.setHours(eh || 0, em || 0, 0, 0);
+      return start < bEnd && end > bStart;
+    }
+    if (!b.start_time || !b.end_time) return false;
+    const bStart = new Date(b.start_time);
+    const bEnd = new Date(b.end_time);
+    return start < bEnd && end > bStart;
+  });
+}
+
+// Sanitiza string vinda de payload público: trim + limite de tamanho.
+function _sanitizeText(v, max) {
+  if (v == null) return '';
+  return String(v).trim().slice(0, max);
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -76,21 +124,21 @@ Deno.serve(async (req) => {
       company_id,
       unit_id,
       professional_id,
-      professional_name,
       service_id,
-      service_name,
       customer_name,
       customer_phone,
       customer_email,
       scheduled_at,
       notes,
-      price,
       confirm_token,
       review_token,
       confirm_token_expires_at,
       review_token_expires_at,
       scope_customer_by_unit,
     } = body;
+    // WHY (P0.2): NÃO desestruturamos professional_name, service_name nem price.
+    // Esses campos são AUTORITATIVOS DO BANCO. Carregamos abaixo via .get().
+    // Ignorar payload evita: cliente injetar preço 0, nome falso, serviço inexistente.
 
     // Validações mínimas
     if (!company_id) return Response.json({ success: false, error: 'company_id_required' }, { status: 400 });
@@ -106,10 +154,83 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'invalid_phone' }, { status: 400 });
     }
 
+    // Sanitização (P0.2) — limita tamanhos para evitar payload abuso.
+    const customerNameClean = _sanitizeText(customer_name, 100);
+    const customerEmailClean = _sanitizeText(customer_email, 200);
+    const notesClean = _sanitizeText(notes, 500);
+    if (!customerNameClean) return Response.json({ success: false, error: 'customer_name_required' }, { status: 400 });
+
+    // ─── RATE LIMIT (P0.2) ──────────────────────────────────────────────
+    // WHY: protege contra flood (cliente malicioso ou bot criando bookings em massa).
+    const rl = await _checkBookingRateLimit(sdk, phoneNorm);
+    if (!rl.allowed) {
+      console.warn('[createPublicAppointment] RATE_LIMITED', { phone: phoneNorm, count: rl.count, limit: rl.limit });
+      return Response.json({
+        success: false,
+        error: 'rate_limited',
+        message: `Limite de ${rl.limit} agendamentos por hora atingido. Tente novamente mais tarde.`,
+      }, { status: 429 });
+    }
+
+    // ─── VALIDAÇÃO AUTORITATIVA (P0.2) ─────────────────────────────────
+    // Carrega Service e Professional do banco. Ignora os campos enviados pelo frontend.
+    // WHY: nunca confiar em service_name, price, duration vindos do cliente.
+    let service, professional;
+    try {
+      service = await sdk.entities.Service.get(service_id);
+    } catch { service = null; }
+    if (!service) {
+      await releaseSlotLock(sdk, null);
+      return Response.json({ success: false, error: 'service_not_found' }, { status: 404 });
+    }
+    if (service.company_id !== company_id) {
+      console.warn('[createPublicAppointment] cross-tenant service attempt', { company_id, service_id });
+      return Response.json({ success: false, error: 'service_not_found' }, { status: 404 });
+    }
+    if (service.active === false) {
+      return Response.json({ success: false, error: 'service_inactive' }, { status: 400 });
+    }
+
+    try {
+      professional = await sdk.entities.Professional.get(professional_id);
+    } catch { professional = null; }
+    if (!professional || professional.company_id !== company_id) {
+      console.warn('[createPublicAppointment] cross-tenant professional attempt', { company_id, professional_id });
+      return Response.json({ success: false, error: 'professional_not_found' }, { status: 404 });
+    }
+    if (professional.active === false) {
+      return Response.json({ success: false, error: 'professional_inactive' }, { status: 400 });
+    }
+    // Relacionamento Service ↔ Professional (se profissional define service_ids, restringe).
+    if (professional.service_ids?.length && !professional.service_ids.includes(service_id)) {
+      return Response.json({ success: false, error: 'service_not_offered_by_professional' }, { status: 400 });
+    }
+    // Multi-unit: se unit_id veio e profissional define unit_ids, valida pertencimento.
+    if (unit_id && professional.unit_ids?.length && !professional.unit_ids.includes(unit_id)) {
+      return Response.json({ success: false, error: 'professional_not_in_unit' }, { status: 400 });
+    }
+
+    // Dados autoritativos a partir daqui — IGNORAM o payload.
+    const realPrice = service.price || 0;
+    const realServiceName = service.name;
+    const realProfessionalName = professional.name;
+    const realDuration = service.duration_minutes || 30;
+
+    // ─── VALIDAÇÃO DE BLOQUEIOS (P0.2) ─────────────────────────────────
+    // WHY: cliente malicioso poderia mandar horário em bloqueio que o frontend escondeu.
+    try {
+      const blocks = await sdk.entities.BlockedTime.filter({ company_id }, '-created_date', 200);
+      if (_blockedConflict({ professionalId: professional_id, dateTime: scheduled_at, durationMin: realDuration, blocks })) {
+        return Response.json({ success: false, error: 'time_blocked', message: 'Horário indisponível.' }, { status: 409 });
+      }
+    } catch (err) {
+      // Não derruba o booking — se a query falhar, registra e segue (defesa em camadas).
+      console.warn('[createPublicAppointment] block validation skipped:', err.message);
+    }
+
     // ─── LOCK ATÔMICO (P0.1) ────────────────────────────────────────────
     // WHY: este endpoint é usado pelo fluxo de plano e gratuito. Sem lock,
     // dois clientes podem reservar o mesmo slot simultaneamente.
-    // Source = public_booking_free (será refinado se body indicar plano).
     const lockResult = await acquireSlotLock(sdk, {
       company_id,
       unit_id,
@@ -137,43 +258,43 @@ Deno.serve(async (req) => {
 
     // 2) Se não existe → cria
     if (!customer) {
-      console.log(`[createPublicAppointment] criando novo customer: ${customer_name} / ${phoneNorm}`);
+      console.log(`[createPublicAppointment] criando novo customer: ${customerNameClean} / ${phoneNorm}`);
       customer = await sdk.entities.Customer.create({
         company_id,
         unit_id: scope_customer_by_unit ? unit_id : undefined,
-        name: customer_name.trim(),
+        name: customerNameClean,
         phone: phoneNorm,
-        email: customer_email?.trim() || undefined,
+        email: customerEmailClean || undefined,
         status: 'active',
       });
     } else {
       console.log(`[createPublicAppointment] cliente existente reutilizado: ${customer.id}`);
       // Atualiza email se antes não tinha e agora foi informado (não sobrescreve dados existentes)
-      if (customer_email?.trim() && !customer.email) {
+      if (customerEmailClean && !customer.email) {
         try {
-          await sdk.entities.Customer.update(customer.id, { email: customer_email.trim() });
+          await sdk.entities.Customer.update(customer.id, { email: customerEmailClean });
         } catch (err) {
           console.warn('[createPublicAppointment] falha ao atualizar email do customer:', err.message);
         }
       }
     }
 
-    // 3) Cria Appointment vinculado
+    // 3) Cria Appointment vinculado — usa dados AUTORITATIVOS do banco.
     const appointment = await sdk.entities.Appointment.create({
       company_id,
       unit_id: unit_id || undefined,
       customer_id: customer.id,
       professional_id,
-      professional_name,
+      professional_name: realProfessionalName,
       service_id,
-      service_name,
-      customer_name: customer_name.trim(),
+      service_name: realServiceName,
+      customer_name: customerNameClean,
       customer_phone: phoneNorm,
-      customer_email: customer_email?.trim() || undefined,
+      customer_email: customerEmailClean || undefined,
       scheduled_at,
-      notes,
+      notes: notesClean || undefined,
       status: 'agendado',
-      price,
+      price: realPrice,
       source: 'online',
       confirm_token,
       review_token,
