@@ -330,9 +330,14 @@ ensureSameCompany(caller, target);
 - `pages/PublicBooking.jsx` removeu import de `@/lib/tokens` e geração local — payload mais enxuto.
 
 **M10 — Sanitização e CSV injection**
-- `_sanitizeText` no backend (createPublicAppointment + createBookingPaymentIntent) agora faz: trim, strip HTML tags (`<...>`), strip control chars, colapsa whitespace exagerado.
+- `_sanitizeText` no backend agora cobre os 3 entry points públicos que escrevem `Customer.name`:
+  - `createPublicAppointment` (booking público gratuito/plano).
+  - `createBookingPaymentIntent` (booking público Pix/cartão).
+  - `customerAuth` action `signup` (auto-cadastro do cliente final na área `/cliente/:slug`) — gap descoberto e fechado em 2026-05-11. Antes, um cliente podia se cadastrar com `<script>` no nome e contaminar CSV/e-mails/WhatsApp.
+- Sanitização: trim, strip HTML tags (`<...>`), strip control chars, colapsa whitespace exagerado, limita a 100 chars no `name`. Vazio após sanitize → 400.
 - Novo `lib/csvSafe.js` com `csvCell` + `csvLine` + `buildCsv`: bloqueia CSV injection (`=`, `+`, `-`, `@`, `\t`, `\r` no início). Padrão OWASP.
 - `FinancialExport` migrado para usar `csvCell`. Próximos exports (auditoria, comissões) podem adotar incrementalmente.
+- Smoke test: `signup` com `name="<script>alert(1)</script>"` → grava `"alert(1)"`.
 
 ### Salto arquitetural — BFF (Backend-for-Frontend) ⏳ em execução
 
