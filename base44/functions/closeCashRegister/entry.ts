@@ -96,20 +96,33 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'ALREADY_CLOSED' }, { status: 400 });
     }
 
-    // Busca todos os lançamentos da empresa criados após a abertura do caixa.
-    // Em multi-unidade, filtra também pela unidade do caixa (entries sem unit_id são considerados legados/compartilhados).
-    const all = await base44.asServiceRole.entities.FinancialEntry.filter({ company_id: reg.company_id }, '-created_date', 1000);
+    // Busca lançamentos: prefere cash_register_id (Fase 1+). Fallback temporal para legados.
+    const all = await base44.asServiceRole.entities.FinancialEntry.filter({ company_id: reg.company_id }, '-created_date', 2000);
     const since = new Date(reg.opened_at);
     const entries = all.filter(e => {
+      if (e.cash_register_id) return e.cash_register_id === register_id;
       const matchTime = new Date(e.created_date || e.date) >= since;
       if (!matchTime) return false;
-      if (!reg.unit_id) return true; // caixa legado sem unit_id => pega tudo
+      if (!reg.unit_id) return true;
       return !e.unit_id || e.unit_id === reg.unit_id;
     });
 
-    const totalIn = entries.filter(e => e.type === 'entrada').reduce((s, e) => s + (e.amount || 0), 0);
-    const totalOut = entries.filter(e => e.type === 'saida').reduce((s, e) => s + (e.amount || 0), 0);
-    const expected = +((reg.initial_amount || 0) + totalIn - totalOut).toFixed(2);
+    // Suporta entry_kind (sangria/suprimento) além do legado type.
+    const kindOf = (e) => e.entry_kind || (e.type === 'saida' ? 'saida' : 'entrada');
+    let totalIn = 0, totalOut = 0, totalSangria = 0, totalSuprimento = 0;
+    const payment_breakdown = {};
+    for (const e of entries) {
+      const k = kindOf(e);
+      const amt = Number(e.amount) || 0;
+      if (k === 'entrada')         totalIn         += amt;
+      else if (k === 'saida')      totalOut        += amt;
+      else if (k === 'sangria')    totalSangria    += amt;
+      else if (k === 'suprimento') totalSuprimento += amt;
+      if (k === 'entrada' && e.payment_method) {
+        payment_breakdown[e.payment_method] = +(((payment_breakdown[e.payment_method] || 0) + amt).toFixed(2));
+      }
+    }
+    const expected = +((reg.initial_amount || 0) + totalIn + totalSuprimento - totalOut - totalSangria).toFixed(2);
     const final = +Number(final_amount).toFixed(2);
     const difference = +(final - expected).toFixed(2);
 
@@ -118,6 +131,11 @@ Deno.serve(async (req) => {
       final_amount: final,
       expected_amount: expected,
       difference,
+      total_in: +totalIn.toFixed(2),
+      total_out: +totalOut.toFixed(2),
+      total_sangria: +totalSangria.toFixed(2),
+      total_suprimento: +totalSuprimento.toFixed(2),
+      payment_breakdown,
       closed_by: user.email,
       notes: [reg.notes, notes].filter(Boolean).join(' · '),
       status: 'fechado',
@@ -140,7 +158,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('[closeCashRegister] ok', { user: user.email, company_id: reg.company_id, register_id, expected, final, difference });
-    return Response.json({ success: true, register: updated, totals: { totalIn, totalOut, expected, final, difference } });
+    return Response.json({ success: true, register: updated, totals: { totalIn, totalOut, totalSangria, totalSuprimento, expected, final, difference, payment_breakdown } });
   } catch (error) {
     const az = authzErrorResponse(error);
     if (az) {

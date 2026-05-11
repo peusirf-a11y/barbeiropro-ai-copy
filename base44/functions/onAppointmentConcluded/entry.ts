@@ -62,10 +62,36 @@ Deno.serve(async (req) => {
         if (existing && existing.length > 0) {
           result.financial = { skipped: 'already_exists', id: existing[0].id };
         } else {
+          // Amarra ao caixa aberto da unidade (Fase 1). Se não houver caixa aberto, segue sem cash_register_id.
+          let cashRegisterId;
+          try {
+            const openCashList = await sdk.entities.CashRegister.filter(
+              { company_id: companyId, status: 'aberto' }, '-opened_at', 10
+            );
+            const matched = openCashList?.find(r =>
+              !r.unit_id || !appt.unit_id ? true : r.unit_id === appt.unit_id
+            );
+            cashRegisterId = matched?.id;
+          } catch (e) {
+            console.warn('[onAppointmentConcluded] open cash lookup failed:', e.message);
+          }
+
+          // payment_method derivado do appointment quando possível (pix/card → carteira correspondente).
+          let paymentMethod;
+          if (appt.payment_method === 'pix') paymentMethod = 'pix';
+          else if (appt.payment_method === 'card') paymentMethod = 'cartao_credito';
+          else if (appt.payment_method === 'subscription') paymentMethod = undefined; // não entra no caixa em dinheiro
+          // 'avulso' / não informado → null (frontend pode editar depois)
+
           const entry = await sdk.entities.FinancialEntry.create({
             company_id: companyId,
             unit_id: appt.unit_id || undefined,
+            cash_register_id: cashRegisterId,
+            professional_id: appt.professional_id || undefined,
             type: 'entrada',
+            entry_kind: 'entrada',
+            origin: 'agendamento',
+            payment_method: paymentMethod,
             category: 'Atendimento',
             description: `${appt.service_name || 'Serviço'} — ${appt.customer_name || 'Cliente'}`,
             amount: price,
@@ -73,7 +99,7 @@ Deno.serve(async (req) => {
             status: 'confirmado',
             reference_appointment_id: appt.id,
           });
-          result.financial = { created: true, id: entry.id, amount: price };
+          result.financial = { created: true, id: entry.id, amount: price, cash_register_id: cashRegisterId || null };
         }
       } else {
         result.financial = { skipped: 'no_price' };

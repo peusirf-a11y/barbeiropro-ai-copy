@@ -5,6 +5,10 @@
     "company_id": {
       "type": "string"
     },
+    "unit_id": {
+      "type": "string",
+      "description": "Unidade dona deste caixa. Caixas legados sem unit_id continuam compat\u00edveis."
+    },
     "opened_at": {
       "type": "string",
       "format": "date-time"
@@ -22,11 +26,31 @@
     },
     "expected_amount": {
       "type": "number",
-      "description": "Saldo esperado calculado pelo sistema (inicial + entradas - sa\u00eddas)"
+      "description": "Saldo esperado calculado pelo sistema (inicial + entradas - sa\u00eddas - sangrias + suprimentos)"
     },
     "difference": {
       "type": "number",
       "description": "Diferen\u00e7a entre final_amount e expected_amount (sobra/falta)"
+    },
+    "total_in": {
+      "type": "number",
+      "description": "Snapshot: total de entradas no momento do fechamento."
+    },
+    "total_out": {
+      "type": "number",
+      "description": "Snapshot: total de sa\u00eddas no momento do fechamento."
+    },
+    "total_sangria": {
+      "type": "number",
+      "description": "Snapshot: total de sangrias (retirada de dinheiro) no fechamento."
+    },
+    "total_suprimento": {
+      "type": "number",
+      "description": "Snapshot: total de suprimentos (refor\u00e7o de caixa) no fechamento."
+    },
+    "payment_breakdown": {
+      "type": "object",
+      "description": "Snapshot do total por forma de pagamento no fechamento. Ex: { dinheiro: 350, pix: 220, cartao_credito: 100 }"
     },
     "status": {
       "type": "string",
@@ -44,6 +68,10 @@
     },
     "notes": {
       "type": "string"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Espa\u00e7o aberto para fases futuras (TEF, concilia\u00e7\u00e3o, etc.)"
     }
   },
   "required": [

@@ -59,7 +59,7 @@ import AppConfiguracoes from './pages/app/AppConfiguracoes';
 import AppCRM from './pages/app/AppCRM';
 import AppAssinatura from './pages/app/AppAssinatura';
 import AppBloqueios from './pages/app/AppBloqueios';
-import AppCaixa from './pages/app/AppCaixa';
+import AppCaixa from './pages/app/AppCaixa.jsx';
 import AppCombos from './pages/app/AppCombos';
 import AppPlanos from './pages/app/AppPlanos';
 import AppComissoes from './pages/app/AppComissoes';
