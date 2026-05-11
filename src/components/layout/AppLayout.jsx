@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat, ChevronLeft } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import BrandMark from '@/components/BrandMark';
@@ -87,15 +87,39 @@ export default function AppLayout({ children }) {
   const { company } = useCompany();
   const showPastDue = isPastDueLimited(company);
 
-  // Auto-trigger do backfill: roda 1x quando o owner abre o app pós-deploy.
-  // O backend é idempotente (Company.units_backfilled_at).
+  // A5 — Auto-trigger do backfill com lock contra loop/disparos paralelos.
+  //
+  // Por que precisa de lock:
+  //  - O useEffect roda em cada re-render que mude as deps. Sob StrictMode,
+  //    re-renders rápidos por outras causas, ou falha silenciosa do backend,
+  //    podiam disparar várias chamadas simultâneas.
+  //  - Backend é idempotente, mas chamadas paralelas geram:
+  //      - desperdício de credits/requests
+  //      - log poluído ("Matriz já existe" warns)
+  //      - mascaramento de erros reais (which call failed?)
+  //
+  // Lock strategy:
+  //  - `backfillLock.current.inFlight`: bloqueia disparos enquanto uma chamada
+  //    está em voo (mesmo componente, mesma instância).
+  //  - `backfillLock.current.attempted`: marca que já tentamos nesta sessão.
+  //    Se falhar, NÃO retry automático — evita loop. Owner pode reload p/ retry.
+  const backfillLock = useRef({ inFlight: false, attempted: false });
+
   useEffect(() => {
     if (!company?.id) return;
     if (company.units_backfilled_at) return;
-    if (company.owner_email && teamRole?.role && teamRole.role !== 'admin') return; // só owner/admin dispara
-    base44.functions.invoke('backfillUnits', {}).catch(err => {
-      console.warn('[AppLayout] backfillUnits falhou (pode ser ignorado):', err?.message);
-    });
+    if (company.owner_email && teamRole?.role && teamRole.role !== 'admin') return;
+    if (backfillLock.current.inFlight || backfillLock.current.attempted) return;
+
+    backfillLock.current.inFlight = true;
+    backfillLock.current.attempted = true;
+    base44.functions.invoke('backfillUnits', {})
+      .catch(err => {
+        console.warn('[AppLayout] backfillUnits falhou (sem retry auto):', err?.message);
+      })
+      .finally(() => {
+        backfillLock.current.inFlight = false;
+      });
   }, [company?.id, company?.units_backfilled_at, teamRole?.role]);
 
   // Fechar drawer ao trocar de rota

@@ -36,6 +36,18 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'already_done', units });
     }
 
+    // A5 — Defesa server-side contra disparos paralelos (2 tabs, retry rápido).
+    // Se já existe Unit para esta company, outro processo paralelo passou pelo
+    // create. Marcamos a flag e devolvemos as units existentes em vez de criar duplicado.
+    const existingUnits = await base44.asServiceRole.entities.Unit.filter({ company_id: company.id });
+    if (existingUnits.length > 0) {
+      console.warn(`[backfillUnits] units já existem para company ${company.id} sem flag — corrigindo`);
+      await base44.asServiceRole.entities.Company.update(company.id, {
+        units_backfilled_at: new Date().toISOString(),
+      });
+      return Response.json({ status: 'recovered', units: existingUnits });
+    }
+
     // Cria a Matriz herdando dados da Company
     const matriz = await base44.asServiceRole.entities.Unit.create({
       company_id: company.id,

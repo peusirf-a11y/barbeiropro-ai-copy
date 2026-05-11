@@ -283,9 +283,14 @@ ensureSameCompany(caller, target);
 - A4: `PublicBooking` janela `scheduled_at` (today → +14d) + `status != cancelado` no backend
 - Bonus: novo `lib/dateRangeQueries.js` centraliza o padrão (anti-pattern killer)
 
-**Sprint C — Hardening estrutural** ⏳
-- A2: `unitFilter` strict mode pós-backfill
-- A5: Loop do `backfillUnits` (useRef + mutation lock)
+**Sprint C — Hardening estrutural** ✅ (2026-05-11)
+- A2: `unitFilter` ganhou `STRICT_UNIT_ISOLATION` flag (default OFF) + telemetria `warnOnce` por entidade/id. Strict mode ativável via `localStorage.bt:strict_unit=1` ou `setStrictUnitIsolation(true)` no boot.
+- A5: `AppLayout` agora usa `useRef` lock (`inFlight` + `attempted`) — no retry automático em caso de falha, eliminando loop. `backfillUnits` no servidor ganhou recovery defensivo (se units existem mas flag está vazia, marca flag e retorna).
+
+### Próximo salto arquitetural — BFF (Backend-for-Frontend) ⏳
+- Frontend → backend functions controladas → entities (em vez de frontend → entities direto)
+- Reduz superfície de leak, centraliza auditoria, prepara versionamento
+- Primeira leva candidata: `Customer.list/filter`, `Appointment.list/filter` (queries pesadas e tenant-sensitive)
 
 ---
 
