@@ -404,16 +404,16 @@ ensureSameCompany(caller, target);
 - Smoke test: INVALID_ACTION 400, commission_ids_required 400.
 - **Fora desta fase**: estorno de comissão já existe em `reverseCommission` (função própria, fluxo diferente, mantida).
 
-**Fase 6 — Commission writes** ✅ (2026-05-11)
-- Criada `functions/mutateCommission` (BFF) com **action semântica** `mark_paid` (não generic CRUD). Justificativa: Commission tem `amount`/`commission_value` calculados em `onAppointmentConcluded` a partir do Professional — frontend NÃO deve poder editar campos arbitrários. A única mutação legítima do painel é "marcar como pago" em lote.
-- Bloqueios server-side:
-  - super-admin → 403 USE_MASTER_PANEL.
-  - barbeiro / recepcao → 403 FORBIDDEN_ROLE (espelha `canPayCommission` em `lib/rolePermissions.js` — só admin/financeiro pagam).
-  - Cross-tenant ou já paga → skip individual (não derruba batch). UX: "marquei 4 de 5; 1 já estava paga".
-  - Limite 200 ids por batch (evita pagamento acidental em massa + protege credits).
-  - Audit log único por batch (não N entries — evita poluição quando paga 50+ comissões de um pro).
-- `AppComissoes` migrado: `payMutation` substitui `Promise.all(N updates)` por 1 invocação BFF. Erros mapeados para mensagens humanas.
-- Smoke test: INVALID_ACTION → 400, commission_ids vazio → 400.
+**Fase 7 — FinancialEntry create + delete completos** ✅ (2026-05-11)
+- `mutateFinancialEntry` ganhou action `create` com mesma blindagem das outras actions: `company_id`/`unit_id` derivados do caller, `origin` forçado para `'manual'` (origens `agendamento`/`comissao` continuam exclusivas dos handlers automáticos `onAppointmentConcluded` e `registerCommission`), allow-list de `entry_kind` e `payment_method`, validação de tenant do `cash_register_id`.
+- Capability granular por kind: `entrada`/`saida` → `create_entry`; `sangria` → `sangria`; `suprimento` → `suprimento`. ROLE_DEFAULTS estendido para refletir o mesmo padrão de `lib/cashPermissions.js` (recepcao tem create_entry mas não sangria/suprimento; barbeiro nada).
+- `REGISTER_NOT_OPEN` (400) quando tentam lançar em caixa já fechado/fechando — fecha o vetor de "lançamento órfão sem snapshot" mesmo se o frontend não atualizar a UI.
+- super-admin → 403 USE_MASTER_PANEL (mesma decisão das outras fases — escritas via master usam impersonação dedicada).
+- **Migrações:**
+  - `AppCaixa`: `entryCreateMutation` substitui `FinancialEntry.create` direto. Erros mapeados (FORBIDDEN_CAP, REGISTER_NOT_OPEN, justification_required, invalid_amount).
+  - `AppFinanceiro`: tanto `createMutation` quanto `deleteMutation` passam pelo BFF (delete usa soft-delete com reason genérica). Última tela usando `FinancialEntry.create`/`.delete` direto migrada.
+- Smoke tests: data ausente → 400 data_required; amount negativo → 400 invalid_amount.
+- **Resultado**: `FinancialEntry` writes 100% via BFF no frontend. Caminhos de criação automática (`onAppointmentConcluded`, `registerCommission`) seguem inalterados (já são server-side com `origin` lockado).
 
 **Fase 5 — Customer reads restantes + Subscription writes** ✅ (2026-05-11)
 

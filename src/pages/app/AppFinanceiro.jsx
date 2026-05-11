@@ -68,14 +68,46 @@ export default function AppFinanceiro() {
     enabled: !!companyId,
   });
 
+  // BFF Fase 7: create e delete via mutateFinancialEntry.
+  // Servidor decide company_id e força origin='manual'. Delete usa soft-delete
+  // (mantém audit trail). Reason genérica aqui — operador só clica "x".
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.FinancialEntry.create({ ...data, company_id: companyId, unit_id: activeUnitId || undefined, amount: +data.amount }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['financial'] }); setShowForm(false); setForm({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' }); },
+    mutationFn: async (data) => {
+      const res = await base44.functions.invoke('mutateFinancialEntry', {
+        action: 'create',
+        data: {
+          entry_kind: data.type === 'saida' ? 'saida' : 'entrada',
+          description: data.description,
+          category: data.category,
+          amount: +data.amount,
+          date: data.date,
+          status: data.status,
+          unit_id: activeUnitId || undefined,
+        },
+      });
+      if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao salvar');
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['financial'] });
+      setShowForm(false);
+      setForm({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' });
+    },
+    onError: (err) => alert(err.message),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.FinancialEntry.delete(id),
+    mutationFn: async (id) => {
+      const res = await base44.functions.invoke('mutateFinancialEntry', {
+        action: 'delete',
+        entry_id: id,
+        reason: 'Excluído pelo operador (Financeiro)',
+      });
+      if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao excluir');
+      return res.data;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financial'] }),
+    onError: (err) => alert(err.message),
   });
 
   // A3: período já vem filtrado do backend — só falta filtrar por unidade ativa.

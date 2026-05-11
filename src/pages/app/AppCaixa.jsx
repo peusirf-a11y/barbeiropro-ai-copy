@@ -166,33 +166,43 @@ export default function AppCaixa() {
     onError: (err) => alert(err.message || 'Erro ao fechar caixa'),
   });
 
+  // BFF Fase 7: criação via mutateFinancialEntry action='create'.
+  // Servidor decide company_id, força origin='manual', valida tenant do cash_register_id,
+  // bloqueia campos sensíveis (reference_appointment_id, is_locked) por allow-list.
   const entryCreateMutation = useMutation({
-    mutationFn: (data) => {
-      const kindMeta = ENTRY_KINDS.find(k => k.value === data.entry_kind) || ENTRY_KINDS[0];
+    mutationFn: async (data) => {
       const supportsPayment = data.entry_kind === 'entrada' || data.entry_kind === 'saida';
-      return base44.entities.FinancialEntry.create({
-        company_id: companyId,
-        unit_id: activeUnitId || undefined,
-        cash_register_id: openCash?.id,
-        type: kindMeta.contabilType,
-        entry_kind: data.entry_kind,
-        origin: 'manual',
-        payment_method: supportsPayment ? data.payment_method : undefined,
-        description: data.description,
-        category: data.entry_kind === 'sangria' ? 'Sangria'
-                : data.entry_kind === 'suprimento' ? 'Suprimento'
-                : (kindMeta.contabilType === 'entrada' ? 'Atendimento' : 'Outros'),
-        amount: +data.amount,
-        justification: data.justification || undefined,
-        date: format(new Date(), 'yyyy-MM-dd'),
-        status: 'confirmado',
+      const res = await base44.functions.invoke('mutateFinancialEntry', {
+        action: 'create',
+        data: {
+          entry_kind: data.entry_kind,
+          payment_method: supportsPayment ? data.payment_method : undefined,
+          description: data.description,
+          amount: +data.amount,
+          justification: data.justification || undefined,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          unit_id: activeUnitId || undefined,
+          cash_register_id: openCash?.id,
+        },
       });
+      if (!res?.data?.success) {
+        const code = res?.data?.error || 'UNKNOWN';
+        const map = {
+          FORBIDDEN_CAP: 'Você não tem permissão para este lançamento.',
+          REGISTER_NOT_OPEN: 'Caixa não está mais aberto.',
+          justification_required: 'Justificativa obrigatória.',
+          invalid_amount: 'Valor inválido.',
+        };
+        throw new Error(map[code] || 'Não foi possível salvar.');
+      }
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cash-entries', companyId, openCash?.id] });
       setShowEntry(false);
       setEntryForm(emptyEntryForm);
     },
+    onError: (err) => alert(err.message || 'Erro ao salvar lançamento'),
   });
 
   const entryEditMutation = useMutation({
