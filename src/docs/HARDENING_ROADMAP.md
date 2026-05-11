@@ -287,10 +287,24 @@ ensureSameCompany(caller, target);
 - A2: `unitFilter` ganhou `STRICT_UNIT_ISOLATION` flag (default OFF) + telemetria `warnOnce` por entidade/id. Strict mode ativável via `localStorage.bt:strict_unit=1` ou `setStrictUnitIsolation(true)` no boot.
 - A5: `AppLayout` agora usa `useRef` lock (`inFlight` + `attempted`) — no retry automático em caso de falha, eliminando loop. `backfillUnits` no servidor ganhou recovery defensivo (se units existem mas flag está vazia, marca flag e retorna).
 
-### Próximo salto arquitetural — BFF (Backend-for-Frontend) ⏳
-- Frontend → backend functions controladas → entities (em vez de frontend → entities direto)
-- Reduz superfície de leak, centraliza auditoria, prepara versionamento
-- Primeira leva candidata: `Customer.list/filter`, `Appointment.list/filter` (queries pesadas e tenant-sensitive)
+### Salto arquitetural — BFF (Backend-for-Frontend) ⏳ em execução
+
+**Princípio**: Frontend → backend functions controladas → entities (em vez de frontend → entities direto). Reduz superfície de leak, centraliza auditoria, prepara versionamento.
+
+**Fase 1 — Customer (read path)** ✅ (2026-05-11)
+- Criada `functions/listCustomers`: resolve caller, aplica `company_id` + unit scoping no servidor (espelha `shouldScopeCustomersByUnit`). Aceita filtros opcionais (`lifecycle_status`, `status`, `limit`).
+- `pages/app/AppClientes` migrado — não toca mais em `Customer.filter`. Mutations (create/update/delete) continuam diretas por enquanto (próxima fase).
+- Smoke test: 200 OK, retorna `{ customers, total, scope }`.
+
+**Fase 2 — Customer (write path)** ⏳
+- `createCustomer`, `updateCustomer`, `deleteCustomer` BFF com `ensureSameCompany` + auto-stamp `unit_id` quando aplicável.
+- Remove necessidade de `scopeByUnit` no frontend.
+
+**Fase 3 — Appointment (read + write)** ⏳
+- Query mais pesada do app + maior superfície de leak. Aplicar mesmo padrão.
+
+**Fase 4 — Outras listas tenant-sensitive** ⏳
+- `CustomerSubscription`, `WhatsAppMessage`, `Commission` listadas no app passam pelo BFF.
 
 ---
 

@@ -39,15 +39,21 @@ export default function AppClientes() {
   const [offeringTo, setOfferingTo] = useState(null); // cliente para qual estamos oferecendo plano
   const queryClient = useQueryClient();
 
-  const { data: customersRaw = [], isLoading } = useQuery({
+  // BFF: lista vem do servidor com tenant + unit scoping aplicados.
+  // O frontend não toca mais em `Customer.filter` — reduz superfície de leak
+  // e remove a duplicação de regra `shouldScopeCustomersByUnit` no cliente.
+  const { data: customersData, isLoading } = useQuery({
     queryKey: ['customers', companyId, activeUnitId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: companyId }, '-created_date', 500),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listCustomers', {
+        active_unit_id: activeUnitId,
+        limit: 500,
+      });
+      return res?.data || { customers: [] };
+    },
     enabled: !!companyId,
   });
-  // Em modo "clientes por unidade", filtra pela unidade ativa (registros sem unit_id são considerados legados/compartilhados e continuam visíveis)
-  const customers = scopeByUnit
-    ? customersRaw.filter(c => !c.unit_id || c.unit_id === activeUnitId)
-    : customersRaw;
+  const customers = customersData?.customers || [];
 
   const { data: appointments = [] } = useQuery({
     queryKey: ['appointments', companyId, activeUnitId],
