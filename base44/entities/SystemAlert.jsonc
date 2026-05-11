@@ -10,6 +10,7 @@
         "subscription_canceled",
         "critical_error",
         "abnormal_usage",
+        "stripe_env_mismatch",
         "info"
       ]
     },

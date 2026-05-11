@@ -11,6 +11,17 @@ const severityMeta = {
   info: { icon: Info, color: 'text-blue-600 bg-blue-50 border-blue-200' },
 };
 
+// Labels amigáveis por tipo — evita expor o enum cru na UI.
+const typeLabels = {
+  payment_failed: 'Pagamento falhou',
+  company_blocked: 'Empresa bloqueada',
+  subscription_canceled: 'Assinatura cancelada',
+  critical_error: 'Erro crítico',
+  abnormal_usage: 'Uso anormal',
+  stripe_env_mismatch: '⚠️ Stripe ambiente errado',
+  info: 'Informação',
+};
+
 export default function SystemAlertsList() {
   const qc = useQueryClient();
   const { data: alerts = [], isLoading } = useQuery({
@@ -79,7 +90,7 @@ export default function SystemAlertsList() {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-[#111827]">{a.message}</div>
                 <div className="text-[11px] text-[#6B7280] mt-0.5 font-medium">
-                  {a.type} · {format(new Date(a.created_date), "d/MM 'às' HH:mm", { locale: ptBR })}
+                  {typeLabels[a.type] || a.type} · {format(new Date(a.created_date), "d/MM 'às' HH:mm", { locale: ptBR })}
                 </div>
               </div>
               {!a.read && (

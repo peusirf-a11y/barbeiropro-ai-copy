@@ -59,8 +59,42 @@ Deno.serve(async (req) => {
     }
 
     // Rejeita eventos do ambiente errado (livemode mismatch).
+    //
+    // ⚠️ P0.4 HARDENING — antes esse caminho era SILENCIOSO (apenas console.warn).
+    // Cenário real: se STRIPE_ENVIRONMENT for configurado errado em produção,
+    // pagamentos reais são "received: true" mas nunca processados — dinheiro recebido,
+    // Appointment preso em aguardando_pagamento, cliente lesado.
+    //
+    // Agora: logamos como ERROR + criamos SystemAlert crítico para o Master Dashboard.
+    // Continuamos retornando 200 (NÃO 4xx/5xx) por uma razão: Stripe vai fazer retry
+    // exponencial em qualquer resposta != 2xx. Em mismatch sistêmico, isso causaria
+    // retry storm — o webhook seguiria errado por dias. Melhor 200 + alerta visível.
     if (event.livemode !== isLive) {
-      console.warn(`[stripeWebhook] env mismatch: event.livemode=${event.livemode}, app=${isLive ? 'live' : 'test'} — ignored:`, event.type, event.id);
+      console.error('[stripeWebhook] CRITICAL env mismatch — IGNORING event but ALERTING', {
+        event_id: event.id,
+        event_type: event.type,
+        event_livemode: event.livemode,
+        app_environment: isLive ? 'live' : 'test',
+        account: event.account || null,
+      });
+      // Best-effort: criar alerta. Falha aqui NÃO derruba o webhook (200 sempre).
+      try {
+        await base44.asServiceRole.entities.SystemAlert.create({
+          type: 'stripe_env_mismatch',
+          severity: 'critical',
+          message: `Webhook Stripe em ambiente errado: evento ${event.type} (livemode=${event.livemode}) recebido enquanto app está em ${isLive ? 'live' : 'test'}. Pagamento NÃO foi processado.`,
+          metadata: {
+            event_id: event.id,
+            event_type: event.type,
+            event_livemode: event.livemode,
+            app_environment: isLive ? 'live' : 'test',
+            stripe_account: event.account || null,
+            received_at: new Date().toISOString(),
+          },
+        });
+      } catch (alertErr) {
+        console.error('[stripeWebhook] failed to create env_mismatch SystemAlert:', alertErr.message);
+      }
       return Response.json({ received: true, ignored: 'environment_mismatch' });
     }
 
