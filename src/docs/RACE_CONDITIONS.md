@@ -138,12 +138,13 @@ Stripe envia evento de produção para webhook configurado em test mode (ou vice
 ### Problema
 **Silencioso**. Se `STRIPE_ENVIRONMENT` estiver mal configurado em produção, pagamentos reais somem.
 
-### Mitigação (P0.4)
-- Loga `console.error`.
-- Cria `SystemAlert` severity=critical.
-- Dashboard master tem contador.
+### Mitigação (P0.4) ✅ IMPLEMENTADO
+- `console.error` com event_id, type, livemode, app_environment.
+- Cria `SystemAlert` severity=critical com tipo `stripe_env_mismatch`.
+- Banner vermelho no MasterDashboard (`StripeEnvMismatchBanner`) conta alertas das últimas 24h, refresh a cada 60s.
+- Webhook retorna 200 (NÃO 4xx) para evitar retry storm do Stripe.
 
-### Status: ⏳ em P0.4.
+### Status: ✅ resolvido em P0.4 (commit 2026-05-11)
 
 ---
 
@@ -197,4 +198,3 @@ const price = payload.price;
 // ✅ CERTO — busca do banco
 const service = await sdk.entities.Service.get(payload.service_id);
 const price = service.price;
-`
