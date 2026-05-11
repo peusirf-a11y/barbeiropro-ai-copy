@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Plus, X, Filter } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SkeletonPage } from '@/components/Skeletons';
 import AppPageHeader from '@/components/app/AppPageHeader';
@@ -17,6 +17,7 @@ import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 import FilterSelect from '@/components/ui/filter-select';
 import StandardModal from '@/components/ui/standard-modal';
 import MobileSelect from '@/components/ui/mobile-select';
+import { periodToRange, dateRangeFilter } from '@/lib/dateRangeQueries';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
@@ -29,16 +30,33 @@ export default function AppFinanceiro() {
   const [form, setForm] = useState({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' });
   const queryClient = useQueryClient();
 
+  // A3: range é calculado no FRONTEND e passado como filtro no BACKEND.
+  // Antes: `filter({company_id}, '-date', 300)` truncava silenciosamente em meses
+  // com >300 lançamentos. Agora pegamos TUDO do período (limite alto: 5000).
+  // Período "all" mantém comportamento antigo (sem range) — só para visão histórica.
+  const range = periodToRange(period);
+  const rangeFilter = dateRangeFilter('date', range, 'date');
+
   const { data: financial = [], isLoading } = useQuery({
-    queryKey: ['financial', companyId, activeUnitId],
-    queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }, '-date', 300),
+    // queryKey inclui period: ao trocar período, refetcha com o range correto.
+    queryKey: ['financial', companyId, activeUnitId, period],
+    queryFn: () => base44.entities.FinancialEntry.filter(
+      { company_id: companyId, ...rangeFilter },
+      '-date',
+      5000,
+    ),
     enabled: !!companyId,
   });
 
-  // Also pull from completed appointments to auto-calculate revenue
+  // Receita de atendimentos concluídos no período (filtro de data via completed_at).
+  const apptRangeFilter = dateRangeFilter('completed_at', range, 'datetime');
   const { data: appointments = [] } = useQuery({
-    queryKey: ['appointments', companyId, activeUnitId],
-    queryFn: () => base44.entities.Appointment.filter({ company_id: companyId, status: 'concluido' }),
+    queryKey: ['appointments-concluidos', companyId, activeUnitId, period],
+    queryFn: () => base44.entities.Appointment.filter(
+      { company_id: companyId, status: 'concluido', ...apptRangeFilter },
+      '-completed_at',
+      5000,
+    ),
     enabled: !!companyId,
   });
 
@@ -52,27 +70,19 @@ export default function AppFinanceiro() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financial'] }),
   });
 
-  const now = new Date();
-  const filterFn = (entry) => {
-    const d = new Date(entry.date);
-    if (period === 'this_month') return d >= startOfMonth(now) && d <= endOfMonth(now);
-    if (period === 'last_month') { const lm = subMonths(now, 1); return d >= startOfMonth(lm) && d <= endOfMonth(lm); }
-    return true;
-  };
-
-  // Filtra por unidade ativa antes de aplicar período
+  // A3: período já vem filtrado do backend — só falta filtrar por unidade ativa.
   const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
   const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
 
-  const filtered = financialScoped.filter(filterFn);
+  const filtered = financialScoped;
   const entradas = filtered.filter(f => f.type === 'entrada');
   const saidas = filtered.filter(f => f.type === 'saida');
   const totalIn = entradas.reduce((s, f) => s + (f.amount || 0), 0);
   const totalOut = saidas.reduce((s, f) => s + (f.amount || 0), 0);
   const saldo = totalIn - totalOut;
 
-  // Appointment revenue (not yet registered as financial entry)
-  const apptRevenue = apptsScoped.filter(filterFn.bind(null)).reduce((s, a) => s + (a.price || 0), 0);
+  // Receita de atendimentos concluídos no período (já filtrado por completed_at no backend)
+  const apptRevenue = apptsScoped.reduce((s, a) => s + (a.price || 0), 0);
 
   if (loadingCompany || isLoading) {
     return <AppLayout><SkeletonPage /></AppLayout>;

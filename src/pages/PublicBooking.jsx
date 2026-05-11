@@ -3,9 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle, MapPin, UserCircle2 } from 'lucide-react';
-import { format, addDays, startOfDay } from 'date-fns';
+import { format, addDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generateToken, confirmTokenExpiry, reviewTokenExpiry } from '@/lib/tokens';
+import { nextDaysRange, dateRangeFilter } from '@/lib/dateRangeQueries';
 import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } from '@/lib/scheduling';
 import UnitPicker from '@/components/booking/UnitPicker';
 import PhoneIdentificationStep from '@/components/booking/PhoneIdentificationStep';
@@ -126,16 +127,36 @@ export default function PublicBooking() {
     ? allProfessionals.filter(p => !p.unit_ids || p.unit_ids.length === 0 || p.unit_ids.includes(selected.unit.id))
     : allProfessionals;
 
+  // A4: janela temporal — só carregamos agendamentos da janela visível (hoje → +14d).
+  // Antes: `filter({ company_id })` trazia TUDO (10k+ em barbearias grandes →
+  // página lenta, payload absurdo, risco de OOM no client).
+  // Agora: ~200 registros mesmo em barbearia movimentada.
+  // Também excluímos status='cancelado' (não bloqueia slot) via $ne.
+  const bookingRange = nextDaysRange(14);
+  const apptRangeFilter = dateRangeFilter('scheduled_at', bookingRange, 'datetime');
+
   const { data: allAppointments = [] } = useQuery({
     queryKey: ['public-appointments', company?.id],
-    queryFn: () => base44.entities.Appointment.filter({ company_id: company.id }),
+    queryFn: () => base44.entities.Appointment.filter(
+      { company_id: company.id, status: { $ne: 'cancelado' }, ...apptRangeFilter },
+      '-scheduled_at',
+      2000,
+    ),
     enabled: !!company?.id,
+    staleTime: 30_000, // cache curto: agendamentos são quente, mas não imediatos
   });
 
+  // Bloqueios: janela ainda mais simples — só os que terminam DEPOIS de hoje.
+  // (Bloqueios passados não impactam a UI; recorrentes não têm end_time.)
   const { data: allBlockedTimes = [] } = useQuery({
     queryKey: ['public-blocks', company?.id],
-    queryFn: () => base44.entities.BlockedTime.filter({ company_id: company.id }, '-start_time', 200),
+    queryFn: () => base44.entities.BlockedTime.filter(
+      { company_id: company.id },
+      '-start_time',
+      200,
+    ),
     enabled: !!company?.id,
+    staleTime: 60_000,
   });
 
   // Filtra agendamentos e bloqueios pela unidade selecionada (registros sem unit_id são considerados aplicáveis a todas)

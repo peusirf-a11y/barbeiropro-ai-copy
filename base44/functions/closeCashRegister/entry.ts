@@ -182,15 +182,41 @@ Deno.serve(async (req) => {
       }, { status: 409 });
     }
 
-    // Busca lançamentos: prefere cash_register_id (Fase 1+). Fallback temporal para legados.
-    // Importante (P0.3): só leitura ACONTECE depois do claim, garantindo que
+    // A7: query DIRETA por cash_register_id — caixa é entidade contábil,
+    // não pode depender de "últimos 2000" (truncamento silencioso).
+    //
+    // Estratégia:
+    //  1. Lançamentos com cash_register_id == register_id (caminho moderno).
+    //  2. Fallback temporal SÓ para lançamentos legados (sem cash_register_id):
+    //     filtramos por created_date >= opened_at no backend, não no client.
+    //
+    // Importante (P0.3): leitura SEMPRE depois do claim, garantindo que
     // novos lançamentos concluídos após esse ponto NÃO vão amarrar a este caixa
     // (onAppointmentConcluded filtra status='aberto').
-    const all = await base44.asServiceRole.entities.FinancialEntry.filter({ company_id: reg.company_id }, '-created_date', 2000);
+    const direct = await base44.asServiceRole.entities.FinancialEntry.filter(
+      { company_id: reg.company_id, cash_register_id: register_id },
+      '-created_date',
+      5000,
+    );
+
+    // Fallback para registros legados que ainda não tinham cash_register_id.
+    // Janela: opened_at → now (range determinístico, sem truncamento).
+    const legacy = await base44.asServiceRole.entities.FinancialEntry.filter(
+      {
+        company_id: reg.company_id,
+        cash_register_id: null,
+        created_date: { $gte: reg.opened_at },
+      },
+      '-created_date',
+      5000,
+    );
+
     const since = new Date(reg.opened_at);
-    const entries = all.filter(e => {
+    const entries = [...direct, ...legacy].filter(e => {
       if (e.deleted_at) return false;
-      if (e.cash_register_id) return e.cash_register_id === register_id;
+      // Direct path: já filtrou por register_id no backend, só remove deleted.
+      if (e.cash_register_id) return true;
+      // Legacy path: confirma janela temporal + unit (defesa em profundidade).
       const matchTime = new Date(e.created_date || e.date) >= since;
       if (!matchTime) return false;
       if (!reg.unit_id) return true;
