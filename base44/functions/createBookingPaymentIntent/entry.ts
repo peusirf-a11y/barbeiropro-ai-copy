@@ -18,6 +18,62 @@ import Stripe from 'npm:stripe@17.0.0';
 
 const PAYMENT_EXPIRY_MINUTES = 15;
 
+// ─── Slot Lock (P0.1) — inline porque Base44 não permite local imports em functions/ ─
+// Espelha lib/slotLock.js. Ver docs/RACE_CONDITIONS.md §1.
+const SLOT_TTL_DEFAULT = 90;
+function _slotTtl() {
+  const n = parseInt(Deno.env.get('SLOT_RESERVATION_TTL_SECONDS') || '', 10);
+  return Number.isFinite(n) && n > 0 ? n : SLOT_TTL_DEFAULT;
+}
+function _slotEnabled() {
+  const v = Deno.env.get('ENABLE_SLOT_LOCK');
+  if (!v) return true;
+  return String(v).toLowerCase() !== 'false';
+}
+function _truncMin(iso) {
+  const d = new Date(iso); d.setSeconds(0, 0); return d.toISOString();
+}
+function _slotKey(company_id, professional_id, scheduled_at) {
+  return `${company_id}:${professional_id}:${_truncMin(scheduled_at)}`;
+}
+async function acquireSlotLock(sdk, { company_id, unit_id, professional_id, scheduled_at, owner_phone, source }) {
+  if (!_slotEnabled()) return { success: true, reservation: null, skipped: true };
+  const slot_key = _slotKey(company_id, professional_id, scheduled_at);
+  const expires_at = new Date(Date.now() + _slotTtl() * 1000).toISOString();
+  const existing = await sdk.entities.SlotReservation.filter({ slot_key }, '-created_date', 20);
+  const nowISO = new Date().toISOString();
+  const alive = existing.filter(r => r.status === 'active' && r.expires_at > nowISO);
+  if (alive.length) {
+    const mine = alive.find(r => owner_phone && r.owner_phone === owner_phone);
+    if (mine) {
+      try { await sdk.entities.SlotReservation.update(mine.id, { expires_at }); } catch {}
+      return { success: true, reservation: { ...mine, expires_at }, reused: true };
+    }
+    console.warn('[slotLock] SLOT_TAKEN', { slot_key });
+    return { success: false, error: 'SLOT_TAKEN' };
+  }
+  const reservation = await sdk.entities.SlotReservation.create({
+    company_id, unit_id: unit_id || undefined, professional_id,
+    scheduled_at: _truncMin(scheduled_at), slot_key,
+    owner_phone: owner_phone || undefined, source: source || 'internal',
+    expires_at, status: 'active',
+  });
+  console.log('[slotLock] acquired', { reservation_id: reservation.id, slot_key });
+  return { success: true, reservation };
+}
+async function consumeSlotLock(sdk, reservation_id, appointment_id) {
+  if (!reservation_id) return;
+  try {
+    await sdk.entities.SlotReservation.update(reservation_id, {
+      status: 'consumed', appointment_id, consumed_at: new Date().toISOString(),
+    });
+  } catch (err) { console.warn('[slotLock] consume failed:', err.message); }
+}
+async function releaseSlotLock(sdk, reservation_id) {
+  if (!reservation_id) return;
+  try { await sdk.entities.SlotReservation.update(reservation_id, { status: 'released' }); } catch {}
+}
+
 // Resolve a chave secreta do Stripe baseado em STRIPE_ENVIRONMENT ('test' | 'live').
 // Default = 'test' por segurança. Valida o prefixo da chave para evitar mismatch.
 function getStripeSecret() {
@@ -110,7 +166,29 @@ Deno.serve(async (req) => {
 
     const scheduledAtISO = new Date(scheduled_at).toISOString();
 
-    // ─── LOCK do slot (regra crítica: bloquear se já tem reserva ativa) ─
+    // ─── LOCK ATÔMICO (P0.1) ────────────────────────────────────────────
+    // Primeira camada de defesa: SlotReservation com TTL curto.
+    // Reduz drasticamente a janela de race entre 2 clientes simultâneos.
+    // WHY: o filter+create antigo tinha ~300ms de race window.
+    const lockResult = await acquireSlotLock(sdk, {
+      company_id,
+      unit_id,
+      professional_id,
+      scheduled_at: scheduledAtISO,
+      owner_phone: phoneNorm,
+      source: payment_method === 'pix' ? 'public_booking_pix' : 'public_booking_card',
+    });
+    if (!lockResult.success) {
+      return Response.json({
+        error: 'slot_taken',
+        message: 'Este horário acabou de ser reservado por outra pessoa. Escolha outro.',
+      }, { status: 409 });
+    }
+    const slotReservation = lockResult.reservation;
+
+    // ─── Segunda camada de defesa: filter Appointment ──────────────────
+    // Mantida intencionalmente. Cobre o caso de Appointment já confirmado
+    // (não-pagamento) e race residual entre acquire e create.
     const sameSlot = await sdk.entities.Appointment.filter({
       company_id,
       professional_id,
@@ -135,6 +213,8 @@ Deno.serve(async (req) => {
       return true;
     });
     if (conflict) {
+      // Libera o lock que acabamos de adquirir, já que não vamos seguir.
+      await releaseSlotLock(sdk, slotReservation?.id);
       return Response.json({
         error: 'slot_taken',
         message: 'Este horário acabou de ser reservado por outra pessoa. Escolha outro.',
@@ -239,6 +319,8 @@ Deno.serve(async (req) => {
         status: 'cancelado',
         payment_status: 'failed',
       }).catch(() => {});
+      // Libera o lock também — outro cliente pode tentar este horário.
+      await releaseSlotLock(sdk, slotReservation?.id);
       return Response.json({ error: 'stripe_error', message: err.message }, { status: 500 });
     }
 
@@ -246,6 +328,11 @@ Deno.serve(async (req) => {
     await sdk.entities.Appointment.update(appointment.id, {
       payment_intent_id: paymentIntent.id,
     });
+
+    // ─── Consume slot lock (sucesso) ────────────────────────────────────
+    // Marca a reservation como consumed. Reservations consumed não bloqueiam
+    // novas reservas (mas o Appointment com status=aguardando_pagamento sim).
+    await consumeSlotLock(sdk, slotReservation?.id, appointment.id);
 
     // Para Pix, devolve o QR code já no primeiro request (next_action.pix_display_qr_code)
     let pixQrCode = null;

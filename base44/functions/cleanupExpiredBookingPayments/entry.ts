@@ -64,7 +64,38 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[cleanupExpiredBookingPayments] canceled ${canceledCount} expired bookings`);
-    return Response.json({ checked: pending.length, expired: expired.length, canceled: canceledCount });
+
+    // ─── P0.1 — Expire stale SlotReservations ────────────────────────────
+    // WHY: reservations órfãs (cliente abandonou checkout, crash entre acquire
+    // e consume) precisam ser marcadas expired para liberar o slot logicamente.
+    // Reservations expiradas (expires_at < now) já são ignoradas em acquire,
+    // mas atualizar o status mantém a tabela limpa para auditoria.
+    let slotsExpired = 0;
+    try {
+      const activeRes = await sdk.entities.SlotReservation.filter({ status: 'active' }, '-created_date', 300);
+      const staleRes = activeRes.filter(r => r.expires_at && r.expires_at < nowISO);
+      for (const r of staleRes) {
+        try {
+          await sdk.entities.SlotReservation.update(r.id, { status: 'expired' });
+          slotsExpired++;
+        } catch (err) {
+          console.warn('[cleanup] slot expire failed for', r.id, err.message);
+        }
+      }
+      if (staleRes.length > 0) {
+        console.log(`[cleanupExpiredBookingPayments] expired ${slotsExpired}/${staleRes.length} stale slot reservations`);
+      }
+    } catch (err) {
+      // Não derruba o cleanup principal se SlotReservation ainda não existir.
+      console.warn('[cleanup] SlotReservation sweep skipped:', err.message);
+    }
+
+    return Response.json({
+      checked: pending.length,
+      expired: expired.length,
+      canceled: canceledCount,
+      slots_expired: slotsExpired,
+    });
   } catch (error) {
     console.error('[cleanupExpiredBookingPayments] error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
