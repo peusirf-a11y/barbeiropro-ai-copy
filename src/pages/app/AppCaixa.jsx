@@ -13,7 +13,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useMemo } from 'react';
-import { Wallet, Unlock, TrendingUp, TrendingDown, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { Wallet, Unlock, TrendingUp, TrendingDown, ArrowDownToLine, ArrowUpFromLine, BarChart2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
@@ -273,7 +274,14 @@ export default function AppCaixa() {
           title="Caixa"
           subtitle="Abertura, fechamento e DRE operacional do dia"
           icon={Wallet}
-        />
+        >
+          <Link
+            to="/app/caixa/relatorios"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-black/10 text-sm font-semibold text-[#111827] hover:border-[#2563EB] hover:text-[#2563EB]"
+          >
+            <BarChart2 className="w-4 h-4" />Ver relatórios
+          </Link>
+        </AppPageHeader>
 
         {isAllUnits && (
           <AllUnitsNotice message="Histórico consolidado de caixas de todas as unidades. Para abrir/fechar um caixa, selecione uma unidade específica." />
