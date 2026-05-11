@@ -158,20 +158,20 @@ Deno.serve(async (req) => {
       result.review = { error: e.message };
     }
 
-    // ── 3) Recalcula lifecycle_status do cliente (CRM) ──
-    // Atualiza last_completed_at + total_appointments + lifecycle_status do cliente
-    // de forma idempotente. Se o appointment não tiver customer_id (atendimento sem
-    // cliente cadastrado), pula.
-    try {
-      if (appt.customer_id) {
-        await sdk.functions.invoke('recomputeCustomerLifecycle', { customer_id: appt.customer_id });
-        result.lifecycle = { recomputed: true };
-      } else {
-        result.lifecycle = { skipped: 'no_customer_id' };
-      }
-    } catch (e) {
-      console.error('[onAppointmentConcluded] lifecycle error:', e.message);
-      result.lifecycle = { error: e.message };
+    // ── 3) Recalcula lifecycle_status do cliente (CRM) — DESACOPLADO (M1) ──
+    // Pós-processamento: NÃO bloqueia a resposta do handler. O fluxo crítico
+    // (FinancialEntry + WhatsApp de avaliação) já terminou. Lifecycle é
+    // secundário e idempotente — se falhar, o job diário recalcula.
+    //
+    // Antes: await sdk.functions.invoke(...)  → atrasava a resposta + qualquer
+    //        falha (timeout, 500) podia mascarar sucesso das partes críticas.
+    // Agora: dispara em background. Erros logados, não retornados.
+    if (appt.customer_id) {
+      sdk.functions.invoke('recomputeCustomerLifecycle', { customer_id: appt.customer_id })
+        .catch(e => console.error('[onAppointmentConcluded] lifecycle bg error:', e.message));
+      result.lifecycle = { dispatched: true };
+    } else {
+      result.lifecycle = { skipped: 'no_customer_id' };
     }
 
     console.log('[onAppointmentConcluded] ok', { appointment_id: appt.id, result });

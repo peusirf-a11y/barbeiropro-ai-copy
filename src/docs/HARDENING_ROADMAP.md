@@ -287,6 +287,16 @@ ensureSameCompany(caller, target);
 - A2: `unitFilter` ganhou `STRICT_UNIT_ISOLATION` flag (default OFF) + telemetria `warnOnce` por entidade/id. Strict mode ativável via `localStorage.bt:strict_unit=1` ou `setStrictUnitIsolation(true)` no boot.
 - A5: `AppLayout` agora usa `useRef` lock (`inFlight` + `attempted`) — no retry automático em caso de falha, eliminando loop. `backfillUnits` no servidor ganhou recovery defensivo (se units existem mas flag está vazia, marca flag e retorna).
 
+### Sprint M2 — Desacoplamento/integridade ⏳ em execução
+
+**M1 — `recomputeCustomerLifecycle` síncrono no caminho crítico** ✅ (2026-05-11)
+- `onAppointmentConcluded` antes fazia `await sdk.functions.invoke('recomputeCustomerLifecycle', ...)` no final do handler.
+- Problema: bloqueava a resposta (~500ms-1s extras) e qualquer falha do recompute (timeout, 500, fila cheia) era logada como erro mesmo quando o crítico (FinancialEntry + WhatsApp de avaliação) tinha terminado com sucesso.
+- Correção: invocação fire-and-forget. Promise dispara em background com `.catch()` para log. Handler retorna `lifecycle: { dispatched: true }` imediatamente.
+- Justificativa: lifecycle é **pós-processamento**, não parte do contrato do evento "atendimento concluído". É idempotente — o job diário (`recomputeCustomerLifecycle` periódico) recalcula tudo. Se o dispatch em background falhar, o lifecycle fica defasado por algumas horas (até o próximo job), não corrompe nada.
+- Smoke test: 200 OK em 1214ms, `lifecycle.dispatched=true`. Próximas conclusões devem rodar lifecycle assíncrono sem segurar a resposta.
+- Aplicabilidade futura: padrão "dispatch + catch log" deve ser usado em todo lugar onde um handler crítico chama automação secundária (CRM, analytics, notificações não-transacionais).
+
 ### Sprint M1 — Segurança residual ✅ (2026-05-11)
 
 **M3 — `consumeSubscriptionUse.revert` sem tenant check (defesa em profundidade)**
