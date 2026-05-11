@@ -7,6 +7,21 @@
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// P0.6 — RBAC sweep: resolve o tenant do caller (TeamMember ou Owner).
+// Retorna null se for super-admin ou se autenticado apenas como customer público.
+async function resolveCallerCompanyId(base44, user) {
+  if (!user?.email) return null;
+  if (user.is_super_admin) return '__SUPER__';
+  const tm = await base44.asServiceRole.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
+  if (tm?.length) {
+    if (tm[0].active === false) return null;
+    return tm[0].company_id;
+  }
+  const co = await base44.asServiceRole.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
+  if (co?.length) return co[0].id;
+  return null;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -17,10 +32,20 @@ Deno.serve(async (req) => {
     //  (a) usuário Base44 logado (atendente da barbearia), OU
     //  (b) customer_token válido (cliente final agendando pelo link público).
     let authed = false;
-    try {
-      const user = await base44.auth.me();
-      if (user) authed = true;
-    } catch (_) { /* sem sessão Base44 — segue para validar customer_token */ }
+    let callerCompanyId = null;     // P0.6: tenant do atendente (a)
+    let customerCompanyId = null;   // P0.6: tenant do cliente público (b)
+    let customerId = null;
+
+    let user = null;
+    try { user = await base44.auth.me(); } catch (_) { /* sem sessão Base44 */ }
+    if (user) {
+      authed = true;
+      callerCompanyId = await resolveCallerCompanyId(base44, user);
+      if (!callerCompanyId) {
+        // Usuário logado mas sem vínculo a empresa nenhuma — recusa.
+        return Response.json({ error: 'NO_TEAM_MEMBER' }, { status: 403 });
+      }
+    }
 
     if (!authed && customer_token && company_id) {
       const matches = await base44.asServiceRole.entities.Customer.filter({
@@ -29,6 +54,8 @@ Deno.serve(async (req) => {
       const customer = matches?.[0];
       if (customer && customer.auth_token_expires_at && new Date(customer.auth_token_expires_at) > new Date()) {
         authed = true;
+        customerCompanyId = company_id;
+        customerId = customer.id;
       }
     }
 
@@ -43,6 +70,40 @@ Deno.serve(async (req) => {
 
     const sub = await base44.asServiceRole.entities.CustomerSubscription.get(subscription_id);
     if (!sub) return Response.json({ error: 'Assinatura não encontrada' }, { status: 404 });
+
+    // ── P0.6: ensureSameCompany — bloqueia cross-tenant ─────────────────
+    // Cenário antigo: admin@barbA logado conseguia consumir uma sub de barbB
+    // passando subscription_id de barbB no payload. Agora validamos que a sub
+    // pertence ao tenant do caller (ou ao customer logado).
+    if (callerCompanyId && callerCompanyId !== '__SUPER__' && sub.company_id !== callerCompanyId) {
+      console.warn('[consumeSubscriptionUse] cross-tenant attempt', {
+        user: user?.email, caller_company: callerCompanyId, sub_company: sub.company_id,
+      });
+      return Response.json({ error: 'FORBIDDEN_TENANT' }, { status: 403 });
+    }
+    if (customerCompanyId && sub.company_id !== customerCompanyId) {
+      console.warn('[consumeSubscriptionUse] customer cross-tenant attempt', {
+        customer_company: customerCompanyId, sub_company: sub.company_id,
+      });
+      return Response.json({ error: 'FORBIDDEN_TENANT' }, { status: 403 });
+    }
+    // Para cliente público: a sub também deve pertencer ao próprio cliente.
+    if (customerId && sub.customer_id !== customerId) {
+      console.warn('[consumeSubscriptionUse] customer ownership mismatch', {
+        customer_id: customerId, sub_customer_id: sub.customer_id,
+      });
+      return Response.json({ error: 'FORBIDDEN_OWNERSHIP' }, { status: 403 });
+    }
+
+    // Validação do appointment: precisa pertencer ao mesmo tenant da sub.
+    const appt = await base44.asServiceRole.entities.Appointment.get(appointment_id).catch(() => null);
+    if (!appt) return Response.json({ error: 'Agendamento não encontrado' }, { status: 404 });
+    if (appt.company_id !== sub.company_id) {
+      console.warn('[consumeSubscriptionUse] appointment/sub tenant mismatch', {
+        appt_company: appt.company_id, sub_company: sub.company_id,
+      });
+      return Response.json({ error: 'TENANT_MISMATCH_APPOINTMENT' }, { status: 403 });
+    }
 
     // ─── CONSUMIR ───
     if (action === 'consume') {
@@ -71,7 +132,6 @@ Deno.serve(async (req) => {
         ? await base44.asServiceRole.entities.CustomerPlan.get(sub.plan_id).catch(() => null)
         : null;
       if (plan?.off_peak_enabled) {
-        const appt = await base44.asServiceRole.entities.Appointment.get(appointment_id).catch(() => null);
         if (appt?.scheduled_at) {
           const when = new Date(appt.scheduled_at);
           const start = plan.off_peak_start || '00:00';

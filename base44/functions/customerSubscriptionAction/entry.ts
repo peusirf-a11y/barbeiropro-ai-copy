@@ -48,11 +48,17 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Você já possui uma assinatura ativa ou pendente.' }, { status: 409 });
       }
 
-      // Carrega o plano e valida
+      // Carrega o plano e valida (P0.6: double-check explícito do tenant)
       const plans = await base44.asServiceRole.entities.CustomerPlan.filter({ id: plan_id, company_id });
       const plan = plans[0];
       if (!plan || !plan.active) {
         return Response.json({ error: 'Plano não disponível' }, { status: 404 });
+      }
+      if (plan.company_id !== company_id) {
+        console.warn('[customerSubscriptionAction] cross-tenant plan attempt', {
+          customer_id: customer.id, plan_company: plan.company_id, requested_company: company_id,
+        });
+        return Response.json({ error: 'FORBIDDEN_TENANT' }, { status: 403 });
       }
 
       const now = new Date();

@@ -26,7 +26,7 @@
 | P0.3 | Race condition fechamento de caixa (`status=fechando`) | C3 | 1 | ✅ | 2026-05-11 |
 | P0.4 | Stripe env mismatch — alerta + dashboard | C4 | 1 | ✅ | 2026-05-11 |
 | P0.5 | AuditLog: company_id como coluna real + queries por tenant | C5 | 2 | ✅ | 2026-05-11 |
-| P0.6 | RBAC sweep — `ensureSameCompany` em todos endpoints financeiros | C6 | 2 | ⏳ | — |
+| P0.6 | RBAC sweep — `ensureSameCompany` em todos endpoints financeiros | C6 | 2 | ✅ | 2026-05-11 |
 
 > Cada P0 só vai para produção depois de validado em homologação (test mode do Stripe + dados sintéticos).
 
@@ -231,16 +231,16 @@ if (event.livemode !== isLive) {
 
 **Funções a auditar** (lista priorizada):
 
-| Função | Risco | Tem `ensureSameCompany`? |
-|---|---|---|
-| `consumeSubscriptionUse` | 🔴 alto | ❌ |
-| `customerSubscriptionAction` | 🔴 alto | ❓ |
-| `reverseCommission` | 🟠 médio | ❓ |
-| `confirmAppointment` | 🟠 médio | ❓ |
-| `submitReview` | 🟠 médio | ❓ |
-| `getCashAudit` | 🟡 baixo | ✅ |
-| `closeCashRegister` | 🟡 baixo | ✅ |
-| `mutateFinancialEntry` | 🟡 baixo | ✅ |
+| Função | Risco | Tem `ensureSameCompany`? | Status P0.6 |
+|---|---|---|---|
+| `consumeSubscriptionUse` | 🔴 alto | ❌ → ✅ | corrigido (caller + customer + appt match) |
+| `customerSubscriptionAction` | 🔴 alto | parcial → ✅ | reforço explícito no `subscribe` |
+| `reverseCommission` | 🟠 médio | ✅ | já tinha (auditado, OK) |
+| `confirmAppointment` | 🟠 médio | n/a | público + token único — token É o tenant |
+| `submitReview` | 🟠 médio | n/a | público + token único — token É o tenant |
+| `getCashAudit` | 🟡 baixo | ✅ | OK |
+| `closeCashRegister` | 🟡 baixo | ✅ | OK |
+| `mutateFinancialEntry` | 🟡 baixo | ✅ | OK |
 
 **Padrão a aplicar** (extrair em `lib/serverPermissions.js` se ainda não tem):
 ```js
