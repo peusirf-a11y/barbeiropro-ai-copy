@@ -10,6 +10,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 const SESSION_DAYS = 30;
 const PBKDF2_ITERATIONS = 100_000;
 
+// M10 — sanitização de texto vindo de payload público.
+// Espelha _sanitizeText de createPublicAppointment/createBookingPaymentIntent
+// (mantido inline porque backend functions são deploy independente, sem local imports).
+// Strip tags HTML + control chars + colapsa whitespace + limita tamanho.
+// WHY: name vai para banco, CSV export, e-mails e WhatsApp. HTML/scripts injetados
+// causam XSS armazenado, quebram CSV (CR/LF), poluem subject de e-mails.
+function _sanitizeText(v, max) {
+  if (v == null) return '';
+  let s = String(v).trim();
+  s = s.replace(/<[^>]*>/g, '');
+  s = s.replace(/[\u0000-\u001F\u007F]/g, ' ');
+  s = s.replace(/\s{3,}/g, '  ');
+  return s.slice(0, max);
+}
+
 function bytesToHex(bytes) {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -93,6 +108,11 @@ Deno.serve(async (req) => {
       if (password.length < 6) {
         return Response.json({ error: 'Senha precisa ter no mínimo 6 caracteres' }, { status: 400 });
       }
+      // M10 — sanitiza name antes de gravar (signup é entry point público).
+      const nameClean = _sanitizeText(name, 100);
+      if (!nameClean) {
+        return Response.json({ error: 'Nome inválido' }, { status: 400 });
+      }
       const emailLc = email.toLowerCase();
       const phoneNorm = (phone || '').replace(/\D/g, '');
 
@@ -109,7 +129,7 @@ Deno.serve(async (req) => {
           return Response.json({ error: 'Já existe uma conta com este e-mail. Faça login.' }, { status: 409 });
         }
         customer = await base44.asServiceRole.entities.Customer.update(existing.id, {
-          name: existing.name || name,
+          name: existing.name || nameClean,
           phone: existing.phone || phoneNorm,
           password_hash: passwordHash,
           auth_token: newToken,
@@ -118,7 +138,7 @@ Deno.serve(async (req) => {
       } else {
         customer = await base44.asServiceRole.entities.Customer.create({
           company_id,
-          name,
+          name: nameClean,
           email: emailLc,
           phone: phoneNorm,
           status: 'active',
