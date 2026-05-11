@@ -71,6 +71,8 @@ Deno.serve(async (req) => {
         customer_id: appt.customer_id,
         customer_name: appt.customer_name,
         appointment_id: appt.id,
+        // A8: dedup forte — 1 pós-atendimento por appointment
+        idempotency_key: `pos_atendimento:${appt.id}`,
       });
       sent++;
     }

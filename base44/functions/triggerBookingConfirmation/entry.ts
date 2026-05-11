@@ -57,6 +57,9 @@ Deno.serve(async (req) => {
       customer_id: appointment.customer_id,
       customer_name: appointment.customer_name,
       appointment_id: appointment.id,
+      // A8: dedup forte — 1 confirmação por appointment (entity automation
+      // pode retriar e a Base44 não garante exactly-once delivery)
+      idempotency_key: `confirmacao:${appointment.id}`,
     });
 
     return Response.json({ ok: true, send_result: res?.data || res });

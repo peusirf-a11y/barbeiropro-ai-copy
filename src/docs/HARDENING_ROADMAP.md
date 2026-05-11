@@ -270,10 +270,21 @@ ensureSameCompany(caller, target);
 - P0.6 sweep RBAC (1.5 dia)
 - Testes e regression (1.5 dia)
 
-### Sprint 3 (opcional — alto/médio da auditoria)
-- A1, A3, A4, A7 (queries pesadas e paginação)
-- A5, A6 (auth refinements)
-- Cobertura de testes inicial
+### Sprint 3 — Auditoria A1–A8 (em execução)
+
+**Sprint A — Isolamento + Auth** ✅ (2026-05-11)
+- A1: `useCompany` → `getMyCompany` backend (sem `Company.list()` no frontend)
+- A6: `reset_token` dedicado em `Customer` (separado de `auth_token`) + `token_version`
+- A8: `idempotency_key` em `WhatsAppMessage` + dedup em `sendWhatsAppMessage` + todos os 5 callers (jobReminders, jobPostAppointment, jobReactivation, runLifecycleCampaigns, triggerBookingConfirmation)
+
+**Sprint B — Integridade financeira/performance** ⏳
+- A3: Financeiro truncando histórico (queries por período no backend, não last-N)
+- A7: `closeCashRegister` usar `filter({ cash_register_id })` em vez de last 2000
+- A4: PublicBooking com janela temporal (today → +14d)
+
+**Sprint C — Hardening estrutural** ⏳
+- A2: `unitFilter` strict mode pós-backfill
+- A5: Loop do `backfillUnits` (useRef + mutation lock)
 
 ---
 

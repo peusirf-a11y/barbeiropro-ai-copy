@@ -174,6 +174,8 @@ async function processCompany(sdk, company, baseUrl, { dryRun, limit }) {
             customer_id: customer.id,
             customer_name: customer.name,
             appointment_id: appt.id,
+            // A8: dedup forte — 1 welcome por (cliente, appointment)
+            idempotency_key: `crm_primeira_visita:${appt.id}`,
           });
           await sdk.entities.Customer.update(customer.id, {
             lifecycle_campaigns_log: {
@@ -237,6 +239,10 @@ async function processCompany(sdk, company, baseUrl, { dryRun, limit }) {
       });
 
       if (!dryRun) {
+        // A8: dedup forte — bucket diário evita reenvio mesmo se job rodar
+        // várias vezes no mesmo dia (cooldown_days continua sendo a verdade,
+        // mas isso protege contra race entre execuções).
+        const dayBucket = new Date().toISOString().slice(0, 10);
         await sdk.functions.invoke('sendWhatsAppMessage', {
           phone: customer.phone,
           message,
@@ -245,6 +251,7 @@ async function processCompany(sdk, company, baseUrl, { dryRun, limit }) {
           unit_id: customer.unit_id || undefined,
           customer_id: customer.id,
           customer_name: customer.name,
+          idempotency_key: `${CAMPAIGN_TO_MSG_TYPE[campaignKey]}:${customer.id}:${dayBucket}`,
         });
         const logUpdate = { ...(customer.lifecycle_campaigns_log || {}) };
         logUpdate[LOG_KEY[campaignKey]] = new Date().toISOString();

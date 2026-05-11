@@ -178,6 +178,9 @@ Deno.serve(async (req) => {
     }
 
     // ─── ACTION: REQUEST_RESET — gera token de reset e envia por e-mail ─────
+    // A6 (Sprint A): usa campo dedicado `reset_token` em vez de reescrever `auth_token`.
+    // Isso preserva a sessão ativa do cliente (não derruba quem está logado em outro
+    // dispositivo) e elimina o namespace collision do prefixo "reset:".
     if (action === 'request_reset') {
       if (!email) return Response.json({ error: 'E-mail obrigatório' }, { status: 400 });
       const emailLc = email.toLowerCase();
@@ -193,11 +196,9 @@ Deno.serve(async (req) => {
         const expires = new Date();
         expires.setHours(expires.getHours() + 1); // token vale 1 hora
 
-        // Reusamos os campos auth_token/auth_token_expires_at temporariamente prefixando com "reset:"
-        // para não precisar adicionar novos campos no schema.
         await base44.asServiceRole.entities.Customer.update(customer.id, {
-          auth_token: `reset:${resetToken}`,
-          auth_token_expires_at: expires.toISOString(),
+          reset_token: resetToken,
+          reset_token_expires_at: expires.toISOString(),
         });
 
         const companies = await base44.asServiceRole.entities.Company.filter({ id: company_id }).catch(() => []);
@@ -234,6 +235,11 @@ Equipe ${companyName}`,
     }
 
     // ─── ACTION: RESET_PASSWORD — valida token e troca a senha ──────────────
+    // A6 (Sprint A): valida via `reset_token` dedicado. Após sucesso:
+    //  - limpa reset_token/reset_token_expires_at (uso único)
+    //  - incrementa token_version (invalida sessões antigas em outros dispositivos
+    //    quando o cliente trocou a senha por suspeita de comprometimento)
+    //  - emite novo auth_token para o dispositivo que fez o reset
     if (action === 'reset_password') {
       if (!email || !reset_token || !password) {
         return Response.json({ error: 'Dados incompletos' }, { status: 400 });
@@ -245,10 +251,15 @@ Equipe ${companyName}`,
         company_id, email: email.toLowerCase(),
       });
       const customer = list[0];
-      if (!customer || customer.auth_token !== `reset:${reset_token}`) {
+      // Compat: durante a transição, aceita o formato antigo (auth_token="reset:xxx")
+      // para tokens gerados antes do deploy. Pode ser removido depois de 1h (TTL do reset).
+      const legacyMatch = customer?.auth_token === `reset:${reset_token}`;
+      const newFormatMatch = customer?.reset_token === reset_token;
+      if (!customer || (!legacyMatch && !newFormatMatch)) {
         return Response.json({ error: 'Link de redefinição inválido ou já usado' }, { status: 400 });
       }
-      if (customer.auth_token_expires_at && new Date(customer.auth_token_expires_at) < new Date()) {
+      const expiresField = newFormatMatch ? customer.reset_token_expires_at : customer.auth_token_expires_at;
+      if (expiresField && new Date(expiresField) < new Date()) {
         return Response.json({ error: 'Link de redefinição expirado. Solicite um novo.' }, { status: 400 });
       }
 
@@ -258,6 +269,9 @@ Equipe ${companyName}`,
         password_hash: passwordHash,
         auth_token: newToken,
         auth_token_expires_at: expiryDate(),
+        reset_token: null,
+        reset_token_expires_at: null,
+        token_version: (customer.token_version || 0) + 1,
       });
 
       return Response.json({

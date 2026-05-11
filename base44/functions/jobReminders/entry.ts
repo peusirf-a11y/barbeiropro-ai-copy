@@ -46,6 +46,8 @@ async function sendReminder(base44, appointment, company, type, baseUrl) {
     customer_id: appointment.customer_id,
     customer_name: appointment.customer_name,
     appointment_id: appointment.id,
+    // A8: dedup forte — 1 lembrete por (tipo, appointment)
+    idempotency_key: `${type}:${appointment.id}`,
   });
 }
 

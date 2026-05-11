@@ -89,6 +89,11 @@ Deno.serve(async (req) => {
           profissional_sugerido: suggestion?.professional_name || '',
         });
 
+        // A8: dedup forte — chave por janela de reativação (days).
+        // Se o job rodar 2x no mesmo dia/janela, a 2ª chamada é skipped.
+        // A "janela" = bucket de N dias (ex: a cada 30 dias gera uma key nova
+        // mesmo para o mesmo customer). Usamos floor(diasDesdeEpoch / N).
+        const bucket = Math.floor(Date.now() / (days * 86400000));
         await base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {
           phone: c.phone,
           message,
@@ -97,6 +102,7 @@ Deno.serve(async (req) => {
           unit_id: c.unit_id || undefined,
           customer_id: c.id,
           customer_name: c.name,
+          idempotency_key: `reativacao:${c.id}:${bucket}`,
         });
         sent++;
         totalSent++;

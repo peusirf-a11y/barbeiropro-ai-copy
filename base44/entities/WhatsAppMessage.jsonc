@@ -59,6 +59,10 @@
     "sent_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Chave determin\u00edstica que identifica univocamente uma mensagem (A8 \u2014 Sprint A). Formato t\u00edpico: `${type}:${appointment_id|customer_id}:${bucket}`. Usada para deduplicar disparos em jobs/automa\u00e7\u00f5es que rodam mais de uma vez. Sempre que poss\u00edvel, o caller deve enviar esta chave."
     }
   },
   "required": [
