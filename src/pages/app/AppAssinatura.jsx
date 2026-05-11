@@ -53,7 +53,9 @@ export default function AppAssinatura() {
         setLoading(false);
       }
     } catch (err) {
-      setError(err?.response?.data?.error || err.message || 'Erro ao abrir portal');
+      // Axios joga 4xx em catch — pega o payload do backend.
+      const payload = err?.response?.data;
+      setError(payload?.error || err.message || 'Erro ao abrir portal');
       setLoading(false);
     }
   };

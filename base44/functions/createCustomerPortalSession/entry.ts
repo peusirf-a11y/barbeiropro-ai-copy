@@ -35,12 +35,31 @@ Deno.serve(async (req) => {
     }
 
     const origin = req.headers.get('origin') || `https://${req.headers.get('host') || ''}`;
-    const session = await stripe.billingPortal.sessions.create({
-      customer: company.stripe_customer_id,
-      return_url: return_url || `${origin}/app/configuracoes/assinatura`,
-    });
-
-    return Response.json({ url: session.url });
+    try {
+      const session = await stripe.billingPortal.sessions.create({
+        customer: company.stripe_customer_id,
+        return_url: return_url || `${origin}/app/configuracoes/assinatura`,
+      });
+      return Response.json({ url: session.url });
+    } catch (stripeErr) {
+      // Detecta customer inexistente no ambiente atual — sinal típico de
+      // stripe_customer_id salvo no ambiente errado (test vs live).
+      const isMissing = stripeErr?.code === 'resource_missing'
+        || /No such customer/i.test(stripeErr?.message || '');
+      if (isMissing) {
+        console.error('[createCustomerPortalSession] customer not found in current env', {
+          env,
+          stripe_customer_id: company.stripe_customer_id,
+          company_id: company.id,
+        });
+        return Response.json({
+          error: `Sua assinatura está vinculada a um cliente Stripe que não existe neste ambiente (${env}). Isso costuma acontecer quando a conta foi criada em modo de teste e o app está em produção (ou vice-versa). Entre em contato com o suporte para revincular sua assinatura.`,
+          code: 'STRIPE_CUSTOMER_NOT_FOUND',
+          needs_resync: true,
+        }, { status: 409 });
+      }
+      throw stripeErr;
+    }
   } catch (error) {
     console.error('createCustomerPortalSession error:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });
