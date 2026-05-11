@@ -391,6 +391,30 @@ ensureSameCompany(caller, target);
   - AppCaixa (CashRegister/FinancialEntry reads) — depende de fase dedicada de Cash.
   - `Customer.filter` em CustomerSubscriptionPanel, AppCRM (customersRaw) e AppDashboard — `listCustomers` da Fase 1 não cobre todos os call sites ainda.
 
+**Fase 6 — Commission writes** ✅ (2026-05-11)
+- Criada `functions/mutateCommission` (BFF) com **action semântica única**: `mark_paid`. Justificativa: Commission tem regras que vêm da Professional na hora da conclusão do atendimento (amount, commission_value, commission_type) — frontend NÃO deve editar nada além de status. Genérico `update` aqui seria vetor para fraude (operador inflando própria comissão).
+- **Batch atômico (não paralelo)**: aceita até 200 ids em 1 request. Antes, `AppComissoes` disparava `Promise.all(ids.map(update))` — N requests, N audit entries, possibilidade de inconsistência parcial sem visibilidade. Agora: 1 chamada → servidor processa, retorna `{ updated_count, skipped_count, results }`. Falhas individuais (já paga, cross-tenant) viram `skipped` em vez de derrubar o batch.
+- Bloqueios server-side:
+  - super-admin → 403 USE_MASTER_PANEL.
+  - barbeiro / recepcao → 403 FORBIDDEN_ROLE (espelha `canPayCommission` do front).
+  - Commission de outra company → entra em `skipped[reason=NOT_FOUND]`, não atualiza nada.
+  - Já paga → skipped[ALREADY_PAID] (idempotência: clicar 2x não causa erro nem trava o batch).
+- AuditLog único por batch (`PAY_COMMISSION_BATCH`) com metadata contendo requested/updated/skipped + reasons — auditoria limpa em vez de N entries.
+- `AppComissoes` migrado: mutation passa por BFF. Mensagens humanas mapeadas. `Promise.all` paralelo eliminado.
+- Smoke test: INVALID_ACTION 400, commission_ids_required 400.
+- **Fora desta fase**: estorno de comissão já existe em `reverseCommission` (função própria, fluxo diferente, mantida).
+
+**Fase 6 — Commission writes** ✅ (2026-05-11)
+- Criada `functions/mutateCommission` (BFF) com **action semântica** `mark_paid` (não generic CRUD). Justificativa: Commission tem `amount`/`commission_value` calculados em `onAppointmentConcluded` a partir do Professional — frontend NÃO deve poder editar campos arbitrários. A única mutação legítima do painel é "marcar como pago" em lote.
+- Bloqueios server-side:
+  - super-admin → 403 USE_MASTER_PANEL.
+  - barbeiro / recepcao → 403 FORBIDDEN_ROLE (espelha `canPayCommission` em `lib/rolePermissions.js` — só admin/financeiro pagam).
+  - Cross-tenant ou já paga → skip individual (não derruba batch). UX: "marquei 4 de 5; 1 já estava paga".
+  - Limite 200 ids por batch (evita pagamento acidental em massa + protege credits).
+  - Audit log único por batch (não N entries — evita poluição quando paga 50+ comissões de um pro).
+- `AppComissoes` migrado: `payMutation` substitui `Promise.all(N updates)` por 1 invocação BFF. Erros mapeados para mensagens humanas.
+- Smoke test: INVALID_ACTION → 400, commission_ids vazio → 400.
+
 **Fase 5 — Customer reads restantes + Subscription writes** ✅ (2026-05-11)
 
 5a — Customer reads restantes:

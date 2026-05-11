@@ -49,9 +49,28 @@ export default function AppComissoes() {
     enabled: !!companyId,
   });
 
+  // BFF Fase 6: pagamento de comissão via mutateCommission (action semântica).
+  // Bloqueio de barbeiro/recepção/super-admin é server-side (defesa em profundidade).
+  // Batch único (1 request em vez de N updates paralelos — menos credits, audit log único).
   const payMutation = useMutation({
-    mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.Commission.update(id, { status: 'pago' }))),
+    mutationFn: async (ids) => {
+      const res = await base44.functions.invoke('mutateCommission', {
+        action: 'mark_paid',
+        commission_ids: ids,
+      });
+      if (!res?.data?.success) {
+        const code = res?.data?.error || 'UNKNOWN';
+        const map = {
+          FORBIDDEN_ROLE: 'Você não tem permissão para pagar comissões.',
+          COMPANY_BLOCKED: 'Operação bloqueada — empresa inativa.',
+          BATCH_TOO_LARGE: 'Selecione no máximo 200 comissões por vez.',
+        };
+        throw new Error(map[code] || 'Não foi possível marcar como pago.');
+      }
+      return res.data;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['commissions', companyId] }),
+    onError: (err) => alert(err.message),
   });
 
   const now = new Date();
