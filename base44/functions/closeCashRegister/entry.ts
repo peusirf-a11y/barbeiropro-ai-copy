@@ -131,8 +131,60 @@ Deno.serve(async (req) => {
     if (reg.status === 'fechado') {
       return Response.json({ success: false, error: 'ALREADY_CLOSED' }, { status: 400 });
     }
+    if (reg.status === 'fechando') {
+      // Outro operador já está fechando este caixa. Devolvemos 409.
+      // WHY (P0.3): evita 2 closes paralelos sobrescreverem snapshot.
+      console.warn('[closeCashRegister] register already being closed', { register_id, closing_by: reg.closing_by });
+      return Response.json({
+        success: false,
+        error: 'ALREADY_CLOSING',
+        message: 'Este caixa já está sendo fechado. Aguarde alguns segundos.',
+      }, { status: 409 });
+    }
+
+    // ─── CLAIM ATÔMICO aberto → fechando (P0.3) ─────────────────────────
+    // WHY: sem isso, dois operadores podem clicar "fechar" simultaneamente,
+    // ou um atendimento concluir entre o cálculo dos totais e o save → entry
+    // sem cash_register_id correto / snapshot desatualizado.
+    //
+    // Base44 não tem update condicional real, então:
+    //  1. update status='fechando' + closing_started_at + closing_by
+    //  2. RE-LER o registro
+    //  3. Se closing_by não bate com nosso email, OUTRO operador ganhou a corrida → 409
+    //
+    // Janela residual: 2 updates simultâneos no mesmo ms — last-writer-wins
+    // decide qual operador "ganha". Aceitável (<10ms de race).
+    const claimStartedAt = new Date().toISOString();
+    try {
+      await base44.asServiceRole.entities.CashRegister.update(register_id, {
+        status: 'fechando',
+        closing_started_at: claimStartedAt,
+        closing_by: user.email,
+      });
+    } catch (claimErr) {
+      console.error('[closeCashRegister] failed to claim fechando state:', claimErr.message);
+      return Response.json({ success: false, error: 'CLAIM_FAILED' }, { status: 500 });
+    }
+
+    // Re-lê para confirmar que NÓS ganhamos o claim.
+    const regAfterClaim = await base44.asServiceRole.entities.CashRegister.get(register_id);
+    if (regAfterClaim.status !== 'fechando' || regAfterClaim.closing_by !== user.email) {
+      console.warn('[closeCashRegister] lost race to another closer', {
+        register_id,
+        winner: regAfterClaim.closing_by,
+        loser: user.email,
+      });
+      return Response.json({
+        success: false,
+        error: 'ALREADY_CLOSING',
+        message: 'Este caixa já está sendo fechado por outro operador.',
+      }, { status: 409 });
+    }
 
     // Busca lançamentos: prefere cash_register_id (Fase 1+). Fallback temporal para legados.
+    // Importante (P0.3): só leitura ACONTECE depois do claim, garantindo que
+    // novos lançamentos concluídos após esse ponto NÃO vão amarrar a este caixa
+    // (onAppointmentConcluded filtra status='aberto').
     const all = await base44.asServiceRole.entities.FinancialEntry.filter({ company_id: reg.company_id }, '-created_date', 2000);
     const since = new Date(reg.opened_at);
     const entries = all.filter(e => {
@@ -163,20 +215,37 @@ Deno.serve(async (req) => {
     const final = +Number(final_amount).toFixed(2);
     const difference = +(final - expected).toFixed(2);
 
-    const updated = await base44.asServiceRole.entities.CashRegister.update(register_id, {
-      closed_at: new Date().toISOString(),
-      final_amount: final,
-      expected_amount: expected,
-      difference,
-      total_in: +totalIn.toFixed(2),
-      total_out: +totalOut.toFixed(2),
-      total_sangria: +totalSangria.toFixed(2),
-      total_suprimento: +totalSuprimento.toFixed(2),
-      payment_breakdown,
-      closed_by: user.email,
-      notes: [reg.notes, notes].filter(Boolean).join(' · '),
-      status: 'fechado',
-    });
+    // Fechamento final: fechando → fechado.
+    // WHY (P0.3): se este update falhar, o caixa fica preso em 'fechando' e o
+    // job repairStuckCashRegisters (10min) gera SystemAlert para intervenção manual.
+    let updated;
+    try {
+      updated = await base44.asServiceRole.entities.CashRegister.update(register_id, {
+        closed_at: new Date().toISOString(),
+        final_amount: final,
+        expected_amount: expected,
+        difference,
+        total_in: +totalIn.toFixed(2),
+        total_out: +totalOut.toFixed(2),
+        total_sangria: +totalSangria.toFixed(2),
+        total_suprimento: +totalSuprimento.toFixed(2),
+        payment_breakdown,
+        closed_by: user.email,
+        notes: [reg.notes, notes].filter(Boolean).join(' · '),
+        status: 'fechado',
+      });
+    } catch (finalErr) {
+      console.error('[closeCashRegister] FAILED at fechando→fechado transition. Register stuck.', {
+        register_id, error: finalErr.message,
+      });
+      // Não revertemos para 'aberto' aqui — risco de novos lançamentos entrarem
+      // depois do snapshot já calculado. Job de reparo decide.
+      return Response.json({
+        success: false,
+        error: 'FINALIZE_FAILED',
+        message: 'Caixa entrou em estado "fechando" mas falhou ao finalizar. Suporte foi notificado.',
+      }, { status: 500 });
+    }
 
     // AuditLog (mutation crítica)
     try {

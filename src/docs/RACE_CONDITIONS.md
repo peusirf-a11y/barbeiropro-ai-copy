@@ -59,17 +59,20 @@ Frontend (admin manual) e automação (`onAppointmentConcluded → registerCommi
 - Atendente B conclui um atendimento → `onAppointmentConcluded` cria `FinancialEntry` com `cash_register_id` deste caixa.
 - O snapshot que A salvou no `CashRegister` ignora a entrada de B.
 
-### Mitigação (P0.3)
+### Mitigação (P0.3) ✅ IMPLEMENTADO
 Estado intermediário `fechando`:
-1. `aberto → fechando` (atômico via update condicional).
-2. Cálculo do snapshot.
-3. `fechando → fechado`.
+1. **Claim atômico**: update `status='aberto' → 'fechando'` + `closing_by=user.email` + `closing_started_at=now()`.
+2. **Re-leitura**: confirma que `closing_by` é o nosso usuário (perdedor da race recebe 409).
+3. Cálculo do snapshot (sobre estado já isolado).
+4. **Finalize**: `fechando → fechado` com todos os snapshots.
 
-`onAppointmentConcluded` ao buscar caixa aberto filtra explicitamente `status='aberto'` (já faz). Durante `fechando`, novos atendimentos não amarram a esse caixa.
+`onAppointmentConcluded` filtra explicitamente `status: 'aberto'` (já faz por filter exato no Base44 — `fechando` não bate). Durante `fechando`, novos atendimentos não amarram a esse caixa → `cash_register_id` fica vazio e o atendente reconcilia manualmente depois (aceitável).
 
-**Cenário de borda**: appointment concluído entre passo 1 e 2 → entry fica sem `cash_register_id` (não amarra a nenhum caixa aberto). Aceitável — atendente pode reconciliar manualmente.
+**Cenário de falha entre passos 3 e 4**: caixa fica preso em `fechando`. Job `repairStuckCashRegisters` (a cada 10min) detecta caixas com `closing_started_at` > 5min e cria `SystemAlert` para intervenção manual no painel master. **Nunca faz auto-rollback** — caixa é dinheiro real.
 
-### Status: ⏳ em P0.3
+**Janela residual**: 2 claims simultâneos no mesmo ms → Base44 last-writer-wins decide. Aceitável (< 10ms).
+
+### Status: ✅ resolvido em P0.3 (commit 2026-05-11)
 
 ---
 
@@ -194,4 +197,4 @@ const price = payload.price;
 // ✅ CERTO — busca do banco
 const service = await sdk.entities.Service.get(payload.service_id);
 const price = service.price;
-``
+`

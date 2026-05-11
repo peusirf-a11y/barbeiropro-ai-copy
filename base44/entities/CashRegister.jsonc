@@ -56,9 +56,20 @@
       "type": "string",
       "enum": [
         "aberto",
+        "fechando",
         "fechado"
       ],
-      "default": "aberto"
+      "default": "aberto",
+      "description": "Ciclo de vida do caixa. 'fechando' \u00e9 estado intermedi\u00e1rio curto (< 5s t\u00edpico) usado para evitar race entre fechamento e novos lan\u00e7amentos (P0.3). Ver docs/RACE_CONDITIONS.md \u00a73."
+    },
+    "closing_started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o claim at\u00f4mico aberto\u2192fechando foi feito. Usado pelo job repairStuckCashRegisters para detectar caixas presos (> 5min)."
+    },
+    "closing_by": {
+      "type": "string",
+      "description": "Email do usu\u00e1rio que iniciou o fechamento (claim do lock)."
     },
     "opened_by": {
       "type": "string"

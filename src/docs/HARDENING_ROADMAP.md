@@ -23,7 +23,7 @@
 |---|---|---|---|---|---|
 | P0.1 | Lock atômico de slots | C1 | 1 | ⏳ | — |
 | P0.2 | Blindagem `createPublicAppointment` + `createBookingPaymentIntent` | C2 | 1 | ⏳ | — |
-| P0.3 | Race condition fechamento de caixa (`status=fechando`) | C3 | 1 | ⏳ | — |
+| P0.3 | Race condition fechamento de caixa (`status=fechando`) | C3 | 1 | ✅ | 2026-05-11 |
 | P0.4 | Stripe env mismatch — alerta + dashboard | C4 | 1 | ⏳ | — |
 | P0.5 | AuditLog: company_id como coluna real + queries por tenant | C5 | 2 | ⏳ | — |
 | P0.6 | RBAC sweep — `ensureSameCompany` em todos endpoints financeiros | C6 | 2 | ⏳ | — |
