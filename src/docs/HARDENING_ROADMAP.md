@@ -313,9 +313,13 @@ ensureSameCompany(caller, target);
 - `pages/app/AppClientes` migrado — não toca mais em `Customer.filter`. Mutations (create/update/delete) continuam diretas por enquanto (próxima fase).
 - Smoke test: 200 OK, retorna `{ customers, total, scope }`.
 
-**Fase 2 — Customer (write path)** ⏳
-- `createCustomer`, `updateCustomer`, `deleteCustomer` BFF com `ensureSameCompany` + auto-stamp `unit_id` quando aplicável.
-- Remove necessidade de `scopeByUnit` no frontend.
+**Fase 2 — Customer (write path)** ✅ (2026-05-11)
+- Criada `functions/mutateCustomer` (BFF unificado para create/update/delete). Padrão idêntico ao `mutateFinancialEntry` que já existe — evita 3 funções separadas.
+- Servidor decide `company_id` (do caller) e `unit_id` (auto-stamp quando `customers_shared_across_units=false`). Frontend não envia mais nenhum dos dois.
+- Sanitização por allow-list: só `name/phone/email/notes/tags/status/favorite_*` são aceitos. Campos de auth (`password_hash`, `auth_token`, `reset_token`, `token_version`) bloqueados — só `customerAuth` pode mexer.
+- Role `barbeiro` bloqueado server-side (defesa em profundidade — botões já escondidos no front).
+- `AppClientes` migrado: removidos `shouldScopeCustomersByUnit` e import de `customerUnitMode`. Mutations passam por `base44.functions.invoke('mutateCustomer', ...)`.
+- Smoke test: INVALID_ACTION → 400; cross-tenant update → 404 genérico (não vaza existência).
 
 **Fase 3 — Appointment (read + write)** ⏳
 - Query mais pesada do app + maior superfície de leak. Aplicar mesmo padrão.

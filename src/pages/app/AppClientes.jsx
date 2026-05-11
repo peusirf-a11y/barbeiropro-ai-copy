@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
-import { shouldScopeCustomersByUnit } from '@/lib/customerUnitMode';
 import { useState } from 'react';
 import { Search, Plus, X, Users, Pencil, Trash2, Phone, Package } from 'lucide-react';
 import { format } from 'date-fns';
@@ -29,8 +28,6 @@ export default function AppClientes() {
   const { activeUnitId } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
   const isBarbeiro = teamRole?.role === 'barbeiro';
-  // Quando true, lista e novo cliente ficam restritos à unidade ativa
-  const scopeByUnit = shouldScopeCustomersByUnit(company, activeUnitId);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
@@ -69,23 +66,27 @@ export default function AppClientes() {
   });
   const subByCustomer = activeSubs.reduce((acc, s) => { acc[s.customer_id] = s; return acc; }, {});
 
+  // BFF Fase 2: mutations vão pelo backend (mutateCustomer).
+  // O servidor decide company_id (do caller) e unit_id (auto-stamp quando aplicável).
+  // O frontend NÃO precisa mais conhecer shouldScopeCustomersByUnit.
+  const invokeMutation = async (payload) => {
+    const res = await base44.functions.invoke('mutateCustomer', payload);
+    if (res?.data?.error) throw new Error(res.data.error);
+    return res?.data;
+  };
+
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Customer.create({
-      ...data,
-      company_id: companyId,
-      // Só grava unit_id quando estamos no modo "clientes por unidade"
-      unit_id: scopeByUnit ? activeUnitId : undefined,
-    }),
+    mutationFn: (data) => invokeMutation({ action: 'create', data, active_unit_id: activeUnitId }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers'] }); closeForm(); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Customer.update(id, data),
+    mutationFn: ({ id, data }) => invokeMutation({ action: 'update', id, data }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers'] }); closeForm(); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Customer.delete(id),
+    mutationFn: (id) => invokeMutation({ action: 'delete', id }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customers'] }),
   });
 
