@@ -226,17 +226,49 @@ Deno.serve(async (req) => {
     // Suporta entry_kind (sangria/suprimento) além do legado type.
     const kindOf = (e) => e.entry_kind || (e.type === 'saida' ? 'saida' : 'entrada');
     let totalIn = 0, totalOut = 0, totalSangria = 0, totalSuprimento = 0;
+
+    // M2 — payment_breakdown completo (gross_in + gross_out + net por método).
+    //
+    // Antes: só somávamos entradas por método → relatório mostrava "Pix: R$ 500"
+    //        mas se houvesse R$ 80 de saída em Pix, o líquido real era R$ 420.
+    //        Operador conciliava errado, contador via números inflados.
+    //
+    // Agora: cada forma de pagamento guarda gross_in, gross_out e net (in - out).
+    // - Sangria e suprimento NÃO entram aqui (são fluxo de caixa, não receita
+    //   por forma de pagamento — já cobertos por total_sangria/total_suprimento).
+    // - Lançamento sem payment_method explícito vai para a bucket '__sem_metodo'
+    //   para que o total reconcilie com totalIn/totalOut (nada "some" silencioso).
+    //
+    // BACKWARD COMPAT: mantemos `payment_breakdown[method] = gross_in` no nível raiz
+    // (mesmo formato antigo) para não quebrar componentes que já leem assim. O detalhe
+    // estruturado vai em `payment_breakdown_detail` (novo).
     const payment_breakdown = {};
+    const payment_breakdown_detail = {};
+    const bumpMethod = (method, side, amt) => {
+      const key = method || '__sem_metodo';
+      if (!payment_breakdown_detail[key]) {
+        payment_breakdown_detail[key] = { gross_in: 0, gross_out: 0, net: 0 };
+      }
+      payment_breakdown_detail[key][side] = +(payment_breakdown_detail[key][side] + amt).toFixed(2);
+      payment_breakdown_detail[key].net = +(
+        payment_breakdown_detail[key].gross_in - payment_breakdown_detail[key].gross_out
+      ).toFixed(2);
+    };
+
     for (const e of entries) {
       const k = kindOf(e);
       const amt = Number(e.amount) || 0;
-      if (k === 'entrada')         totalIn         += amt;
-      else if (k === 'saida')      totalOut        += amt;
-      else if (k === 'sangria')    totalSangria    += amt;
-      else if (k === 'suprimento') totalSuprimento += amt;
-      if (k === 'entrada' && e.payment_method) {
-        payment_breakdown[e.payment_method] = +(((payment_breakdown[e.payment_method] || 0) + amt).toFixed(2));
-      }
+      if (k === 'entrada') {
+        totalIn += amt;
+        bumpMethod(e.payment_method, 'gross_in', amt);
+        if (e.payment_method) {
+          payment_breakdown[e.payment_method] = +(((payment_breakdown[e.payment_method] || 0) + amt).toFixed(2));
+        }
+      } else if (k === 'saida') {
+        totalOut += amt;
+        bumpMethod(e.payment_method, 'gross_out', amt);
+      } else if (k === 'sangria')    totalSangria    += amt;
+      else if (k === 'suprimento')   totalSuprimento += amt;
     }
     const expected = +((reg.initial_amount || 0) + totalIn + totalSuprimento - totalOut - totalSangria).toFixed(2);
     const final = +Number(final_amount).toFixed(2);
@@ -257,6 +289,9 @@ Deno.serve(async (req) => {
         total_sangria: +totalSangria.toFixed(2),
         total_suprimento: +totalSuprimento.toFixed(2),
         payment_breakdown,
+        // M2 — estrutura completa salva em metadata (não precisa schema migration).
+        // Quem consumir: relatórios de fechamento, conciliação contábil, exports.
+        metadata: { ...(reg.metadata || {}), payment_breakdown_detail },
         closed_by: user.email,
         notes: [reg.notes, notes].filter(Boolean).join(' · '),
         status: 'fechado',
@@ -292,7 +327,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('[closeCashRegister] ok', { user: user.email, company_id: reg.company_id, register_id, expected, final, difference });
-    return Response.json({ success: true, register: updated, totals: { totalIn, totalOut, totalSangria, totalSuprimento, expected, final, difference, payment_breakdown } });
+    return Response.json({ success: true, register: updated, totals: { totalIn, totalOut, totalSangria, totalSuprimento, expected, final, difference, payment_breakdown, payment_breakdown_detail } });
   } catch (error) {
     const az = authzErrorResponse(error);
     if (az) {

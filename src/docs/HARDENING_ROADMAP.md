@@ -289,6 +289,26 @@ ensureSameCompany(caller, target);
 
 ### Sprint M2 — Desacoplamento/integridade ⏳ em execução
 
+**M4 — Conflict check client-side** ✅ (2026-05-11) — documentado
+- O check de conflito no frontend (`appointmentConflict`/`blockedConflict` em `lib/scheduling.js`, usado em AppAgenda) deixou de ser fonte de verdade no P0.1 (SlotReservation) e Fase 3 (mutateAppointment re-valida server-side).
+- **Status oficial**: client-side conflict é **UX optimization only** — feedback otimista pra não deixar o operador apertar "Salvar" e esperar a request. A garantia real está em:
+  - `SlotReservation` (lock atômico, TTL 90s) para booking público.
+  - `mutateAppointment` re-checa conflict + block server-side antes de gravar (Fase 3).
+- Não há mudança de código — só registrar essa decisão arquitetural. Frontend pode mostrar warning otimista; backend sempre vence o tie-breaker.
+- Pendente futuro (não nesta sprint): considerar mover `lib/scheduling.js` para um pacote `lib/scheduling-ux.js` para evidenciar que é puramente cosmético.
+
+**M2 — `payment_breakdown` incompleto no fechamento de caixa** ✅ (2026-05-11)
+- `closeCashRegister` antes agregava só entradas por método (`payment_breakdown[method] = soma`). Saídas em Pix/cartão sumiam do relatório → operador conciliava errado, contador via valores inflados, analytics não fechava.
+- Agora calcula `payment_breakdown_detail = { method: { gross_in, gross_out, net } }`:
+  - `gross_in`: total de entradas por forma.
+  - `gross_out`: total de saídas por forma.
+  - `net`: in - out (líquido por forma).
+  - Bucket `__sem_metodo` captura lançamentos legados sem `payment_method`, garantindo que NADA "some" silencioso (a soma de detail bate com `total_in`/`total_out`).
+  - Sangria/suprimento NÃO entram aqui (são fluxo de caixa, cobertos por campos próprios).
+- **Backward compat**: `payment_breakdown` legado (gross_in raso por método) continua no schema raiz — relatórios antigos seguem funcionando sem mudança. Detail vai em `CashRegister.metadata.payment_breakdown_detail` (schema já tem `metadata` aberto, sem migration).
+- Response da função expõe `payment_breakdown_detail` para o frontend já usar imediatamente em telas novas.
+- Não rompe nenhum consumidor atual (CaixaSummaryHeader, CaixaDreCard, CloseCashModal, HistoryDreCard etc.) — todos leem o campo legado.
+
 **M1 — `recomputeCustomerLifecycle` síncrono no caminho crítico** ✅ (2026-05-11)
 - `onAppointmentConcluded` antes fazia `await sdk.functions.invoke('recomputeCustomerLifecycle', ...)` no final do handler.
 - Problema: bloqueava a resposta (~500ms-1s extras) e qualquer falha do recompute (timeout, 500, fila cheia) era logada como erro mesmo quando o crítico (FinancialEntry + WhatsApp de avaliação) tinha terminado com sucesso.
