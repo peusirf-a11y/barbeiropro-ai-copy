@@ -1,4 +1,8 @@
-// Modal universal de lançamento — entrada/saída/sangria/suprimento + forma de pagamento.
+// Modal universal de lançamento — criação OU edição.
+// - 4 tipos: entrada/saída/sangria/suprimento
+// - Forma de pagamento aplica só para entrada/saída
+// - Justificativa OBRIGATÓRIA em sangria/suprimento
+// - Em modo edição (form.id presente), tipo é fixo (não muda natureza contábil)
 import StandardModal from '@/components/ui/standard-modal';
 import { PAYMENT_METHODS } from '@/lib/cashRegister';
 
@@ -9,50 +13,65 @@ const KIND_TABS = [
   { v: 'suprimento', l: 'Suprimento', color: 'bg-[#2563EB]' },
 ];
 
-// Sangria/suprimento são movimentações internas — método de pagamento não se aplica.
 const supportsPaymentMethod = (kind) => kind === 'entrada' || kind === 'saida';
+const requiresJustification = (kind) => kind === 'sangria' || kind === 'suprimento';
 
 export default function EntryModal({ open, onClose, form, setForm, onConfirm, loading }) {
-  const disabled = !form.amount;
+  const isEdit = !!form.id;
   const showPayment = supportsPaymentMethod(form.entry_kind);
+  const needJustification = requiresJustification(form.entry_kind);
+
+  const disabled =
+    !form.amount ||
+    Number(form.amount) <= 0 ||
+    (needJustification && !String(form.justification || '').trim());
 
   return (
     <StandardModal
       open={open}
       onClose={onClose}
-      title="Lançamento no caixa"
+      title={isEdit ? 'Editar lançamento' : 'Lançamento no caixa'}
       footer={
         <>
           <button onClick={onClose} className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50">Cancelar</button>
           <button onClick={onConfirm} disabled={disabled || loading}
             className="flex-1 min-h-[48px] px-4 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
-            {loading ? 'Salvando...' : 'Salvar lançamento'}
+            {loading ? 'Salvando...' : (isEdit ? 'Salvar alterações' : 'Salvar lançamento')}
           </button>
         </>
       }
     >
       <div className="space-y-3">
-        {/* Tabs de tipo */}
+        {/* Tabs de tipo — desabilitadas em edição (natureza contábil não muda) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {KIND_TABS.map(t => (
-            <button
-              key={t.v}
-              type="button"
-              onClick={() => setForm(p => ({ ...p, entry_kind: t.v }))}
-              className={`py-2.5 rounded-lg text-xs font-semibold border transition-colors ${
-                form.entry_kind === t.v
-                  ? `${t.color} text-white border-transparent`
-                  : 'border-black/10 text-gray-600 hover:border-[#2563EB]/30 bg-white'
-              }`}
-            >
-              {t.l}
-            </button>
-          ))}
+          {KIND_TABS.map(t => {
+            const active = form.entry_kind === t.v;
+            return (
+              <button
+                key={t.v}
+                type="button"
+                disabled={isEdit && !active}
+                onClick={() => setForm(p => ({ ...p, entry_kind: t.v }))}
+                className={`py-2.5 rounded-lg text-xs font-semibold border transition-colors ${
+                  active
+                    ? `${t.color} text-white border-transparent`
+                    : 'border-black/10 text-gray-600 hover:border-[#2563EB]/30 bg-white disabled:opacity-40 disabled:hover:border-black/10'
+                }`}
+              >
+                {t.l}
+              </button>
+            );
+          })}
         </div>
+        {isEdit && (
+          <div className="text-[11px] text-[#6B7280] -mt-1">
+            O tipo do lançamento não pode ser alterado. Para mudar a natureza, exclua e crie um novo.
+          </div>
+        )}
 
         <div>
           <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
-          <input type="text" value={form.description}
+          <input type="text" value={form.description || ''}
             onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
             placeholder="Ex: Venda de pomada, troco do banco..."
             className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
@@ -84,6 +103,26 @@ export default function EntryModal({ open, onClose, form, setForm, onConfirm, lo
                   <span>{m.icon}</span><span>{m.label}</span>
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {needJustification && (
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">
+              Motivo da {form.entry_kind === 'sangria' ? 'sangria' : 'suprimento'} *
+            </label>
+            <textarea
+              rows={2}
+              value={form.justification || ''}
+              onChange={e => setForm(p => ({ ...p, justification: e.target.value }))}
+              placeholder={form.entry_kind === 'sangria'
+                ? 'Ex: Depósito no banco, pagamento de fornecedor...'
+                : 'Ex: Reforço de troco, aporte do dono...'}
+              className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm resize-none"
+            />
+            <div className="text-[11px] text-[#6B7280] mt-1">
+              Justificativa obrigatória — fica registrada no histórico de auditoria.
             </div>
           </div>
         )}

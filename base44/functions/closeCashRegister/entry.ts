@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
     const all = await base44.asServiceRole.entities.FinancialEntry.filter({ company_id: reg.company_id }, '-created_date', 2000);
     const since = new Date(reg.opened_at);
     const entries = all.filter(e => {
+      if (e.deleted_at) return false;
       if (e.cash_register_id) return e.cash_register_id === register_id;
       const matchTime = new Date(e.created_date || e.date) >= since;
       if (!matchTime) return false;
