@@ -15,28 +15,35 @@ import { buildConfirmationMessage, buildReminderMessage } from '@/lib/whatsappCo
 
 export default function AgendaMobileList({
   selectedDate,
-  professionals,
-  appointments,
-  services,
+  professionals = [],
+  appointments = [],
+  services = [],
   customers = [],
   onCardClick,
 }) {
   const { company } = useCompany();
+  // Guards defensivos: queries do TanStack já têm default=[], mas se algum caller
+  // passar undefined explicitamente (ex: estado intermediário), não quebrar a tela.
+  const safeProfessionals = Array.isArray(professionals) ? professionals : [];
+  const safeAppointments = Array.isArray(appointments) ? appointments : [];
+  const safeServices = Array.isArray(services) ? services : [];
+  const safeCustomers = Array.isArray(customers) ? customers : [];
+
   const customerById = useMemo(() => {
-    return customers.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
-  }, [customers]);
+    return safeCustomers.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
+  }, [safeCustomers]);
   const dayAppts = useMemo(() => {
-    return appointments
+    return safeAppointments
       .filter(a => {
         const d = new Date(a.scheduled_at);
         return d.toDateString() === selectedDate.toDateString();
       })
       .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
-  }, [appointments, selectedDate]);
+  }, [safeAppointments, selectedDate]);
 
   const proById = useMemo(() => {
-    return professionals.reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
-  }, [professionals]);
+    return safeProfessionals.reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
+  }, [safeProfessionals]);
 
   if (!dayAppts.length) {
     return (
@@ -51,7 +58,7 @@ export default function AgendaMobileList({
   return (
     <div className="bg-white rounded-2xl border border-black/5 shadow-[var(--shadow-sm)] overflow-hidden divide-y divide-black/5 select-none">
       {dayAppts.map(appt => {
-        const svc = services.find(s => s.id === appt.service_id);
+        const svc = safeServices.find(s => s.id === appt.service_id);
         const dur = appt.custom_duration_minutes || svc?.duration_minutes || 30;
         const start = new Date(appt.scheduled_at);
         const endTime = format(addMinutes(start, dur), 'HH:mm');

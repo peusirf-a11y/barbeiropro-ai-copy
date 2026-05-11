@@ -50,7 +50,13 @@ export const renderTemplate = interpolateTemplate;
 // Company.whatsapp_settings.* — se vazio, cai num default razoável.
 
 function appointmentVars({ company, appointment, reviewLink, bookingLink }) {
-  const dt = appointment?.scheduled_at ? new Date(appointment.scheduled_at) : null;
+  // Guarda contra scheduled_at ausente OU inválido (ex: legado, drag em curso).
+  // date-fns format() joga RangeError para Date inválido — protegemos com isNaN.
+  let dt = null;
+  if (appointment?.scheduled_at) {
+    const parsed = new Date(appointment.scheduled_at);
+    if (!Number.isNaN(parsed.getTime())) dt = parsed;
+  }
   const fullName = appointment?.customer_name || '';
   return {
     nome: fullName.split(' ')[0] || fullName,

@@ -32,16 +32,18 @@ export default function WhatsAppButton({
   const hasPhone = !!String(phone || '').replace(/\D/g, '');
 
   const handleClick = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
+    e.stopPropagation?.();
+    e.preventDefault?.();
     if (!hasPhone) {
-      toast?.({
-        title: 'Cliente sem WhatsApp cadastrado',
-        description: 'Adicione um número no cadastro do cliente para enviar mensagens.',
-      });
+      if (typeof toast === 'function') {
+        toast({
+          title: 'Cliente sem WhatsApp cadastrado',
+          description: 'Adicione um número no cadastro do cliente para enviar mensagens.',
+        });
+      }
       return;
     }
-    openWhatsApp(phone, message);
+    openWhatsApp(phone, String(message || ''));
   };
 
   if (variant === 'inline') {
