@@ -69,9 +69,10 @@ const FINANCE_ROLES = ['admin', 'financeiro'];
 function notFound() {
   return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
 }
-async function logBlockedAttempt(sdk, { actor_email, action, code, target_id, metadata }) {
+async function logBlockedAttempt(sdk, { actor_email, action, code, target_id, metadata, company_id }) {
   try {
     await sdk.entities.AuditLog.create({
+      company_id: company_id || null, // P0.5: coluna nativa (null = ação de plataforma / sem tenant)
       actor_email: actor_email || 'unknown',
       action: 'BLOCKED_ATTEMPT',
       target_type: 'Function',
@@ -86,7 +87,7 @@ async function ensureCompanyNotBlocked(sdk, company_id, user_email, action) {
   try { co = await sdk.entities.Company.get(company_id); } catch { return; }
   if (!co) return;
   if (co.status === 'blocked' || co.is_blocked_by_billing === true) {
-    await logBlockedAttempt(sdk, { actor_email: user_email, action, code: 'COMPANY_BLOCKED', target_id: company_id });
+    await logBlockedAttempt(sdk, { actor_email: user_email, action, code: 'COMPANY_BLOCKED', target_id: company_id, company_id });
     throw new AuthzError('COMPANY_BLOCKED', 403);
   }
 }
@@ -250,6 +251,7 @@ Deno.serve(async (req) => {
     // AuditLog (mutation crítica)
     try {
       await base44.asServiceRole.entities.AuditLog.create({
+        company_id: reg.company_id, // P0.5: coluna nativa
         actor_email: user.email,
         actor_is_super_admin: !!caller.is_super_admin,
         action: 'CLOSE_CASH_REGISTER',
@@ -257,7 +259,7 @@ Deno.serve(async (req) => {
         target_id: register_id,
         before: { status: 'aberto', initial_amount: reg.initial_amount },
         after: { status: 'fechado', final_amount: final, expected_amount: expected, difference },
-        metadata: { company_id: reg.company_id, totalIn, totalOut },
+        metadata: { company_id: reg.company_id, unit_id: reg.unit_id || null, totalIn, totalOut },
       });
     } catch (auditErr) {
       console.warn('[closeCashRegister] audit log failed:', auditErr.message);

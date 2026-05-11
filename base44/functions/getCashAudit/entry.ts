@@ -77,8 +77,28 @@ Deno.serve(async (req) => {
       return true;
     };
 
-    // 1) AuditLog — filtra por company via metadata.company_id (não há tenant nativo)
-    const audits = await base44.asServiceRole.entities.AuditLog.filter({}, '-created_date', 1000);
+    // 1) AuditLog — P0.5: query nativa por company_id (coluna indexada).
+    // Fallback: registros antigos podem ter company_id só em metadata; fazemos union
+    // do filter nativo + filter por metadata.company_id (best-effort para legado).
+    // Após o backfill (functions/backfillAuditLogCompanyId) os 2 conjuntos convergem.
+    const auditsNative = caller.is_super_admin
+      ? await base44.asServiceRole.entities.AuditLog.filter({}, '-created_date', 1000)
+      : await base44.asServiceRole.entities.AuditLog.filter({ company_id: caller.company_id }, '-created_date', 1000);
+
+    // Legacy fallback: pegar registros SEM company_id que tenham metadata.company_id batendo.
+    // (Roda apenas quando não é super_admin — super_admin já vê tudo.)
+    let auditsLegacy = [];
+    if (!caller.is_super_admin) {
+      const noCompany = await base44.asServiceRole.entities.AuditLog.filter({ company_id: null }, '-created_date', 500).catch(() => []);
+      auditsLegacy = noCompany.filter(a => a.metadata?.company_id === caller.company_id);
+    }
+    const seen = new Set();
+    const audits = [];
+    for (const a of [...auditsNative, ...auditsLegacy]) {
+      if (seen.has(a.id)) continue;
+      seen.add(a.id);
+      audits.push(a);
+    }
     const events = [];
 
     const CASH_ACTIONS = new Set([
@@ -88,7 +108,8 @@ Deno.serve(async (req) => {
     for (const a of audits) {
       if (!CASH_ACTIONS.has(a.action)) continue;
       const meta = a.metadata || {};
-      const cId = meta.company_id;
+      // P0.5: company_id agora é coluna nativa (já filtrado na query) — fallback para metadata para legados.
+      const cId = a.company_id || meta.company_id;
       if (!caller.is_super_admin && cId !== caller.company_id) continue;
       const ts = a.created_date;
       if (!inRange(ts)) continue;

@@ -2,6 +2,10 @@
   "name": "AuditLog",
   "type": "object",
   "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Tenant da a\u00e7\u00e3o. Indexado nativamente para queries por barbearia (P0.5). NULL = a\u00e7\u00e3o de plataforma (super-admin sem alvo de empresa)."
+    },
     "actor_email": {
       "type": "string",
       "description": "E-mail do usu\u00e1rio que executou a a\u00e7\u00e3o"
@@ -16,7 +20,7 @@
     },
     "action": {
       "type": "string",
-      "description": "Identificador da a\u00e7\u00e3o (ex: BLOCK_COMPANY, ACTIVATE_COMPANY)"
+      "description": "Identificador da a\u00e7\u00e3o (ex: BLOCK_COMPANY, ACTIVATE_COMPANY, EDIT_FINANCIAL_ENTRY)"
     },
     "target_type": {
       "type": "string"

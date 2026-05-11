@@ -154,6 +154,7 @@ Deno.serve(async (req) => {
 
       try {
         await base44.asServiceRole.entities.AuditLog.create({
+          company_id: entry.company_id, // P0.5: coluna nativa, mantém em metadata também por compat
           actor_email: user.email,
           actor_is_super_admin: !!caller.is_super_admin,
           action: 'EDIT_FINANCIAL_ENTRY',
@@ -188,6 +189,7 @@ Deno.serve(async (req) => {
 
       try {
         await base44.asServiceRole.entities.AuditLog.create({
+          company_id: entry.company_id, // P0.5: coluna nativa
           actor_email: user.email,
           actor_is_super_admin: !!caller.is_super_admin,
           action: 'DELETE_FINANCIAL_ENTRY',

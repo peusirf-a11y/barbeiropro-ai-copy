@@ -377,6 +377,7 @@ Deno.serve(async (req) => {
         // AuditLog do sync (rastreabilidade do Stripe)
         try {
           await base44.asServiceRole.entities.AuditLog.create({
+            company_id: c.id, // P0.5: coluna nativa
             actor_email: 'stripe-webhook',
             action: `STRIPE_${event.type.toUpperCase().replace(/\./g, '_')}`,
             target_type: 'Company',
@@ -535,6 +536,7 @@ Deno.serve(async (req) => {
 
           try {
             await base44.asServiceRole.entities.AuditLog.create({
+              company_id: c.id, // P0.5: coluna nativa
               actor_email: 'stripe-webhook',
               action: 'STRIPE_INVOICE_PAYMENT_FAILED',
               target_type: 'Company',

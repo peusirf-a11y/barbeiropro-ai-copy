@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
     });
 
     await base44.asServiceRole.entities.AuditLog.create({
+      company_id, // P0.5: coluna nativa
       actor_email: user.email,
       actor_is_super_admin: true,
       action: 'START_IMPERSONATION',

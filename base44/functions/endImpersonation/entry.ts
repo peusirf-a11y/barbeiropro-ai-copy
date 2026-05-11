@@ -21,6 +21,7 @@ Deno.serve(async (req) => {
         ended_at: new Date().toISOString(),
       });
       await base44.asServiceRole.entities.AuditLog.create({
+        company_id: s.company_id, // P0.5: coluna nativa
         actor_email: user.email,
         actor_is_super_admin: true,
         action: 'END_IMPERSONATION',

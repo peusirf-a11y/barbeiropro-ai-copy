@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
     const after = { status: 'active' };
 
     await base44.asServiceRole.entities.AuditLog.create({
+      company_id, // P0.5: coluna nativa
       actor_email: user.email,
       actor_is_super_admin: true,
       action: 'ACTIVATE_COMPANY',
