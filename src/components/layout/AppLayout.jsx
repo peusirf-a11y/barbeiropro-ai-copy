@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat, ChevronLeft } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import BrandMark from '@/components/BrandMark';
@@ -140,6 +140,28 @@ export default function AppLayout({ children }) {
     staleTime: 5 * 60_000,
   });
 
+  // Filtra menu por papel. Sem teamRole (super_admin/owner antigo) → mostra tudo.
+  // Calculado ANTES do early return de loadingRole para que `useMemo` abaixo
+  // respeite rules-of-hooks.
+  const allowed = teamRole?.role && ROLE_PERMISSIONS[teamRole.role]
+    ? ROLE_PERMISSIONS[teamRole.role]
+    : null;
+
+  // F6 (Foundation Sprint): memoiza `navItems` para evitar recomputar o filtro
+  // duplo (role + feature) em todo re-render. Multi-unit + menu grande começa
+  // a pesar no mobile mid-range. Deps cobrem o que de fato muda a saída.
+  // ⚠️ Hook DEVE vir ANTES de qualquer early return (rules-of-hooks).
+  const navItems = useMemo(() => {
+    const byRole = allowed && !allowed.includes('*')
+      ? navItemsAll.filter(i => allowed.includes(i.key))
+      : navItemsAll;
+    return byRole.filter(item => {
+      const requiredFeature = NAV_KEY_FEATURE_MAP[item.key];
+      if (!requiredFeature) return true;
+      return hasFeature(plan, company, requiredFeature);
+    });
+  }, [allowed, plan, company]);
+
   // 🔒 Bloqueio rígido: NÃO renderizar nada até saber o role.
   // Evita flash de menu completo antes do RBAC carregar.
   if (loadingRole) {
@@ -149,22 +171,6 @@ export default function AppLayout({ children }) {
       </div>
     );
   }
-
-  // Filtra menu por papel. Sem teamRole (super_admin/owner antigo) → mostra tudo.
-  const allowed = teamRole?.role && ROLE_PERMISSIONS[teamRole.role]
-    ? ROLE_PERMISSIONS[teamRole.role]
-    : null;
-  const navItemsByRole = allowed && !allowed.includes('*')
-    ? navItemsAll.filter(i => allowed.includes(i.key))
-    : navItemsAll;
-
-  // Filtra menu por feature: se a key do nav tem requisito de feature e a feature
-  // não está liberada (override company > plano), esconde o item.
-  const navItems = navItemsByRole.filter(item => {
-    const requiredFeature = NAV_KEY_FEATURE_MAP[item.key];
-    if (!requiredFeature) return true;
-    return hasFeature(plan, company, requiredFeature);
-  });
 
   // 🔒 Proteção extra contra acesso direto via URL — se a rota atual exigir uma key
   // que o papel não possui, redireciona para o dashboard.

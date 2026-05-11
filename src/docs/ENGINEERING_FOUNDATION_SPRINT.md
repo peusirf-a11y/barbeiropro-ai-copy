@@ -1,6 +1,38 @@
 # 🏗️ ENGINEERING FOUNDATION SPRINT
 
-**Status**: planejado
+**Status**: ✅ executada (2026-05-11)
+**Owner**: engenharia
+**Duração real**: 1 sessão (escopo ajustado às restrições da plataforma Base44)
+
+## Resultado da execução
+
+| # | Item | Status | Notas |
+|---|---|---|---|
+| F1 | Infra de testes | ✅ | `functions/runFoundationTests` (smoke runner admin-only) + `tests/` mirror. **34/34 passed em 17ms.** |
+| F2 | `lib/env.js` + template inline | ✅ | Helper frontend + template `docs/conventions/ENV_INLINE.md` para backend (Base44 não permite local imports em functions/). Migração das 5 functions Stripe → próxima sprint incremental. |
+| F3 | Error codes + `translateError` | ✅ | `lib/errorCodes.js` com catálogo pt-BR + `errorResponse()` para backend. Adoção incremental. |
+| F4 | `lib/dates.js` | ✅ | `parseDate`, `formatDate`, `dayRange`, etc. Mata o hack `'T00:00:00'`. Migração dos call sites → próxima sprint. |
+| F5 | `lib/money.js` | ✅ | `roundBRL`, `calcCommission`, `validatePrice`, `formatBRL`. Drift de float resolvido. |
+| F6 | `useMemo(navItems)` no AppLayout | ✅ | Filtro role + feature memoizado com deps `[allowed, plan, company]`. |
+| F7 | Guardrails ESLint | ✅ | `.eslintrc.cjs` com regras de ban `process.env`/`Deno` global no frontend. Sem CI nativo Base44 — serve para IDE local. |
+| F8 | Convenções | ✅ | `docs/conventions/README.md` v1.0 — naming, response shape, DTOs, data fetching, segurança baseline. |
+
+## Restrições descobertas durante a execução
+
+1. **Sem package.json acessível ao builder** → Vitest tradicional impossível. Resolvido com `runFoundationTests` (backend function que executa testes inline).
+2. **Sem local imports em `functions/`** → cada teste/helper precisa ser inline. Pago em duplicação, ganho em isolamento de deploy.
+3. **Sem CI nativo** → `.eslintrc.cjs` funciona em IDE local; cultura > automação por enquanto.
+
+## Próximos passos (incremental, fora desta sprint)
+
+- Migrar as 5 functions Stripe para o template `getEnv` inline.
+- Migrar `'T00:00:00'` call sites para `parseDate()`.
+- Adicionar smoke flows: booking público, RBAC cross-tenant, fechamento de caixa.
+- Quando algum helper for tocado: re-inline os testes em `runFoundationTests`.
+
+---
+
+**Status original**: planejado
 **Início alvo**: pós-Fase 7 do BFF (sistema já estabilizado)
 **Owner**: engenharia
 **Duração estimada**: 2 sprints (10 dias úteis)
