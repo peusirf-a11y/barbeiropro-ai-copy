@@ -17,11 +17,38 @@ async function getCallerContext(base44, user) {
   const tm = await base44.asServiceRole.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
   if (tm?.length) {
     if (tm[0].active === false) throw new AuthzError('USER_INACTIVE', 403);
-    return { role: tm[0].role, company_id: tm[0].company_id, professional_id: tm[0].professional_id || null, email: user.email };
+    return {
+      role: tm[0].role,
+      company_id: tm[0].company_id,
+      professional_id: tm[0].professional_id || null,
+      email: user.email,
+      cash_permissions: tm[0].cash_permissions || null,
+      unit_ids: tm[0].unit_ids || [],
+    };
   }
   const co = await base44.asServiceRole.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
   if (co?.length) return { role: 'admin', company_id: co[0].id, email: user.email, is_owner: true };
   throw new AuthzError('NO_TEAM_MEMBER', 403);
+}
+
+// Fase 4 — permissão granular + isolamento por unidade.
+const ROLE_DEFAULTS_CLOSE = {
+  admin: true, financeiro: true, recepcao: false, barbeiro: false,
+};
+function canClose(caller) {
+  if (caller.is_super_admin) return true;
+  const overrides = caller.cash_permissions || {};
+  if (typeof overrides.close_register === 'boolean') return overrides.close_register;
+  return !!ROLE_DEFAULTS_CLOSE[caller.role];
+}
+const CROSS_UNIT_ROLES_CLOSE = ['admin', 'financeiro', 'super_admin'];
+function canAccessUnit(caller, unit_id) {
+  if (caller.is_super_admin) return true;
+  if (CROSS_UNIT_ROLES_CLOSE.includes(caller.role)) return true;
+  const allowed = caller.unit_ids || [];
+  if (!allowed.length) return true;
+  if (!unit_id) return true;
+  return allowed.includes(unit_id);
 }
 function ensureSameCompany(caller, entity) {
   if (caller.is_super_admin) return;
@@ -89,7 +116,16 @@ Deno.serve(async (req) => {
     if (!reg) return notFound();
 
     ensureSameCompany(caller, reg);
-    ensureRole(caller, FINANCE_ROLES);
+    // Capability granular (Fase 4)
+    if (!canClose(caller)) {
+      console.warn('[closeCashRegister] missing cap close_register', { user: user.email });
+      return Response.json({ success: false, error: 'FORBIDDEN_CAP' }, { status: 403 });
+    }
+    // Isolamento por unidade (Fase 4)
+    if (!canAccessUnit(caller, reg.unit_id)) {
+      console.warn('[closeCashRegister] forbidden unit', { user: user.email, unit_id: reg.unit_id });
+      return Response.json({ success: false, error: 'FORBIDDEN_UNIT' }, { status: 403 });
+    }
     await ensureCompanyNotBlocked(base44.asServiceRole, reg.company_id, user.email, 'closeCashRegister');
 
     if (reg.status === 'fechado') {

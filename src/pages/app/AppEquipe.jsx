@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Plus, X, Mail, Loader2, Send, UserCheck } from 'lucide-react';
+import { Plus, X, Mail, Loader2, Send, UserCheck, Shield } from 'lucide-react';
+import MemberPermissionsModal from '@/components/equipe/MemberPermissionsModal';
 import { useToast } from '@/components/ui/use-toast';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
@@ -16,6 +17,7 @@ const roleColors = { admin: 'bg-violet-50 text-violet-700', recepcao: 'bg-blue-5
 export default function AppEquipe() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', role: 'recepcao' });
+  const [permsTarget, setPermsTarget] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { companyId } = useCompany();
@@ -137,17 +139,26 @@ export default function AppEquipe() {
                     </button>
                   </td>
                   <td className="p-4">
-                    <button
-                      onClick={() => resendMutation.mutate(m.id)}
-                      disabled={resendMutation.isPending}
-                      className="text-xs px-2 py-1 rounded-lg font-medium bg-blue-50 text-[#2563EB] hover:bg-blue-100 inline-flex items-center gap-1 disabled:opacity-50"
-                      title="Reenviar e-mail de convite"
-                    >
-                      {resendMutation.isPending && resendMutation.variables === m.id
-                        ? <Loader2 className="w-3 h-3 animate-spin" />
-                        : <Send className="w-3 h-3" />}
-                      Reenviar convite
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        onClick={() => setPermsTarget(m)}
+                        className="text-xs px-2 py-1 rounded-lg font-medium bg-violet-50 text-violet-700 hover:bg-violet-100 inline-flex items-center gap-1"
+                        title="Configurar permissões e unidades"
+                      >
+                        <Shield className="w-3 h-3" />Permissões
+                      </button>
+                      <button
+                        onClick={() => resendMutation.mutate(m.id)}
+                        disabled={resendMutation.isPending}
+                        className="text-xs px-2 py-1 rounded-lg font-medium bg-blue-50 text-[#2563EB] hover:bg-blue-100 inline-flex items-center gap-1 disabled:opacity-50"
+                        title="Reenviar e-mail de convite"
+                      >
+                        {resendMutation.isPending && resendMutation.variables === m.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Send className="w-3 h-3" />}
+                        Reenviar convite
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -203,6 +214,12 @@ export default function AppEquipe() {
             </div>
           </div>
         </StandardModal>
+
+        <MemberPermissionsModal
+          open={!!permsTarget}
+          onClose={() => setPermsTarget(null)}
+          member={permsTarget}
+        />
       </div>
     </AppLayout>
   );

@@ -61,6 +61,7 @@ import AppAssinatura from './pages/app/AppAssinatura';
 import AppBloqueios from './pages/app/AppBloqueios';
 import AppCaixa from './pages/app/AppCaixa.jsx';
 import AppCaixaRelatorios from './pages/app/AppCaixaRelatorios.jsx';
+import AppCaixaAuditoria from './pages/app/AppCaixaAuditoria.jsx';
 import AppCombos from './pages/app/AppCombos';
 import AppPlanos from './pages/app/AppPlanos';
 import AppComissoes from './pages/app/AppComissoes';
@@ -149,6 +150,7 @@ function App() {
             <Route path="/app/bloqueios" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppBloqueios /></RoleRoute></PrivateRoute>} />
             <Route path="/app/caixa" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppCaixa /></RoleRoute></PrivateRoute>} />
             <Route path="/app/caixa/relatorios" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppCaixaRelatorios /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/caixa/auditoria" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppCaixaAuditoria /></RoleRoute></PrivateRoute>} />
             <Route path="/app/combos" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppCombos /></RoleRoute></PrivateRoute>} />
             <Route path="/app/planos" element={<PrivateRoute><RoleRoute roles={['admin','recepcao','financeiro']}><AppPlanos /></RoleRoute></PrivateRoute>} />
             <Route path="/app/comissoes" element={<PrivateRoute><RoleRoute roles={['admin','financeiro','barbeiro']}><AppComissoes /></RoleRoute></PrivateRoute>} />

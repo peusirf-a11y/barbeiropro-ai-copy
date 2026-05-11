@@ -20,22 +20,30 @@ export default function CaixaSummaryHeader({ openCash, expected, onNewEntry, onS
       </div>
 
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-5">
-        <button onClick={onNewEntry}
-          className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
-          <Plus className="w-4 h-4" />Lançamento
-        </button>
-        <button onClick={onSuprimento}
-          className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
-          <ArrowDownToLine className="w-4 h-4" />Suprimento
-        </button>
-        <button onClick={onSangria}
-          className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
-          <ArrowUpFromLine className="w-4 h-4" />Sangria
-        </button>
-        <button onClick={onClose}
-          className="flex items-center justify-center gap-2 bg-white text-[#2563EB] text-sm font-bold px-4 py-2.5 rounded-xl hover:shadow-lg transition-all sm:ml-auto">
-          <Lock className="w-4 h-4" />Fechar caixa
-        </button>
+        {onNewEntry && (
+          <button onClick={onNewEntry}
+            className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+            <Plus className="w-4 h-4" />Lançamento
+          </button>
+        )}
+        {onSuprimento && (
+          <button onClick={onSuprimento}
+            className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+            <ArrowDownToLine className="w-4 h-4" />Suprimento
+          </button>
+        )}
+        {onSangria && (
+          <button onClick={onSangria}
+            className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+            <ArrowUpFromLine className="w-4 h-4" />Sangria
+          </button>
+        )}
+        {onClose && (
+          <button onClick={onClose}
+            className="flex items-center justify-center gap-2 bg-white text-[#2563EB] text-sm font-bold px-4 py-2.5 rounded-xl hover:shadow-lg transition-all sm:ml-auto">
+            <Lock className="w-4 h-4" />Fechar caixa
+          </button>
+        )}
       </div>
     </div>
   );

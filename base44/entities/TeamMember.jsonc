@@ -28,6 +28,55 @@
     "professional_id": {
       "type": "string",
       "description": "Quando role=barbeiro, vincula ao Professional correspondente para filtrar agenda/comiss\u00f5es"
+    },
+    "unit_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Unidades \u00e0s quais este membro tem acesso. Vazio = todas (compat\u00edvel com mono-unidade). Admin/financeiro ignoram esta lista e veem todas."
+    },
+    "cash_permissions": {
+      "type": "object",
+      "description": "Overrides granulares de permiss\u00f5es do Caixa. Quando definido, sobrescreve os defaults do role. Cada flag pode ser true (libera), false (bloqueia) ou ausente (herda do role).",
+      "properties": {
+        "open_register": {
+          "type": "boolean",
+          "description": "Pode abrir caixa"
+        },
+        "close_register": {
+          "type": "boolean",
+          "description": "Pode fechar caixa"
+        },
+        "create_entry": {
+          "type": "boolean",
+          "description": "Pode lan\u00e7ar entradas/sa\u00eddas"
+        },
+        "edit_entry": {
+          "type": "boolean",
+          "description": "Pode editar lan\u00e7amentos manuais"
+        },
+        "delete_entry": {
+          "type": "boolean",
+          "description": "Pode excluir lan\u00e7amentos manuais"
+        },
+        "sangria": {
+          "type": "boolean",
+          "description": "Pode registrar sangria"
+        },
+        "suprimento": {
+          "type": "boolean",
+          "description": "Pode registrar suprimento"
+        },
+        "view_reports": {
+          "type": "boolean",
+          "description": "Pode acessar relat\u00f3rios do caixa"
+        },
+        "view_audit": {
+          "type": "boolean",
+          "description": "Pode acessar a p\u00e1gina de auditoria"
+        }
+      }
     }
   },
   "required": [

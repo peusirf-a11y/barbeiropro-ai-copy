@@ -5,12 +5,13 @@
 // - Em modo edição (form.id presente), tipo é fixo (não muda natureza contábil)
 import StandardModal from '@/components/ui/standard-modal';
 import { PAYMENT_METHODS } from '@/lib/cashRegister';
+import { useCashPermissions } from '@/hooks/useCashPermissions';
 
 const KIND_TABS = [
-  { v: 'entrada',    l: 'Entrada',    color: 'bg-emerald-600' },
-  { v: 'saida',      l: 'Saída',      color: 'bg-red-600' },
-  { v: 'sangria',    l: 'Sangria',    color: 'bg-orange-600' },
-  { v: 'suprimento', l: 'Suprimento', color: 'bg-[#2563EB]' },
+  { v: 'entrada',    l: 'Entrada',    color: 'bg-emerald-600', cap: 'create_entry' },
+  { v: 'saida',      l: 'Saída',      color: 'bg-red-600',     cap: 'create_entry' },
+  { v: 'sangria',    l: 'Sangria',    color: 'bg-orange-600',  cap: 'sangria' },
+  { v: 'suprimento', l: 'Suprimento', color: 'bg-[#2563EB]',   cap: 'suprimento' },
 ];
 
 const supportsPaymentMethod = (kind) => kind === 'entrada' || kind === 'saida';
@@ -20,6 +21,10 @@ export default function EntryModal({ open, onClose, form, setForm, onConfirm, lo
   const isEdit = !!form.id;
   const showPayment = supportsPaymentMethod(form.entry_kind);
   const needJustification = requiresJustification(form.entry_kind);
+  const { can } = useCashPermissions();
+  // Em edição, mostramos somente o tipo atual (não troca natureza contábil).
+  // Em criação, filtramos pelas caps disponíveis.
+  const visibleTabs = isEdit ? KIND_TABS : KIND_TABS.filter(t => can(t.cap));
 
   const disabled =
     !form.amount ||
@@ -43,8 +48,8 @@ export default function EntryModal({ open, onClose, form, setForm, onConfirm, lo
     >
       <div className="space-y-3">
         {/* Tabs de tipo — desabilitadas em edição (natureza contábil não muda) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {KIND_TABS.map(t => {
+        <div className={`grid gap-2 ${visibleTabs.length >= 3 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'}`}>
+          {visibleTabs.map(t => {
             const active = form.entry_kind === t.v;
             return (
               <button

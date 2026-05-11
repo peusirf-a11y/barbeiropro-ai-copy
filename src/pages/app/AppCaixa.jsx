@@ -13,8 +13,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useMemo } from 'react';
-import { Wallet, Unlock, TrendingUp, TrendingDown, ArrowDownToLine, ArrowUpFromLine, BarChart2 } from 'lucide-react';
+import { Wallet, Unlock, TrendingUp, TrendingDown, ArrowDownToLine, ArrowUpFromLine, BarChart2, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useCashPermissions } from '@/hooks/useCashPermissions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
@@ -57,6 +58,7 @@ export default function AppCaixa() {
   const { companyId, isLoading: loadingCompany } = useCompany();
   const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
   const { user } = useAuth();
+  const { can } = useCashPermissions();
   const queryClient = useQueryClient();
 
   // Modais
@@ -275,12 +277,24 @@ export default function AppCaixa() {
           subtitle="Abertura, fechamento e DRE operacional do dia"
           icon={Wallet}
         >
-          <Link
-            to="/app/caixa/relatorios"
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-black/10 text-sm font-semibold text-[#111827] hover:border-[#2563EB] hover:text-[#2563EB]"
-          >
-            <BarChart2 className="w-4 h-4" />Ver relatórios
-          </Link>
+          <div className="flex gap-2">
+            {can('view_audit') && (
+              <Link
+                to="/app/caixa/auditoria"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-black/10 text-sm font-semibold text-[#111827] hover:border-[#2563EB] hover:text-[#2563EB]"
+              >
+                <Shield className="w-4 h-4" />Auditoria
+              </Link>
+            )}
+            {can('view_reports') && (
+              <Link
+                to="/app/caixa/relatorios"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-black/10 text-sm font-semibold text-[#111827] hover:border-[#2563EB] hover:text-[#2563EB]"
+              >
+                <BarChart2 className="w-4 h-4" />Relatórios
+              </Link>
+            )}
+          </div>
         </AppPageHeader>
 
         {isAllUnits && (
@@ -292,12 +306,14 @@ export default function AppCaixa() {
             <EmptyState
               icon={Wallet}
               title="Caixa fechado"
-              description="Abra o caixa para começar a registrar entradas, saídas, sangrias e suprimentos do dia."
-              action={
+              description={can('open_register')
+                ? 'Abra o caixa para começar a registrar entradas, saídas, sangrias e suprimentos do dia.'
+                : 'O caixa está fechado. Peça para um responsável (admin ou financeiro) abrir.'}
+              action={can('open_register') ? (
                 <button onClick={() => setShowOpen(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-[#1d4ed8] inline-flex items-center gap-2">
                   <Unlock className="w-4 h-4" />Abrir caixa
                 </button>
-              }
+              ) : null}
             />
           </div>
         ) : (
@@ -312,10 +328,10 @@ export default function AppCaixa() {
             <CaixaSummaryHeader
               openCash={openCash}
               expected={totals.expected}
-              onNewEntry={() => openCreateEntry('entrada')}
-              onSangria={() => openCreateEntry('sangria')}
-              onSuprimento={() => openCreateEntry('suprimento')}
-              onClose={() => setShowClose(true)}
+              onNewEntry={can('create_entry') ? () => openCreateEntry('entrada') : null}
+              onSangria={can('sangria') ? () => openCreateEntry('sangria') : null}
+              onSuprimento={can('suprimento') ? () => openCreateEntry('suprimento') : null}
+              onClose={can('close_register') ? () => setShowClose(true) : null}
             />
 
             <CaixaDreCard dre={dre} />
@@ -340,8 +356,8 @@ export default function AppCaixa() {
                 entries={filteredEntries}
                 professionalsMap={professionalsMap}
                 customersMap={customersMap}
-                onEdit={openEditEntry}
-                onDelete={openDeleteEntry}
+                onEdit={can('edit_entry') ? openEditEntry : null}
+                onDelete={can('delete_entry') ? openDeleteEntry : null}
               />
             </div>
           </>

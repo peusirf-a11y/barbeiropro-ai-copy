@@ -1,5 +1,6 @@
 // Edita ou exclui (soft-delete) um FinancialEntry com:
-// - RBAC (admin/financeiro)
+// - RBAC + permissões granulares (cash_permissions)
+// - Isolamento multi-unidade (TeamMember.unit_ids)
 // - Bloqueio para origens 'agendamento' e 'comissao' (fonte da verdade do sistema)
 // - Audit log (quem, quando, antes/depois, motivo)
 //
@@ -12,13 +13,44 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 class AuthzError extends Error {
   constructor(code, status = 403) { super(code); this.code = code; this.status = status; }
 }
+
+// ── Defaults de cash_permissions por role (espelha lib/cashPermissions.js) ──
+const ROLE_DEFAULTS = {
+  admin:      { edit_entry: true,  delete_entry: true },
+  financeiro: { edit_entry: true,  delete_entry: true },
+  recepcao:   { edit_entry: false, delete_entry: false },
+  barbeiro:   { edit_entry: false, delete_entry: false },
+};
+const CROSS_UNIT_ROLES = ['admin', 'financeiro', 'super_admin'];
+
+function hasCap(caller, cap) {
+  if (caller.is_super_admin) return true;
+  const overrides = caller.cash_permissions || {};
+  if (typeof overrides[cap] === 'boolean') return overrides[cap];
+  return !!(ROLE_DEFAULTS[caller.role] || {})[cap];
+}
+function canAccessUnit(caller, unit_id) {
+  if (caller.is_super_admin) return true;
+  if (CROSS_UNIT_ROLES.includes(caller.role)) return true;
+  const allowed = caller.unit_ids || [];
+  if (!allowed.length) return true;
+  if (!unit_id) return true;
+  return allowed.includes(unit_id);
+}
+
 async function getCallerContext(base44, user) {
   if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
   if (user.is_super_admin) return { role: 'super_admin', is_super_admin: true, email: user.email };
   const tm = await base44.asServiceRole.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
   if (tm?.length) {
     if (tm[0].active === false) throw new AuthzError('USER_INACTIVE', 403);
-    return { role: tm[0].role, company_id: tm[0].company_id, email: user.email };
+    return {
+      role: tm[0].role,
+      company_id: tm[0].company_id,
+      email: user.email,
+      cash_permissions: tm[0].cash_permissions || null,
+      unit_ids: tm[0].unit_ids || [],
+    };
   }
   const co = await base44.asServiceRole.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
   if (co?.length) return { role: 'admin', company_id: co[0].id, email: user.email, is_owner: true };
@@ -29,11 +61,7 @@ function ensureSameCompany(caller, entity) {
   if (!entity?.company_id) throw new AuthzError('ENTITY_NO_COMPANY', 400);
   if (caller.company_id !== entity.company_id) throw new AuthzError('FORBIDDEN_TENANT', 403);
 }
-function ensureRole(caller, allowed) {
-  if (caller.is_super_admin) return;
-  if (!allowed.includes(caller.role)) throw new AuthzError('FORBIDDEN_ROLE', 403);
-}
-const FINANCE_ROLES = ['admin', 'financeiro'];
+
 const ALLOWED_EDIT_FIELDS = ['amount', 'category', 'description', 'payment_method', 'justification'];
 
 function isLockedEntry(entry) {
@@ -70,7 +98,19 @@ Deno.serve(async (req) => {
     if (!entry) return Response.json({ success: false, error: 'NOT_FOUND' }, { status: 404 });
 
     ensureSameCompany(caller, entry);
-    ensureRole(caller, FINANCE_ROLES);
+
+    // Capability granular conforme a ação
+    const requiredCap = action === 'edit' ? 'edit_entry' : 'delete_entry';
+    if (!hasCap(caller, requiredCap)) {
+      console.warn('[mutateFinancialEntry] missing cap', { user: user.email, cap: requiredCap });
+      return Response.json({ success: false, error: 'FORBIDDEN_CAP' }, { status: 403 });
+    }
+
+    // Isolamento por unidade (admin/financeiro passam livre)
+    if (!canAccessUnit(caller, entry.unit_id)) {
+      console.warn('[mutateFinancialEntry] forbidden unit', { user: user.email, unit_id: entry.unit_id });
+      return Response.json({ success: false, error: 'FORBIDDEN_UNIT' }, { status: 403 });
+    }
 
     if (entry.deleted_at) {
       return Response.json({ success: false, error: 'ALREADY_DELETED' }, { status: 400 });
@@ -98,7 +138,6 @@ Deno.serve(async (req) => {
         }
         cleanPatch.amount = +n.toFixed(2);
       }
-      // Sangria/suprimento: justificativa obrigatória se for editada
       if ((entry.entry_kind === 'sangria' || entry.entry_kind === 'suprimento')
         && 'justification' in cleanPatch
         && !String(cleanPatch.justification || '').trim()) {
@@ -122,7 +161,7 @@ Deno.serve(async (req) => {
           target_id: entry_id,
           before,
           after: cleanPatch,
-          metadata: { company_id: entry.company_id, cash_register_id: entry.cash_register_id || null },
+          metadata: { company_id: entry.company_id, cash_register_id: entry.cash_register_id || null, unit_id: entry.unit_id || null },
         });
       } catch (e) { console.warn('[mutateFinancialEntry] audit log failed:', e.message); }
 
@@ -132,7 +171,6 @@ Deno.serve(async (req) => {
 
     // ─────────── DELETE ───────────
     if (action === 'delete') {
-      // Apenas entrada/saída manuais podem ser excluídas (sangria/suprimento mantêm trilha).
       const kind = entry.entry_kind || (entry.type === 'saida' ? 'saida' : 'entrada');
       if (!['entrada', 'saida'].includes(kind)) {
         return Response.json({ success: false, error: 'KIND_NOT_DELETABLE' }, { status: 403 });
@@ -157,7 +195,7 @@ Deno.serve(async (req) => {
           target_id: entry_id,
           before: { amount: entry.amount, description: entry.description, entry_kind: kind },
           after: { deleted_at: now, deletion_reason: reason },
-          metadata: { company_id: entry.company_id, cash_register_id: entry.cash_register_id || null },
+          metadata: { company_id: entry.company_id, cash_register_id: entry.cash_register_id || null, unit_id: entry.unit_id || null },
         });
       } catch (e) { console.warn('[mutateFinancialEntry] audit log failed:', e.message); }
 
