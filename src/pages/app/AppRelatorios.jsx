@@ -22,9 +22,16 @@ export default function AppRelatorios() {
   const { units } = useUnits();
   const [period, setPeriod] = useState('this_month');
 
+  // BFF Fase 4: appointments via listAppointments (tenant + unit + role scope)
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
-    queryKey: ['appointments', companyId],
-    queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }),
+    queryKey: ['appointments', companyId, activeUnitId],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listAppointments', {
+        active_unit_id: activeUnitId,
+        limit: 2000,
+      });
+      return res?.data?.appointments || [];
+    },
     enabled: !!companyId,
   });
 

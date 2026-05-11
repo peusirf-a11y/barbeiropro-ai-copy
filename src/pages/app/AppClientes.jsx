@@ -58,10 +58,16 @@ export default function AppClientes() {
     enabled: !!companyId,
   });
 
-  // Map customer_id => assinatura ativa, para mostrar badge na lista
+  // Map customer_id => assinatura ativa, para mostrar badge na lista (BFF Fase 4)
   const { data: activeSubs = [] } = useQuery({
     queryKey: ['customer-subscriptions', companyId, activeUnitId],
-    queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listSubscriptions', {
+        active_unit_id: activeUnitId,
+        status: 'active',
+      });
+      return res?.data?.subscriptions || [];
+    },
     enabled: !!companyId,
   });
   const subByCustomer = activeSubs.reduce((acc, s) => { acc[s.customer_id] = s; return acc; }, {});

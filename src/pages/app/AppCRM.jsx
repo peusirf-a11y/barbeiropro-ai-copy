@@ -51,9 +51,17 @@ export default function AppCRM() {
   const initialTab = searchParams.get('tab') || 'overview';
   const [tab, setTab] = useState(TABS.some(t => t.id === initialTab) ? initialTab : 'overview');
 
+  // BFF Fase 4: WhatsAppMessage via listWhatsAppMessages (tenant + unit scope server-side).
+  // O unit scope é aplicado no servidor — não precisamos mais do filtro manual abaixo.
   const { data: messagesRaw = [] } = useQuery({
-    queryKey: ['whatsapp-messages', company?.id],
-    queryFn: () => base44.entities.WhatsAppMessage.filter({ company_id: company.id }, '-sent_at', 500),
+    queryKey: ['whatsapp-messages', company?.id, activeUnitId],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listWhatsAppMessages', {
+        active_unit_id: activeUnitId,
+        limit: 500,
+      });
+      return res?.data?.messages || [];
+    },
     enabled: !!company?.id,
   });
 
@@ -63,10 +71,10 @@ export default function AppCRM() {
     enabled: !!company?.id,
   });
 
-  // Em modo "clientes por unidade", filtra logs e clientes pela unidade ativa
-  const messages = scopeByUnit
-    ? messagesRaw.filter(m => !m.unit_id || m.unit_id === activeUnitId)
-    : messagesRaw;
+  // messages já vem filtrada por unit no servidor (listWhatsAppMessages).
+  // customers ainda precisa do filtro manual porque o read aqui é direto via SDK
+  // (essa migração para listCustomers pode entrar numa fase posterior — não bloqueia).
+  const messages = messagesRaw;
   const customers = scopeByUnit
     ? customersRaw.filter(c => !c.unit_id || c.unit_id === activeUnitId)
     : customersRaw;

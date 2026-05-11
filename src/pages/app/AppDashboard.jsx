@@ -45,13 +45,17 @@ export default function AppDashboard() {
     },
   });
 
-  const apptFilter = isBarbeiro && myProId
-    ? { company_id: companyId, professional_id: myProId }
-    : { company_id: companyId };
-
+  // BFF Fase 4: appointments via listAppointments. Tenant + role (barbeiro força
+  // professional_id) + unit scope server-side. Frontend não monta filter.
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
     queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
-    queryFn: () => base44.entities.Appointment.filter(apptFilter, '-scheduled_at', 200),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listAppointments', {
+        active_unit_id: activeUnitId,
+        limit: 200,
+      });
+      return res?.data?.appointments || [];
+    },
     enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
@@ -68,10 +72,16 @@ export default function AppDashboard() {
     enabled: !!companyId && showFinance,
   });
 
-  // Assinaturas ativas — KPIs de receita recorrente
+  // Assinaturas ativas — KPIs de receita recorrente (BFF Fase 4)
   const { data: activeSubs = [] } = useQuery({
     queryKey: ['customer-subscriptions-active', companyId, activeUnitId],
-    queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listSubscriptions', {
+        active_unit_id: activeUnitId,
+        status: 'active',
+      });
+      return res?.data?.subscriptions || [];
+    },
     enabled: !!companyId && showFinance,
   });
   const mrr = useMemo(() => activeSubs.reduce((s, sub) => s + (sub.plan_price_snapshot || 0), 0), [activeSubs]);

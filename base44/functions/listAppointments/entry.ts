@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
     const caller = await getCallerContext(base44, user);
     const body = await req.json().catch(() => ({}));
-    const { active_unit_id, from, to } = body || {};
+    const { active_unit_id, from, to, status } = body || {};
     const limit = Math.min(Math.max(parseInt(body?.limit) || 500, 1), 2000);
 
     const sdk = base44.asServiceRole;
@@ -93,6 +93,16 @@ Deno.serve(async (req) => {
     // Janela temporal (opcional) — usa $gte/$lte no scheduled_at
     if (from) filter.scheduled_at = { ...(filter.scheduled_at || {}), $gte: from };
     if (to) filter.scheduled_at = { ...(filter.scheduled_at || {}), $lte: to };
+
+    // Filtro de status (opcional). Aceita string ou array.
+    // Útil para páginas como AppFinanceiro (só "concluido") ou Dashboard.
+    if (status) {
+      if (Array.isArray(status) && status.length > 0) {
+        filter.status = { $in: status };
+      } else if (typeof status === 'string') {
+        filter.status = status;
+      }
+    }
 
     let appointments = await sdk.entities.Appointment.filter(filter, '-scheduled_at', limit);
 

@@ -15,16 +15,15 @@ import { CAMPAIGN_LABELS, CAMPAIGN_TO_MSG_TYPE } from '@/lib/lifecycleCampaigns'
 export default function RetentionCampaignsCard({ companyId, customers = [] }) {
   const sinceISO = useMemo(() => new Date(Date.now() - 7 * 86400000).toISOString(), []);
 
-  // Mensagens CRM dos últimos 7 dias.
-  // Filtramos no backend por company_id e depois em memória pelo type/sent_at
-  // (não há operadores de range no filter — pegamos os 200 mais recentes).
+  // Mensagens CRM dos últimos 7 dias (BFF Fase 4 — listWhatsAppMessages).
+  // Servidor aplica tenant scope. Filtro por type/sent_at continua em memória
+  // (não há operador de range no filter; pegamos os 200 mais recentes).
   const { data: recentMessages = [] } = useQuery({
     queryKey: ['crm-messages-7d', companyId],
-    queryFn: () => base44.entities.WhatsAppMessage.filter(
-      { company_id: companyId },
-      '-sent_at',
-      200
-    ),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listWhatsAppMessages', { limit: 200 });
+      return res?.data?.messages || [];
+    },
     enabled: !!companyId,
     staleTime: 60_000,
   });

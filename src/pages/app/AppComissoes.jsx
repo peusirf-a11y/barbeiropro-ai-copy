@@ -28,14 +28,18 @@ export default function AppComissoes() {
   const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
   const queryClient = useQueryClient();
 
-  // Barbeiro: só vê suas próprias comissões.
-  const commFilter = isBarbeiro && myProId
-    ? { company_id: companyId, professional_id: myProId }
-    : { company_id: companyId };
-
+  // BFF Fase 4: comissões via listCommissions. Barbeiro é forçado server-side
+  // a ver só as próprias (defesa em profundidade). Unit scope server-side via
+  // Professional.unit_ids quando multi-unit.
   const { data: commissions = [], isLoading } = useQuery({
-    queryKey: ['commissions', companyId, isBarbeiro ? myProId : 'all'],
-    queryFn: () => base44.entities.Commission.filter(commFilter, '-earned_at', 1000),
+    queryKey: ['commissions', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listCommissions', {
+        active_unit_id: activeUnitId,
+        limit: 1000,
+      });
+      return res?.data?.commissions || [];
+    },
     enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
@@ -58,13 +62,9 @@ export default function AppComissoes() {
     return true;
   };
 
-  // Filtra por unidade ativa: comissões cuja prof. atende na unidade
-  const proIdsInUnit = new Set(filterProfessionalsByUnit(professionals, activeUnitId, isMultiUnit).map(p => p.id));
-  const commissionsScoped = (isMultiUnit && activeUnitId)
-    ? commissions.filter(c => !c.professional_id || proIdsInUnit.has(c.professional_id))
-    : commissions;
-
-  const filtered = commissionsScoped.filter(c => inPeriod(c) && (filterPro === 'all' || c.professional_id === filterPro));
+  // Unit scope já aplicado pelo backend (listCommissions). Aqui só aplicamos
+  // os filtros de UI (período e profissional selecionado).
+  const filtered = commissions.filter(c => inPeriod(c) && (filterPro === 'all' || c.professional_id === filterPro));
 
   // Resumo por profissional
   const byPro = {};

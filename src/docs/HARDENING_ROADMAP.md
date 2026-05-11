@@ -341,8 +341,25 @@ ensureSameCompany(caller, target);
 - Smoke test: listAppointments 200 OK retorna 500+ appointments; mutateAppointment → INVALID_ACTION 400 + cross-tenant 404 genérico.
 - Páginas que ainda LEEM Appointment via SDK direto (Dashboard, Relatórios, AppFinanceiro, AppCRM, etc.) seguem na próxima fase — Fase 3 cobriu o único módulo com WRITE path.
 
-**Fase 4 — Outras listas tenant-sensitive** ⏳
-- `CustomerSubscription`, `WhatsAppMessage`, `Commission` listadas no app passam pelo BFF.
+**Fase 4 — Outras listas tenant-sensitive** ✅ (2026-05-11)
+- `listAppointments` ganhou filtro `status` (string ou array via `$in`) — desbloqueia AppFinanceiro (status='concluido' + janela).
+- Criadas 3 novas BFF functions, todas com mesmo padrão (caller resolvido server-side, super-admin bloqueado, allow-list, retorno 404 genérico cross-tenant):
+  - **`listSubscriptions`** (CustomerSubscription): filtro opcional por `customer_id` (validado contra company), `status`. Unit scope quando `customers_shared_across_units=false` via lookup em Customer.unit_id. Barbeiro bloqueado (FORBIDDEN_ROLE).
+  - **`listWhatsAppMessages`**: filtro opcional por `customer_id`, `type`, `status`. Unit scope direto via `unit_id` da própria entity. Barbeiro bloqueado.
+  - **`listCommissions`**: barbeiro força `professional_id = teamMember.professional_id` server-side (defesa em profundidade). Suporta `from`/`to` em `earned_at`. Unit scope via `Professional.unit_ids`.
+- **Migrações de leitura:**
+  - `AppDashboard`: appointments (`listAppointments`) + activeSubs (`listSubscriptions`).
+  - `AppRelatorios`: appointments (`listAppointments`).
+  - `AppFinanceiro`: appointments concluídos com janela (`listAppointments` com `status`+`from`/`to`).
+  - `AppClientes`: activeSubs (`listSubscriptions`).
+  - `AppCRM`: messages (`listWhatsAppMessages`) — filtro manual de unit em memória removido (servidor já filtra).
+  - `RetentionCampaignsCard`: messages (`listWhatsAppMessages`).
+  - `AppComissoes`: commissions (`listCommissions`) — duplicação `commissionsScoped` em memória removida.
+- Smoke tests: 4 endpoints retornam 200 com dados reais. Cross-tenant `customer_id` retorna 404 genérico.
+- **Fora desta fase (próximas):**
+  - Write paths (mutate*) de CustomerSubscription, Commission, FinancialEntry — ainda usam SDK direto.
+  - AppCaixa (CashRegister/FinancialEntry reads) — depende de fase dedicada de Cash.
+  - `Customer.filter` em CustomerSubscriptionPanel, AppCRM (customersRaw) e AppDashboard — `listCustomers` da Fase 1 não cobre todos os call sites ainda.
 
 ---
 

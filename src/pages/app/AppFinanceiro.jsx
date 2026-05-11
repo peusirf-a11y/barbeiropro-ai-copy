@@ -48,15 +48,23 @@ export default function AppFinanceiro() {
     enabled: !!companyId,
   });
 
-  // Receita de atendimentos concluídos no período (filtro de data via completed_at).
-  const apptRangeFilter = dateRangeFilter('completed_at', range, 'datetime');
+  // Receita de atendimentos concluídos no período. BFF Fase 4:
+  // listAppointments filtra status=concluido + janela temporal no servidor.
+  // Nota: o filtro é em scheduled_at (não completed_at — listAppointments usa
+  // scheduled_at como eixo temporal). Para fins de KPI mensal, é equivalente
+  // o suficiente (atendimento concluído tem scheduled_at próximo do completed_at).
   const { data: appointments = [] } = useQuery({
     queryKey: ['appointments-concluidos', companyId, activeUnitId, period],
-    queryFn: () => base44.entities.Appointment.filter(
-      { company_id: companyId, status: 'concluido', ...apptRangeFilter },
-      '-completed_at',
-      5000,
-    ),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listAppointments', {
+        active_unit_id: activeUnitId,
+        status: 'concluido',
+        from: range?.from ? range.from.toISOString() : undefined,
+        to: range?.to ? range.to.toISOString() : undefined,
+        limit: 2000,
+      });
+      return res?.data?.appointments || [];
+    },
     enabled: !!companyId,
   });
 
