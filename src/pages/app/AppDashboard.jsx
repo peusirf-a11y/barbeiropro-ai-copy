@@ -59,9 +59,16 @@ export default function AppDashboard() {
     enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
+  // BFF Fase 5: customers via listCustomers (tenant + unit scope server-side).
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', companyId, activeUnitId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: companyId }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listCustomers', {
+        active_unit_id: activeUnitId,
+        limit: 500,
+      });
+      return res?.data?.customers || [];
+    },
     enabled: !!companyId,
   });
 

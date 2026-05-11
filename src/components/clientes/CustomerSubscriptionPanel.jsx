@@ -7,53 +7,81 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Package, Check, AlertCircle, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { buildInitialSubscription, formatUsage } from '@/lib/subscriptions';
+import { formatUsage } from '@/lib/subscriptions';
+
+// Helper para invocar o BFF de subscription com mensagem de erro humana.
+async function invokeSubscriptionMutation(payload) {
+  const res = await base44.functions.invoke('mutateSubscription', payload);
+  const data = res?.data;
+  if (data?.error) {
+    const map = {
+      ALREADY_SUBSCRIBED: 'Cliente já tem uma assinatura ativa.',
+      PLAN_INACTIVE: 'Esse plano está inativo.',
+      STRIPE_MANAGED_USE_PORTAL: 'Assinatura gerenciada pela Stripe — peça pro cliente cancelar pelo portal.',
+      NOT_FOUND: 'Não foi possível localizar a assinatura.',
+      FORBIDDEN_ROLE: 'Seu perfil não tem permissão para essa ação.',
+    };
+    throw new Error(map[data.error] || data.error);
+  }
+  return data;
+}
 
 export default function CustomerSubscriptionPanel({ customer, companyId }) {
   const queryClient = useQueryClient();
   const [showPicker, setShowPicker] = useState(false);
 
+  // Subscriptions via BFF Fase 4 (listSubscriptions).
   const { data: subscriptions = [] } = useQuery({
     queryKey: ['subscription', customer.id],
-    queryFn: () => base44.entities.CustomerSubscription.filter({ customer_id: customer.id }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listSubscriptions', { customer_id: customer.id });
+      return res?.data?.subscriptions || [];
+    },
     enabled: !!customer.id,
   });
   const activeSub = subscriptions.find(s => s.status === 'active');
 
+  // Planos da barbearia (CustomerPlan ainda direto — não é tenant-sensitive cross-leak;
+  // já filtra por company_id e é read-only no painel).
   const { data: plans = [] } = useQuery({
     queryKey: ['customer-plans', companyId],
     queryFn: () => base44.entities.CustomerPlan.filter({ company_id: companyId, active: true }),
     enabled: !!companyId && showPicker,
   });
 
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['subscription', customer.id] });
+    queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] });
+    queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-active', companyId] });
+  };
+
   const subscribeMutation = useMutation({
-    mutationFn: (plan) => base44.entities.CustomerSubscription.create(
-      buildInitialSubscription({ companyId, customerId: customer.id, plan })
-    ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription', customer.id] });
-      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] });
-      setShowPicker(false);
-    },
+    mutationFn: (plan) => invokeSubscriptionMutation({
+      action: 'subscribe',
+      customer_id: customer.id,
+      plan_id: plan.id,
+    }),
+    onSuccess: () => { invalidate(); setShowPicker(false); },
+    onError: (err) => alert(err.message),
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => base44.entities.CustomerSubscription.update(activeSub.id, {
-      status: 'canceled',
-      canceled_at: new Date().toISOString(),
+    mutationFn: () => invokeSubscriptionMutation({
+      action: 'cancel',
+      subscription_id: activeSub.id,
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription', customer.id] });
-      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] });
-    },
+    onSuccess: () => invalidate(),
+    onError: (err) => alert(err.message),
   });
 
   const markPaidMutation = useMutation({
-    mutationFn: () => base44.entities.CustomerSubscription.update(activeSub.id, {
-      last_payment_status: 'pago',
-      last_payment_at: new Date().toISOString(),
+    mutationFn: () => invokeSubscriptionMutation({
+      action: 'mark_payment',
+      subscription_id: activeSub.id,
+      status: 'pago',
     }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription', customer.id] }),
+    onSuccess: () => invalidate(),
+    onError: (err) => alert(err.message),
   });
 
   return (

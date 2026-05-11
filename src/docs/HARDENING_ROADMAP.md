@@ -361,6 +361,35 @@ ensureSameCompany(caller, target);
   - AppCaixa (CashRegister/FinancialEntry reads) — depende de fase dedicada de Cash.
   - `Customer.filter` em CustomerSubscriptionPanel, AppCRM (customersRaw) e AppDashboard — `listCustomers` da Fase 1 não cobre todos os call sites ainda.
 
+**Fase 5 — Customer reads restantes + Subscription writes** ✅ (2026-05-11)
+
+5a — Customer reads restantes:
+- `listCustomers` ganhou parâmetro `sort` com allow-list (`-created_date`, `-last_appointment_at`, `-last_completed_at`, `-name`, `-total_appointments` e variantes asc). Tentativa de `password_hash` cai silenciosamente no fallback default — não vaza erro.
+- `AppDashboard`: `Customer.filter({ company_id })` direto → `listCustomers`.
+- `AppCRM`: `Customer.filter({ company_id }, '-last_appointment_at', 1000)` direto → `listCustomers` com `sort: '-last_appointment_at'`. Removido import de `shouldScopeCustomersByUnit` + filtro manual de unit em memória (servidor já filtra).
+- Após esta fase, **nenhum read de Customer no app interno** usa SDK direto. Restam só:
+  - `CustomerSubscriptionPanel` lê via `listSubscriptions` (não Customer).
+  - Read direto em automações server-side (intencional, é SDK as-service-role).
+
+5b — CustomerSubscription writes:
+- Criada `functions/mutateSubscription` (BFF) com **actions semânticas** (não generic CRUD): `subscribe`, `cancel`, `pause`, `resume`, `mark_payment`. Justificativa: subscription tem regras de negócio (snapshots do plano, ciclo, uses_remaining) que NÃO devem ser configuráveis pelo frontend. Actions semânticas impedem campos sensíveis de virem do cliente.
+- Servidor monta `plan_*_snapshot` lendo do banco — frontend só envia `plan_id`. Vetor antigo (`plan_price_snapshot=0.01` falso) eliminado.
+- Bloqueios server-side:
+  - barbeiro → 403 FORBIDDEN_ROLE (operação financeira).
+  - super-admin → 403 USE_MASTER_PANEL.
+  - Subscription com `stripe_subscription_id` → cancel/pause/resume retornam 409 STRIPE_MANAGED_USE_PORTAL (evita desync com Stripe). `mark_payment` segue permitido (é só hint visual).
+  - Subscribe duplicada (cliente já tem ativa) → 409 ALREADY_SUBSCRIBED.
+  - Cross-tenant (customer/plan/subscription de outra company) → 404 genérico.
+  - Plan inativo → 400 PLAN_INACTIVE.
+- Migrados 2 call sites:
+  - `CustomerSubscriptionPanel`: subscribe/cancel/markPaid mutations agora invocam BFF. Mensagens de erro humanas mapeadas.
+  - `OfferPlanModal`: ativação de plano sugerido vai pelo BFF. Removido import de `buildInitialSubscription` (snapshot vem do servidor).
+- Smoke tests: INVALID_ACTION 400, cross-tenant 404, `mark_payment` 200 funcional.
+- **Fora desta fase:**
+  - `customerSubscriptionAction` (cliente final, lado público): continua existindo, é o entry point do cliente. Não migrado para BFF interno porque já é um endpoint server-side com sua própria validação por token.
+  - Commission writes (status='pago' em AppComissoes): ainda direto. Próxima fase.
+  - FinancialEntry writes: já passam por `mutateFinancialEntry` em AppCaixa/AppFinanceiro — auditar se sobrou algum call site direto.
+
 ---
 
 ## Critérios de "pronto"

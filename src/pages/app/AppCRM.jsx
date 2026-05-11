@@ -19,7 +19,6 @@ import AppLayout from '@/components/layout/AppLayout';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import { useCompany } from '@/hooks/useCompany';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
-import { shouldScopeCustomersByUnit } from '@/lib/customerUnitMode';
 import {
   Sparkles, Zap, AlertCircle, Loader2,
   LayoutDashboard, Activity, Crown, Send, Layers, History,
@@ -46,7 +45,6 @@ const TABS = [
 export default function AppCRM() {
   const { company, isLoading: loadingCompany } = useCompany();
   const { activeUnitId } = useActiveUnit();
-  const scopeByUnit = shouldScopeCustomersByUnit(company, activeUnitId);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'overview';
   const [tab, setTab] = useState(TABS.some(t => t.id === initialTab) ? initialTab : 'overview');
@@ -65,19 +63,22 @@ export default function AppCRM() {
     enabled: !!company?.id,
   });
 
-  const { data: customersRaw = [] } = useQuery({
-    queryKey: ['customers-crm', company?.id],
-    queryFn: () => base44.entities.Customer.filter({ company_id: company.id }, '-last_appointment_at', 1000),
+  // BFF Fase 5: customers via listCustomers (tenant + unit scope server-side).
+  // Mantemos sort por -last_appointment_at para preservar comportamento do CRM.
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers-crm', company?.id, activeUnitId],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listCustomers', {
+        active_unit_id: activeUnitId,
+        sort: '-last_appointment_at',
+        limit: 1000,
+      });
+      return res?.data?.customers || [];
+    },
     enabled: !!company?.id,
   });
 
-  // messages já vem filtrada por unit no servidor (listWhatsAppMessages).
-  // customers ainda precisa do filtro manual porque o read aqui é direto via SDK
-  // (essa migração para listCustomers pode entrar numa fase posterior — não bloqueia).
   const messages = messagesRaw;
-  const customers = scopeByUnit
-    ? customersRaw.filter(c => !c.unit_id || c.unit_id === activeUnitId)
-    : customersRaw;
 
   const handleTabChange = (id) => {
     setTab(id);

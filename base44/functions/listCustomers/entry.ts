@@ -16,7 +16,8 @@
 //  - Limite default 500 (mesmo do front antigo); cap absoluto 2000.
 //
 // Payload aceito:
-//   { active_unit_id?: string|null, lifecycle_status?: string, status?: string, limit?: number }
+//   { active_unit_id?: string|null, lifecycle_status?: string, status?: string, limit?: number, sort?: string }
+//   `sort` aceita o mesmo formato do SDK (ex: '-last_appointment_at'). Default '-created_date'.
 //
 // Retorno:
 //   { customers: Customer[], total: number, scope: { tenant, unit_scoped, active_unit_id } }
@@ -85,17 +86,28 @@ Deno.serve(async (req) => {
       lifecycle_status = null,
       status = null,
       limit = 500,
+      sort = '-created_date',
     } = body || {};
 
     const cap = Math.min(Math.max(Number(limit) || 500, 1), 2000);
     const sdk = base44.asServiceRole;
+
+    // Sort allow-list — bloqueia campos sensíveis (password_hash, auth_token, etc.)
+    const ALLOWED_SORTS = new Set([
+      '-created_date', 'created_date',
+      '-last_appointment_at', 'last_appointment_at',
+      '-last_completed_at', 'last_completed_at',
+      '-name', 'name',
+      '-total_appointments', 'total_appointments',
+    ]);
+    const safeSort = ALLOWED_SORTS.has(sort) ? sort : '-created_date';
 
     // Monta filtro server-side. `company_id` SEMPRE vem do caller.
     const filter = { company_id: caller.company_id };
     if (lifecycle_status) filter.lifecycle_status = lifecycle_status;
     if (status) filter.status = status;
 
-    let customers = await sdk.entities.Customer.filter(filter, '-created_date', cap);
+    let customers = await sdk.entities.Customer.filter(filter, safeSort, cap);
 
     // Unit scoping (espelha `shouldScopeCustomersByUnit` do front)
     const shared = caller.company?.customers_shared_across_units !== false;

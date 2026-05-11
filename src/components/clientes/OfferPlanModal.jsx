@@ -5,7 +5,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { X, Sparkles, Check, TrendingDown, Calendar, Loader2, AlertCircle } from 'lucide-react';
-import { buildInitialSubscription } from '@/lib/subscriptions';
 
 export default function OfferPlanModal({ companyId, customer, onClose, onActivated }) {
   const queryClient = useQueryClient();
@@ -19,20 +18,32 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
     staleTime: 5 * 60 * 1000,
   });
 
+  // BFF Fase 5b: assinatura via mutateSubscription (servidor monta snapshot do plano).
   const subscribeMutation = useMutation({
     mutationFn: async () => {
       const planId = recData?.data?.recommended_plan?.id;
       if (!planId) throw new Error('Plano não encontrado');
-      const plans = await base44.entities.CustomerPlan.filter({ id: planId });
-      const plan = plans[0];
-      if (!plan) throw new Error('Plano não encontrado');
-      return base44.entities.CustomerSubscription.create(
-        buildInitialSubscription({ companyId, customerId: customer.id, plan })
-      );
+      const res = await base44.functions.invoke('mutateSubscription', {
+        action: 'subscribe',
+        customer_id: customer.id,
+        plan_id: planId,
+      });
+      const data = res?.data;
+      if (data?.error) {
+        const map = {
+          ALREADY_SUBSCRIBED: 'Cliente já tem uma assinatura ativa.',
+          PLAN_INACTIVE: 'Esse plano está inativo.',
+          NOT_FOUND: 'Plano ou cliente não encontrado.',
+          FORBIDDEN_ROLE: 'Seu perfil não tem permissão.',
+        };
+        throw new Error(map[data.error] || data.error);
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription', customer.id] });
       queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-active', companyId] });
       queryClient.invalidateQueries({ queryKey: ['plan-rec', companyId, customer.id] });
       onActivated?.();
       onClose();
