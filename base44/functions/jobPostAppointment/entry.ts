@@ -52,10 +52,12 @@ Deno.serve(async (req) => {
       if (!withinSendWindow(s)) { skipped++; continue; }
 
       const tpl = s.msg_post_appointment || 'Valeu por colar na {barbearia}, {nome}! 🔥 Se puder, deixa sua avaliação: {link_avaliacao}';
-      // Prioriza nosso link interno (1-clique). Se não houver token, usa review_link configurado.
-      const reviewLink = appt.review_token
-        ? `${baseUrl}/avaliar/${appt.review_token}`
-        : (s.review_link || '');
+      // Prioriza o link de avaliação EXTERNO configurado pela barbearia (Google, iFood, etc.) —
+      // é onde o dono realmente quer receber estrelas públicas.
+      // Fallback: nosso link interno /avaliar/:token (avaliação privada, p/ moderação).
+      const reviewLink = (s.review_link && s.review_link.trim())
+        ? s.review_link.trim()
+        : (appt.review_token ? `${baseUrl}/avaliar/${appt.review_token}` : '');
       const message = renderTemplate(tpl, {
         nome: appt.customer_name || 'cliente',
         barbearia: company.name,
