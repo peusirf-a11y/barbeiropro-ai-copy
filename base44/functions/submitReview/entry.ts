@@ -5,7 +5,10 @@
 
 import { createClient, createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const TOKEN_RE = /^[a-f0-9]{16,64}$/i;
+// Aceita 2 formatos:
+// 1) UUID v4 com hífens (formato atual, gerado por crypto.randomUUID no servidor) — 36 chars
+// 2) Hex puro 16-64 chars (formato legado de tokens antigos no banco)
+const TOKEN_RE = /^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|[a-f0-9]{16,64})$/i;
 
 const ipBucket = new Map();
 const WINDOW_MS = 5 * 60 * 1000;
