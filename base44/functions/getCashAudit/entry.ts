@@ -116,7 +116,8 @@ Deno.serve(async (req) => {
       if (actor_email && a.actor_email !== actor_email) continue;
       if (action && a.action !== action) continue;
       const unit = meta.unit_id || null;
-      if (unit_id && unit !== unit_id) continue;
+      // Idem: registros de auditoria antigos sem unit_id em metadata entram em qualquer unidade.
+      if (unit_id && unit && unit !== unit_id) continue;
       if (!canAccessUnit(caller, unit)) continue;
       events.push({
         id: `audit-${a.id}`,
@@ -142,7 +143,11 @@ Deno.serve(async (req) => {
         500
       );
       for (const r of regs) {
-        if (unit_id && r.unit_id !== unit_id) continue;
+        // Registros legados (pré-backfill multi-unit) têm unit_id=null.
+        // Tratamos como "qualquer unidade" — antes do multi-unit ser ligado,
+        // todos os dados eram da barbearia inteira. Sem isso, caixas antigos
+        // somem da auditoria assim que o owner ativa multi-unit + seleciona uma unidade.
+        if (unit_id && r.unit_id && r.unit_id !== unit_id) continue;
         if (!canAccessUnit(caller, r.unit_id)) continue;
         if (inRange(r.opened_at) && (!actor_email || r.opened_by === actor_email) && (!action || action === 'OPEN_CASH_REGISTER')) {
           events.push({
@@ -189,7 +194,8 @@ Deno.serve(async (req) => {
         const actName = kind === 'sangria' ? 'SANGRIA' : 'SUPRIMENTO';
         if (action && action !== actName) continue;
         if (actor_email && e.created_by !== actor_email) continue;
-        if (unit_id && e.unit_id !== unit_id) continue;
+        // Mesma lógica: lançamentos sem unit_id (legados) entram em qualquer unidade.
+        if (unit_id && e.unit_id && e.unit_id !== unit_id) continue;
         if (!canAccessUnit(caller, e.unit_id)) continue;
         events.push({
           id: `entry-${e.id}`,
