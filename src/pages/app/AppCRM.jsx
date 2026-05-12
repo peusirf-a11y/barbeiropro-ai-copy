@@ -21,7 +21,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import {
   Sparkles, Zap, AlertCircle, Loader2,
-  LayoutDashboard, Activity, Crown, Send, Layers, History,
+  LayoutDashboard, Activity, Crown, Send, Layers, History, Smartphone,
 } from 'lucide-react';
 
 import CRMOverviewTab from '@/components/crm/CRMOverviewTab';
@@ -30,6 +30,7 @@ import CRMVipTab from '@/components/crm/CRMVipTab';
 import CRMSegmentsTab from '@/components/crm/CRMSegmentsTab';
 import CRMHistoryTab from '@/components/crm/CRMHistoryTab';
 import CRMTransactionalTab from '@/components/crm/CRMTransactionalTab';
+import CRMWhatsAppTab from '@/components/crm/CRMWhatsAppTab';
 import LifecycleCampaignsSection from '@/components/configuracoes/LifecycleCampaignsSection';
 
 const TABS = [
@@ -40,6 +41,7 @@ const TABS = [
   { id: 'campaigns',    label: 'Campanhas',   icon: Send },
   { id: 'segments',     label: 'Segmentos',   icon: Layers },
   { id: 'history',      label: 'Histórico',   icon: History },
+  { id: 'whatsapp',    label: 'WhatsApp',    icon: Smartphone },
 ];
 
 export default function AppCRM() {
@@ -158,6 +160,9 @@ export default function AppCRM() {
         )}
         {tab === 'history' && (
           <CRMHistoryTab messages={messages} />
+        )}
+        {tab === 'whatsapp' && (
+          <CRMWhatsAppTab />
         )}
       </div>
     </AppLayout>
