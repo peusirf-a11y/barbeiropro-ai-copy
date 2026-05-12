@@ -45,5 +45,23 @@
   "required": [
     "type",
     "message"
-  ]
+  ],
+  "rls": {
+    "create": null,
+    "read": {
+      "user_condition": {
+        "is_super_admin": true
+      }
+    },
+    "update": {
+      "user_condition": {
+        "is_super_admin": true
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "is_super_admin": true
+      }
+    }
+  }
 }
