@@ -51,5 +51,23 @@
   "required": [
     "name",
     "price_monthly"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "is_super_admin": true
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "is_super_admin": true
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "is_super_admin": true
+      }
+    }
+  }
 }
