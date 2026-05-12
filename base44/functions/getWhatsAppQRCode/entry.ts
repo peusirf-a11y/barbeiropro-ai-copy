@@ -44,20 +44,16 @@ Deno.serve(async (req) => {
     const connectData = await connectRes.json();
     console.log('[getWhatsAppQRCode] connect response keys:', Object.keys(connectData));
 
-    // connectData.code = string base64 do QR (ex: "2@abc...")
+    // connectData.base64 = data URI da imagem do QR (ex: "data:image/png;base64,...")
+    // connectData.code   = string raw do QR (ex: "2@abc...") — não é imagem
     // connectData.pairingCode = código de pareamento alfanumérico (ex: "WZYEH1YY")
-    // Precisamos montar a data URI para exibir como imagem no frontend
-    const rawCode = connectData.code || '';
     let qrCode = null;
 
-    if (rawCode) {
-      // Se já vier como data URI, usa direto; caso contrário empacota
-      if (rawCode.startsWith('data:')) {
-        qrCode = rawCode;
-      } else {
-        // Evolution API retorna o base64 do PNG diretamente
-        qrCode = `data:image/png;base64,${rawCode}`;
-      }
+    if (connectData.base64) {
+      // base64 já vem como data URI completa
+      qrCode = connectData.base64.startsWith('data:')
+        ? connectData.base64
+        : `data:image/png;base64,${connectData.base64}`;
     }
 
     return Response.json({
