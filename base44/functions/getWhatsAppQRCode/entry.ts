@@ -32,38 +32,57 @@ Deno.serve(async (req) => {
       return Response.json({ connected: true, status: 'open' });
     }
 
-    // 2. Solicita o QR Code / pairing code
-    // Se um número de telefone foi enviado, passa como query param para obter pairing code
+    // 2. Solicita o QR Code ou pairing code
     const body = await req.json().catch(() => ({}));
-    const phone = body?.phone ? `?number=${encodeURIComponent(body.phone)}` : '';
-    const connectRes = await fetch(`${baseUrl}/instance/connect/${instance}${phone}`, { headers });
+    const phoneNumber = body?.phone || null;
 
-    if (!connectRes.ok) {
-      const errText = await connectRes.text();
-      console.error('[getWhatsAppQRCode] Evolution API connect error:', errText);
-      return Response.json({ error: 'Não foi possível obter o QR Code.', detail: errText }, { status: 502 });
-    }
-
-    const connectData = await connectRes.json();
-    console.log('[getWhatsAppQRCode] connect response keys:', Object.keys(connectData));
-
-    // connectData.base64 = data URI da imagem do QR (ex: "data:image/png;base64,...")
-    // connectData.code   = string raw do QR (ex: "2@abc...") — não é imagem
-    // connectData.pairingCode = código de pareamento alfanumérico (ex: "WZYEH1YY")
     let qrCode = null;
+    let pairingCode = null;
 
-    if (connectData.base64) {
-      // base64 já vem como data URI completa
-      qrCode = connectData.base64.startsWith('data:')
-        ? connectData.base64
-        : `data:image/png;base64,${connectData.base64}`;
+    if (phoneNumber) {
+      // Modo pairing code: endpoint dedicado da Evolution API
+      const pairingRes = await fetch(`${baseUrl}/instance/pairingCode/${instance}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ number: phoneNumber }),
+      });
+      const pairingData = await pairingRes.json();
+      console.log('[getWhatsAppQRCode] pairingCode response:', JSON.stringify(pairingData));
+      pairingCode = pairingData?.code || pairingData?.pairingCode || null;
+
+      if (!pairingCode) {
+        // Fallback: tenta via query param no connect
+        const connectRes2 = await fetch(`${baseUrl}/instance/connect/${instance}?number=${encodeURIComponent(phoneNumber)}`, { headers });
+        const connectData2 = await connectRes2.json();
+        console.log('[getWhatsAppQRCode] fallback connect response:', JSON.stringify(connectData2));
+        pairingCode = connectData2?.pairingCode || null;
+      }
+    } else {
+      // Modo QR Code normal
+      const connectRes = await fetch(`${baseUrl}/instance/connect/${instance}`, { headers });
+      if (!connectRes.ok) {
+        const errText = await connectRes.text();
+        console.error('[getWhatsAppQRCode] Evolution API connect error:', errText);
+        return Response.json({ error: 'Não foi possível obter o QR Code.', detail: errText }, { status: 502 });
+      }
+      const connectData = await connectRes.json();
+      console.log('[getWhatsAppQRCode] connect response:', JSON.stringify({ keys: Object.keys(connectData), pairingCode: connectData.pairingCode }));
+
+      if (connectData.base64) {
+        qrCode = connectData.base64.startsWith('data:')
+          ? connectData.base64
+          : `data:image/png;base64,${connectData.base64}`;
+      }
+      pairingCode = connectData.pairingCode || null;
     }
+
+    console.log('[getWhatsAppQRCode] result — pairingCode:', pairingCode, '| qrCode:', !!qrCode);
 
     return Response.json({
       connected: false,
       status: state || 'close',
       qrCode,
-      pairingCode: connectData.pairingCode || null,
+      pairingCode,
     });
 
   } catch (error) {

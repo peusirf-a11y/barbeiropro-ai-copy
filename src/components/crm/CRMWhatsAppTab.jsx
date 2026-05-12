@@ -23,16 +23,20 @@ export default function CRMWhatsAppTab() {
       const payload = phoneNumber ? { phone: phoneNumber } : {};
       const res = await base44.functions.invoke('getWhatsAppQRCode', payload);
       const data = res?.data;
+      console.log('[CRMWhatsAppTab] fetchQR data:', JSON.stringify(data));
       if (data?.connected) {
         setState('connected');
         setQrCode(null);
-      } else if (data?.pairingCode) {
+      } else if (data?.pairingCode && phoneNumber) {
+        // Pairing code solicitado por número de telefone
         setState('pairing');
         setPairingCode(data.pairingCode);
         setQrCode(null);
       } else if (data?.qrCode) {
         setState('qr');
         setQrCode(data.qrCode);
+        // Se a API também retornou pairingCode junto com QR, guarda para uso no modo phone
+        if (data.pairingCode) setPairingCode(data.pairingCode);
       } else if (data?.error) {
         setState('error');
         setError(data.error);
