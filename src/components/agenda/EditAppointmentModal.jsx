@@ -11,7 +11,14 @@ import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import { useCompany } from '@/hooks/useCompany';
 import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
-import { buildConfirmationMessage, openWhatsAppCompose } from '@/lib/whatsappCompose';
+import {
+  buildConfirmationMessage,
+  buildPostAppointmentMessage,
+  buildCancellationMessage,
+  buildNoShowMessage,
+  openWhatsApp,
+} from '@/lib/whatsappCompose';
+import StatusActionSheet from '@/components/agenda/StatusActionSheet';
 
 const STATUS_KEYS = ['agendado', 'confirmado', 'concluido', 'cancelado', 'faltou'];
 
@@ -46,21 +53,61 @@ export default function EditAppointmentModal({
   });
   const [error, setError] = useState('');
   const [showOffer, setShowOffer] = useState(false);
+  // Action sheet: { key } quando aberto, null fechado.
+  const [pendingStatus, setPendingStatus] = useState(null);
   const { company, companyId } = useCompany();
   const customer = customers.find(c => c.id === appointment.customer_id);
 
-  // Ao clicar no status "Confirmado" (vindo de outro status), abre o WhatsApp do cliente
-  // com a mensagem de confirmação pré-preenchida — barbearia envia manualmente.
+  // Status que merecem perguntar "+ WhatsApp?": confirmar/concluir/cancelar/faltou.
+  // "agendado" é estado neutro — só seta sem perguntar.
+  const STATUS_NEEDS_WA = ['confirmado', 'concluido', 'cancelado', 'faltou'];
+
   const handleStatusClick = (key) => {
-    if (
-      key === 'confirmado' &&
-      form.status !== 'confirmado' &&
-      appointment.customer_phone
-    ) {
-      const message = buildConfirmationMessage({ company, appointment });
-      openWhatsAppCompose({ phone: appointment.customer_phone, message });
+    // Mesmo status → no-op
+    if (key === form.status) return;
+    // Status que não pergunta nada → só altera
+    if (!STATUS_NEEDS_WA.includes(key)) {
+      setForm(p => ({ ...p, status: key }));
+      return;
     }
+    // Abre action sheet
+    setPendingStatus({ key });
+  };
+
+  // Action sheet escolheu "apenas alterar" — seta o status no form.
+  const handleStatusOnly = () => {
+    if (!pendingStatus) return;
+    setForm(p => ({ ...p, status: pendingStatus.key }));
+    setPendingStatus(null);
+  };
+
+  // Action sheet escolheu "alterar + WhatsApp" — seta status e abre wa.me.
+  // Ordem importa: status PRIMEIRO (não depende do WA). WA é só camada UX.
+  const handleStatusWithWhatsApp = () => {
+    if (!pendingStatus) return;
+    const key = pendingStatus.key;
     setForm(p => ({ ...p, status: key }));
+    setPendingStatus(null);
+
+    if (!appointment.customer_phone) return;
+
+    // Mensagem por tipo de status
+    let message = '';
+    if (key === 'confirmado') {
+      message = buildConfirmationMessage({ company, appointment });
+    } else if (key === 'concluido') {
+      // Link de avaliação: usa o token público do appointment se existir;
+      // senão cai no review_link manual configurado em whatsapp_settings (Google etc.)
+      const reviewLink = appointment.review_token
+        ? `${window.location.origin}/avaliar/${appointment.review_token}`
+        : (company?.whatsapp_settings?.review_link || '');
+      message = buildPostAppointmentMessage({ company, appointment, reviewLink });
+    } else if (key === 'cancelado') {
+      message = buildCancellationMessage({ company, appointment });
+    } else if (key === 'faltou') {
+      message = buildNoShowMessage({ company, appointment });
+    }
+    openWhatsApp(appointment.customer_phone, message);
   };
 
   const service = services.find(s => s.id === form.service_id);
@@ -305,6 +352,16 @@ export default function EditAppointmentModal({
           onClose={() => setShowOffer(false)}
         />
       )}
+
+      {/* Action sheet de confirmação ao mudar status — pergunta se envia WA */}
+      <StatusActionSheet
+        open={!!pendingStatus}
+        statusKey={pendingStatus?.key}
+        hasPhone={!!appointment.customer_phone}
+        onChooseOnly={handleStatusOnly}
+        onChooseWithWhatsApp={handleStatusWithWhatsApp}
+        onClose={() => setPendingStatus(null)}
+      />
     </>
   );
 }

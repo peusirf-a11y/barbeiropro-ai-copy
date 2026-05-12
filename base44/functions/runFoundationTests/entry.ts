@@ -116,6 +116,28 @@ function interpolateTemplate(template, vars = {}) {
     return acc.replaceAll(`{{${k}}}`, value).replaceAll(`{${k}}`, value);
   }, template);
 }
+// Builders de status — espelho de lib/whatsappCompose.js
+function _apptVars({ company, appointment }) {
+  const name = appointment?.customer_name || '';
+  return {
+    nome: name.split(' ')[0] || name,
+    barbearia: company?.name || '',
+    first_name: name.split(' ')[0] || name,
+    company_name: company?.name || '',
+  };
+}
+function buildCancellationMessage({ company, appointment }) {
+  return interpolateTemplate(
+    'Olá {nome} 👋\n\nSeu horário foi cancelado.\n\nSe desejar, entre em contato para reagendar 🙌',
+    _apptVars({ company, appointment })
+  );
+}
+function buildNoShowMessage({ company, appointment }) {
+  return interpolateTemplate(
+    'Olá {nome} 👋\n\nSentimos sua falta hoje 😅\n\nSe quiser reagendar seu horário, estamos à disposição 🙌',
+    _apptVars({ company, appointment })
+  );
+}
 
 // ── lib/errorCodes.js (subset) ──────────────────────────────────────────
 const ERROR_MESSAGES = {
@@ -393,6 +415,27 @@ const whatsappTests = {
   },
   'interpolate undefined vira vazio': () => {
     if (interpolateTemplate('A{x}B', { x: undefined }) !== 'AB') throw new Error('bad');
+  },
+  'buildCancellationMessage usa primeiro nome': () => {
+    const msg = buildCancellationMessage({
+      company: { name: 'Barb X' },
+      appointment: { customer_name: 'João Silva' }
+    });
+    if (!msg.startsWith('Olá João')) throw new Error(`bad start: ${msg.slice(0, 30)}`);
+    if (!msg.includes('cancelado')) throw new Error('sem "cancelado"');
+  },
+  'buildNoShowMessage menciona falta': () => {
+    const msg = buildNoShowMessage({
+      company: { name: 'Barb X' },
+      appointment: { customer_name: 'Maria' }
+    });
+    if (!msg.startsWith('Olá Maria')) throw new Error(`bad: ${msg.slice(0, 30)}`);
+    if (!msg.includes('Sentimos sua falta')) throw new Error('sem "Sentimos sua falta"');
+  },
+  'buildCancellationMessage com nome vazio não quebra': () => {
+    const msg = buildCancellationMessage({ company: {}, appointment: {} });
+    if (typeof msg !== 'string') throw new Error('não-string');
+    if (!msg.includes('cancelado')) throw new Error('sem core message');
   },
 };
 

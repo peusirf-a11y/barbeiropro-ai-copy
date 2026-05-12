@@ -100,6 +100,22 @@ export function buildPostAppointmentMessage({ company, appointment, reviewLink }
   return interpolateTemplate(tpl, appointmentVars({ company, appointment, reviewLink }));
 }
 
+// Cancelamento — não tem template no whatsapp_settings; usa default editorial.
+export function buildCancellationMessage({ company, appointment }) {
+  return interpolateTemplate(
+    'Olá {nome} 👋\n\nSeu horário foi cancelado.\n\nSe desejar, entre em contato para reagendar 🙌',
+    appointmentVars({ company, appointment })
+  );
+}
+
+// No-show / faltou — default editorial, sem template no whatsapp_settings.
+export function buildNoShowMessage({ company, appointment }) {
+  return interpolateTemplate(
+    'Olá {nome} 👋\n\nSentimos sua falta hoje 😅\n\nSe quiser reagendar seu horário, estamos à disposição 🙌',
+    appointmentVars({ company, appointment })
+  );
+}
+
 export function buildReactivationMessage({ company, customer }) {
   const tpl = company?.whatsapp_settings?.msg_reactivation
     || 'Fala, {nome}! Sumiu hein 👀 Já tá na hora de dar aquele trato! Quer que eu veja um horário pra você essa semana?';
