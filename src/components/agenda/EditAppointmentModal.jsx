@@ -13,7 +13,6 @@ import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
 import {
   buildConfirmationMessage,
-  buildPostAppointmentMessage,
   buildCancellationMessage,
   buildNoShowMessage,
   openWhatsApp,
@@ -58,9 +57,13 @@ export default function EditAppointmentModal({
   const { company, companyId } = useCompany();
   const customer = customers.find(c => c.id === appointment.customer_id);
 
-  // Status que merecem perguntar "+ WhatsApp?": confirmar/concluir/cancelar/faltou.
+  // Status que merecem perguntar "+ WhatsApp?": confirmar/cancelar/faltou.
+  // "concluido" NÃO está aqui de propósito: a automação backend
+  // `onAppointmentConcluded` já dispara a mensagem de avaliação com o link
+  // correto (review_token é gerado no servidor, não existe ainda no momento
+  // do clique). Enviar pelo modal causaria link inválido + mensagem duplicada.
   // "agendado" é estado neutro — só seta sem perguntar.
-  const STATUS_NEEDS_WA = ['confirmado', 'concluido', 'cancelado', 'faltou'];
+  const STATUS_NEEDS_WA = ['confirmado', 'cancelado', 'faltou'];
 
   const handleStatusClick = (key) => {
     // Mesmo status → no-op
@@ -91,23 +94,17 @@ export default function EditAppointmentModal({
 
     if (!appointment.customer_phone) return;
 
-    // Mensagem por tipo de status
+    // Mensagem por tipo de status.
+    // ⚠️ "concluido" não cai aqui — a automação backend cuida do envio com link válido.
     let message = '';
     if (key === 'confirmado') {
       message = buildConfirmationMessage({ company, appointment });
-    } else if (key === 'concluido') {
-      // Link de avaliação: usa o token público do appointment se existir;
-      // senão cai no review_link manual configurado em whatsapp_settings (Google etc.)
-      const reviewLink = appointment.review_token
-        ? `${window.location.origin}/avaliar/${appointment.review_token}`
-        : (company?.whatsapp_settings?.review_link || '');
-      message = buildPostAppointmentMessage({ company, appointment, reviewLink });
     } else if (key === 'cancelado') {
       message = buildCancellationMessage({ company, appointment });
     } else if (key === 'faltou') {
       message = buildNoShowMessage({ company, appointment });
     }
-    openWhatsApp(appointment.customer_phone, message);
+    if (message) openWhatsApp(appointment.customer_phone, message);
   };
 
   const service = services.find(s => s.id === form.service_id);
