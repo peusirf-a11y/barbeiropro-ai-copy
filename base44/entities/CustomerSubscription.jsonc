@@ -32,11 +32,13 @@
     "status": {
       "type": "string",
       "enum": [
+        "pending_payment",
         "active",
         "paused",
         "canceled"
       ],
-      "default": "active"
+      "default": "active",
+      "description": "pending_payment = cliente assinou pelo link p\u00fablico mas barbearia ainda n\u00e3o confirmou pagamento."
     },
     "started_at": {
       "type": "string",
@@ -78,17 +80,67 @@
       "type": "string",
       "format": "date-time"
     },
+    "paused_at": {
+      "type": "string",
+      "format": "date-time"
+    },
     "stripe_subscription_id": {
       "type": "string",
       "description": "Preparado para integra\u00e7\u00e3o Stripe Connect (Fase 2)"
     },
     "stripe_customer_id": {
       "type": "string"
+    },
+    "self_service_signup": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cliente assinou sozinho pelo link p\u00fablico (vs criada pela barbearia)."
     }
   },
   "required": [
     "company_id",
     "customer_id",
     "plan_id"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "data.company_id": "{{user.data.company_id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "is_super_admin": true
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "is_super_admin": true
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "is_super_admin": true
+          }
+        }
+      ]
+    }
+  }
 }
