@@ -1,5 +1,5 @@
-// Retorna o QR Code da instância Z-API para conectar o WhatsApp.
-// Também retorna o status atual da conexão.
+// Retorna o QR Code / pairing code da instância Evolution API para conectar o WhatsApp.
+// Também retorna o status atual da conexão (state: "open" = conectado).
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
@@ -8,60 +8,63 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const instanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-    const token = Deno.env.get('ZAPI_TOKEN');
-    const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    const baseUrl  = Deno.env.get('EVOLUTION_API_URL')?.replace(/\/$/, '');
+    const apiKey   = Deno.env.get('EVOLUTION_API_KEY');
+    const instance = Deno.env.get('EVOLUTION_INSTANCE');
 
-    if (!instanceId || !token) {
-      return Response.json({ error: 'Credenciais Z-API não configuradas.' }, { status: 500 });
+    if (!baseUrl || !apiKey || !instance) {
+      return Response.json({ error: 'Credenciais Evolution API não configuradas.' }, { status: 500 });
     }
 
     const headers = {
       'Content-Type': 'application/json',
-      'Client-Token': clientToken || '',
+      'apikey': apiKey,
     };
 
-    // Primeiro verifica o status da conexão
-    const statusRes = await fetch(
-      `https://api.z-api.io/instances/${instanceId}/token/${token}/status`,
-      { headers }
-    );
-    const statusData = await statusRes.json();
+    // 1. Verifica o estado atual da conexão
+    const stateRes = await fetch(`${baseUrl}/instance/connectionState/${instance}`, { headers });
+    const stateData = await stateRes.json();
+    console.log('[getWhatsAppQRCode] connectionState:', JSON.stringify(stateData));
 
-    // Se já está conectado, não precisa de QR
-    if (statusData.connected) {
-      return Response.json({ connected: true, status: 'connected' });
+    const state = stateData?.instance?.state;
+
+    if (state === 'open') {
+      return Response.json({ connected: true, status: 'open' });
     }
 
-    // Busca o QR Code
-    const qrRes = await fetch(
-      `https://api.z-api.io/instances/${instanceId}/token/${token}/qr-code/image`,
-      { headers }
-    );
+    // 2. Solicita o QR Code / pairing code
+    const connectRes = await fetch(`${baseUrl}/instance/connect/${instance}`, { headers });
 
-    if (!qrRes.ok) {
-      const errText = await qrRes.text();
-      console.error('[getWhatsAppQRCode] Z-API error:', errText);
+    if (!connectRes.ok) {
+      const errText = await connectRes.text();
+      console.error('[getWhatsAppQRCode] Evolution API connect error:', errText);
       return Response.json({ error: 'Não foi possível obter o QR Code.', detail: errText }, { status: 502 });
     }
 
-    // Z-API retorna a imagem diretamente ou um JSON com value
-    const contentType = qrRes.headers.get('content-type') || '';
+    const connectData = await connectRes.json();
+    console.log('[getWhatsAppQRCode] connect response keys:', Object.keys(connectData));
 
-    if (contentType.includes('application/json')) {
-      const json = await qrRes.json();
-      // { value: "data:image/png;base64,..." }
-      return Response.json({ connected: false, qrCode: json.value || json.qrCode });
+    // connectData.code = string base64 do QR (ex: "2@abc...")
+    // connectData.pairingCode = código de pareamento alfanumérico (ex: "WZYEH1YY")
+    // Precisamos montar a data URI para exibir como imagem no frontend
+    const rawCode = connectData.code || '';
+    let qrCode = null;
+
+    if (rawCode) {
+      // Se já vier como data URI, usa direto; caso contrário empacota
+      if (rawCode.startsWith('data:')) {
+        qrCode = rawCode;
+      } else {
+        // Evolution API retorna o base64 do PNG diretamente
+        qrCode = `data:image/png;base64,${rawCode}`;
+      }
     }
-
-    // É imagem — converte para base64
-    const buffer = await qrRes.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-    const mimeType = contentType.split(';')[0].trim() || 'image/png';
 
     return Response.json({
       connected: false,
-      qrCode: `data:${mimeType};base64,${base64}`,
+      status: state || 'close',
+      qrCode,
+      pairingCode: connectData.pairingCode || null,
     });
 
   } catch (error) {
