@@ -1,25 +1,34 @@
-// Aba de conexão WhatsApp via QR Code (Z-API).
-// Exibe o status atual e o QR para escanear quando desconectado.
+// Aba de conexão WhatsApp via QR Code ou Código de Pareamento por número (Evolution API).
 import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Wifi, WifiOff, RefreshCw, CheckCircle2, Smartphone } from 'lucide-react';
+import { Loader2, Wifi, WifiOff, RefreshCw, CheckCircle2, Smartphone, Hash, QrCode } from 'lucide-react';
 
-const POLL_INTERVAL = 15_000; // polling a cada 15s
+const POLL_INTERVAL = 15_000;
 
 export default function CRMWhatsAppTab() {
-  const [state, setState] = useState('loading'); // loading | connected | qr | error
+  const [state, setState] = useState('loading'); // loading | connected | qr | pairing | error
   const [qrCode, setQrCode] = useState(null);
+  const [pairingCode, setPairingCode] = useState(null);
   const [error, setError] = useState('');
   const [lastRefresh, setLastRefresh] = useState(null);
+  const [mode, setMode] = useState('qr'); // 'qr' | 'phone'
+  const [phone, setPhone] = useState('');
+  const [loadingPhone, setLoadingPhone] = useState(false);
 
-  const fetchQR = useCallback(async () => {
-    setState(s => s === 'loading' ? 'loading' : 'loading');
+  const fetchQR = useCallback(async (phoneNumber = null) => {
+    setState('loading');
     setError('');
+    setPairingCode(null);
     try {
-      const res = await base44.functions.invoke('getWhatsAppQRCode', {});
+      const payload = phoneNumber ? { phone: phoneNumber } : {};
+      const res = await base44.functions.invoke('getWhatsAppQRCode', payload);
       const data = res?.data;
       if (data?.connected) {
         setState('connected');
+        setQrCode(null);
+      } else if (data?.pairingCode) {
+        setState('pairing');
+        setPairingCode(data.pairingCode);
         setQrCode(null);
       } else if (data?.qrCode) {
         setState('qr');
@@ -29,26 +38,35 @@ export default function CRMWhatsAppTab() {
         setError(data.error);
       } else {
         setState('error');
-        setError('Resposta inesperada da Z-API.');
+        setError('Resposta inesperada da Evolution API.');
       }
     } catch (e) {
       setState('error');
-      setError(e?.response?.data?.error || e.message || 'Erro ao consultar Z-API.');
+      setError(e?.response?.data?.error || e.message || 'Erro ao consultar a Evolution API.');
     }
     setLastRefresh(new Date());
+    setLoadingPhone(false);
   }, []);
 
-  // Carrega ao montar
-  useEffect(() => {
-    fetchQR();
-  }, [fetchQR]);
+  useEffect(() => { fetchQR(); }, [fetchQR]);
 
-  // Polling automático quando QR está sendo exibido
+  // Polling quando exibindo QR ou pairing code
   useEffect(() => {
-    if (state !== 'qr') return;
+    if (state !== 'qr' && state !== 'pairing') return;
     const timer = setInterval(() => fetchQR(), POLL_INTERVAL);
     return () => clearInterval(timer);
   }, [state, fetchQR]);
+
+  const handlePhoneConnect = () => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (!cleaned || cleaned.length < 10) {
+      setError('Digite um número válido com DDD e código do país (ex: 5511999999999)');
+      return;
+    }
+    setError('');
+    setLoadingPhone(true);
+    fetchQR(cleaned);
+  };
 
   return (
     <div className="max-w-lg mx-auto">
@@ -62,10 +80,28 @@ export default function CRMWhatsAppTab() {
             </div>
             <div>
               <h2 className="font-bold text-[#111827] text-base">Conexão WhatsApp</h2>
-              <p className="text-sm text-[#6B7280]">Escaneie o QR Code para conectar</p>
+              <p className="text-sm text-[#6B7280]">Conecte via QR Code ou número de telefone</p>
             </div>
           </div>
         </div>
+
+        {/* Seletor de modo (só quando desconectado) */}
+        {state !== 'connected' && state !== 'loading' && (
+          <div className="flex border-b border-black/5">
+            <button
+              onClick={() => { setMode('qr'); setError(''); fetchQR(); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-colors ${mode === 'qr' ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-[#6B7280] hover:text-[#374151]'}`}
+            >
+              <QrCode className="w-4 h-4" /> QR Code
+            </button>
+            <button
+              onClick={() => { setMode('phone'); setQrCode(null); setState('idle'); setError(''); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-colors ${mode === 'phone' ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-[#6B7280] hover:text-[#374151]'}`}
+            >
+              <Hash className="w-4 h-4" /> Número de telefone
+            </button>
+          </div>
+        )}
 
         {/* Corpo */}
         <div className="p-6 flex flex-col items-center gap-5">
@@ -93,7 +129,7 @@ export default function CRMWhatsAppTab() {
           )}
 
           {/* QR Code */}
-          {state === 'qr' && qrCode && (
+          {state === 'qr' && qrCode && mode === 'qr' && (
             <>
               <StatusPill connected={false} />
               <div className="relative">
@@ -102,12 +138,10 @@ export default function CRMWhatsAppTab() {
                   alt="QR Code WhatsApp"
                   className="w-56 h-56 rounded-xl border border-black/10 shadow-sm"
                 />
-                {/* badge de recarregamento automático */}
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-black/10 rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-[#6B7280] whitespace-nowrap shadow-sm">
                   Atualiza em 15s
                 </div>
               </div>
-
               <ol className="text-left text-sm text-[#374151] space-y-1.5 w-full max-w-xs">
                 <li className="flex items-start gap-2"><Step n={1} />Abra o <b>WhatsApp</b> no celular</li>
                 <li className="flex items-start gap-2"><Step n={2} />Toque em <b>Menu → Aparelhos conectados</b></li>
@@ -117,8 +151,61 @@ export default function CRMWhatsAppTab() {
             </>
           )}
 
-          {/* Erro */}
-          {state === 'error' && (
+          {/* Pairing Code (por número) */}
+          {state === 'pairing' && pairingCode && (
+            <>
+              <StatusPill connected={false} />
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-sm text-[#374151] text-center">Digite este código no WhatsApp para conectar:</p>
+                <div className="bg-[#F0FDF4] border border-emerald-200 rounded-2xl px-8 py-5 text-center">
+                  <span className="text-4xl font-black tracking-[0.25em] text-emerald-700 font-mono">
+                    {pairingCode}
+                  </span>
+                </div>
+                <div className="text-[10px] text-[#6B7280] bg-white border border-black/10 rounded-full px-2.5 py-0.5 shadow-sm">
+                  Atualiza em 15s
+                </div>
+              </div>
+              <ol className="text-left text-sm text-[#374151] space-y-1.5 w-full max-w-xs">
+                <li className="flex items-start gap-2"><Step n={1} />Abra o <b>WhatsApp</b> no celular</li>
+                <li className="flex items-start gap-2"><Step n={2} />Toque em <b>Menu → Aparelhos conectados</b></li>
+                <li className="flex items-start gap-2"><Step n={3} />Toque em <b>Conectar com número de telefone</b></li>
+                <li className="flex items-start gap-2"><Step n={4} />Digite o código acima</li>
+              </ol>
+            </>
+          )}
+
+          {/* Formulário de número (modo phone, ainda não solicitou pairing) */}
+          {mode === 'phone' && (state === 'idle' || state === 'error') && (
+            <div className="w-full flex flex-col gap-3">
+              <StatusPill connected={false} />
+              <div>
+                <label className="text-xs font-semibold text-[#374151] block mb-1.5">
+                  Número com código do país e DDD
+                </label>
+                <input
+                  type="tel"
+                  placeholder="5511999999999"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                />
+                <p className="text-[11px] text-[#9CA3AF] mt-1">Ex: 5511999999999 (55 = Brasil)</p>
+              </div>
+              {error && <p className="text-xs text-red-500">{error}</p>}
+              <button
+                onClick={handlePhoneConnect}
+                disabled={loadingPhone}
+                className="w-full py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              >
+                {loadingPhone ? <Loader2 className="w-4 h-4 animate-spin" /> : <Hash className="w-4 h-4" />}
+                Gerar código de pareamento
+              </button>
+            </div>
+          )}
+
+          {/* Erro genérico */}
+          {state === 'error' && mode === 'qr' && (
             <div className="py-8 flex flex-col items-center gap-4 text-center">
               <WifiOff className="w-10 h-10 text-red-400" />
               <div>
@@ -128,11 +215,11 @@ export default function CRMWhatsAppTab() {
             </div>
           )}
 
-          {/* Rodapé com botão atualizar + timestamp */}
-          {state !== 'loading' && (
+          {/* Rodapé */}
+          {state !== 'loading' && state !== 'idle' && !(mode === 'phone' && (state === 'idle' || state === 'error')) && (
             <div className="flex flex-col items-center gap-1.5 mt-1">
               <button
-                onClick={fetchQR}
+                onClick={() => mode === 'qr' ? fetchQR() : fetchQR(phone.replace(/\D/g, ''))}
                 className="flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#1d4ed8] transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -148,7 +235,6 @@ export default function CRMWhatsAppTab() {
         </div>
       </div>
 
-      {/* Dica */}
       <p className="text-xs text-center text-[#9CA3AF] mt-4">
         A conexão é mantida pelo dispositivo físico. Mantenha o celular com internet.
       </p>

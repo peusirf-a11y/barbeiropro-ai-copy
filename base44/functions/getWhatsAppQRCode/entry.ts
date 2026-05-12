@@ -33,7 +33,10 @@ Deno.serve(async (req) => {
     }
 
     // 2. Solicita o QR Code / pairing code
-    const connectRes = await fetch(`${baseUrl}/instance/connect/${instance}`, { headers });
+    // Se um número de telefone foi enviado, passa como query param para obter pairing code
+    const body = await req.json().catch(() => ({}));
+    const phone = body?.phone ? `?number=${encodeURIComponent(body.phone)}` : '';
+    const connectRes = await fetch(`${baseUrl}/instance/connect/${instance}${phone}`, { headers });
 
     if (!connectRes.ok) {
       const errText = await connectRes.text();
