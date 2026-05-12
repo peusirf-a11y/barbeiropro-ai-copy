@@ -72,5 +72,44 @@
     "scheduled_at",
     "slot_key",
     "expires_at"
-  ]
+  ],
+  "rls": {
+    "create": null,
+    "read": {
+      "$or": [
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "is_super_admin": true
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "is_super_admin": true
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "is_super_admin": true
+          }
+        }
+      ]
+    }
+  }
 }
