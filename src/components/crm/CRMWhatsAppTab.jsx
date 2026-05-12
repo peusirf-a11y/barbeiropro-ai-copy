@@ -23,23 +23,22 @@ export default function CRMWhatsAppTab() {
       const payload = phoneNumber ? { phone: phoneNumber } : {};
       const res = await base44.functions.invoke('getWhatsAppQRCode', payload);
       const data = res?.data;
-      console.log('[CRMWhatsAppTab] fetchQR data:', JSON.stringify(data));
       if (data?.connected) {
         setState('connected');
         setQrCode(null);
-      } else if (data?.pairingCode && phoneNumber) {
-        // Pairing code solicitado por número de telefone
+      } else if (data?.pairingCode) {
         setState('pairing');
         setPairingCode(data.pairingCode);
         setQrCode(null);
       } else if (data?.qrCode) {
         setState('qr');
         setQrCode(data.qrCode);
-        // Se a API também retornou pairingCode junto com QR, guarda para uso no modo phone
-        if (data.pairingCode) setPairingCode(data.pairingCode);
       } else if (data?.error) {
         setState('error');
         setError(data.error);
+      } else if (phoneNumber) {
+        // API não suporta pairing code — força modo QR
+        setState('qr_fallback');
       } else {
         setState('error');
         setError('Resposta inesperada da Evolution API.');
@@ -59,6 +58,11 @@ export default function CRMWhatsAppTab() {
     if (state !== 'qr' && state !== 'pairing') return;
     const timer = setInterval(() => fetchQR(), POLL_INTERVAL);
     return () => clearInterval(timer);
+  }, [state, fetchQR]);
+
+  // Quando a API não suporta pairing code, busca QR automaticamente
+  useEffect(() => {
+    if (state === 'qr_fallback') fetchQR();
   }, [state, fetchQR]);
 
   const handlePhoneConnect = () => {
@@ -179,6 +183,16 @@ export default function CRMWhatsAppTab() {
             </>
           )}
 
+          {/* Aviso: pairing code não suportado nesta versão da API */}
+          {state === 'qr_fallback' && (
+            <div className="w-full flex flex-col items-center gap-3 py-4 text-center">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 w-full">
+                <p className="font-semibold mb-1">Código por número não disponível</p>
+                <p className="text-xs">Esta versão da Evolution API não suporta pareamento por número. Use o QR Code abaixo.</p>
+              </div>
+            </div>
+          )}
+
           {/* Formulário de número (modo phone, ainda não solicitou pairing) */}
           {mode === 'phone' && (state === 'idle' || state === 'error') && (
             <div className="w-full flex flex-col gap-3">
@@ -220,7 +234,7 @@ export default function CRMWhatsAppTab() {
           )}
 
           {/* Rodapé */}
-          {state !== 'loading' && state !== 'idle' && !(mode === 'phone' && (state === 'idle' || state === 'error')) && (
+          {state !== 'loading' && state !== 'idle' && state !== 'qr_fallback' && !(mode === 'phone' && (state === 'idle' || state === 'error')) && (
             <div className="flex flex-col items-center gap-1.5 mt-1">
               <button
                 onClick={() => mode === 'qr' ? fetchQR() : fetchQR(phone.replace(/\D/g, ''))}
