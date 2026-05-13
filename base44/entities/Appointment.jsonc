@@ -172,20 +172,11 @@
     "scheduled_at"
   ],
   "rls": {
-    "create": {
-      "data.company_id": "{{user.data.company_id}}"
-    },
+    "create": null,
     "read": {
-      "$or": [
-        {
-          "data.company_id": "{{user.data.company_id}}"
-        },
-        {
-          "user_condition": {
-            "is_super_admin": true
-          }
-        }
-      ]
+      "user_condition": {
+        "is_super_admin": true
+      }
     },
     "update": {
       "$or": [
@@ -200,6 +191,18 @@
       ]
     },
     "delete": {
+      "$or": [
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "is_super_admin": true
+          }
+        }
+      ]
+    },
+    "write": {
       "$or": [
         {
           "data.company_id": "{{user.data.company_id}}"
