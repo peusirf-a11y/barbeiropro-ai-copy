@@ -46,7 +46,16 @@
   ],
   "rls": {
     "create": {
-      "data.company_id": "{{user.data.company_id}}"
+      "$or": [
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "is_super_admin": true
+          }
+        }
+      ]
     },
     "read": {
       "$or": [

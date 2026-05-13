@@ -47,7 +47,11 @@
     "message"
   ],
   "rls": {
-    "create": null,
+    "create": {
+      "user_condition": {
+        "is_super_admin": true
+      }
+    },
     "read": {
       "user_condition": {
         "is_super_admin": true
