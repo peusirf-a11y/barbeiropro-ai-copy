@@ -54,17 +54,6 @@ Deno.serve(async (req) => {
       ip,
     });
 
-    await base44.asServiceRole.entities.AuditLog.create({
-      company_id, // P0.5: coluna nativa
-      actor_email: user.email,
-      actor_is_super_admin: true,
-      action: 'START_IMPERSONATION',
-      target_type: 'Company',
-      target_id: company_id,
-      impersonated_company_id: company_id,
-      ip,
-      metadata: { company_name: company.name, expires_at, reason: reason || null },
-    });
 
     console.log('[startImpersonation] ok', { user: user.email, company_id, expires_at });
     return Response.json({
