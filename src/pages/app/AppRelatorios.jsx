@@ -10,6 +10,7 @@ import { BarChart2 } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import FilterSelect from '@/components/ui/filter-select';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 import { filterByUnit } from '@/lib/unitFilter';
 import { useUnits } from '@/hooks/useUnits';
 import UnitBreakdownTable from '@/components/relatorios/UnitBreakdownTable';
@@ -21,6 +22,7 @@ export default function AppRelatorios() {
   const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
   const { units } = useUnits();
   const [period, setPeriod] = useState('this_month');
+  const impPatch = useImpersonationPatch();
 
   // BFF Fase 4: appointments via listAppointments (tenant + unit + role scope)
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
@@ -29,6 +31,7 @@ export default function AppRelatorios() {
       const res = await base44.functions.invoke('listAppointments', {
         active_unit_id: activeUnitId,
         limit: 2000,
+        ...impPatch,
       });
       return res?.data?.appointments || [];
     },

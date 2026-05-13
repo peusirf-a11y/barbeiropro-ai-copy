@@ -14,6 +14,7 @@ import AppPageHeader from '@/components/app/AppPageHeader';
 import KpiCard from '@/components/dashboard/KpiCard';
 import FilterSelect from '@/components/ui/filter-select';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 import { filterByUnit, filterProfessionalsByUnit } from '@/lib/unitFilter';
 
 export default function AppComissoes() {
@@ -27,6 +28,7 @@ export default function AppComissoes() {
   const [period, setPeriod] = useState('this_month');
   const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
   const queryClient = useQueryClient();
+  const impPatch = useImpersonationPatch();
 
   // BFF Fase 4: comissões via listCommissions. Barbeiro é forçado server-side
   // a ver só as próprias (defesa em profundidade). Unit scope server-side via
@@ -37,6 +39,7 @@ export default function AppComissoes() {
       const res = await base44.functions.invoke('listCommissions', {
         active_unit_id: activeUnitId,
         limit: 1000,
+        ...impPatch,
       });
       return res?.data?.commissions || [];
     },

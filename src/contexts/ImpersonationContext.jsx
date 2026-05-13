@@ -11,7 +11,16 @@
 // Persiste no localStorage (TTL 15min). Reativo via window event.
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+
+const COMPANY_CACHE_KEYS = [
+  'my-company', 'appointments', 'customers', 'customer-subscriptions',
+  'customer-subscriptions-active', 'professionals', 'services', 'blocked-times',
+  'financial', 'financial-entries', 'commissions', 'reviews', 'whatsapp-messages',
+  'customers-crm', 'customer-plans', 'cash-register', 'cash-registers',
+  'cash-entries', 'dashboard',
+];
 
 const STORAGE_KEY = 'master_impersonation_v1';
 const TTL_MS = 15 * 60 * 1000;
@@ -42,6 +51,7 @@ const ImpersonationContext = createContext({
 
 export function ImpersonationProvider({ children }) {
   const [state, setState] = useState(() => readStorage());
+  const queryClient = useQueryClient();
 
   // Sincroniza com localStorage (outra aba ou TTL expirado)
   useEffect(() => {
@@ -67,7 +77,8 @@ export function ImpersonationProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     setState(data);
     window.dispatchEvent(new Event('impersonation-changed'));
-  }, []);
+    COMPANY_CACHE_KEYS.forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+  }, [queryClient]);
 
   const stopImpersonation = useCallback(() => {
     const current = readStorage();
@@ -78,7 +89,8 @@ export function ImpersonationProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY);
     setState(null);
     window.dispatchEvent(new Event('impersonation-changed'));
-  }, []);
+    COMPANY_CACHE_KEYS.forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+  }, [queryClient]);
 
   const value = {
     isImpersonating: !!state?.active,

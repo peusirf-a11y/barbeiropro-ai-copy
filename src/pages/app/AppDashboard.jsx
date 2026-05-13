@@ -11,6 +11,7 @@ import { Calendar, Users, DollarSign, TrendingUp, Repeat } from 'lucide-react';
 import { format, startOfMonth, startOfDay, differenceInMinutes, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 import { filterByUnit } from '@/lib/unitFilter';
 import ActivationHealthCard from '@/components/dashboard/ActivationHealthCard';
 import KpiCard from '@/components/dashboard/KpiCard';
@@ -47,12 +48,15 @@ export default function AppDashboard() {
 
   // BFF Fase 4: appointments via listAppointments. Tenant + role (barbeiro força
   // professional_id) + unit scope server-side. Frontend não monta filter.
+  const impPatch = useImpersonationPatch();
+
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
     queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
     queryFn: async () => {
       const res = await base44.functions.invoke('listAppointments', {
         active_unit_id: activeUnitId,
         limit: 200,
+        ...impPatch,
       });
       return res?.data?.appointments || [];
     },
@@ -66,6 +70,7 @@ export default function AppDashboard() {
       const res = await base44.functions.invoke('listCustomers', {
         active_unit_id: activeUnitId,
         limit: 500,
+        ...impPatch,
       });
       return res?.data?.customers || [];
     },
@@ -86,6 +91,7 @@ export default function AppDashboard() {
       const res = await base44.functions.invoke('listSubscriptions', {
         active_unit_id: activeUnitId,
         status: 'active',
+        ...impPatch,
       });
       return res?.data?.subscriptions || [];
     },
