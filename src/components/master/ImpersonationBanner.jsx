@@ -1,34 +1,23 @@
 // Banner global mostrado quando há impersonação ativa.
 // Renderizado dentro de AppLayout para ser visível em todo /app.
-import { useEffect, useState } from 'react';
-import { Eye, X, ShieldAlert } from 'lucide-react';
-import { getImpersonation, stopImpersonation } from '@/lib/impersonation';
+import { ShieldAlert, X } from 'lucide-react';
+import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 
 export default function ImpersonationBanner() {
-  const [imp, setImp] = useState(getImpersonation());
+  const { isImpersonating, impersonatedCompanyName, impersonationExpiresAt, stopImpersonation } = useImpersonationContext();
 
-  useEffect(() => {
-    const refresh = () => setImp(getImpersonation());
-    window.addEventListener('impersonation-changed', refresh);
-    window.addEventListener('storage', refresh);
-    const t = setInterval(refresh, 30_000); // verifica TTL
-    return () => {
-      window.removeEventListener('impersonation-changed', refresh);
-      window.removeEventListener('storage', refresh);
-      clearInterval(t);
-    };
-  }, []);
+  if (!isImpersonating) return null;
 
-  if (!imp?.active) return null;
-
-  const expiresIn = Math.max(0, Math.round((new Date(imp.expires_at).getTime() - Date.now()) / 60000));
+  const expiresIn = impersonationExpiresAt
+    ? Math.max(0, Math.round((new Date(impersonationExpiresAt).getTime() - Date.now()) / 60000))
+    : 0;
 
   return (
     <div className="sticky top-0 z-40 bg-amber-500 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm shadow-md">
       <div className="flex items-center gap-2 min-w-0">
         <ShieldAlert className="w-4 h-4 flex-shrink-0" />
         <span className="truncate">
-          <strong>Modo impersonação</strong> · visualizando como <strong>{imp.company_name}</strong> · expira em ~{expiresIn}min
+          <strong>Modo impersonação</strong> · visualizando como <strong>{impersonatedCompanyName}</strong> · expira em ~{expiresIn}min
         </span>
       </div>
       <button

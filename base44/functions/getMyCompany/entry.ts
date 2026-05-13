@@ -28,6 +28,24 @@ Deno.serve(async (req) => {
     }
 
     const sdk = base44.asServiceRole;
+    const body = await req.json().catch(() => ({}));
+    const { impersonation_token } = body || {};
+
+    // Impersonação: Master vê a empresa alvo
+    if (impersonation_token && user.is_super_admin) {
+      const sessions = await sdk.entities.ImpersonationSession.filter(
+        { token: impersonation_token }, '-created_date', 1,
+      );
+      const session = sessions?.[0];
+      if (session && !session.ended_at && new Date(session.expires_at).getTime() > Date.now() && session.actor_email === user.email) {
+        const co = await sdk.entities.Company.get(session.company_id).catch(() => null);
+        if (co) {
+          console.log('[getMyCompany] impersonation ok', { actor: user.email, company_id: co.id });
+          return Response.json({ company: publicCompany(co), role: 'admin', is_impersonating: true });
+        }
+      }
+      return Response.json({ company: null, role: null, impersonation_error: true });
+    }
 
     // 1) Owner: prioridade máxima — Company.owner_email é fonte da verdade.
     const ownerHits = await sdk.entities.Company.filter(

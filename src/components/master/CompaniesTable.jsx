@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Search, Globe, CheckCircle, Clock, Eye, ChevronLeft, ChevronRight, Loader2, Trash2, ExternalLink } from 'lucide-react';
-import { startImpersonation } from '@/lib/impersonation';
+import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 import { useNavigate } from 'react-router-dom';
 import ConfirmDestructiveDialog from '@/components/ConfirmDestructiveDialog';
 import { useToast } from '@/components/ui/use-toast';
@@ -23,6 +23,7 @@ export default function CompaniesTable() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { startImpersonation } = useImpersonationContext();
   const [confirmTarget, setConfirmTarget] = useState(null); // company a bloquear
   const [deleteTarget, setDeleteTarget] = useState(null);   // company a EXCLUIR (irreversível)
 

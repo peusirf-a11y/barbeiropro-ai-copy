@@ -28,9 +28,23 @@ class AuthzError extends Error {
   constructor(code, status = 403) { super(code); this.code = code; this.status = status; }
 }
 
-async function getCallerContext(base44, user) {
+async function getCallerContext(base44, user, impersonation_token) {
   if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
   const sdk = base44.asServiceRole;
+
+  // Impersonação
+  if (impersonation_token && user.is_super_admin) {
+    const sessions = await sdk.entities.ImpersonationSession.filter({ token: impersonation_token }, '-created_date', 1);
+    const session = sessions?.[0];
+    if (!session || session.ended_at || new Date(session.expires_at).getTime() < Date.now()) {
+      throw new AuthzError('IMPERSONATION_INVALID', 403);
+    }
+    if (session.actor_email !== user.email) throw new AuthzError('IMPERSONATION_MISMATCH', 403);
+    const company = await sdk.entities.Company.get(session.company_id).catch(() => null);
+    if (!company) throw new AuthzError('COMPANY_NOT_FOUND', 404);
+    console.log('[listCustomers] impersonation', { actor: user.email, company_id: company.id });
+    return { role: 'admin', company_id: company.id, company, email: user.email, is_impersonating: true };
+  }
 
   // Super-admin sem vínculo: não pode listar customers de tenant nenhum (use master panel)
   if (user.is_super_admin) {
@@ -73,14 +87,13 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me().catch(() => null);
     if (!user) return Response.json({ error: 'UNAUTHORIZED' }, { status: 401 });
 
-    const caller = await getCallerContext(base44, user);
+    const body = await req.json().catch(() => ({}));
+    const caller = await getCallerContext(base44, user, body?.impersonation_token);
 
-    // Super-admin precisa usar painel master, não as listas operacionais.
+    // Super-admin sem impersonação: não tem empresa própria
     if (caller.is_super_admin) {
       return Response.json({ error: 'USE_MASTER_PANEL' }, { status: 403 });
     }
-
-    const body = await req.json().catch(() => ({}));
     const {
       active_unit_id = null,
       lifecycle_status = null,

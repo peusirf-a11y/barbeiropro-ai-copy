@@ -9,6 +9,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import ThemeSync from '@/components/ThemeSync';
 import RootRedirect from '@/components/RootRedirect';
 import { ActiveUnitProvider } from '@/hooks/useActiveUnit';
+import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
 
 // Guards
 import PrivateRoute from '@/components/guards/PrivateRoute';
@@ -85,6 +86,7 @@ function App() {
     <ThemeSync />
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
+       <ImpersonationProvider>
        <ActiveUnitProvider>
         <Router>
           <Routes>
@@ -173,6 +175,7 @@ function App() {
         </Router>
         <Toaster />
        </ActiveUnitProvider>
+       </ImpersonationProvider>
       </QueryClientProvider>
     </AuthProvider>
     </ErrorBoundary>

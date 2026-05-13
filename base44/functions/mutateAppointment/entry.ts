@@ -34,9 +34,23 @@ class AuthzError extends Error {
   constructor(code, status = 403) { super(code); this.code = code; this.status = status; }
 }
 
-async function getCallerContext(base44, user) {
+async function getCallerContext(base44, user, impersonation_token) {
   if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
   const sdk = base44.asServiceRole;
+
+  // Impersonação
+  if (impersonation_token && user.is_super_admin) {
+    const sessions = await sdk.entities.ImpersonationSession.filter({ token: impersonation_token }, '-created_date', 1);
+    const session = sessions?.[0];
+    if (!session || session.ended_at || new Date(session.expires_at).getTime() < Date.now()) {
+      throw new AuthzError('IMPERSONATION_INVALID', 403);
+    }
+    if (session.actor_email !== user.email) throw new AuthzError('IMPERSONATION_MISMATCH', 403);
+    const company = await sdk.entities.Company.get(session.company_id).catch(() => null);
+    if (!company) throw new AuthzError('COMPANY_NOT_FOUND', 404);
+    console.log('[mutateAppointment] impersonation', { actor: user.email, company_id: company.id });
+    return { role: 'admin', company_id: company.id, company, email: user.email, is_impersonating: true };
+  }
 
   if (user.is_super_admin) throw new AuthzError('USE_MASTER_PANEL', 403);
 
@@ -147,11 +161,10 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me().catch(() => null);
     if (!user) return Response.json({ error: 'UNAUTHORIZED' }, { status: 401 });
 
-    const caller = await getCallerContext(base44, user);
-    const sdk = base44.asServiceRole;
-
     const body = await req.json().catch(() => ({}));
-    const { action, id, data, active_unit_id } = body || {};
+    const { action, id, data, active_unit_id, impersonation_token } = body || {};
+    const caller = await getCallerContext(base44, user, impersonation_token);
+    const sdk = base44.asServiceRole;
 
     if (!['create', 'update', 'delete'].includes(action)) {
       return Response.json({ error: 'INVALID_ACTION' }, { status: 400 });

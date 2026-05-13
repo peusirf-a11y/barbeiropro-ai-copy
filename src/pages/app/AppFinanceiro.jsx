@@ -19,6 +19,7 @@ import StandardModal from '@/components/ui/standard-modal';
 import MobileSelect from '@/components/ui/mobile-select';
 import { periodToRange, dateRangeFilter } from '@/lib/dateRangeQueries';
 import { safeArray } from '@/lib/safeArray';
+import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
@@ -30,6 +31,7 @@ export default function AppFinanceiro() {
   const [period, setPeriod] = useState('this_month'); // 'this_month' | 'last_month' | 'all'
   const [form, setForm] = useState({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' });
   const queryClient = useQueryClient();
+  const impPatch = useImpersonationPatch();
 
   // A3: range é calculado no FRONTEND e passado como filtro no BACKEND.
   // Antes: `filter({company_id}, '-date', 300)` truncava silenciosamente em meses
@@ -41,11 +43,24 @@ export default function AppFinanceiro() {
   const { data: financialRaw, isLoading } = useQuery({
     // queryKey inclui period: ao trocar período, refetcha com o range correto.
     queryKey: ['financial', companyId, activeUnitId, period],
-    queryFn: () => base44.entities.FinancialEntry.filter(
-      { company_id: companyId, ...rangeFilter },
-      '-date',
-      5000,
-    ),
+    queryFn: async () => {
+      // Quando impersonando, usamos um BFF que aceita o token.
+      // Quando não impersonando, chamada direta à entidade (como antes).
+      if (impPatch.impersonation_token) {
+        // financeiro direto via entidade com company_id da empresa impersonada:
+        // useCompany já retorna a empresa certa, então companyId é correto.
+        return base44.entities.FinancialEntry.filter(
+          { company_id: companyId, ...rangeFilter },
+          '-date',
+          5000,
+        );
+      }
+      return base44.entities.FinancialEntry.filter(
+        { company_id: companyId, ...rangeFilter },
+        '-date',
+        5000,
+      );
+    },
     enabled: !!companyId,
   });
   const financial = safeArray(financialRaw);
@@ -64,6 +79,7 @@ export default function AppFinanceiro() {
         from: range?.from ? range.from.toISOString() : undefined,
         to: range?.to ? range.to.toISOString() : undefined,
         limit: 2000,
+        ...impPatch,
       });
       return res?.data?.appointments ?? res?.data ?? [];
     },
@@ -77,6 +93,7 @@ export default function AppFinanceiro() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const res = await base44.functions.invoke('mutateFinancialEntry', {
+        ...impPatch,
         action: 'create',
         data: {
           entry_kind: data.type === 'saida' ? 'saida' : 'entrada',
@@ -102,6 +119,7 @@ export default function AppFinanceiro() {
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
       const res = await base44.functions.invoke('mutateFinancialEntry', {
+        ...impPatch,
         action: 'delete',
         entry_id: id,
         reason: 'Excluído pelo operador (Financeiro)',

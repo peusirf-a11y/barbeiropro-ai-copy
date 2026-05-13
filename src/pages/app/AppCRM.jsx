@@ -33,6 +33,7 @@ import CRMTransactionalTab from '@/components/crm/CRMTransactionalTab';
 import CRMWhatsAppTab from '@/components/crm/CRMWhatsAppTab';
 import LifecycleCampaignsSection from '@/components/configuracoes/LifecycleCampaignsSection';
 import { safeArray } from '@/lib/safeArray';
+import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 
 const TABS = [
   { id: 'overview',     label: 'Visão geral', icon: LayoutDashboard },
@@ -49,6 +50,7 @@ export default function AppCRM() {
   const { company, isLoading: loadingCompany } = useCompany();
   const { activeUnitId } = useActiveUnit();
   const [searchParams, setSearchParams] = useSearchParams();
+  const impPatch = useImpersonationPatch();
   const initialTab = searchParams.get('tab') || 'overview';
   const [tab, setTab] = useState(TABS.some(t => t.id === initialTab) ? initialTab : 'overview');
 
@@ -60,6 +62,7 @@ export default function AppCRM() {
       const res = await base44.functions.invoke('listWhatsAppMessages', {
         active_unit_id: activeUnitId,
         limit: 500,
+        ...impPatch,
       });
       return res?.data?.messages ?? res?.data ?? [];
     },
@@ -73,6 +76,7 @@ export default function AppCRM() {
         active_unit_id: activeUnitId,
         sort: '-last_appointment_at',
         limit: 1000,
+        ...impPatch,
       });
       return res?.data?.customers ?? res?.data ?? [];
     },

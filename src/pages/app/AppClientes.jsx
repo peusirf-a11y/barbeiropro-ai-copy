@@ -23,6 +23,7 @@ import { Sparkles } from 'lucide-react';
 import WhatsAppButton from '@/components/whatsapp/WhatsAppButton';
 import { buildReactivationMessage } from '@/lib/whatsappCompose';
 import { safeArray } from '@/lib/safeArray';
+import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 
 const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
 
@@ -38,6 +39,7 @@ export default function AppClientes() {
   const [form, setForm] = useState(emptyForm);
   const [offeringTo, setOfferingTo] = useState(null); // cliente para qual estamos oferecendo plano
   const queryClient = useQueryClient();
+  const impPatch = useImpersonationPatch();
 
   // BFF: lista vem do servidor com tenant + unit scoping aplicados.
   // O frontend não toca mais em `Customer.filter` — reduz superfície de leak
@@ -48,6 +50,7 @@ export default function AppClientes() {
       const res = await base44.functions.invoke('listCustomers', {
         active_unit_id: activeUnitId,
         limit: 500,
+        ...impPatch,
       });
       return res?.data || { customers: [] };
     },
@@ -69,6 +72,7 @@ export default function AppClientes() {
       const res = await base44.functions.invoke('listSubscriptions', {
         active_unit_id: activeUnitId,
         status: 'active',
+        ...impPatch,
       });
       return safeArray(res?.data?.subscriptions ?? res?.data);
     },
@@ -80,7 +84,7 @@ export default function AppClientes() {
   // O servidor decide company_id (do caller) e unit_id (auto-stamp quando aplicável).
   // O frontend NÃO precisa mais conhecer shouldScopeCustomersByUnit.
   const invokeMutation = async (payload) => {
-    const res = await base44.functions.invoke('mutateCustomer', payload);
+    const res = await base44.functions.invoke('mutateCustomer', { ...payload, ...impPatch });
     if (res?.data?.error) throw new Error(res.data.error);
     return res?.data;
   };

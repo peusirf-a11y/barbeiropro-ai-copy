@@ -42,8 +42,23 @@ function canAccessUnit(caller, unit_id) {
   return allowed.includes(unit_id);
 }
 
-async function getCallerContext(base44, user) {
+async function getCallerContext(base44, user, impersonation_token) {
   if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
+
+  // Impersonação
+  if (impersonation_token && user.is_super_admin) {
+    const sessions = await base44.asServiceRole.entities.ImpersonationSession.filter({ token: impersonation_token }, '-created_date', 1);
+    const session = sessions?.[0];
+    if (!session || session.ended_at || new Date(session.expires_at).getTime() < Date.now()) {
+      throw new AuthzError('IMPERSONATION_INVALID', 403);
+    }
+    if (session.actor_email !== user.email) throw new AuthzError('IMPERSONATION_MISMATCH', 403);
+    const company = await base44.asServiceRole.entities.Company.get(session.company_id).catch(() => null);
+    if (!company) throw new AuthzError('COMPANY_NOT_FOUND', 404);
+    console.log('[mutateFinancialEntry] impersonation', { actor: user.email, company_id: company.id });
+    return { role: 'admin', company_id: company.id, email: user.email, is_impersonating: true, unit_ids: [] };
+  }
+
   if (user.is_super_admin) return { role: 'super_admin', is_super_admin: true, email: user.email };
   const tm = await base44.asServiceRole.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
   if (tm?.length) {
@@ -201,7 +216,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
 
-    const { action, entry_id, data, patch, reason } = await req.json().catch(() => ({}));
+    const { action, entry_id, data, patch, reason, impersonation_token } = await req.json().catch(() => ({}));
     if (!action) {
       return Response.json({ success: false, error: 'action_required' }, { status: 400 });
     }
@@ -212,7 +227,7 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'entry_id_required' }, { status: 400 });
     }
 
-    const caller = await getCallerContext(base44, user);
+    const caller = await getCallerContext(base44, user, impersonation_token);
     if (caller.is_super_admin) {
       return Response.json({ success: false, error: 'USE_MASTER_PANEL' }, { status: 403 });
     }

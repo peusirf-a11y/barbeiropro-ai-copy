@@ -20,6 +20,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import StandardModal from '@/components/ui/standard-modal';
 import FilterSelect from '@/components/ui/filter-select';
 import { safeArray } from '@/lib/safeArray';
+import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 
 // Status habilitados no modal de mudança — ordenados.
 const STATUS_KEYS = ['agendado', 'confirmado', 'concluido', 'cancelado', 'faltou'];
@@ -45,6 +46,7 @@ export default function AppAgenda() {
   const [slotInterval, setSlotInterval] = useState(10); // 10 ou 15 min
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const impPatch = useImpersonationPatch();
   const { containerProps: ptrProps, indicator: ptrIndicator } = usePullToRefresh({
     onRefresh: async () => {
       await Promise.all([
@@ -64,6 +66,7 @@ export default function AppAgenda() {
       const res = await base44.functions.invoke('listAppointments', {
         active_unit_id: activeUnitId || undefined,
         limit: 500,
+        ...impPatch,
       });
       return res?.data?.appointments ?? res?.data ?? [];
     },
@@ -122,7 +125,7 @@ export default function AppAgenda() {
   // O servidor faz allow-list, conflict check, completed_at auto-stamp e
   // bloqueia tentativa de mexer em campos sensíveis (paid_online, etc).
   const invokeMutation = async (payload) => {
-    const res = await base44.functions.invoke('mutateAppointment', payload);
+    const res = await base44.functions.invoke('mutateAppointment', { ...payload, ...impPatch });
     if (res?.data?.error) {
       const err = new Error(res.data.error);
       err.code = res.data.error;

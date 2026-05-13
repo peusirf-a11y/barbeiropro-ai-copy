@@ -1,26 +1,27 @@
 // useCompany — resolve a empresa do usuário logado SEM expor Company.list() ao frontend.
 //
-// A1 (Sprint A): antes, este hook chamava `Company.list()` direto no frontend e
-// dependia do backend filtrar por tenant. Isso era:
-//   1) risco de vazamento tenant (se o RLS quebrasse, o frontend veria outras empresas)
-//   2) comportamento não determinístico (companies[0] como fallback)
-//   3) anti-pattern cultural — normalizava queries tenant-sensitive no client
-//
-// Agora chama a backend function `getMyCompany` que resolve owner/team_member
-// de forma autoritativa, retornando apenas a empresa do caller.
+// Suporta modo impersonação: quando o Master está impersonando uma barbearia,
+// passa o impersonation_token para getMyCompany, que retorna a empresa alvo.
+// O resto da UI não precisa saber: useCompany sempre retorna a "empresa corrente".
 
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
+import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 
 export function useCompany() {
   const { user } = useAuth();
+  const { isImpersonating, impersonationToken } = useImpersonationContext();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['my-company', user?.email],
+    // Inclui isImpersonating+token na queryKey para que a cache invalide
+    // quando o Master inicia ou encerra uma sessão de impersonação.
+    queryKey: ['my-company', user?.email, isImpersonating ? impersonationToken : null],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getMyCompany', {});
-      // axios-like response: dados em `data`
+      const payload = isImpersonating && impersonationToken
+        ? { impersonation_token: impersonationToken }
+        : {};
+      const res = await base44.functions.invoke('getMyCompany', payload);
       return res?.data || { company: null, role: null };
     },
     enabled: !!user,
