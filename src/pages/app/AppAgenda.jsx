@@ -81,11 +81,12 @@ export default function AppAgenda() {
     enabled: !!companyId,
   });
 
-  const { data: customers = [] } = useQuery({
+  const { data: customersRaw } = useQuery({
     queryKey: ['customers', companyId, activeUnitId],
     queryFn: () => base44.entities.Customer.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
+  const customers = Array.isArray(customersRaw) ? customersRaw : [];
 
   const { data: blockedTimes = [] } = useQuery({
     queryKey: ['blocked-times', companyId, activeUnitId],
