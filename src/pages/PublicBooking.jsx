@@ -84,28 +84,20 @@ export default function PublicBooking() {
     enabled: !!activeSubscription?.plan_id,
   });
 
-  const { data: services = [] } = useQuery({
-    queryKey: ['public-services', company?.id],
-    queryFn: () => base44.entities.Service.filter({ company_id: company.id, active: true }),
+  const { data: publicBookingData } = useQuery({
+    queryKey: ['public-booking-data', company?.id],
+    queryFn: () => base44.functions.invoke('getPublicBookingData', { company_id: company.id }).then(r => r.data),
     enabled: !!company?.id,
   });
 
-  const { data: allProfessionals = [] } = useQuery({
-    queryKey: ['public-professionals', company?.id],
-    queryFn: () => base44.entities.Professional.filter({ company_id: company.id, active: true }),
-    enabled: !!company?.id,
-  });
+  const services = publicBookingData?.services || [];
+  const allProfessionals = publicBookingData?.professionals || [];
 
   // Unidades ativas (apenas se a empresa tem multi_unit_enabled)
   const isMultiUnit = !!company?.multi_unit_enabled;
-  const { data: units = [] } = useQuery({
-    queryKey: ['public-units', company?.id],
-    queryFn: async () => {
-      const list = await base44.entities.Unit.filter({ company_id: company.id, active: true });
-      return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-    },
-    enabled: !!company?.id && isMultiUnit,
-  });
+  const units = isMultiUnit
+    ? (publicBookingData?.units || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    : [];
 
   // Pré-seleciona unidade via query param (?unidade=slug) ou quando há apenas 1 ativa
   useEffect(() => {
