@@ -40,24 +40,11 @@ Deno.serve(async (req) => {
     const cleanCode = code.replace(/\s/g, '');
     const isValid = authenticator.check(cleanCode, user.totp_secret);
     if (!isValid) {
-      // log de tentativa
-      await base44.asServiceRole.entities.AuditLog.create({
-        actor_email: user.email,
-        actor_is_super_admin: true,
-        action: 'TOTP_VERIFY_FAILED',
-        ip,
-      });
       return Response.json({ success: false, error: 'Código inválido' }, { status: 401 });
     }
 
     // Anti-replay: rejeita reuso do mesmo código (cobre janela de ~30s)
     if (user.totp_last_code && user.totp_last_code === cleanCode) {
-      await base44.asServiceRole.entities.AuditLog.create({
-        actor_email: user.email,
-        actor_is_super_admin: true,
-        action: 'TOTP_REPLAY_BLOCKED',
-        ip,
-      });
       return Response.json({ success: false, error: 'Código já utilizado. Aguarde o próximo.' }, { status: 401 });
     }
 
@@ -75,14 +62,6 @@ Deno.serve(async (req) => {
       user_email: user.email,
       expires_at,
       ip,
-    });
-
-    await base44.asServiceRole.entities.AuditLog.create({
-      actor_email: user.email,
-      actor_is_super_admin: true,
-      action: 'TOTP_VERIFY_SUCCESS',
-      ip,
-      metadata: { expires_at },
     });
 
     console.log(`JOB END: verifyTotp success for ${user.email}`);
