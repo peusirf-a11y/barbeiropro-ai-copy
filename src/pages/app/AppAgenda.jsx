@@ -66,7 +66,8 @@ export default function AppAgenda() {
       });
       // BFF retorna { appointments } ou array vazio em caso de erro de auth
       if (!res?.data) return [];
-      return res.data?.appointments || [];
+      const raw = res.data?.appointments ?? res.data;
+      return Array.isArray(raw) ? raw : [];
     },
     enabled: !!companyId,
   });
