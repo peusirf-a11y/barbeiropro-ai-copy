@@ -126,9 +126,7 @@ function App() {
             {/* ── MASTER PANEL (super admin only) — sidebar + rotas aninhadas ── */}
             <Route path="/master" element={
               <SuperAdminRoute>
-                <TotpGate>
-                  <MasterLayout />
-                </TotpGate>
+                <MasterLayout />
               </SuperAdminRoute>
             }>
               <Route index element={<Navigate to="/master/dashboard" replace />} />
