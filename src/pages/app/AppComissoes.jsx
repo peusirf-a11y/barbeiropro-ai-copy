@@ -44,8 +44,14 @@ export default function AppComissoes() {
   });
 
   const { data: professionals = [] } = useQuery({
-    queryKey: ['professionals', companyId],
-    queryFn: () => base44.entities.Professional.filter({ company_id: companyId }),
+    queryKey: ['professionals', companyId, activeUnitId],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listProfessionals', {
+        active_unit_id: activeUnitId || undefined,
+        active_only: false,
+      });
+      return res?.data?.professionals || [];
+    },
     enabled: !!companyId,
   });
 

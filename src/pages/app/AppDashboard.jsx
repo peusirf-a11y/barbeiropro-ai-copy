@@ -72,14 +72,16 @@ export default function AppDashboard() {
   });
 
   // Barbeiro não acessa financeiro — query disabled.
-  // Usa entity direto com company_id do hook (RLS aplicado pelo backend)
+  // Via BFF listFinancialEntries (tenant-safe, evita falha de RLS)
   const { data: financial = [] } = useQuery({
     queryKey: ['financial', companyId, activeUnitId],
-    queryFn: () => base44.entities.FinancialEntry.filter(
-      { company_id: companyId },
-      '-date',
-      500,
-    ),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listFinancialEntries', {
+        active_unit_id: activeUnitId || undefined,
+        limit: 500,
+      });
+      return res?.data?.entries || [];
+    },
     enabled: !!companyId && showFinance,
   });
 
