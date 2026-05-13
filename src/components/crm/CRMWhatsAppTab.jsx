@@ -1,9 +1,10 @@
-// Aba de conexão WhatsApp via QR Code (Evolution API).
+// Aba de conexão WhatsApp via QR Code (Z-API).
+// Exibe o status atual e o QR para escanear quando desconectado.
 import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Wifi, WifiOff, RefreshCw, CheckCircle2, Smartphone } from 'lucide-react';
 
-const POLL_INTERVAL = 15_000;
+const POLL_INTERVAL = 15_000; // polling a cada 15s
 
 export default function CRMWhatsAppTab() {
   const [state, setState] = useState('loading'); // loading | connected | qr | error
@@ -12,7 +13,7 @@ export default function CRMWhatsAppTab() {
   const [lastRefresh, setLastRefresh] = useState(null);
 
   const fetchQR = useCallback(async () => {
-    setState('loading');
+    setState(s => s === 'loading' ? 'loading' : 'loading');
     setError('');
     try {
       const res = await base44.functions.invoke('getWhatsAppQRCode', {});
@@ -28,18 +29,21 @@ export default function CRMWhatsAppTab() {
         setError(data.error);
       } else {
         setState('error');
-        setError('Resposta inesperada da Evolution API.');
+        setError('Resposta inesperada da Z-API.');
       }
     } catch (e) {
       setState('error');
-      setError(e?.response?.data?.error || e.message || 'Erro ao consultar a Evolution API.');
+      setError(e?.response?.data?.error || e.message || 'Erro ao consultar Z-API.');
     }
     setLastRefresh(new Date());
   }, []);
 
-  useEffect(() => { fetchQR(); }, [fetchQR]);
+  // Carrega ao montar
+  useEffect(() => {
+    fetchQR();
+  }, [fetchQR]);
 
-  // Polling quando exibindo QR
+  // Polling automático quando QR está sendo exibido
   useEffect(() => {
     if (state !== 'qr') return;
     const timer = setInterval(() => fetchQR(), POLL_INTERVAL);
@@ -58,7 +62,7 @@ export default function CRMWhatsAppTab() {
             </div>
             <div>
               <h2 className="font-bold text-[#111827] text-base">Conexão WhatsApp</h2>
-              <p className="text-sm text-[#6B7280]">Conecte via QR Code</p>
+              <p className="text-sm text-[#6B7280]">Escaneie o QR Code para conectar</p>
             </div>
           </div>
         </div>
@@ -98,10 +102,12 @@ export default function CRMWhatsAppTab() {
                   alt="QR Code WhatsApp"
                   className="w-56 h-56 rounded-xl border border-black/10 shadow-sm"
                 />
+                {/* badge de recarregamento automático */}
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-black/10 rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-[#6B7280] whitespace-nowrap shadow-sm">
                   Atualiza em 15s
                 </div>
               </div>
+
               <ol className="text-left text-sm text-[#374151] space-y-1.5 w-full max-w-xs">
                 <li className="flex items-start gap-2"><Step n={1} />Abra o <b>WhatsApp</b> no celular</li>
                 <li className="flex items-start gap-2"><Step n={2} />Toque em <b>Menu → Aparelhos conectados</b></li>
@@ -122,8 +128,8 @@ export default function CRMWhatsAppTab() {
             </div>
           )}
 
-          {/* Rodapé */}
-          {(state === 'qr' || state === 'error') && (
+          {/* Rodapé com botão atualizar + timestamp */}
+          {state !== 'loading' && (
             <div className="flex flex-col items-center gap-1.5 mt-1">
               <button
                 onClick={fetchQR}
@@ -142,6 +148,7 @@ export default function CRMWhatsAppTab() {
         </div>
       </div>
 
+      {/* Dica */}
       <p className="text-xs text-center text-[#9CA3AF] mt-4">
         A conexão é mantida pelo dispositivo físico. Mantenha o celular com internet.
       </p>

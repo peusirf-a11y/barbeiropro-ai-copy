@@ -12,7 +12,7 @@ import PrimaryButton from '@/components/app/PrimaryButton';
 import KpiCard from '@/components/dashboard/KpiCard';
 import FinancialExport from '@/components/financeiro/FinancialExport';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
-
+import { filterByUnit } from '@/lib/unitFilter';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 import FilterSelect from '@/components/ui/filter-select';
 import StandardModal from '@/components/ui/standard-modal';
@@ -40,17 +40,12 @@ export default function AppFinanceiro() {
   const { data: financial = [], isLoading } = useQuery({
     // queryKey inclui period: ao trocar período, refetcha com o range correto.
     queryKey: ['financial', companyId, activeUnitId, period],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('listFinancialEntries', {
-        active_unit_id: activeUnitId || undefined,
-        from: range?.from ? range.from.toISOString().slice(0, 10) : undefined,
-        to: range?.to ? range.to.toISOString().slice(0, 10) : undefined,
-        limit: 5000,
-      });
-      return res?.data?.entries || [];
-    },
+    queryFn: () => base44.entities.FinancialEntry.filter(
+      { company_id: companyId, ...rangeFilter },
+      '-date',
+      5000,
+    ),
     enabled: !!companyId,
-    retry: 1,
   });
 
   // Receita de atendimentos concluídos no período. BFF Fase 4:
@@ -115,9 +110,9 @@ export default function AppFinanceiro() {
     onError: (err) => alert(err.message),
   });
 
-  // BFF já filtrou por unit server-side — sem dupla filtragem no frontend.
-  const financialScoped = financial;
-  const apptsScoped = appointments; // BFF já filtrou
+  // A3: período já vem filtrado do backend — só falta filtrar por unidade ativa.
+  const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
+  const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
 
   const filtered = financialScoped;
   const entradas = filtered.filter(f => f.type === 'entrada');

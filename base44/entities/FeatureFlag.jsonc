@@ -33,27 +33,5 @@
   },
   "required": [
     "key"
-  ],
-  "rls": {
-    "create": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "read": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "update": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "delete": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    }
-  }
+  ]
 }

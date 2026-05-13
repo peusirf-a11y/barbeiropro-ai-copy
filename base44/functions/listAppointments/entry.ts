@@ -32,7 +32,10 @@ async function getCallerContext(base44, user) {
   if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
   const sdk = base44.asServiceRole;
 
-  // Owner tem prioridade — mesmo se is_super_admin, se tiver empresa vinculada, usa como admin.
+  if (user.is_super_admin) {
+    throw new AuthzError('USE_MASTER_PANEL', 403);
+  }
+
   const ownerHits = await sdk.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
   if (ownerHits?.length) {
     return {
@@ -41,11 +44,6 @@ async function getCallerContext(base44, user) {
       company: ownerHits[0],
       email: user.email,
     };
-  }
-
-  // Super-admin puro sem empresa vinculada → redireciona para painel master.
-  if (user.is_super_admin) {
-    throw new AuthzError('USE_MASTER_PANEL', 403);
   }
 
   const tmHits = await sdk.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);

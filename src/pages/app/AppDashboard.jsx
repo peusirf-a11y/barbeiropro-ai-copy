@@ -6,7 +6,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { canViewFinance } from '@/lib/rolePermissions';
 import { useFeatures } from '@/hooks/useFeatures';
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Calendar, Users, DollarSign, TrendingUp, Repeat } from 'lucide-react';
 import { format, startOfMonth, startOfDay, differenceInMinutes, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -32,6 +32,7 @@ export default function AppDashboard() {
   const { has } = useFeatures();
   const showSubscriptions = showFinance && has('subscriptions');
   const showCrm = has('crm_retention');
+  const [alerts, setAlerts] = useState([]);
   const queryClient = useQueryClient();
   const { containerProps: ptrProps, indicator: ptrIndicator } = usePullToRefresh({
     onRefresh: async () => {
@@ -72,16 +73,9 @@ export default function AppDashboard() {
   });
 
   // Barbeiro não acessa financeiro — query disabled.
-  // Via BFF listFinancialEntries (tenant-safe, evita falha de RLS)
   const { data: financial = [] } = useQuery({
     queryKey: ['financial', companyId, activeUnitId],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('listFinancialEntries', {
-        active_unit_id: activeUnitId || undefined,
-        limit: 500,
-      });
-      return res?.data?.entries || [];
-    },
+    queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }),
     enabled: !!companyId && showFinance,
   });
 
@@ -104,9 +98,8 @@ export default function AppDashboard() {
   const todayStr = now.toDateString();
   const todayKey = format(startOfDay(now), 'yyyy-MM-dd');
 
-  // BFF (listAppointments) já aplicou o filtro de unit server-side.
-  // filterByUnit aplicado somente no financial (que ainda usa entity direta).
-  const apptsScoped = appointments; // BFF já filtrou — não aplicar dupla filtragem
+  // Aplica filtro por unidade ativa (registros sem unit_id continuam aparecendo)
+  const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
   const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
 
   const todayAppts = apptsScoped.filter(a => new Date(a.scheduled_at).toDateString() === todayStr);
@@ -146,13 +139,14 @@ export default function AppDashboard() {
       .slice(0, 5);
   }, [completedMonth]);
 
-  // AI bottleneck detection — useMemo evita loop de re-render
-  const alerts = useMemo(() => {
+  // AI bottleneck detection
+  useEffect(() => {
+    if (!apptsScoped.length && !customers.length) return;
     const detected = [];
 
     const pendingOld = todayAppts.filter(a =>
       a.status === 'agendado' &&
-      differenceInMinutes(new Date(), new Date(a.scheduled_at)) > 120
+      differenceInMinutes(now, new Date(a.scheduled_at)) > 120
     );
     if (pendingOld.length > 0) {
       detected.push({
@@ -180,7 +174,7 @@ export default function AppDashboard() {
 
     const vipInactive = customers.filter(c => {
       if (c.status !== 'vip' || !c.last_appointment_at) return false;
-      return differenceInDays(new Date(), new Date(c.last_appointment_at)) > 21;
+      return differenceInDays(now, new Date(c.last_appointment_at)) > 21;
     });
     if (vipInactive.length > 0) {
       detected.push({
@@ -193,10 +187,11 @@ export default function AppDashboard() {
       });
     }
 
+    // Clientes inativos em geral (não-VIP) sem retorno há +60 dias
     const generalInactive = customers.filter(c => {
       if (c.status === 'vip') return false;
       if (!c.last_appointment_at) return false;
-      return differenceInDays(new Date(), new Date(c.last_appointment_at)) > 60;
+      return differenceInDays(now, new Date(c.last_appointment_at)) > 60;
     });
     if (generalInactive.length >= 5) {
       detected.push({
@@ -220,8 +215,8 @@ export default function AppDashboard() {
       });
     }
 
-    return detected;
-  }, [todayAppts, customers, loadingAppts]);
+    setAlerts(detected);
+  }, [apptsScoped, customers, loadingAppts]);
 
   const isLoading = loadingCompany || loadingAppts;
 

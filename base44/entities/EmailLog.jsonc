@@ -59,32 +59,5 @@
     "subject",
     "type",
     "status"
-  ],
-  "rls": {
-    "create": {
-      "data.company_id": "{{user.data.company_id}}"
-    },
-    "read": {
-      "$or": [
-        {
-          "data.company_id": "{{user.data.company_id}}"
-        },
-        {
-          "user_condition": {
-            "is_super_admin": true
-          }
-        }
-      ]
-    },
-    "update": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "delete": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    }
-  }
+  ]
 }

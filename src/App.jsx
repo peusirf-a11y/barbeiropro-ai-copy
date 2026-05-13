@@ -26,7 +26,6 @@ import CheckoutSuccess from './pages/CheckoutSuccess';
 
 // Master pages (super admin)
 import MasterLayout from './components/master/MasterLayout';
-import SeedRunner from './pages/admin/SeedRunner';
 import MasterDashboard from './pages/master/MasterDashboard';
 import MasterBarbearias from './pages/master/MasterBarbearias';
 import MasterCompanyDetail from './pages/master/MasterCompanyDetail';
@@ -103,7 +102,6 @@ function App() {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/sucesso" element={<CheckoutSuccess />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
-            <Route path="/admin/seed" element={<SeedRunner />} />
             <Route path="/politica-de-privacidade" element={<PoliticaDePrivacidade />} />
 
             {/* ── DEMO ROUTES (public, no login required) ── */}
@@ -126,7 +124,9 @@ function App() {
             {/* ── MASTER PANEL (super admin only) — sidebar + rotas aninhadas ── */}
             <Route path="/master" element={
               <SuperAdminRoute>
-                <MasterLayout />
+                <TotpGate>
+                  <MasterLayout />
+                </TotpGate>
               </SuperAdminRoute>
             }>
               <Route index element={<Navigate to="/master/dashboard" replace />} />

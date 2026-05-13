@@ -64,15 +64,11 @@ export default function AppAgenda() {
         active_unit_id: activeUnitId || undefined,
         limit: 500,
       });
-      // BFF retorna { appointments } ou array vazio em caso de erro de auth
-      if (!res?.data) return [];
-      const raw = res.data?.appointments ?? res.data;
-      return Array.isArray(raw) ? raw : [];
+      return res?.data?.appointments || [];
     },
-    enabled: !!companyId,
+    enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
 
-  // BFF: professionals, services, customers via getPublicBookingData / BFFs seguros
   const { data: professionals = [] } = useQuery({
     queryKey: ['professionals', companyId, activeUnitId],
     queryFn: () => base44.entities.Professional.filter({ company_id: companyId, active: true }),
@@ -85,19 +81,11 @@ export default function AppAgenda() {
     enabled: !!companyId,
   });
 
-  // BFF: clientes via listCustomers (tenant-safe, sem expor entity diretamente)
-  const { data: customersData } = useQuery({
+  const { data: customers = [] } = useQuery({
     queryKey: ['customers', companyId, activeUnitId],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('listCustomers', {
-        active_unit_id: activeUnitId,
-        limit: 500,
-      });
-      return res?.data || { customers: [] };
-    },
+    queryFn: () => base44.entities.Customer.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
-  const customers = customersData?.customers || [];
 
   const { data: blockedTimes = [] } = useQuery({
     queryKey: ['blocked-times', companyId, activeUnitId],
@@ -273,10 +261,11 @@ export default function AppAgenda() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  // Multi-unidade: o BFF (listAppointments) já filtra por active_unit_id server-side.
-  // Mantemos filtro client-side apenas como fallback de segurança (dados legados sem unit_id).
-  // NÃO filtramos se o BFF já fez — evita dupla filtragem que escondia dados.
-  const apptsByUnit = appointments;
+  // Multi-unidade: filtra agendamentos e profissionais pela unidade ativa.
+  // Mono-unidade ou com unit_id ausente => mostra tudo (compatibilidade com dados legados).
+  const apptsByUnit = isMultiUnit && activeUnitId
+    ? appointments.filter(a => !a.unit_id || a.unit_id === activeUnitId)
+    : appointments;
   const prosByUnit = isMultiUnit && activeUnitId
     ? professionals.filter(p => !p.unit_ids || p.unit_ids.length === 0 || p.unit_ids.includes(activeUnitId))
     : professionals;

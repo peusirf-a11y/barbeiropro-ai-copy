@@ -24,7 +24,7 @@ import AppPageHeader from '@/components/app/AppPageHeader';
 import KpiCard from '@/components/dashboard/KpiCard';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
-
+import { filterByUnit } from '@/lib/unitFilter';
 
 import CaixaSummaryHeader from '@/components/caixa/CaixaSummaryHeader';
 import CaixaDreCard from '@/components/caixa/CaixaDreCard';
@@ -77,46 +77,26 @@ export default function AppCaixa() {
   // Filtros da timeline
   const [filters, setFilters] = useState({});
 
-  // ── Caixas (escopo por unidade) — via BFF listCashRegisters (tenant-safe)
+  // ── Caixas (escopo por unidade)
   const { data: registersRaw = [], isLoading } = useQuery({
     queryKey: ['cash-registers', companyId, activeUnitId],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('listCashRegisters', {
-        active_unit_id: activeUnitId || undefined,
-        limit: 50,
-      });
-      return res?.data?.registers || [];
-    },
+    queryFn: () => base44.entities.CashRegister.filter({ company_id: companyId }, '-opened_at', 30),
     enabled: !!companyId,
   });
-  // BFF listCashRegisters já aplica unit scoping server-side
-  const registers = registersRaw;
-  const openCash = registers.find(r => r.status === 'aberto' || r.status === 'fechando');
+  const registers = filterByUnit(registersRaw, activeUnitId, isMultiUnit);
+  const openCash = registers.find(r => r.status === 'aberto');
 
-  // ── Lançamentos do caixa aberto — via BFF listFinancialEntries (tenant-safe)
+  // ── Lançamentos do caixa aberto
   const { data: allEntries = [] } = useQuery({
     queryKey: ['cash-entries', companyId, openCash?.id],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('listFinancialEntries', {
-        cash_register_id: openCash.id,
-        limit: 500,
-        sort: '-created_date',
-      });
-      return res?.data?.entries || [];
-    },
-    enabled: !!companyId && !!openCash?.id,
+    queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }, '-created_date', 500),
+    enabled: !!companyId && !!openCash,
   });
 
-  // ── Profissionais e clientes (para enriquecer listagem e DRE) — via BFF
+  // ── Profissionais e clientes (para enriquecer listagem e DRE)
   const { data: professionals = [] } = useQuery({
-    queryKey: ['professionals-caixa', companyId, activeUnitId],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('listProfessionals', {
-        active_unit_id: activeUnitId || undefined,
-        active_only: true,
-      });
-      return res?.data?.professionals || [];
-    },
+    queryKey: ['professionals-caixa', companyId],
+    queryFn: () => base44.entities.Professional.filter({ company_id: companyId }, null, 200),
     enabled: !!companyId,
   });
   const professionalsMap = useMemo(() => {
@@ -134,9 +114,7 @@ export default function AppCaixa() {
     queryKey: ['customers-for-caixa', companyId, customerIds.length],
     queryFn: async () => {
       if (!customerIds.length) return [];
-      // BFF: listCustomers (tenant-safe)
-      const res = await base44.functions.invoke('listCustomers', { limit: 500 });
-      return res?.data?.customers || [];
+      return base44.entities.Customer.filter({ company_id: companyId }, null, 500);
     },
     enabled: !!companyId && customerIds.length > 0,
   });
@@ -154,22 +132,20 @@ export default function AppCaixa() {
 
   // ── Mutations
   const openMutation = useMutation({
-    mutationFn: async (data) => {
-      const res = await base44.functions.invoke('mutateCashRegister', {
-        action: 'open',
-        unit_id: activeUnitId || undefined,
-        initial_amount: +data.initial_amount || 0,
-        notes: data.notes,
-      });
-      if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao abrir caixa');
-      return res.data;
-    },
+    mutationFn: (data) => base44.entities.CashRegister.create({
+      company_id: companyId,
+      unit_id: activeUnitId || undefined,
+      opened_at: new Date().toISOString(),
+      initial_amount: +data.initial_amount || 0,
+      opened_by: user?.email,
+      notes: data.notes,
+      status: 'aberto',
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cash-registers', companyId, activeUnitId] });
       setShowOpen(false);
       setOpenForm({ initial_amount: '', notes: '' });
     },
-    onError: (err) => alert(err.message || 'Erro ao abrir caixa'),
   });
 
   const closeMutation = useMutation({

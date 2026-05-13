@@ -25,31 +25,5 @@
     "token",
     "user_email",
     "expires_at"
-  ],
-  "rls": {
-    "create": {
-      "data.user_email": "{{user.email}}",
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "read": {
-      "data.user_email": "{{user.email}}",
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "update": {
-      "data.user_email": "{{user.email}}",
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "delete": {
-      "data.user_email": "{{user.email}}",
-      "user_condition": {
-        "is_super_admin": true
-      }
-    }
-  }
+  ]
 }

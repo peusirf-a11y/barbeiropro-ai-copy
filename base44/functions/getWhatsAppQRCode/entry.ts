@@ -1,4 +1,4 @@
-// Retorna o QR Code da instância Evolution API para conectar o WhatsApp.
+// Retorna o QR Code / pairing code da instância Evolution API para conectar o WhatsApp.
 // Também retorna o status atual da conexão (state: "open" = conectado).
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
@@ -32,31 +32,39 @@ Deno.serve(async (req) => {
       return Response.json({ connected: true, status: 'open' });
     }
 
-    // 2. Solicita o QR Code
+    // 2. Solicita o QR Code / pairing code
     const connectRes = await fetch(`${baseUrl}/instance/connect/${instance}`, { headers });
+
     if (!connectRes.ok) {
       const errText = await connectRes.text();
       console.error('[getWhatsAppQRCode] Evolution API connect error:', errText);
       return Response.json({ error: 'Não foi possível obter o QR Code.', detail: errText }, { status: 502 });
     }
+
     const connectData = await connectRes.json();
     console.log('[getWhatsAppQRCode] connect response keys:', Object.keys(connectData));
 
+    // connectData.code = string base64 do QR (ex: "2@abc...")
+    // connectData.pairingCode = código de pareamento alfanumérico (ex: "WZYEH1YY")
+    // Precisamos montar a data URI para exibir como imagem no frontend
+    const rawCode = connectData.code || '';
     let qrCode = null;
-    if (connectData.base64) {
-      qrCode = connectData.base64.startsWith('data:')
-        ? connectData.base64
-        : `data:image/png;base64,${connectData.base64}`;
-    }
 
-    if (!qrCode) {
-      return Response.json({ error: 'QR Code não disponível. Tente novamente.' });
+    if (rawCode) {
+      // Se já vier como data URI, usa direto; caso contrário empacota
+      if (rawCode.startsWith('data:')) {
+        qrCode = rawCode;
+      } else {
+        // Evolution API retorna o base64 do PNG diretamente
+        qrCode = `data:image/png;base64,${rawCode}`;
+      }
     }
 
     return Response.json({
       connected: false,
       status: state || 'close',
       qrCode,
+      pairingCode: connectData.pairingCode || null,
     });
 
   } catch (error) {

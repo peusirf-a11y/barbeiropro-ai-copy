@@ -35,27 +35,5 @@
     "actor_email",
     "company_id",
     "expires_at"
-  ],
-  "rls": {
-    "create": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "read": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "update": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    },
-    "delete": {
-      "user_condition": {
-        "is_super_admin": true
-      }
-    }
-  }
+  ]
 }

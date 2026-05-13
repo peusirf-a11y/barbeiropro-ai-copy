@@ -32,7 +32,12 @@ async function getCallerContext(base44, user) {
   if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
   const sdk = base44.asServiceRole;
 
-  // Owner tem prioridade — mesmo se is_super_admin, usa a empresa vinculada.
+  // Super-admin sem vínculo: não pode listar customers de tenant nenhum (use master panel)
+  if (user.is_super_admin) {
+    return { role: 'super_admin', is_super_admin: true, email: user.email };
+  }
+
+  // Owner tem prioridade
   const ownerHits = await sdk.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
   if (ownerHits?.length) {
     return {
@@ -42,11 +47,6 @@ async function getCallerContext(base44, user) {
       email: user.email,
       is_owner: true,
     };
-  }
-
-  // Super-admin puro sem empresa vinculada → não pode listar customers operacionais.
-  if (user.is_super_admin) {
-    return { role: 'super_admin', is_super_admin: true, email: user.email };
   }
 
   // Team member ativo

@@ -12,6 +12,16 @@ function rateLimit(key, limit = 10, windowMs = 60_000) {
   return true;
 }
 
+async function requireValidTotpSession(base44, totp_session_token, user_email) {
+  if (!totp_session_token) return { ok: false, error: '2FA obrigatório' };
+  const sessions = await base44.asServiceRole.entities.TotpSession.filter({ token: totp_session_token });
+  const s = sessions?.[0];
+  if (!s) return { ok: false, error: 'Sessão 2FA inválida' };
+  if (s.ended_at) return { ok: false, error: 'Sessão 2FA encerrada' };
+  if (new Date(s.expires_at).getTime() <= Date.now()) return { ok: false, error: 'Sessão 2FA expirada' };
+  if (s.user_email !== user_email) return { ok: false, error: 'Sessão 2FA não pertence a este usuário' };
+  return { ok: true };
+}
 
 Deno.serve(async (req) => {
   console.log('JOB START: startImpersonation');
@@ -29,9 +39,15 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'FORBIDDEN_ROLE' }, { status: 403 });
     }
 
-    const { company_id, reason } = await req.json();
+    const { company_id, reason, totp_session_token } = await req.json();
     if (!company_id) {
       return Response.json({ success: false, error: 'company_id required' }, { status: 400 });
+    }
+
+    // Exige 2FA válido para iniciar impersonação
+    const totpCheck = await requireValidTotpSession(base44, totp_session_token, user.email);
+    if (!totpCheck.ok) {
+      return Response.json({ success: false, error: totpCheck.error, totp_required: true }, { status: 401 });
     }
 
     let company;
@@ -54,6 +70,17 @@ Deno.serve(async (req) => {
       ip,
     });
 
+    await base44.asServiceRole.entities.AuditLog.create({
+      company_id, // P0.5: coluna nativa
+      actor_email: user.email,
+      actor_is_super_admin: true,
+      action: 'START_IMPERSONATION',
+      target_type: 'Company',
+      target_id: company_id,
+      impersonated_company_id: company_id,
+      ip,
+      metadata: { company_name: company.name, expires_at, reason: reason || null },
+    });
 
     console.log('[startImpersonation] ok', { user: user.email, company_id, expires_at });
     return Response.json({
