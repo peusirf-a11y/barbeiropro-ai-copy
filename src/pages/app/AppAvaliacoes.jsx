@@ -37,8 +37,9 @@ export default function AppAvaliacoes() {
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['reviews', companyId],
-    queryFn: () => base44.entities.Review.filter({ company_id: companyId }, '-created_date', 200),
+    queryFn: () => base44.entities.Review.filter({ company_id: companyId }, '-created_date', 500),
     enabled: !!companyId,
+    retry: 1,
   });
 
   // Carregamos clientes só para conseguir o telefone na ação manual de "Agradecer".

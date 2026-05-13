@@ -54,11 +54,19 @@ export default function AppClientes() {
   });
   const customers = customersData?.customers || [];
 
-  const { data: appointments = [] } = useQuery({
-    queryKey: ['appointments', companyId, activeUnitId],
-    queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }),
+  // Appointments para stats de atendimento via BFF (tenant-safe)
+  const { data: appointmentsData } = useQuery({
+    queryKey: ['appointments', companyId, activeUnitId, 'all'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listAppointments', {
+        active_unit_id: activeUnitId,
+        limit: 2000,
+      });
+      return res?.data || { appointments: [] };
+    },
     enabled: !!companyId,
   });
+  const appointments = appointmentsData?.appointments || [];
 
   // Map customer_id => assinatura ativa, para mostrar badge na lista (BFF Fase 4)
   const { data: activeSubs = [] } = useQuery({

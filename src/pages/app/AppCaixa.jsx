@@ -77,26 +77,30 @@ export default function AppCaixa() {
   // Filtros da timeline
   const [filters, setFilters] = useState({});
 
-  // ── Caixas (escopo por unidade)
+  // ── Caixas (escopo por unidade) — entity direta com company_id autoritativo do hook
   const { data: registersRaw = [], isLoading } = useQuery({
     queryKey: ['cash-registers', companyId, activeUnitId],
-    queryFn: () => base44.entities.CashRegister.filter({ company_id: companyId }, '-opened_at', 30),
+    queryFn: () => base44.entities.CashRegister.filter({ company_id: companyId }, '-opened_at', 50),
     enabled: !!companyId,
   });
   const registers = filterByUnit(registersRaw, activeUnitId, isMultiUnit);
   const openCash = registers.find(r => r.status === 'aberto');
 
-  // ── Lançamentos do caixa aberto
+  // ── Lançamentos do caixa aberto — filtra pelo cash_register_id para evitar trazer tudo
   const { data: allEntries = [] } = useQuery({
     queryKey: ['cash-entries', companyId, openCash?.id],
-    queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }, '-created_date', 500),
-    enabled: !!companyId && !!openCash,
+    queryFn: () => base44.entities.FinancialEntry.filter(
+      { company_id: companyId, cash_register_id: openCash.id },
+      '-created_date',
+      500,
+    ),
+    enabled: !!companyId && !!openCash?.id,
   });
 
   // ── Profissionais e clientes (para enriquecer listagem e DRE)
   const { data: professionals = [] } = useQuery({
     queryKey: ['professionals-caixa', companyId],
-    queryFn: () => base44.entities.Professional.filter({ company_id: companyId }, null, 200),
+    queryFn: () => base44.entities.Professional.filter({ company_id: companyId, active: true }, 'name', 200),
     enabled: !!companyId,
   });
   const professionalsMap = useMemo(() => {
@@ -114,7 +118,9 @@ export default function AppCaixa() {
     queryKey: ['customers-for-caixa', companyId, customerIds.length],
     queryFn: async () => {
       if (!customerIds.length) return [];
-      return base44.entities.Customer.filter({ company_id: companyId }, null, 500);
+      // BFF: listCustomers (tenant-safe)
+      const res = await base44.functions.invoke('listCustomers', { limit: 500 });
+      return res?.data?.customers || [];
     },
     enabled: !!companyId && customerIds.length > 0,
   });

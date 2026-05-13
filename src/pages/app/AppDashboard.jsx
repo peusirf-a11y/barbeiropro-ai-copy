@@ -72,9 +72,14 @@ export default function AppDashboard() {
   });
 
   // Barbeiro não acessa financeiro — query disabled.
+  // Usa entity direto com company_id do hook (RLS aplicado pelo backend)
   const { data: financial = [] } = useQuery({
     queryKey: ['financial', companyId, activeUnitId],
-    queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }),
+    queryFn: () => base44.entities.FinancialEntry.filter(
+      { company_id: companyId },
+      '-date',
+      500,
+    ),
     enabled: !!companyId && showFinance,
   });
 
@@ -97,8 +102,9 @@ export default function AppDashboard() {
   const todayStr = now.toDateString();
   const todayKey = format(startOfDay(now), 'yyyy-MM-dd');
 
-  // Aplica filtro por unidade ativa (registros sem unit_id continuam aparecendo)
-  const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
+  // BFF (listAppointments) já aplicou o filtro de unit server-side.
+  // filterByUnit aplicado somente no financial (que ainda usa entity direta).
+  const apptsScoped = appointments; // BFF já filtrou — não aplicar dupla filtragem
   const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
 
   const todayAppts = apptsScoped.filter(a => new Date(a.scheduled_at).toDateString() === todayStr);

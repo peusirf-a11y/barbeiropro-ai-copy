@@ -41,11 +41,13 @@ export default function AppFinanceiro() {
     // queryKey inclui period: ao trocar período, refetcha com o range correto.
     queryKey: ['financial', companyId, activeUnitId, period],
     queryFn: () => base44.entities.FinancialEntry.filter(
-      { company_id: companyId, ...rangeFilter },
+      // company_id vem do hook useCompany (autoritativo do backend) — não do payload
+      { company_id: companyId, deleted_at: { $exists: false }, ...rangeFilter },
       '-date',
       5000,
     ),
     enabled: !!companyId,
+    retry: 1,
   });
 
   // Receita de atendimentos concluídos no período. BFF Fase 4:
@@ -110,9 +112,11 @@ export default function AppFinanceiro() {
     onError: (err) => alert(err.message),
   });
 
-  // A3: período já vem filtrado do backend — só falta filtrar por unidade ativa.
+  // A3: período já vem filtrado do backend.
+  // Financial: entity direta → aplica filterByUnit.
+  // Appointments: BFF já filtrou por unit server-side → sem dupla filtragem.
   const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
-  const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
+  const apptsScoped = appointments; // BFF já filtrou
 
   const filtered = financialScoped;
   const entradas = filtered.filter(f => f.type === 'entrada');
