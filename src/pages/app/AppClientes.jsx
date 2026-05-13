@@ -22,6 +22,7 @@ import VipCandidatesCard from '@/components/clientes/VipCandidatesCard';
 import { Sparkles } from 'lucide-react';
 import WhatsAppButton from '@/components/whatsapp/WhatsAppButton';
 import { buildReactivationMessage } from '@/lib/whatsappCompose';
+import { safeArray } from '@/lib/safeArray';
 
 const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
 
@@ -52,13 +53,14 @@ export default function AppClientes() {
     },
     enabled: !!companyId,
   });
-  const customers = customersData?.customers || [];
+  const customers = safeArray(customersData?.customers ?? customersData);
 
-  const { data: appointments = [] } = useQuery({
+  const { data: appointmentsRaw } = useQuery({
     queryKey: ['appointments', companyId, activeUnitId],
     queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
+  const appointments = safeArray(appointmentsRaw);
 
   // Map customer_id => assinatura ativa, para mostrar badge na lista (BFF Fase 4)
   const { data: activeSubs = [] } = useQuery({
@@ -68,7 +70,7 @@ export default function AppClientes() {
         active_unit_id: activeUnitId,
         status: 'active',
       });
-      return res?.data?.subscriptions || [];
+      return safeArray(res?.data?.subscriptions ?? res?.data);
     },
     enabled: !!companyId,
   });

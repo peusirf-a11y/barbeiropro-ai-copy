@@ -18,6 +18,7 @@ import FilterSelect from '@/components/ui/filter-select';
 import StandardModal from '@/components/ui/standard-modal';
 import MobileSelect from '@/components/ui/mobile-select';
 import { periodToRange, dateRangeFilter } from '@/lib/dateRangeQueries';
+import { safeArray } from '@/lib/safeArray';
 
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
@@ -37,7 +38,7 @@ export default function AppFinanceiro() {
   const range = periodToRange(period);
   const rangeFilter = dateRangeFilter('date', range, 'date');
 
-  const { data: financial = [], isLoading } = useQuery({
+  const { data: financialRaw, isLoading } = useQuery({
     // queryKey inclui period: ao trocar período, refetcha com o range correto.
     queryKey: ['financial', companyId, activeUnitId, period],
     queryFn: () => base44.entities.FinancialEntry.filter(
@@ -47,13 +48,14 @@ export default function AppFinanceiro() {
     ),
     enabled: !!companyId,
   });
+  const financial = safeArray(financialRaw);
 
   // Receita de atendimentos concluídos no período. BFF Fase 4:
   // listAppointments filtra status=concluido + janela temporal no servidor.
   // Nota: o filtro é em scheduled_at (não completed_at — listAppointments usa
   // scheduled_at como eixo temporal). Para fins de KPI mensal, é equivalente
   // o suficiente (atendimento concluído tem scheduled_at próximo do completed_at).
-  const { data: appointments = [] } = useQuery({
+  const { data: appointmentsRaw } = useQuery({
     queryKey: ['appointments-concluidos', companyId, activeUnitId, period],
     queryFn: async () => {
       const res = await base44.functions.invoke('listAppointments', {
@@ -63,10 +65,11 @@ export default function AppFinanceiro() {
         to: range?.to ? range.to.toISOString() : undefined,
         limit: 2000,
       });
-      return res?.data?.appointments || [];
+      return res?.data?.appointments ?? res?.data ?? [];
     },
     enabled: !!companyId,
   });
+  const appointments = safeArray(appointmentsRaw);
 
   // BFF Fase 7: create e delete via mutateFinancialEntry.
   // Servidor decide company_id e força origin='manual'. Delete usa soft-delete

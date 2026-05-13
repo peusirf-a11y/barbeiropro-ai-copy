@@ -18,6 +18,7 @@ import {
   openWhatsApp,
 } from '@/lib/whatsappCompose';
 import StatusActionSheet from '@/components/agenda/StatusActionSheet';
+import { safeArray } from '@/lib/safeArray';
 
 const STATUS_KEYS = ['agendado', 'confirmado', 'concluido', 'cancelado', 'faltou'];
 
@@ -55,7 +56,10 @@ export default function EditAppointmentModal({
   // Action sheet: { key } quando aberto, null fechado.
   const [pendingStatus, setPendingStatus] = useState(null);
   const { company, companyId } = useCompany();
-  const customer = customers.find(c => c.id === appointment.customer_id);
+  const safeCustomers = safeArray(customers);
+  const safeServices = safeArray(services);
+  const safeProfessionals = safeArray(professionals);
+  const customer = safeCustomers.find(c => c.id === appointment.customer_id);
 
   // Status que merecem perguntar "+ WhatsApp?": confirmar/cancelar/faltou.
   // "concluido" NÃO está aqui de propósito: a automação backend
@@ -107,7 +111,7 @@ export default function EditAppointmentModal({
     if (message) openWhatsApp(appointment.customer_phone, message);
   };
 
-  const service = services.find(s => s.id === form.service_id);
+  const service = safeServices.find(s => s.id === form.service_id);
   // custom_duration_minutes (definido por resize manual) sobrescreve a duração padrão
   const duration = appointment.custom_duration_minutes || service?.duration_minutes || 30;
 
@@ -139,8 +143,8 @@ export default function EditAppointmentModal({
       setError('Horário bloqueado (almoço/folga/evento). Escolha outro horário.');
       return;
     }
-    const pro = professionals.find(p => p.id === form.professional_id);
-    const svc = services.find(s => s.id === form.service_id);
+    const pro = safeProfessionals.find(p => p.id === form.professional_id);
+    const svc = safeServices.find(s => s.id === form.service_id);
     // Marcação paralela "pago": só altera quando o usuário mexeu no toggle.
     // Não toca em paid_online (que é exclusivo do Stripe).
     const wasPaid = !!appointment.paid;
@@ -209,7 +213,7 @@ export default function EditAppointmentModal({
             <div>
               <span className="text-[11px] text-gray-500 block">Cliente</span>
               <p className="font-semibold text-sm text-[#111827]">{appointment.customer_name}</p>
-              <div className="mt-1"><CustomerTypeBadge customer={customers.find(c => c.id === appointment.customer_id)} /></div>
+              <div className="mt-1"><CustomerTypeBadge customer={safeCustomers.find(c => c.id === appointment.customer_id)} /></div>
             </div>
             <div>
               <span className="text-[11px] text-gray-500 block">Telefone</span>
@@ -230,7 +234,7 @@ export default function EditAppointmentModal({
               className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
             >
               <option value="">Selecionar serviço</option>
-              {services.map(s => (
+              {safeServices.map(s => (
                 <option key={s.id} value={s.id}>{s.name} · {s.duration_minutes}min · R${s.price}</option>
               ))}
             </MobileSelect>
@@ -246,7 +250,7 @@ export default function EditAppointmentModal({
               className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
             >
               <option value="">Selecionar profissional</option>
-              {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {safeProfessionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </MobileSelect>
           </div>
 

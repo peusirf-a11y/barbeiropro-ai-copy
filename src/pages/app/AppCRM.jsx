@@ -32,6 +32,7 @@ import CRMHistoryTab from '@/components/crm/CRMHistoryTab';
 import CRMTransactionalTab from '@/components/crm/CRMTransactionalTab';
 import CRMWhatsAppTab from '@/components/crm/CRMWhatsAppTab';
 import LifecycleCampaignsSection from '@/components/configuracoes/LifecycleCampaignsSection';
+import { safeArray } from '@/lib/safeArray';
 
 const TABS = [
   { id: 'overview',     label: 'Visão geral', icon: LayoutDashboard },
@@ -53,21 +54,19 @@ export default function AppCRM() {
 
   // BFF Fase 4: WhatsAppMessage via listWhatsAppMessages (tenant + unit scope server-side).
   // O unit scope é aplicado no servidor — não precisamos mais do filtro manual abaixo.
-  const { data: messagesRaw = [] } = useQuery({
+  const { data: messagesRaw } = useQuery({
     queryKey: ['whatsapp-messages', company?.id, activeUnitId],
     queryFn: async () => {
       const res = await base44.functions.invoke('listWhatsAppMessages', {
         active_unit_id: activeUnitId,
         limit: 500,
       });
-      return res?.data?.messages || [];
+      return res?.data?.messages ?? res?.data ?? [];
     },
     enabled: !!company?.id,
   });
 
-  // BFF Fase 5: customers via listCustomers (tenant + unit scope server-side).
-  // Mantemos sort por -last_appointment_at para preservar comportamento do CRM.
-  const { data: customers = [] } = useQuery({
+  const { data: customersRaw } = useQuery({
     queryKey: ['customers-crm', company?.id, activeUnitId],
     queryFn: async () => {
       const res = await base44.functions.invoke('listCustomers', {
@@ -75,12 +74,13 @@ export default function AppCRM() {
         sort: '-last_appointment_at',
         limit: 1000,
       });
-      return res?.data?.customers || [];
+      return res?.data?.customers ?? res?.data ?? [];
     },
     enabled: !!company?.id,
   });
 
-  const messages = messagesRaw;
+  const messages = safeArray(messagesRaw);
+  const customers = safeArray(customersRaw);
 
   const handleTabChange = (id) => {
     setTab(id);

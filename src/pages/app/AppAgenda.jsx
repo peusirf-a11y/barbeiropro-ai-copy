@@ -19,6 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import StandardModal from '@/components/ui/standard-modal';
 import FilterSelect from '@/components/ui/filter-select';
+import { safeArray } from '@/lib/safeArray';
 
 // Status habilitados no modal de mudança — ordenados.
 const STATUS_KEYS = ['agendado', 'confirmado', 'concluido', 'cancelado', 'faltou'];
@@ -57,54 +58,60 @@ export default function AppAgenda() {
 
   // BFF Fase 3: leitura passa pelo backend. Tenant + role (barbeiro) +
   // unit scope são aplicados server-side. O front só passa active_unit_id.
-  const { data: appointments = [], isLoading: loadingAppts } = useQuery({
+  const { data: appointmentsRaw, isLoading: loadingAppts } = useQuery({
     queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
     queryFn: async () => {
       const res = await base44.functions.invoke('listAppointments', {
         active_unit_id: activeUnitId || undefined,
         limit: 500,
       });
-      return res?.data?.appointments || [];
+      return res?.data?.appointments ?? res?.data ?? [];
     },
     enabled: !!companyId && (!isBarbeiro || !!myProId),
   });
+  const appointments = safeArray(appointmentsRaw);
 
-  const { data: professionals = [] } = useQuery({
+  const { data: professionalsRaw } = useQuery({
     queryKey: ['professionals', companyId, activeUnitId],
     queryFn: () => base44.entities.Professional.filter({ company_id: companyId, active: true }),
     enabled: !!companyId,
   });
+  const professionals = safeArray(professionalsRaw);
 
-  const { data: services = [] } = useQuery({
+  const { data: servicesRaw } = useQuery({
     queryKey: ['services', companyId],
     queryFn: () => base44.entities.Service.filter({ company_id: companyId, active: true }),
     enabled: !!companyId,
   });
+  const services = safeArray(servicesRaw);
 
   const { data: customersRaw } = useQuery({
     queryKey: ['customers', companyId, activeUnitId],
     queryFn: () => base44.entities.Customer.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
-  const customers = Array.isArray(customersRaw) ? customersRaw : [];
+  const customers = safeArray(customersRaw);
 
-  const { data: blockedTimes = [] } = useQuery({
+  const { data: blockedTimesRaw } = useQuery({
     queryKey: ['blocked-times', companyId, activeUnitId],
     queryFn: () => base44.entities.BlockedTime.filter({ company_id: companyId }, '-start_time', 200),
     enabled: !!companyId,
   });
+  const blockedTimes = safeArray(blockedTimesRaw);
 
   // Assinaturas ativas — para mostrar opção "usar plano" ao agendar e badge de assinante
-  const { data: activeSubs = [] } = useQuery({
+  const { data: activeSubsRaw } = useQuery({
     queryKey: ['customer-subscriptions', companyId, activeUnitId],
     queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
     enabled: !!companyId,
   });
-  const { data: customerPlans = [] } = useQuery({
+  const activeSubs = safeArray(activeSubsRaw);
+  const { data: customerPlansRaw } = useQuery({
     queryKey: ['customer-plans', companyId],
     queryFn: () => base44.entities.CustomerPlan.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
+  const customerPlans = safeArray(customerPlansRaw);
   const subByCustomer = activeSubs.reduce((acc, s) => { acc[s.customer_id] = s; return acc; }, {});
 
   // Dialog "usar plano vs avulso" — disparado após criar agendamento de assinante
