@@ -5,6 +5,7 @@ import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import Logo from '@/components/Logo';
+import { base44 } from '@/api/base44Client';
 
 const navItems = [
   { label: 'Dashboard',     icon: LayoutDashboard, path: '/master/dashboard' },
@@ -69,13 +70,13 @@ export default function MasterLayout() {
       </nav>
 
       <div className="px-3 py-4 border-t border-white/5 space-y-1">
-        <Link
-          to="/app/dashboard"
-          className="flex items-center gap-3 text-sm text-gray-400 hover:text-white transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-white/5 font-medium"
+        <button
+          onClick={() => base44.auth.logout()}
+          className="flex items-center gap-3 text-sm text-gray-400 hover:text-red-400 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 font-medium"
         >
           <LogOut className="w-[18px] h-[18px]" />
-          Sair do Master
-        </Link>
+          Sair
+        </button>
       </div>
     </>
   );
@@ -127,12 +128,12 @@ export default function MasterLayout() {
           <h1 className="text-lg font-bold text-[#0F172A] mt-0.5 tracking-tight">{pageTitle}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/" className="text-xs text-gray-500 hover:text-[#2563EB] px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors font-medium">
-            ← Landing
-          </Link>
-          <Link to="/app/dashboard" className="text-xs text-gray-500 hover:text-[#2563EB] px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors font-medium">
-            App →
-          </Link>
+          <button
+            onClick={() => base44.auth.logout()}
+            className="text-xs text-gray-500 hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center gap-1.5"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sair
+          </button>
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
             <Shield className="w-5 h-5" />
           </div>
