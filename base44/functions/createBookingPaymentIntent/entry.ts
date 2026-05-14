@@ -183,6 +183,7 @@ Deno.serve(async (req) => {
       notes,
       payment_method, // 'pix' ou 'card'
       scope_customer_by_unit,
+      is_flexible_assignment,
     } = body;
     // WHY (P0.2): NÃO desestruturamos price, service_name, professional_name.
     // Esses são AUTORITATIVOS DO BANCO. Carregamos via .get() abaixo.
@@ -426,6 +427,7 @@ Deno.serve(async (req) => {
       payment_idempotency_key: idempotencyKey,
       payer_tax_id: cpfNorm,
       paid_online: false,
+      is_flexible_assignment: is_flexible_assignment === true,
       confirm_token: _generateToken(),
       review_token: _generateToken(),
       confirm_token_expires_at: _confirmTokenExpiry(scheduledAtISO),
