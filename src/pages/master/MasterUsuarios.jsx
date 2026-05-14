@@ -8,7 +8,10 @@ export default function MasterUsuarios() {
   // Lista TODOS os usuários da plataforma e separa por role
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['master-users-all'],
-    queryFn: () => base44.entities.User.list('-created_date', 200),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listPlatformUsers', {});
+      return res.data?.users || [];
+    },
   });
 
   const admins = users.filter(u => u.role === 'admin');
