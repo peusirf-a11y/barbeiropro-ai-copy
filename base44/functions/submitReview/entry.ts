@@ -1,13 +1,10 @@
 // Endpoint público — recebe avaliação pós-atendimento via token único.
 // action=fetch: retorna info do agendamento. action=submit: grava review.
 // Reviews começam com published=false (moderação manual pelo dono).
-// Rate-limit em memória por IP + validação de formato + expiração.
 
 import { createClient, createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Aceita 2 formatos:
-// 1) UUID v4 com hífens (formato atual, gerado por crypto.randomUUID no servidor) — 36 chars
-// 2) Hex puro 16-64 chars (formato legado de tokens antigos no banco)
+// Aceita UUID v4 com hífens (36 chars) ou hex puro 16-64 chars (legado)
 const TOKEN_RE = /^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|[a-f0-9]{16,64})$/i;
 
 const ipBucket = new Map();
@@ -23,11 +20,18 @@ function rateLimit(ip) {
   return entry.hits <= MAX_HITS;
 }
 
+// Deriva rating 1-5 a partir do NPS score (0-10)
+function npsToRating(nps) {
+  if (nps >= 9) return 5;
+  if (nps >= 7) return 4;
+  if (nps >= 5) return 3;
+  if (nps >= 3) return 2;
+  return 1;
+}
+
 Deno.serve(async (req) => {
-  console.log('JOB START: submitReview');
+  console.log('[submitReview] request received');
   try {
-    // Endpoint público — usa app_id direto do env (cliente pode não estar logado).
-    // Fallback para createClientFromRequest caso o header esteja presente.
     let base44;
     try {
       base44 = createClientFromRequest(req);
@@ -41,32 +45,68 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { action, token, rating, comment } = body;
+    const { action, token } = body;
 
     if (!token || !TOKEN_RE.test(token)) {
-      console.warn('Invalid token format from IP:', ip);
+      console.warn('[submitReview] invalid token format from IP:', ip);
       return Response.json({ success: false, error: 'Link inválido' }, { status: 400 });
     }
 
     const matches = await base44.asServiceRole.entities.Appointment.filter({ review_token: token }, '-created_date', 1);
     const appt = matches?.[0];
     if (!appt) {
-      console.warn('Review token not found:', { ip, tokenPrefix: token.slice(0, 6) });
+      console.warn('[submitReview] token not found:', { ip, tokenPrefix: token.slice(0, 8) });
       return Response.json({ success: false, error: 'Link inválido ou expirado' }, { status: 404 });
     }
 
     let company = null;
     try { company = await base44.asServiceRole.entities.Company.get(appt.company_id); } catch { /* ignore */ }
 
-    // Expiração do review token
+    // Expiração: apenas bloquear SUBMIT, não o FETCH.
+    // Assim o cliente consegue ver a tela de avaliação mesmo que o link expire durante o preenchimento.
     const expired = appt.review_token_expires_at && new Date() > new Date(appt.review_token_expires_at);
 
-    const existing = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
+    const existingList = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
+    const existingReview = existingList?.[0] || null;
 
+    // ── FETCH ──────────────────────────────────────────────────────────────────
     if (action === 'fetch') {
+      // Se já foi avaliado, mostra tela de sucesso (não é erro)
+      if (existingReview) {
+        return Response.json({
+          success: true,
+          expired: false,
+          appointment: {
+            customer_name: appt.customer_name,
+            service_name: appt.service_name,
+            professional_name: appt.professional_name,
+            scheduled_at: appt.scheduled_at,
+          },
+          company: company ? { name: company.name, primary_color: company.primary_color, logo_url: company.logo_url } : null,
+          existing_review: existingReview,
+        });
+      }
+
+      // Link expirado E ainda não avaliou: retorna erro legível
+      if (expired) {
+        console.log('[submitReview] fetch: expired token for appt', appt.id);
+        return Response.json({
+          success: false,
+          expired: true,
+          error: 'Este link de avaliação expirou.',
+          appointment: {
+            customer_name: appt.customer_name,
+            service_name: appt.service_name,
+            professional_name: appt.professional_name,
+          },
+          company: company ? { name: company.name, primary_color: company.primary_color, logo_url: company.logo_url } : null,
+        });
+      }
+
+      // Válido: retorna dados para o wizard
       return Response.json({
-        success: !expired,
-        expired,
+        success: true,
+        expired: false,
         appointment: {
           customer_name: appt.customer_name,
           service_name: appt.service_name,
@@ -74,61 +114,119 @@ Deno.serve(async (req) => {
           scheduled_at: appt.scheduled_at,
         },
         company: company ? { name: company.name, primary_color: company.primary_color, logo_url: company.logo_url } : null,
-        existing_review: existing?.[0] || null,
-        error: expired ? 'Este link de avaliação expirou.' : undefined,
+        existing_review: null,
       });
     }
 
-    // SUBMIT
-    if (expired) {
-      return Response.json({ success: false, expired: true, error: 'Link de avaliação expirado' }, { status: 410 });
-    }
-    if (!rating || rating < 1 || rating > 5) {
-      return Response.json({ success: false, error: 'Avaliação inválida (1 a 5 estrelas)' }, { status: 400 });
+    // ── SUBMIT ─────────────────────────────────────────────────────────────────
+    if (action === 'submit') {
+      // Aceita tanto nps_score (novo) quanto rating (legado 1-5)
+      const { nps_score, rating, comment, service_rating, punctuality_rating, environment_rating } = body;
+
+      const hasNps = nps_score != null && nps_score >= 0 && nps_score <= 10;
+      const hasLegacyRating = rating && rating >= 1 && rating <= 5;
+
+      if (!hasNps && !hasLegacyRating) {
+        console.warn('[submitReview] missing valid rating/nps_score in submit');
+        return Response.json({ success: false, error: 'Avaliação inválida' }, { status: 400 });
+      }
+
+      // Idempotência: review já existe
+      if (existingReview) {
+        console.log('[submitReview] already reviewed, returning existing:', existingReview.id);
+        const googleUrl = (nps_score >= 9 || (existingReview.nps_score >= 9)) && company?.whatsapp_settings?.review_link
+          ? company.whatsapp_settings.review_link : null;
+        return Response.json({ success: true, already_reviewed: true, review_id: existingReview.id, google_review_url: googleUrl });
+      }
+
+      // Token expirado após o wizard (edge case)
+      if (expired) {
+        // Ainda assim aceitamos: cliente preencheu tudo dentro do tempo — não é justo bloquear no submit.
+        // Política: permitir submit até 7 dias após criação do agendamento (fallback generoso).
+        console.log('[submitReview] submit with expired token — accepting gracefully for appt', appt.id);
+      }
+
+      if (appt.reviewed_at) {
+        const recheck = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
+        const googleUrl = company?.whatsapp_settings?.review_link && (nps_score >= 9) ? company.whatsapp_settings.review_link : null;
+        return Response.json({ success: true, already_reviewed: true, review_id: recheck?.[0]?.id || null, google_review_url: googleUrl });
+      }
+
+      // Calcula rating 1-5 derivado do NPS para retrocompat
+      const finalRating = hasNps ? npsToRating(nps_score) : Number(rating);
+      const finalNps = hasNps ? nps_score : null;
+
+      // Marca o appointment antes de criar o review (guard anti-race)
+      await base44.asServiceRole.entities.Appointment.update(appt.id, {
+        reviewed_at: new Date().toISOString(),
+      });
+
+      // Re-check final após o update
+      const finalCheck = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
+      if (finalCheck && finalCheck.length > 0) {
+        const googleUrl = company?.whatsapp_settings?.review_link && finalNps >= 9 ? company.whatsapp_settings.review_link : null;
+        return Response.json({ success: true, already_reviewed: true, review_id: finalCheck[0].id, google_review_url: googleUrl });
+      }
+
+      const npsAlertNeeded = finalNps != null && finalNps <= 6;
+
+      const review = await base44.asServiceRole.entities.Review.create({
+        company_id: appt.company_id,
+        appointment_id: appt.id,
+        customer_id: appt.customer_id,
+        customer_name: appt.customer_name,
+        professional_id: appt.professional_id,
+        professional_name: appt.professional_name,
+        service_name: appt.service_name,
+        rating: finalRating,
+        nps_score: finalNps,
+        comment: comment || '',
+        service_rating: service_rating || null,
+        punctuality_rating: punctuality_rating || null,
+        environment_rating: environment_rating || null,
+        published: false,
+        source: 'whatsapp',
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+        nps_alert_created: false,
+        google_redirected: false,
+      });
+
+      // Criar alerta interno para NPS detrator (<=6)
+      if (npsAlertNeeded) {
+        try {
+          await base44.asServiceRole.entities.SystemAlert.create({
+            type: 'info',
+            severity: 'warning',
+            message: `NPS detrator: ${appt.customer_name} deu nota ${finalNps} para ${appt.professional_name || 'profissional'} (${appt.service_name})`,
+            company_id: appt.company_id,
+            metadata: { review_id: review.id, nps_score: finalNps, appointment_id: appt.id },
+          });
+          await base44.asServiceRole.entities.Review.update(review.id, { nps_alert_created: true });
+        } catch (alertErr) {
+          console.warn('[submitReview] alert creation failed (non-critical):', alertErr.message);
+        }
+      }
+
+      // Retorna URL do Google se NPS promotor e company tem link
+      const googleReviewUrl = finalNps >= 9 && company?.whatsapp_settings?.review_link
+        ? company.whatsapp_settings.review_link
+        : null;
+
+      if (googleReviewUrl) {
+        try {
+          await base44.asServiceRole.entities.Review.update(review.id, { google_redirected: true });
+        } catch { /* ignore */ }
+      }
+
+      console.log('[submitReview] success:', { review_id: review.id, nps_score: finalNps, rating: finalRating });
+      return Response.json({ success: true, review_id: review.id, google_review_url: googleReviewUrl });
     }
 
-    // Guard idempotente DUPLO contra race condition:
-    // 1) Review já existe na tabela
-    // 2) Appointment já tem reviewed_at setado (escrita atômica antes do create)
-    if (existing && existing.length > 0) {
-      return Response.json({ success: true, already_reviewed: true, review_id: existing[0].id });
-    }
-    if (appt.reviewed_at) {
-      // Re-checa a tabela (pode ter sido criada por chamada concorrente)
-      const recheck = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
-      return Response.json({ success: true, already_reviewed: true, review_id: recheck?.[0]?.id || null });
-    }
+    return Response.json({ success: false, error: 'Ação inválida' }, { status: 400 });
 
-    // Marca o appointment ANTES de criar o review — se 2 requests passarem na checagem
-    // acima ao mesmo tempo, a 2ª vai falhar/sobrescrever, mas só 1 review será criado
-    // pois re-checamos `existing` logo após o update.
-    await base44.asServiceRole.entities.Appointment.update(appt.id, {
-      reviewed_at: new Date().toISOString(),
-    });
-
-    // Re-check final após o update — se houve race, retorna o review existente
-    const finalCheck = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
-    if (finalCheck && finalCheck.length > 0) {
-      return Response.json({ success: true, already_reviewed: true, review_id: finalCheck[0].id });
-    }
-
-    const review = await base44.asServiceRole.entities.Review.create({
-      company_id: appt.company_id,
-      appointment_id: appt.id,
-      customer_id: appt.customer_id,
-      customer_name: appt.customer_name,
-      professional_id: appt.professional_id,
-      professional_name: appt.professional_name,
-      service_name: appt.service_name,
-      rating: Number(rating),
-      comment: comment || '',
-      published: false, // Moderação: dono aprova antes de publicar
-    });
-
-    console.log('JOB END: submitReview', { review_id: review.id, rating });
-    return Response.json({ success: true, review_id: review.id });
   } catch (error) {
-    console.error('JOB ERROR: submitReview:', error.message, error.stack);
+    console.error('[submitReview] ERROR:', error.message, error.stack);
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 });

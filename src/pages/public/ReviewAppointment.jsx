@@ -54,8 +54,11 @@ export default function ReviewAppointment() {
       try {
         const { data } = await base44.functions.invoke('submitReview', { action: 'fetch', token });
         if (cancelled) return;
-        if (data?.success) {
+        // Sempre salva dados da empresa/agendamento se disponíveis (para mostrar logo mesmo no erro)
+        if (data?.appointment || data?.company) {
           setData(data);
+        }
+        if (data?.success) {
           if (data.existing_review) {
             // Review já enviada — mostra direto o sucesso.
             setSubmitted(true);
