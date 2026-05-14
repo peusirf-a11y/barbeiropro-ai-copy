@@ -86,12 +86,11 @@ export function getStatusToken(status) {
 // 3. Walk-in sem customer_id        → sem preferência
 // 4. Online com "Qualquer disponível" no nome → sem preferência (legado)
 export function isClientWithoutPreference(appt) {
-  // Campo explícito tem prioridade máxima
+  // 1. Campo explícito tem prioridade máxima
   if (appt?.is_flexible_assignment === true) return true;
   if (appt?.is_flexible_assignment === false) return false;
-  // Walk-in sem cliente vinculado
-  if (!appt?.customer_id) return true;
-  // Agendamento online onde o cliente escolheu "Qualquer disponível" (legado)
+  // 2. Legado: agendamento online onde o cliente escolheu "Qualquer disponível"
   if (appt?.source === 'online' && appt?.professional_name === 'Qualquer disponível') return true;
+  // 3. Sem o campo explícito → assume fixo (não troca de barbeiro)
   return false;
 }

@@ -179,7 +179,7 @@ export default function AgendaProColumns({
       <div
         ref={containerRef}
         className="overflow-auto max-h-[680px] select-none"
-        style={{ touchAction: 'pan-x pan-y', overscrollBehavior: 'contain' }}
+        style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
       >
         <div style={{ minWidth: totalGridWidth }}>
           {/* Header */}

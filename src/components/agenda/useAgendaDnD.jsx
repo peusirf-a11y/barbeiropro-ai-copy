@@ -61,9 +61,11 @@ export default function useAgendaDnD({
     const container = scrollContainerRef.current;
     if (!container) return -1;
     const rect = container.getBoundingClientRect();
-    const xInContainer = clientX - rect.left + container.scrollLeft - timeAxisWidth;
-    return Math.floor(xInContainer / colWidth);
-  }, [scrollContainerRef, timeAxisWidth, colWidth]);
+    // scrollLeft subtrai o quanto já foi rolado horizontalmente
+    const xInContainer = (clientX - rect.left) + container.scrollLeft - timeAxisWidth;
+    const idx = Math.floor(xInContainer / colWidth);
+    return Math.max(0, Math.min(professionals.length - 1, idx));
+  }, [scrollContainerRef, timeAxisWidth, colWidth, professionals.length]);
 
   // Calcula top em px (snapado) a partir do clientY
   const getSnappedTopFromClientY = useCallback((clientY, offsetWithinCard = 0) => {
@@ -213,6 +215,15 @@ export default function useAgendaDnD({
           const minutesFromStart = pxToMinutes(top);
           const newStart = buildDateFromMinutes(minutesFromStart);
           const toProId = professionals[proIndex]?.id;
+          console.log('[DnD] commitMove', {
+            canChangePro: op.canChangePro,
+            rawIndex,
+            originIndex,
+            proIndex,
+            fromProId: op.appt.professional_id,
+            toProId,
+            is_flexible_assignment: op.appt.is_flexible_assignment,
+          });
           if (toProId) {
             await onCommitMove?.({
               appointment: op.appt,
