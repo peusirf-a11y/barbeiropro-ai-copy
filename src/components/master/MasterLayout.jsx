@@ -2,7 +2,7 @@
 // Responsivo: no mobile, sidebar vira drawer (menu hambúrguer).
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers } from 'lucide-react';
+import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers, Activity } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import Logo from '@/components/Logo';
 import { base44 } from '@/api/base44Client';
@@ -14,6 +14,7 @@ const navItems = [
   { label: 'Assinaturas',    icon: CreditCard,      path: '/master/assinaturas' },
   { label: 'Financeiro',     icon: DollarSign,      path: '/master/financeiro' },
   { label: 'Usuários',       icon: Users,           path: '/master/usuarios' },
+  { label: 'Auditoria',      icon: Activity,        path: '/master/auditoria' },
   { label: 'Configurações',  icon: Settings,        path: '/master/configuracoes' },
 ];
 

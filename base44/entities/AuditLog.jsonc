@@ -4,41 +4,97 @@
   "properties": {
     "company_id": {
       "type": "string",
-      "description": "Tenant da a\u00e7\u00e3o. Indexado nativamente para queries por barbearia (P0.5). NULL = a\u00e7\u00e3o de plataforma (super-admin sem alvo de empresa)."
+      "description": "Tenant da a\u00e7\u00e3o. NULL = a\u00e7\u00e3o de plataforma (super-admin sem alvo de empresa)."
+    },
+    "unit_id": {
+      "type": "string",
+      "description": "Unidade onde a a\u00e7\u00e3o ocorreu (quando aplic\u00e1vel)."
     },
     "actor_email": {
       "type": "string",
-      "description": "E-mail do usu\u00e1rio que executou a a\u00e7\u00e3o"
+      "description": "E-mail do ator (retrocompatibilidade)."
     },
     "actor_is_super_admin": {
       "type": "boolean",
       "default": false
     },
+    "actor_type": {
+      "type": "string",
+      "enum": [
+        "user",
+        "customer",
+        "system",
+        "webhook",
+        "automation",
+        "impersonation"
+      ],
+      "description": "Tipo do ator que executou a a\u00e7\u00e3o."
+    },
+    "actor_id": {
+      "type": "string",
+      "description": "ID do ator."
+    },
+    "actor_name": {
+      "type": "string",
+      "description": "Nome leg\u00edvel do ator."
+    },
     "impersonated_company_id": {
       "type": "string",
-      "description": "Se a a\u00e7\u00e3o foi executada via impersona\u00e7\u00e3o, ID da empresa-alvo"
+      "description": "Se a a\u00e7\u00e3o foi executada via impersona\u00e7\u00e3o, ID da empresa-alvo."
     },
     "action": {
       "type": "string",
-      "description": "Identificador da a\u00e7\u00e3o (ex: BLOCK_COMPANY, ACTIVATE_COMPANY, EDIT_FINANCIAL_ENTRY)"
+      "description": "Identificador da a\u00e7\u00e3o em SCREAMING_SNAKE_CASE (ex: APPOINTMENT_COMPLETED)."
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "default": "info",
+      "description": "Severidade da a\u00e7\u00e3o para triagem."
     },
     "target_type": {
-      "type": "string"
+      "type": "string",
+      "description": "Tipo do recurso afetado (appointment, customer, financial_entry, etc.)."
     },
     "target_id": {
-      "type": "string"
+      "type": "string",
+      "description": "ID do recurso afetado."
     },
     "before": {
-      "type": "object"
+      "type": "object",
+      "description": "Estado anterior do recurso (diff). Nunca armazenar secrets."
     },
     "after": {
-      "type": "object"
+      "type": "object",
+      "description": "Estado posterior do recurso (diff). Nunca armazenar secrets."
     },
     "ip": {
-      "type": "string"
+      "type": "string",
+      "description": "IP do ator (retrocompat)."
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP do ator (novo campo)."
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User-Agent do request."
+    },
+    "request_id": {
+      "type": "string",
+      "description": "ID \u00fanico do request para deduplica\u00e7\u00e3o."
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "ID de correla\u00e7\u00e3o para rastrear um fluxo completo (ex: booking flow)."
     },
     "metadata": {
-      "type": "object"
+      "type": "object",
+      "description": "Dados adicionais estruturados. M\u00e1x 10kb. Nunca armazenar secrets/tokens/cart\u00f5es."
     }
   },
   "required": [

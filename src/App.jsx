@@ -35,6 +35,7 @@ import MasterAssinaturas from './pages/master/MasterAssinaturas';
 import MasterFinanceiro from './pages/master/MasterFinanceiro';
 import MasterUsuarios from './pages/master/MasterUsuarios';
 import MasterConfiguracoes from './pages/master/MasterConfiguracoes';
+import MasterAudit from './pages/master/MasterAudit';
 
 // Demo pages (public)
 import DemoDashboard from './pages/demo/DemoDashboard.jsx';
@@ -140,6 +141,7 @@ function App() {
               <Route path="financeiro" element={<MasterFinanceiro />} />
               <Route path="usuarios" element={<MasterUsuarios />} />
               <Route path="configuracoes" element={<MasterConfiguracoes />} />
+              <Route path="auditoria" element={<MasterAudit />} />
             </Route>
 
             {/* ── PRIVATE APP ROUTES (authenticated users only) ── */}
