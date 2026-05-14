@@ -11,14 +11,13 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 
 export default function RootRedirect() {
-  const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings } = useAuth();
+  const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user } = useAuth();
   const stillLoading = isLoadingAuth || isLoadingPublicSettings;
 
   useEffect(() => {
     if (stillLoading) return;
     if (!isAuthenticated) {
-      // Após login, retornar para a raiz (que então redireciona para o dashboard).
-      base44.auth.redirectToLogin(`${window.location.origin}/app/dashboard`);
+      base44.auth.redirectToLogin(`${window.location.origin}/`);
     }
   }, [stillLoading, isAuthenticated]);
 
@@ -28,6 +27,11 @@ export default function RootRedirect() {
         <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
+  }
+
+  // Super admin vai direto para o painel master
+  if (user?.role === 'admin') {
+    return <Navigate to="/master/dashboard" replace />;
   }
 
   return <Navigate to="/app/dashboard" replace />;
