@@ -15,6 +15,7 @@ import {
   buildConfirmationMessage,
   buildCancellationMessage,
   buildNoShowMessage,
+  buildPostAppointmentMessage,
   openWhatsApp,
 } from '@/lib/whatsappCompose';
 import StatusActionSheet from '@/components/agenda/StatusActionSheet';
@@ -61,13 +62,11 @@ export default function EditAppointmentModal({
   const safeProfessionals = safeArray(professionals);
   const customer = safeCustomers.find(c => c.id === appointment.customer_id);
 
-  // Status que merecem perguntar "+ WhatsApp?": confirmar/cancelar/faltou.
-  // "concluido" NÃO está aqui de propósito: a automação backend
-  // `onAppointmentConcluded` já dispara a mensagem de avaliação com o link
-  // correto (review_token é gerado no servidor, não existe ainda no momento
-  // do clique). Enviar pelo modal causaria link inválido + mensagem duplicada.
+  // Status que merecem perguntar "+ WhatsApp?": confirmar/cancelar/faltou/concluido.
+  // "concluido" abre opção manual de enviar o link de avaliação imediatamente,
+  // sem esperar o job automático (que roda ~2h depois).
   // "agendado" é estado neutro — só seta sem perguntar.
-  const STATUS_NEEDS_WA = ['confirmado', 'cancelado', 'faltou'];
+  const STATUS_NEEDS_WA = ['confirmado', 'cancelado', 'faltou', 'concluido'];
 
   const handleStatusClick = (key) => {
     // Mesmo status → no-op
@@ -98,8 +97,6 @@ export default function EditAppointmentModal({
 
     if (!appointment.customer_phone) return;
 
-    // Mensagem por tipo de status.
-    // ⚠️ "concluido" não cai aqui — a automação backend cuida do envio com link válido.
     let message = '';
     if (key === 'confirmado') {
       message = buildConfirmationMessage({ company, appointment });
@@ -107,6 +104,14 @@ export default function EditAppointmentModal({
       message = buildCancellationMessage({ company, appointment });
     } else if (key === 'faltou') {
       message = buildNoShowMessage({ company, appointment });
+    } else if (key === 'concluido') {
+      // Usa review_token já presente no appointment (gerado pelo onAppointmentConcluded)
+      // ou o link externo do Google configurado pela barbearia.
+      const baseUrl = window.location.origin;
+      const reviewLink = appointment.review_token
+        ? `${baseUrl}/avaliar/${appointment.review_token}`
+        : (company?.whatsapp_settings?.review_link || '');
+      message = buildPostAppointmentMessage({ company, appointment, reviewLink });
     }
     if (message) openWhatsApp(appointment.customer_phone, message);
   };
