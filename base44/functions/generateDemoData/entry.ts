@@ -97,13 +97,19 @@ function realisticScheduledAt(baseDate, rng) {
   return d;
 }
 
-// ─── Criação em lote (chunks) ─────────────────────────────────────────────────
-async function batchCreate(sdk, entity, items, chunkSize = 20) {
+// ─── Sleep helper ─────────────────────────────────────────────────────────────
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ─── Criação em lote (chunks) com rate-limit control ─────────────────────────
+// Processa chunks sequencialmente com pausa entre eles para evitar 429.
+// Dentro de cada chunk, cria em paralelo (mas com limite de concorrência).
+async function batchCreate(sdk, entity, items, chunkSize = 8, delayMs = 300) {
   const results = [];
   for (let i = 0; i < items.length; i += chunkSize) {
     const chunk = items.slice(i, i + chunkSize);
     const created = await Promise.all(chunk.map(item => sdk.entities[entity].create(item)));
     results.push(...created);
+    if (i + chunkSize < items.length) await sleep(delayMs);
   }
   return results;
 }
@@ -332,11 +338,11 @@ async function generateReviews(sdk, company_id, rng, customers, professionals, a
 
 // ─── Configurações de cenário ─────────────────────────────────────────────────
 const SCENARIOS = {
-  pequena: { pros: 2, customers: 40, appointments: 60, financial: 80 },
-  media:   { pros: 5, customers: 300, appointments: 800, financial: 400 },
-  premium: { pros: 8, customers: 500, appointments: 1000, financial: 600 },
-  lotada:  { pros: 4, customers: 150, appointments: 400, financial: 200 },
-  financeiro: { pros: 3, customers: 80, appointments: 150, financial: 800 },
+  pequena:    { pros: 2, customers: 30,  appointments: 50,  financial: 60  },
+  media:      { pros: 4, customers: 80,  appointments: 150, financial: 120 },
+  premium:    { pros: 6, customers: 150, appointments: 250, financial: 200 },
+  lotada:     { pros: 4, customers: 80,  appointments: 200, financial: 100 },
+  financeiro: { pros: 3, customers: 50,  appointments: 80,  financial: 300 },
 };
 
 // ─── Handler principal ────────────────────────────────────────────────────────
@@ -395,6 +401,7 @@ Deno.serve(async (req) => {
       if (genAll || modules === 'customers') {
         customers = await generateCustomers(sdk, company_id, unit_id, rng, cfg.customers);
         results.customers = customers.length;
+        await sleep(500);
       } else {
         customers = await sdk.entities.Customer.filter({ company_id }, '-created_date', 200);
       }
@@ -403,29 +410,36 @@ Deno.serve(async (req) => {
       let appointments = [];
       if (genAll || modules === 'appointments') {
         if (!professionals.length) professionals = await sdk.entities.Professional.filter({ company_id, active: true }, '-created_date', 20);
-        if (!customers.length) customers = await sdk.entities.Customer.filter({ company_id }, '-created_date', 300);
+        if (!customers.length) customers = await sdk.entities.Customer.filter({ company_id }, '-created_date', 200);
         if (!services.length) services = await sdk.entities.Service.filter({ company_id }, '-created_date', 20);
+        await sleep(300);
         appointments = await generateAppointments(sdk, company_id, unit_id, rng, customers, professionals, services, cfg.appointments);
         results.appointments = appointments.length;
+        await sleep(500);
       } else {
-        appointments = await sdk.entities.Appointment.filter({ company_id }, '-created_date', 500);
+        appointments = await sdk.entities.Appointment.filter({ company_id }, '-created_date', 300);
       }
 
       // 5. Financeiro
       if (genAll || modules === 'financial') {
-        if (!appointments.length) appointments = await sdk.entities.Appointment.filter({ company_id, is_demo_data: true }, '-created_date', 500);
+        if (!appointments.length) appointments = await sdk.entities.Appointment.filter({ company_id, is_demo_data: true }, '-created_date', 300);
+        await sleep(300);
         const entries = await generateFinancial(sdk, company_id, unit_id, rng, professionals, appointments, cfg.financial);
         results.financial = entries.length;
+        await sleep(400);
       }
 
       // 6. Comissões
       if (genAll || modules === 'commissions') {
+        await sleep(200);
         const entries = await generateCommissions(sdk, company_id, rng, professionals, appointments);
         results.commissions = entries.length;
+        await sleep(300);
       }
 
       // 7. Avaliações
       if (genAll || modules === 'reviews') {
+        await sleep(200);
         const reviews = await generateReviews(sdk, company_id, rng, customers, professionals, appointments);
         results.reviews = reviews.length;
       }
