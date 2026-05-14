@@ -104,7 +104,8 @@ export default function useAgendaDnD({
   }, []);
 
   // ─────────── MOVE ───────────
-  const startMove = useCallback((e, appt, durationMin) => {
+  // canChangePro: se false, o drag fica restrito à coluna do profissional original
+  const startMove = useCallback((e, appt, durationMin, canChangePro = true) => {
     if (!onCommitMove) return;
     // só com botão esquerdo (mouse) ou touch/pen
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -118,6 +119,7 @@ export default function useAgendaDnD({
       kind: 'move',
       appt,
       durationMin,
+      canChangePro,
       startPointer: { x: e.clientX, y: e.clientY },
       pointerId: e.pointerId,
       offsetWithinCard,
@@ -165,7 +167,10 @@ export default function useAgendaDnD({
       updateAutoScroll(e.clientY);
 
       if (op.kind === 'move') {
-        const proIndex = Math.max(0, Math.min(professionals.length - 1, getProIndexFromClientX(e.clientX)));
+        const rawIndex = Math.max(0, Math.min(professionals.length - 1, getProIndexFromClientX(e.clientX)));
+        // Se não pode trocar de profissional, força o índice do profissional original
+        const originIndex = professionals.findIndex(p => p.id === op.appt.professional_id);
+        const proIndex = op.canChangePro ? rawIndex : Math.max(0, originIndex);
         const top = getSnappedTopFromClientY(e.clientY, op.offsetWithinCard);
         const proId = professionals[proIndex]?.id || op.appt.professional_id;
         setGhost({
@@ -201,7 +206,9 @@ export default function useAgendaDnD({
       // Operação válida → tenta commit
       try {
         if (op.kind === 'move') {
-          const proIndex = Math.max(0, Math.min(professionals.length - 1, getProIndexFromClientX(e.clientX)));
+          const rawIndex = Math.max(0, Math.min(professionals.length - 1, getProIndexFromClientX(e.clientX)));
+          const originIndex = professionals.findIndex(p => p.id === op.appt.professional_id);
+          const proIndex = op.canChangePro ? rawIndex : Math.max(0, originIndex);
           const top = getSnappedTopFromClientY(e.clientY, op.offsetWithinCard);
           const minutesFromStart = pxToMinutes(top);
           const newStart = buildDateFromMinutes(minutesFromStart);

@@ -243,6 +243,7 @@ export default function AgendaProColumns({
                   width={COL_WIDTH}
                   canMove={!!onMoveAppointment}
                   canResize={!!onResizeAppointment}
+                  professionals={professionals}
                 />
               ))}
             </div>
@@ -284,6 +285,7 @@ function ProColumn({
   onCardClick, startMove, startResize,
   draggingId, resizingId, isGhostTarget, ghost,
   renderCardIcons, width, canMove, canResize,
+  professionals,
 }) {
   return (
     <div
@@ -341,11 +343,13 @@ function ProColumn({
         const isDragging = draggingId === appt.id;
         const isResizing = resizingId === appt.id;
         const noPreference = isClientWithoutPreference(appt);
+        // Sem preferência: pode mover entre colunas. Com preferência: só no mesmo profissional.
+        const canChangePro = noPreference;
 
         return (
           <div
             key={appt.id}
-            onPointerDown={(e) => movable && startMove(e, appt, dur)}
+            onPointerDown={(e) => movable && startMove(e, appt, dur, canChangePro)}
             onClick={(e) => {
               // só dispara click se não houve drag (hook bloqueia se moveu >4px)
               if (!isDragging && !isResizing) onCardClick?.(appt);
