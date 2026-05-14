@@ -76,12 +76,13 @@ export function getStatusToken(status) {
   return STATUS_TOKENS[status] || FALLBACK;
 }
 
-// Helper: cliente "sem preferência" → borda tracejada.
-// Recebe o appointment e (opcionalmente) o objeto Customer correspondente.
-// Sem preferência = cliente não tem profissional favorito cadastrado, OU
-// agendamento foi feito sem cliente vinculado (walk-in).
-export function isClientWithoutPreference(appt, customer = null) {
+// Helper: cliente "sem preferência de profissional" → borda tracejada na agenda.
+// Tracejado = não escolheu um profissional específico, ou não tem cliente vinculado (walk-in).
+// Sólido = escolheu um profissional específico ao agendar (online ou interno).
+export function isClientWithoutPreference(appt) {
+  // Walk-in sem cliente vinculado
   if (!appt?.customer_id) return true;
-  if (customer && !customer.favorite_professional) return true;
+  // Agendamento online onde o cliente escolheu "Qualquer disponível"
+  if (appt?.source === 'online' && appt?.professional_name === 'Qualquer disponível') return true;
   return false;
 }
