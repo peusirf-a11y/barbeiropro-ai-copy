@@ -266,14 +266,15 @@ export default function PublicBooking() {
     const [h, m] = selected.time.split(':');
     const dt = new Date(selected.date);
     dt.setHours(+h, +m, 0, 0);
-    const proId = selected.professional?.id === 'any' ? professionals[0]?.id : selected.professional?.id;
+    const isAny = selected.professional?.id === 'any';
+    const proId = isAny ? professionals[0]?.id : selected.professional?.id;
     return {
       company_id: company.id,
       unit_id: selected.unit?.id || undefined,
       professional_id: proId,
       service_id: selected.service.id,
       service_name: selected.service.name,
-      professional_name: selected.professional?.id === 'any' ? 'Qualquer disponível' : selected.professional?.name,
+      professional_name: isAny ? 'Qualquer disponível' : selected.professional?.name,
       customer_name: form.name,
       customer_phone: form.phone,
       customer_email: form.email.trim() || undefined,
@@ -281,6 +282,8 @@ export default function PublicBooking() {
       notes: form.notes,
       price: selected.service.price,
       source: 'online',
+      // true = cliente não escolheu barbeiro específico → borda tracejada + drag livre na agenda
+      is_flexible_assignment: isAny,
       // M5: tokens gerados no backend; payload não envia mais.
       scope_customer_by_unit: scopeCustomerByUnit,
     };

@@ -157,6 +157,7 @@ Deno.serve(async (req) => {
       scheduled_at,
       notes,
       scope_customer_by_unit,
+      is_flexible_assignment,
     } = body;
     // WHY (P0.2): NÃO desestruturamos professional_name, service_name nem price.
     // Esses campos são AUTORITATIVOS DO BANCO. Carregamos abaixo via .get().
@@ -324,6 +325,7 @@ Deno.serve(async (req) => {
       status: 'agendado',
       price: realPrice,
       source: 'online',
+      is_flexible_assignment: is_flexible_assignment === true,
       confirm_token: confirmToken,
       review_token: reviewToken,
       confirm_token_expires_at: _confirmTokenExpiry(scheduled_at),

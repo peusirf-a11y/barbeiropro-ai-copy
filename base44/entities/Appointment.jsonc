@@ -73,6 +73,11 @@
       "type": "number",
       "description": "Dura\u00e7\u00e3o customizada em minutos."
     },
+    "is_flexible_assignment": {
+      "type": "boolean",
+      "default": false,
+      "description": "Quando true, o cliente n\u00e3o escolheu barbeiro espec\u00edfico (qualquer dispon\u00edvel). Card exibe borda tracejada e pode ser arrastado entre colunas na agenda. Quando false (padr\u00e3o), o agendamento est\u00e1 vinculado a um barbeiro espec\u00edfico e n\u00e3o troca de coluna."
+    },
     "confirmation_email_sent": {
       "type": "boolean",
       "default": false

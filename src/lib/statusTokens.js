@@ -77,12 +77,21 @@ export function getStatusToken(status) {
 }
 
 // Helper: cliente "sem preferência de profissional" → borda tracejada na agenda.
-// Tracejado = não escolheu um profissional específico, ou não tem cliente vinculado (walk-in).
-// Sólido = escolheu um profissional específico ao agendar (online ou interno).
+// Tracejado = não escolheu um profissional específico (flexível, pode trocar de barbeiro).
+// Sólido = escolheu um profissional específico ao agendar (vinculado, não troca de barbeiro).
+//
+// Prioridade de detecção (do mais explícito ao mais implícito):
+// 1. is_flexible_assignment = true  → sem preferência (campo explícito)
+// 2. is_flexible_assignment = false → com preferência (campo explícito)
+// 3. Walk-in sem customer_id        → sem preferência
+// 4. Online com "Qualquer disponível" no nome → sem preferência (legado)
 export function isClientWithoutPreference(appt) {
+  // Campo explícito tem prioridade máxima
+  if (appt?.is_flexible_assignment === true) return true;
+  if (appt?.is_flexible_assignment === false) return false;
   // Walk-in sem cliente vinculado
   if (!appt?.customer_id) return true;
-  // Agendamento online onde o cliente escolheu "Qualquer disponível"
+  // Agendamento online onde o cliente escolheu "Qualquer disponível" (legado)
   if (appt?.source === 'online' && appt?.professional_name === 'Qualquer disponível') return true;
   return false;
 }

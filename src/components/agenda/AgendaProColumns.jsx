@@ -345,6 +345,8 @@ function ProColumn({
         const noPreference = isClientWithoutPreference(appt);
         // Sem preferência: pode mover entre colunas. Com preferência: só no mesmo profissional.
         const canChangePro = noPreference;
+        // Cursor: grab se pode mover (livre ou restrito à mesma coluna), not-allowed se não pode mover
+        const cursorClass = !movable ? 'cursor-pointer' : canChangePro ? 'cursor-grab active:cursor-grabbing' : 'cursor-ns-resize';
 
         return (
           <div
@@ -355,13 +357,20 @@ function ProColumn({
               if (!isDragging && !isResizing) onCardClick?.(appt);
               e.stopPropagation();
             }}
-            className={`absolute left-1.5 right-1.5 rounded-xl border ${token.cardBg} ${token.cardBorder} ${token.cardText} ${noPreference ? 'border-dashed' : ''} px-2.5 py-2 text-left overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-px hover:z-10 ${movable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${isDragging ? 'opacity-30' : 'transition-all duration-150'}`}
+            className={`absolute left-1.5 right-1.5 rounded-xl border ${token.cardBg} ${token.cardBorder} ${token.cardText} ${noPreference ? 'border-dashed' : 'border-solid'} px-2.5 py-2 text-left overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-px hover:z-10 ${cursorClass} ${isDragging ? 'opacity-30' : 'transition-all duration-150'}`}
             style={{ top: top + 1, height, touchAction: 'none' }}
-            title={`${appt.customer_name || 'Cliente'} · ${appt.service_name} · ${startTime}–${endTime}`}
+            title={noPreference
+              ? `${appt.customer_name || 'Cliente'} · Sem preferência de barbeiro · ${startTime}–${endTime}`
+              : `${appt.customer_name || 'Cliente'} · ${appt.service_name} · ${startTime}–${endTime}`}
           >
             {height >= 36 && renderCardIcons(appt)}
             <div className="font-semibold text-[12px] leading-tight truncate flex items-center gap-1">
               {appt.customer_name || 'Cliente'}
+              {noPreference && (
+                <span className="text-[9px] font-medium px-1 py-px rounded bg-gray-100 text-gray-500 border border-dashed border-gray-300 flex-shrink-0" title="Cliente sem preferência de barbeiro">
+                  sem pref.
+                </span>
+              )}
               {appt.payment_method === 'subscription' && (
                 <span className="text-[9px] font-bold px-1 py-px rounded bg-violet-100 text-violet-700 border border-violet-200" title="Pago pelo plano de assinatura">
                   PLANO
