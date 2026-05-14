@@ -373,14 +373,22 @@ export default function AppAgenda() {
       alert('Horário bloqueado (almoço/folga/evento).');
       return;
     }
-    // BFF Fase 3: o servidor sobrescreve professional_name a partir do banco.
-    updateMutation.mutate({
-      id: appointment.id,
-      data: {
-        professional_id: targetProId,
-        scheduled_at: new Date(targetStart).toISOString(),
-      },
-    });
+
+    // Resolve o nome do profissional destino (relevante quando is_flexible_assignment=true)
+    const targetPro = professionals.find(p => p.id === targetProId);
+    const updateData = {
+      professional_id: targetProId,
+      scheduled_at: new Date(targetStart).toISOString(),
+    };
+    // Se trocou de barbeiro E temos o nome local, envia professional_name para o servidor
+    // (o BFF também sobrescreve com o banco, mas melhora update otimista)
+    if (targetProId !== appointment.professional_id && targetPro?.name) {
+      updateData.professional_name = targetPro.name;
+      // Quando movido para barbeiro específico, remove o flag de flexível
+      updateData.is_flexible_assignment = false;
+    }
+
+    updateMutation.mutate({ id: appointment.id, data: updateData });
   };
 
   // Resize via borda inferior do card — altera somente a duração (custom_duration_minutes

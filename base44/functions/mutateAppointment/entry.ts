@@ -89,6 +89,7 @@ const EDITABLE_FIELDS = new Set([
   'custom_duration_minutes',
   'paid', 'paid_at',     // marcação presencial (não confundir com paid_online)
   'completed_at',
+  'is_flexible_assignment',  // flag de preferência do barbeiro (drag livre na agenda)
 ]);
 
 const VALID_STATUS = new Set([
@@ -315,6 +316,18 @@ Deno.serve(async (req) => {
       if ('paid' in clean && existing.paid_online) {
         delete clean.paid;
         delete clean.paid_at;
+      }
+
+      // Quando troca de profissional, garante que professional_name vem do banco
+      if (clean.professional_id && clean.professional_id !== existing.professional_id) {
+        const newPro = await sdk.entities.Professional.get(clean.professional_id).catch(() => null);
+        if (newPro && newPro.company_id === caller.company_id) {
+          clean.professional_name = newPro.name;
+        } else {
+          // Profissional inválido ou de outra empresa — reverte
+          delete clean.professional_id;
+          delete clean.professional_name;
+        }
       }
 
       const appointment = await sdk.entities.Appointment.update(id, clean);

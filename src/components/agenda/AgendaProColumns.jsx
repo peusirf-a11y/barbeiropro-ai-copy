@@ -348,6 +348,15 @@ function ProColumn({
         // Cursor: grab se pode mover (livre ou restrito à mesma coluna), not-allowed se não pode mover
         const cursorClass = !movable ? 'cursor-pointer' : canChangePro ? 'cursor-grab active:cursor-grabbing' : 'cursor-ns-resize';
 
+        // Log temporário para diagnóstico (remover após validação)
+        console.log('APPOINTMENT FLEX', {
+          id: appt.id,
+          customer: appt.customer_name,
+          flexible: appt.is_flexible_assignment,
+          professional: appt.professional_name,
+          noPreference,
+        });
+
         return (
           <div
             key={appt.id}
@@ -357,7 +366,7 @@ function ProColumn({
               if (!isDragging && !isResizing) onCardClick?.(appt);
               e.stopPropagation();
             }}
-            className={`absolute left-1.5 right-1.5 rounded-xl border ${token.cardBg} ${token.cardBorder} ${token.cardText} ${noPreference ? 'border-dashed' : 'border-solid'} px-2.5 py-2 text-left overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-px hover:z-10 ${cursorClass} ${isDragging ? 'opacity-30' : 'transition-all duration-150'}`}
+            className={`absolute left-1.5 right-1.5 rounded-xl ${token.cardBg} ${token.cardText} px-2.5 py-2 text-left overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-px hover:z-10 ${cursorClass} ${isDragging ? 'opacity-30' : 'transition-all duration-150'} ${noPreference ? 'border-2 border-dashed' : 'border border-solid'} ${token.cardBorder}`}
             style={{ top: top + 1, height, touchAction: 'none' }}
             title={noPreference
               ? `${appt.customer_name || 'Cliente'} · Sem preferência de barbeiro · ${startTime}–${endTime}`
