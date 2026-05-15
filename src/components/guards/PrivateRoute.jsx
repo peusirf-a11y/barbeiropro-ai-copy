@@ -1,7 +1,7 @@
 import { useAuth } from '@/lib/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { isCompanyBlocked } from '@/lib/enforceCompanyAccess';
 import { isRouteAllowedByPlan } from '@/lib/featureGate';
@@ -46,6 +46,17 @@ export default function PrivateRoute({ children }) {
   const isTeamMemberOnly = !ownerCompany && !!teamMember;
 
   const blocked = !!myCompany && isCompanyBlocked(myCompany);
+  // Bloqueio manual pelo Master (status === 'blocked') → desloga imediatamente
+  const isManuallyBlocked = !!myCompany && myCompany.status === 'blocked';
+  const loggedOutRef = useRef(false);
+
+  useEffect(() => {
+    if (isManuallyBlocked && !loggedOutRef.current) {
+      loggedOutRef.current = true;
+      qc.clear();
+      base44.auth.logout();
+    }
+  }, [isManuallyBlocked, qc]);
 
   // Carrega plano da empresa para feature gating (não bloqueia render se falhar/inexistente)
   const { data: plan } = useQuery({
