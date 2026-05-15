@@ -103,7 +103,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // ─── Criação em lote (chunks) com rate-limit control ─────────────────────────
 // Processa chunks sequencialmente com pausa entre eles para evitar 429.
 // Retry automático em caso de 429 (rate limit).
-async function batchCreate(sdk, entity, items, chunkSize = 5, delayMs = 500) {
+async function batchCreate(sdk, entity, items, chunkSize = 3, delayMs = 800) {
   const results = [];
   for (let i = 0; i < items.length; i += chunkSize) {
     const chunk = items.slice(i, i + chunkSize);
@@ -129,7 +129,7 @@ async function batchCreate(sdk, entity, items, chunkSize = 5, delayMs = 500) {
 }
 
 // ─── Deleção em lote com rate-limit control ──────────────────────────────────
-async function batchDelete(sdk, entity, items, chunkSize = 5, delayMs = 400) {
+async function batchDelete(sdk, entity, items, chunkSize = 3, delayMs = 600) {
   let deleted = 0;
   for (let i = 0; i < items.length; i += chunkSize) {
     const chunk = items.slice(i, i + chunkSize);
@@ -377,11 +377,11 @@ async function generateReviews(sdk, company_id, rng, customers, professionals, a
 
 // ─── Configurações de cenário ─────────────────────────────────────────────────
 const SCENARIOS = {
-  pequena:    { pros: 2, customers: 30,  appointments: 50,  financial: 60  },
-  media:      { pros: 4, customers: 80,  appointments: 150, financial: 120 },
-  premium:    { pros: 6, customers: 150, appointments: 250, financial: 200 },
-  lotada:     { pros: 4, customers: 80,  appointments: 200, financial: 100 },
-  financeiro: { pros: 3, customers: 50,  appointments: 80,  financial: 300 },
+  pequena:    { pros: 2, customers: 20,  appointments: 30,  financial: 30  },
+  media:      { pros: 4, customers: 50,  appointments: 80,  financial: 60  },
+  premium:    { pros: 5, customers: 80,  appointments: 120, financial: 100 },
+  lotada:     { pros: 4, customers: 50,  appointments: 100, financial: 60  },
+  financeiro: { pros: 3, customers: 30,  appointments: 50,  financial: 150 },
 };
 
 // ─── Handler principal ────────────────────────────────────────────────────────
