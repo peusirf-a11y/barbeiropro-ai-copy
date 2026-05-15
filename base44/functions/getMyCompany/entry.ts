@@ -54,7 +54,12 @@ Deno.serve(async (req) => {
       1,
     );
     if (ownerHits?.length) {
-      return Response.json({ company: publicCompany(ownerHits[0]), role: 'owner' });
+      const co = ownerHits[0];
+      if (co.status === 'blocked') {
+        console.warn('[getMyCompany] COMPANY_BLOCKED owner', { email: user.email, company_id: co.id });
+        return Response.json({ error: 'COMPANY_BLOCKED' }, { status: 403 });
+      }
+      return Response.json({ company: publicCompany(co), role: 'owner' });
     }
 
     // 2) Team member ativo.
@@ -62,7 +67,13 @@ Deno.serve(async (req) => {
     const tm = tmHits?.[0];
     if (tm && tm.active !== false) {
       const co = await sdk.entities.Company.get(tm.company_id).catch(() => null);
-      if (co) return Response.json({ company: publicCompany(co), role: 'team_member' });
+      if (co) {
+        if (co.status === 'blocked') {
+          console.warn('[getMyCompany] COMPANY_BLOCKED team_member', { email: user.email, company_id: co.id });
+          return Response.json({ error: 'COMPANY_BLOCKED' }, { status: 403 });
+        }
+        return Response.json({ company: publicCompany(co), role: 'team_member' });
+      }
     }
 
     // 3) Sem vínculo: super-admin puro ou usuário órfão. Devolve null sem erro.
