@@ -54,9 +54,12 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'company_id required' }, { status: 400 });
     }
 
-    const totpCheck = await requireValidTotpSession(base44, totp_session_token, user.email);
-    if (!totpCheck.ok) {
-      return Response.json({ success: false, error: totpCheck.error, totp_required: true }, { status: 401 });
+    // TOTP desativado no TotpGate — validação opcional.
+    if (totp_session_token) {
+      const totpCheck = await requireValidTotpSession(base44, totp_session_token, user.email);
+      if (!totpCheck.ok) {
+        return Response.json({ success: false, error: totpCheck.error, totp_required: true }, { status: 401 });
+      }
     }
 
     let company;
