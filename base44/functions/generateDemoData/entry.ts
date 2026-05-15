@@ -102,16 +102,55 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // ─── Criação em lote (chunks) com rate-limit control ─────────────────────────
 // Processa chunks sequencialmente com pausa entre eles para evitar 429.
-// Dentro de cada chunk, cria em paralelo (mas com limite de concorrência).
-async function batchCreate(sdk, entity, items, chunkSize = 8, delayMs = 300) {
+// Retry automático em caso de 429 (rate limit).
+async function batchCreate(sdk, entity, items, chunkSize = 5, delayMs = 500) {
   const results = [];
   for (let i = 0; i < items.length; i += chunkSize) {
     const chunk = items.slice(i, i + chunkSize);
-    const created = await Promise.all(chunk.map(item => sdk.entities[entity].create(item)));
-    results.push(...created);
+    let retries = 0;
+    while (retries < 3) {
+      try {
+        const created = await Promise.all(chunk.map(item => sdk.entities[entity].create(item)));
+        results.push(...created);
+        break;
+      } catch (err) {
+        if ((err.status === 429 || /rate limit/i.test(err.message)) && retries < 2) {
+          retries++;
+          console.warn(`[batchCreate] ${entity} chunk ${i} rate-limited, retry ${retries}/3 after ${1000 * retries}ms`);
+          await sleep(1000 * retries);
+        } else {
+          throw err;
+        }
+      }
+    }
     if (i + chunkSize < items.length) await sleep(delayMs);
   }
   return results;
+}
+
+// ─── Deleção em lote com rate-limit control ──────────────────────────────────
+async function batchDelete(sdk, entity, items, chunkSize = 5, delayMs = 400) {
+  let deleted = 0;
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+    let retries = 0;
+    while (retries < 3) {
+      try {
+        await Promise.all(chunk.map(item => sdk.entities[entity].delete(item.id)));
+        deleted += chunk.length;
+        break;
+      } catch (err) {
+        if ((err.status === 429 || /rate limit/i.test(err.message)) && retries < 2) {
+          retries++;
+          await sleep(1000 * retries);
+        } else {
+          throw err;
+        }
+      }
+    }
+    if (i + chunkSize < items.length) await sleep(delayMs);
+  }
+  return deleted;
 }
 
 // ─── Gerador de serviços ──────────────────────────────────────────────────────
@@ -186,7 +225,7 @@ async function generateCustomers(sdk, company_id, unit_id, rng, count = 100) {
       is_demo_data: true,
     });
   }
-  return batchCreate(sdk, 'Customer', items, 25);
+  return batchCreate(sdk, 'Customer', items);
 }
 
 // ─── Gerador de agendamentos ──────────────────────────────────────────────────
@@ -227,7 +266,7 @@ async function generateAppointments(sdk, company_id, unit_id, rng, customers, pr
       is_demo_data: true,
     });
   }
-  return batchCreate(sdk, 'Appointment', items, 20);
+  return batchCreate(sdk, 'Appointment', items);
 }
 
 // ─── Gerador financeiro ────────────────────────────────────────────────────────
@@ -278,7 +317,7 @@ async function generateFinancial(sdk, company_id, unit_id, rng, professionals, a
     });
   }
 
-  return batchCreate(sdk, 'FinancialEntry', items, 25);
+  return batchCreate(sdk, 'FinancialEntry', items);
 }
 
 // ─── Gerador de comissões ─────────────────────────────────────────────────────
@@ -306,7 +345,7 @@ async function generateCommissions(sdk, company_id, rng, professionals, appointm
       is_demo_data: true,
     };
   });
-  return batchCreate(sdk, 'Commission', items, 20);
+  return batchCreate(sdk, 'Commission', items);
 }
 
 // ─── Gerador de avaliações ────────────────────────────────────────────────────
@@ -333,7 +372,7 @@ async function generateReviews(sdk, company_id, rng, customers, professionals, a
       is_demo_data: true,
     };
   });
-  return batchCreate(sdk, 'Review', items, 20);
+  return batchCreate(sdk, 'Review', items);
 }
 
 // ─── Configurações de cenário ─────────────────────────────────────────────────
@@ -474,24 +513,19 @@ Deno.serve(async (req) => {
     if (action === 'clear') {
       // Remove SOMENTE registros com is_demo_data: true
       const cleared = {};
-      const entities = ['Appointment','Customer','FinancialEntry','Commission','Review'];
+      const entities = ['Commission','Review','FinancialEntry','Appointment','Customer','Service','Professional'];
       for (const entity of entities) {
         try {
           const items = await sdk.entities[entity].filter({ company_id, is_demo_data: true }, '-created_date', 500);
-          await Promise.all(items.map(i => sdk.entities[entity].delete(i.id)));
-          cleared[entity.toLowerCase()] = items.length;
+          if (items.length > 0) {
+            const count = await batchDelete(sdk, entity, items);
+            cleared[entity.toLowerCase()] = count;
+            await sleep(300);
+          } else {
+            cleared[entity.toLowerCase()] = 0;
+          }
         } catch (err) {
           console.warn(`[generateDemoData] clear ${entity} error:`, err.message);
-          cleared[entity.toLowerCase()] = 0;
-        }
-      }
-      // Serviços e profissionais demo
-      for (const entity of ['Service','Professional']) {
-        try {
-          const items = await sdk.entities[entity].filter({ company_id, is_demo_data: true }, '-created_date', 100);
-          await Promise.all(items.map(i => sdk.entities[entity].delete(i.id)));
-          cleared[entity.toLowerCase()] = items.length;
-        } catch (err) {
           cleared[entity.toLowerCase()] = 0;
         }
       }
@@ -516,17 +550,17 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'count') {
-      // Conta registros demo existentes
+      // Conta registros demo existentes (sequencial para evitar rate limit)
       const counts = {};
       const entities = ['Appointment','Customer','FinancialEntry','Commission','Review','Service','Professional'];
-      await Promise.all(entities.map(async (entity) => {
+      for (const entity of entities) {
         try {
           const items = await sdk.entities[entity].filter({ company_id, is_demo_data: true }, '-created_date', 1000);
           counts[entity.toLowerCase()] = items.length;
         } catch {
           counts[entity.toLowerCase()] = 0;
         }
-      }));
+      }
       return Response.json({ success: true, counts });
     }
 
