@@ -9,6 +9,8 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { ShieldAlert, AlertTriangle, UserCheck, Download, Globe, TrendingUp, Activity } from 'lucide-react';
+import SecurityScoreCard from '@/components/security/SecurityScoreCard';
+import { computeSecurityScore } from '@/lib/security/securityScore';
 
 function RiskBar({ score }) {
   const color = score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-400' : 'bg-red-500';
@@ -219,6 +221,17 @@ export default function MasterIncidentPanel() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Security Score consolidado da plataforma */}
+        <div className="lg:col-span-2">
+          <SecurityScoreCard data={computeSecurityScore({
+            securityEvents: events,
+            adminLogs,
+            sessions: [],
+            company: {},
+            teamMembers: [],
+          })} />
         </div>
       </div>
     </div>
