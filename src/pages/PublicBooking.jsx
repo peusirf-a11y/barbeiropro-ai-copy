@@ -37,15 +37,13 @@ const DAY_MAP = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6:
 
 export default function PublicBooking() {
   const { slug } = useParams();
-  // Fluxo: 'identify' → 0 (serviço) → 1 (profissional) → 2 (horário) → 3 (confirmação)
-  // A identificação por telefone é OBRIGATÓRIA antes de qualquer ação.
-  const [step, setStep] = useState('identify');
+  // Fluxo: 0 (serviço) → 1 (profissional) → 2 (horário) → 3 (confirmação)
+  // Identificação agora é OBRIGATÓRIA antes de confirmar (step 3 via AuthGateModal)
+  const [step, setStep] = useState(0);
   const [selected, setSelected] = useState({ unit: null, service: null, professional: null, date: null, time: null });
   const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const [bookingDone, setBookingDone] = useState(null);
   const [formError, setFormError] = useState('');
-  // Cliente identificado na etapa de telefone (existente no banco)
-  const [returningCustomer, setReturningCustomer] = useState(null);
   // Forma de pagamento selecionada no step 3 (avulso ou subscription)
   const [paymentMethod, setPaymentMethod] = useState('avulso');
   // Se cliente está autenticado via token (área pública), rastrear para não pedir dados novamente
@@ -76,7 +74,7 @@ export default function PublicBooking() {
   // assinatura e oferecer "usar plano" no momento da confirmação.
   const { customer: loggedCustomer, token: customerToken, loading: loadingCustomerAuth, logout: logoutCustomer } = useCustomerAuth(company?.id);
 
-  // Quando cliente autenticado carrega, pular etapa de identificação e preencher form automaticamente
+  // Quando cliente autenticado carrega, preencher form automaticamente
   useEffect(() => {
     if (!loggedCustomer || loadingCustomerAuth) return;
     if (isAuthenticatedCustomer) return; // já processado
@@ -86,10 +84,7 @@ export default function PublicBooking() {
       phone: loggedCustomer.phone || p.phone,
       email: loggedCustomer.email || p.email,
     }));
-    setReturningCustomer(loggedCustomer);
     setIsAuthenticatedCustomer(true);
-    // Só avança se ainda estiver na etapa de identificação
-    setStep(prev => prev === 'identify' ? 0 : prev);
   }, [loggedCustomer, loadingCustomerAuth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: customerSubs = [] } = useQuery({
@@ -546,7 +541,7 @@ export default function PublicBooking() {
               <button
                 onClick={() => {
                   setSelected({ unit: null, service: null, professional: null, date: null, time: null });
-                  setStep('identify');
+                  setStep(0);
                 }}
                 className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg border border-black/5"
                 title="Trocar de unidade"
@@ -587,48 +582,35 @@ export default function PublicBooking() {
         </div>
       )}
 
-      {/* Selo de cliente identificado — visível em todas as etapas após identificação */}
-      {typeof step === 'number' && form.name && (
-        <div className="bg-white border-b border-black/5">
-          <div className="max-w-xl mx-auto px-6 py-2.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-                {(form.name[0] || '?').toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11px] text-gray-400 leading-none">
-                  {isAuthenticatedCustomer ? '✓ Logado como' : 'Agendando como'}
-                </div>
-                <div className="text-sm font-bold text-[#111827] truncate">{form.name}</div>
-                {isAuthenticatedCustomer && form.phone && (
-                  <div className="text-[11px] text-gray-400 truncate">{form.phone}</div>
-                )}
-              </div>
+      {/* Selo de cliente identificado — visível quando logado */}
+      {typeof step === 'number' && isAuthenticatedCustomer && form.name && (
+      <div className="bg-white border-b border-black/5">
+        <div className="max-w-xl mx-auto px-6 py-2.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: primaryColor }}>
+              {(form.name[0] || '?').toUpperCase()}
             </div>
-            {isAuthenticatedCustomer ? (
-              <button
-                onClick={() => {
-                  logoutCustomer();
-                  setIsAuthenticatedCustomer(false);
-                  setReturningCustomer(null);
-                  setForm({ name: '', phone: '', email: '', notes: '' });
-                  setStep('identify');
-                  setFormError('');
-                }}
-                className="text-[11px] font-semibold text-gray-500 hover:text-[#111827] underline-offset-2 hover:underline flex-shrink-0"
-              >
-                Trocar conta
-              </button>
-            ) : (
-              <button
-                onClick={() => { setStep('identify'); setFormError(''); }}
-                className="text-[11px] font-semibold text-gray-500 hover:text-[#111827] underline-offset-2 hover:underline flex-shrink-0"
-              >
-                Não sou eu
-              </button>
-            )}
+            <div className="min-w-0">
+              <div className="text-[11px] text-gray-400 leading-none">✓ Logado como</div>
+              <div className="text-sm font-bold text-[#111827] truncate">{form.name}</div>
+              {form.phone && (
+                <div className="text-[11px] text-gray-400 truncate">{form.phone}</div>
+              )}
+            </div>
           </div>
+          <button
+            onClick={() => {
+              logoutCustomer();
+              setIsAuthenticatedCustomer(false);
+              setForm({ name: '', phone: '', email: '', notes: '' });
+              setFormError('');
+            }}
+            className="text-[11px] font-semibold text-gray-500 hover:text-[#111827] underline-offset-2 hover:underline flex-shrink-0"
+          >
+            Trocar conta
+          </button>
         </div>
+      </div>
       )}
 
       <div className="flex-1 max-w-xl mx-auto w-full px-6 py-8">
@@ -650,24 +632,7 @@ export default function PublicBooking() {
         )}
 
         {/* Fluxo normal — só renderiza depois que a unidade foi escolhida (ou não há multi-unit) */}
-        {(!isMultiUnit || selected.unit) && (<>
-
-        {/* Etapa 'identify': identificação obrigatória por telefone (1ª etapa do fluxo) */}
-        {step === 'identify' && (
-          <PhoneIdentificationStep
-            companyId={company.id}
-            scopeUnitId={scopeCustomerByUnit ? selected.unit?.id : undefined}
-            primaryColor={primaryColor}
-            initialPhone={form.phone}
-            initialName={form.name}
-            initialEmail={form.email}
-            onContinue={({ phone, name, email, existingCustomer }) => {
-              setForm(p => ({ ...p, phone, name, email }));
-              setReturningCustomer(existingCustomer || null);
-              setStep(0);
-            }}
-          />
-        )}
+         {(!isMultiUnit || selected.unit) && (<>
 
         {/* Step 0: Service */}
         {step === 0 && (
@@ -848,11 +813,11 @@ export default function PublicBooking() {
               </div>
             </div>
 
-            {returningCustomer && (
+            {isAuthenticatedCustomer && (
               <div className="mb-4 flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
                 <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                 <p className="text-[12px] text-emerald-800 leading-relaxed">
-                  <span className="font-semibold">Cliente identificado.</span> Vamos vincular este agendamento ao seu histórico.
+                  <span className="font-semibold">Logado.</span> Este agendamento será vinculado ao seu perfil.
                 </p>
               </div>
             )}
@@ -889,7 +854,7 @@ export default function PublicBooking() {
             {/* Consentimento LGPD compacto */}
             <BookingConsentBlock
               companyId={company.id}
-              customerId={returningCustomer?.id || loggedCustomer?.id}
+              customerId={loggedCustomer?.id}
               customerToken={customerToken}
             />
 

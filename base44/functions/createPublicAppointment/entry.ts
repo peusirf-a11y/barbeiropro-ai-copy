@@ -151,6 +151,7 @@ Deno.serve(async (req) => {
       unit_id,
       professional_id,
       service_id,
+      customer_id,
       customer_name,
       customer_phone,
       customer_email,
@@ -158,17 +159,14 @@ Deno.serve(async (req) => {
       notes,
       scope_customer_by_unit,
       is_flexible_assignment,
-      existing_customer_id,
     } = body;
-    // WHY (P0.2): NÃO desestruturamos professional_name, service_name nem price.
-    // Esses campos são AUTORITATIVOS DO BANCO. Carregamos abaixo via .get().
-    // Ignorar payload evita: cliente injetar preço 0, nome falso, serviço inexistente.
-    //
-    // WHY (M5): tokens de confirmação e avaliação são confiança de negócio.
-    // Não aceitamos do frontend — geramos no servidor com crypto.randomUUID().
+    // Fase 9: customer_id agora é OBRIGATÓRIO (cliente autenticado via AuthGate).
+    // Removido existing_customer_id — apenas customer_id é aceito.
+    // Removido fallback de lookup por telefone (era era do flow antigo).
 
     // Validações mínimas
     if (!company_id) return Response.json({ success: false, error: 'company_id_required' }, { status: 400 });
+    if (!customer_id) return Response.json({ success: false, error: 'customer_id_required (Fase 9: obrigatório)' }, { status: 400 });
     if (!service_id) return Response.json({ success: false, error: 'service_id_required' }, { status: 400 });
     if (!professional_id) return Response.json({ success: false, error: 'professional_id_required' }, { status: 400 });
     if (!scheduled_at) return Response.json({ success: false, error: 'scheduled_at_required' }, { status: 400 });
@@ -275,58 +273,31 @@ Deno.serve(async (req) => {
     }
     const slotReservation = lockResult.reservation;
 
-    // 1) Lookup cliente — prioriza existing_customer_id (cliente autenticado) para evitar duplicidade
+    // Fase 9: customer_id vem autenticado do AuthGate — lookup direto e valida pertencimento
     let customer = null;
-    const matches = [];
+    try {
+      const c = await sdk.entities.Customer.get(customer_id);
+      if (c && c.company_id === company_id) {
+        customer = c;
+        console.log(`[createPublicAppointment] cliente autenticado carregado: ${customer.id}`);
+      } else {
+        console.warn('[createPublicAppointment] customer_id cross-tenant ou inválido', { customer_id, company_id });
+        return Response.json({ success: false, error: 'customer_not_found_or_cross_tenant' }, { status: 404 });
+      }
+    } catch (err) {
+      console.warn('[createPublicAppointment] falha ao carregar customer:', err.message);
+      return Response.json({ success: false, error: 'customer_not_found' }, { status: 404 });
+    }
 
-    if (existing_customer_id) {
-      // Cliente autenticado: carrega direto pelo ID e valida pertencimento à empresa
+    // Atualiza campos do customer se diferentes (não sobrescreve dados existentes críticos)
+    if ((customerEmailClean && !customer.email) || customer.name !== customerNameClean) {
       try {
-        const c = await sdk.entities.Customer.get(existing_customer_id);
-        if (c && c.company_id === company_id) {
-          customer = c;
-          matches.push(c);
-          console.log(`[createPublicAppointment] cliente autenticado reutilizado: ${customer.id}`);
-        } else {
-          console.warn('[createPublicAppointment] existing_customer_id cross-tenant ou inválido', { existing_customer_id, company_id });
-        }
+        await sdk.entities.Customer.update(customer.id, {
+          ...(customerEmailClean && !customer.email ? { email: customerEmailClean } : {}),
+          name: customerNameClean, // Sempre atualiza nome do agendamento atual
+        });
       } catch (err) {
-        console.warn('[createPublicAppointment] falha ao carregar existing_customer_id:', err.message);
-      }
-    }
-
-    // Fallback: lookup por telefone (cliente anônimo ou falha no ID)
-    if (!customer) {
-      const lookupFilter = scope_customer_by_unit && unit_id
-        ? { company_id, phone: phoneNorm, unit_id }
-        : { company_id, phone: phoneNorm };
-      const found = await sdk.entities.Customer.filter(lookupFilter, '-created_date', 1);
-      if (found?.[0]) {
-        customer = found[0];
-        matches.push(found[0]);
-      }
-    }
-
-    // 2) Se não existe → cria
-    if (!customer) {
-      console.log(`[createPublicAppointment] criando novo customer: ${customerNameClean} / ${phoneNorm}`);
-      customer = await sdk.entities.Customer.create({
-        company_id,
-        unit_id: scope_customer_by_unit ? unit_id : undefined,
-        name: customerNameClean,
-        phone: phoneNorm,
-        email: customerEmailClean || undefined,
-        status: 'active',
-      });
-    } else {
-      console.log(`[createPublicAppointment] cliente existente reutilizado: ${customer.id}`);
-      // Atualiza email se antes não tinha e agora foi informado (não sobrescreve dados existentes)
-      if (customerEmailClean && !customer.email) {
-        try {
-          await sdk.entities.Customer.update(customer.id, { email: customerEmailClean });
-        } catch (err) {
-          console.warn('[createPublicAppointment] falha ao atualizar email do customer:', err.message);
-        }
+        console.warn('[createPublicAppointment] falha ao atualizar customer:', err.message);
       }
     }
 
@@ -373,7 +344,6 @@ Deno.serve(async (req) => {
       success: true,
       appointment_id: appointment.id,
       customer_id: customer.id,
-      customer_was_created: matches.length === 0,
     });
   } catch (error) {
     // WHY: se erro ocorrer entre acquire e consume, o lock fica órfão.
