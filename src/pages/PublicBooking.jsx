@@ -13,6 +13,7 @@ import UnitPicker from '@/components/booking/UnitPicker';
 import PhoneIdentificationStep from '@/components/booking/PhoneIdentificationStep';
 import PaymentMethodChooser from '@/components/booking/PaymentMethodChooser';
 import BookingPaymentStep from '@/components/booking/BookingPaymentStep';
+import BookingConsentBlock from '@/components/booking/BookingConsentBlock';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 
 function generateTimeSlots(openTime, closeTime, durationMin) {
@@ -867,6 +868,13 @@ export default function PublicBooking() {
                 placeholder="Preferências ou informações adicionais"
                 className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white resize-none" />
             </div>
+
+            {/* Consentimento LGPD compacto */}
+            <BookingConsentBlock
+              companyId={company.id}
+              customerId={returningCustomer?.id || loggedCustomer?.id}
+              customerToken={customerToken}
+            />
 
             {formError && (
               <div className="mt-3 flex items-center gap-2 text-red-600 text-sm">
