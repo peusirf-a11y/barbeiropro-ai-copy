@@ -1,108 +1,151 @@
-// Modal de oferta de plano — Engine v2 com scoring inteligente.
-// Mantém visual premium existente; evolui inteligência e UX.
+// OfferPlanModal — Ferramenta de decisão comercial para o dono da barbearia.
+// Foco: recorrência, retenção, lucratividade, previsibilidade.
+// NÃO altera fluxo de ativação, billing ou subscriptions.
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import {
-  X, Sparkles, Check, TrendingDown, Calendar, Loader2, AlertCircle,
-  Info, ChevronDown, ChevronUp, BarChart2,
+  X, Sparkles, Loader2, AlertCircle, TrendingUp,
+  RefreshCw, Shield, Zap, ChevronDown, ChevronUp, Info,
 } from 'lucide-react';
 
-// ─── Badge colored helper ──────────────────────────────────────────────────────
-const BADGE_COLORS = {
-  emerald: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  blue:    'bg-blue-50 text-blue-800 border-blue-200',
-  violet:  'bg-violet-50 text-violet-800 border-violet-200',
-  amber:   'bg-amber-50 text-amber-800 border-amber-200',
-  indigo:  'bg-indigo-50 text-indigo-800 border-indigo-200',
-};
-
-function SmartBadge({ label, color = 'blue' }) {
-  return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border ${BADGE_COLORS[color] || BADGE_COLORS.blue}`}>
-      <Sparkles className="w-2.5 h-2.5" />
-      {label}
-    </span>
-  );
-}
-
-// ─── Barra visual de economia ──────────────────────────────────────────────────
-function EconomyBar({ level }) {
-  const config = {
-    baixa: { pct: 30, color: 'bg-gray-300', label: 'Baixa' },
-    média: { pct: 60, color: 'bg-blue-400', label: 'Média' },
-    alta:  { pct: 92, color: 'bg-emerald-500', label: 'Alta' },
-  };
-  const c = config[level] || config.baixa;
-  return (
-    <div className="flex items-center gap-2 mt-1.5">
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-all duration-700 ${c.color}`} style={{ width: `${c.pct}%` }} />
-      </div>
-      <span className="text-[10px] font-semibold text-gray-500 w-10">{c.label}</span>
-    </div>
-  );
-}
-
-// ─── Indicador de conversão ────────────────────────────────────────────────────
-function ConversionPill({ conversion }) {
+// ─── Score de conversão (grande, colorido, no topo) ────────────────────────────
+function ConversionScoreHeader({ conversion, score }) {
   if (!conversion) return null;
-  const config = {
-    alta:  { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200', dot: 'bg-emerald-500', label: 'Alta chance de conversão' },
-    média: { bg: 'bg-amber-50',   text: 'text-amber-800',   border: 'border-amber-200',   dot: 'bg-amber-400',   label: 'Média chance de conversão' },
-    baixa: { bg: 'bg-gray-50',    text: 'text-gray-600',    border: 'border-gray-200',    dot: 'bg-gray-400',    label: 'Baixa chance de conversão' },
+  const cfg = {
+    alta:  { bg: 'bg-emerald-500', ring: 'ring-emerald-200', label: 'Alta chance de conversão', sub: 'Cliente pronto para fidelização' },
+    média: { bg: 'bg-amber-400',   ring: 'ring-amber-200',   label: 'Média chance de conversão', sub: 'Potencial identificado — boa abordagem' },
+    baixa: { bg: 'bg-gray-400',    ring: 'ring-gray-200',    label: 'Baixa chance no momento',   sub: 'Histórico insuficiente para conversão forte' },
   };
-  const c = config[conversion.label] || config.baixa;
+  const c = cfg[conversion.label] || cfg.baixa;
   return (
-    <div className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${c.bg} ${c.text} ${c.border}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-      {c.label}
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ring-2 ${c.ring} bg-white mb-4`}>
+      <div className={`w-10 h-10 rounded-full ${c.bg} flex items-center justify-center text-white font-black text-sm flex-shrink-0`}>
+        {Math.round(score || 0)}
+      </div>
+      <div>
+        <div className="font-bold text-[13px] text-[#111827]">{c.label}</div>
+        <div className="text-[11px] text-gray-500">{c.sub}</div>
+      </div>
     </div>
   );
 }
 
-// ─── Tooltip de cálculo ────────────────────────────────────────────────────────
-function HowWeCalculate({ r, plan }) {
-  const [open, setOpen] = useState(false);
-  if (!r || !plan) return null;
-  const effectiveUses = plan.type === 'unlimited'
-    ? r.visits_per_month
-    : Math.min(plan.usage_limit || 1, r.visits_per_month);
+// ─── Card de métrica de negócio ────────────────────────────────────────────────
+function BizCard({ icon: Icon, label, value, sub, color = 'blue' }) {
+  const colors = {
+    blue:    'bg-blue-50 border-blue-100 text-blue-800',
+    emerald: 'bg-emerald-50 border-emerald-100 text-emerald-800',
+    violet:  'bg-violet-50 border-violet-100 text-violet-800',
+    amber:   'bg-amber-50 border-amber-100 text-amber-800',
+  };
   return (
-    <div className="mt-2">
+    <div className={`rounded-xl border p-3 ${colors[color] || colors.blue}`}>
+      <div className="flex items-center gap-1.5 mb-1 opacity-70">
+        <Icon className="w-3 h-3" />
+        <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      <div className="font-black text-lg leading-none">{value}</div>
+      {sub && <div className="text-[10px] mt-0.5 opacity-70">{sub}</div>}
+    </div>
+  );
+}
+
+// ─── Saúde do plano ────────────────────────────────────────────────────────────
+function PlanHealthBadge({ health }) {
+  if (!health) return null;
+  const colors = {
+    emerald: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    blue:    'bg-blue-50 text-blue-800 border-blue-200',
+    amber:   'bg-amber-50 text-amber-800 border-amber-200',
+    red:     'bg-red-50 text-red-800 border-red-200',
+  };
+  return (
+    <div className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${colors[health.color] || colors.blue}`}>
+      <Shield className="w-3 h-3" />
+      Saúde: {health.label}
+    </div>
+  );
+}
+
+// ─── Alertas inteligentes ──────────────────────────────────────────────────────
+function AlertBanner({ alert }) {
+  const cfg = {
+    success: { bg: 'bg-emerald-50 border-emerald-200 text-emerald-800', icon: '✅' },
+    warning: { bg: 'bg-amber-50 border-amber-200 text-amber-800',       icon: '⚠️' },
+    danger:  { bg: 'bg-red-50 border-red-200 text-red-800',             icon: '🚨' },
+  };
+  const c = cfg[alert.type] || cfg.warning;
+  return (
+    <div className={`flex items-start gap-2 text-[12px] px-3 py-2 rounded-xl border ${c.bg}`}>
+      <span className="flex-shrink-0">{c.icon}</span>
+      <span className="font-medium">{alert.message}</span>
+    </div>
+  );
+}
+
+// ─── Justificativas ────────────────────────────────────────────────────────────
+function WhyThisPlan({ justifications }) {
+  const [open, setOpen] = useState(false);
+  if (!justifications?.length) return null;
+  return (
+    <div className="mt-1">
       <button
         onClick={() => setOpen(v => !v)}
         className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
       >
         <Info className="w-3 h-3" />
-        Como calculamos isso?
+        Por que este plano?
         {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       </button>
       {open && (
-        <div className="mt-2 bg-gray-50 border border-black/5 rounded-xl p-3 text-[11px] text-gray-600 space-y-1 leading-relaxed">
-          <div>📊 <strong>Frequência mensal:</strong> {r.visits_per_month}x/mês (baseado nos últimos 6 meses)</div>
-          <div>🎯 <strong>Ticket médio:</strong> R${r.avg_ticket || '–'} por visita</div>
-          <div>✅ <strong>Usos cobertos pelo plano:</strong> {effectiveUses}x/mês</div>
-          <div>💡 <strong>Valor coberto:</strong> {effectiveUses} × R${r.avg_ticket} = R${Math.round(effectiveUses * (r.avg_ticket || 0))}</div>
-          <div>💰 <strong>Economia:</strong> R${Math.round(effectiveUses * (r.avg_ticket || 0))} − R${plan.price_monthly} = R${r.economy?.monthly_savings || r.monthly_savings}</div>
-          <div className="text-[10px] text-gray-400 pt-1 border-t border-black/5">
-            * Estimativa baseada no comportamento atual do cliente. Valores podem variar.
-          </div>
-        </div>
+        <ul className="mt-2 space-y-1.5 bg-gray-50 border border-black/5 rounded-xl p-3">
+          {justifications.map((j, i) => (
+            <li key={i} className="flex items-start gap-2 text-[11px] text-gray-600">
+              <span className="text-[#2563EB] flex-shrink-0 mt-0.5">→</span>
+              {j}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
 }
 
-// ─── Benefícios ────────────────────────────────────────────────────────────────
-function Benefit({ text }) {
+// ─── Resumo executivo ──────────────────────────────────────────────────────────
+function ExecutiveSummary({ r, plan, biz }) {
+  if (!r || !plan || !biz) return null;
+  const showEconomy = (r.economy?.monthly_savings || r.monthly_savings || 0) > 5;
   return (
-    <li className="flex items-start gap-2">
-      <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-      <span>{text}</span>
-    </li>
+    <div className="bg-[#F8F9FF] border border-blue-100 rounded-xl p-4 mb-4">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB] mb-2">Impacto esperado</div>
+      <div className="space-y-1.5">
+        <ImpactRow icon="💰" value={`+R$${plan.price_monthly}/mês recorrentes`} sub="receita previsível garantida" />
+        <ImpactRow icon="📅" value={`+R$${biz.annual_recurring_revenue}/ano previsíveis`} sub="sem depender de visitas avulsas" />
+        <ImpactRow icon="🔄" value={`${biz.expected_frequency}x/mês esperado`} sub="frequência estimada pós-conversão" />
+        <ImpactRow icon="🏆" value={`LTV projetado: R$${biz.ltv_estimate}`} sub={`~${biz.retention_months_expected} meses de retenção estimados`} />
+        {r.conversion?.label === 'alta' && (
+          <ImpactRow icon="🛡️" value="Alta chance de retenção" sub="reduz risco de perda para concorrência" />
+        )}
+        {showEconomy && (
+          <ImpactRow icon="✂️" value={`R$${r.economy?.monthly_savings || r.monthly_savings} economizados pelo cliente`} sub="argumento de venda para o cliente" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ImpactRow({ icon, value, sub }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="text-base leading-none flex-shrink-0">{icon}</span>
+      <div>
+        <span className="text-[13px] font-bold text-[#111827]">{value}</span>
+        {sub && <span className="text-[11px] text-gray-500 ml-1.5">{sub}</span>}
+      </div>
+    </div>
   );
 }
 
@@ -138,6 +181,20 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
         };
         throw new Error(map[data.error] || data.error);
       }
+      // Analytics
+      try {
+        base44.analytics.track({
+          eventName: 'plan_offer_accepted',
+          properties: {
+            customer_id: customer.id,
+            plan_id: planId,
+            plan_name: recData?.data?.recommended_plan?.name,
+            recommendation_score: recData?.data?.recommendation_score || 0,
+            conversion_label: recData?.data?.conversion?.label || 'unknown',
+            projected_arr: recData?.data?.business_metrics?.annual_recurring_revenue || 0,
+          },
+        });
+      } catch {}
       return data;
     },
     onSuccess: () => {
@@ -150,176 +207,206 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
     },
   });
 
+  // Track modal aberto
+  useState(() => {
+    try {
+      base44.analytics.track({
+        eventName: 'plan_offer_modal_opened',
+        properties: { customer_id: customer?.id, company_id: companyId },
+      });
+    } catch {}
+  }, []);
+
+  const handleCancel = () => {
+    try {
+      base44.analytics.track({
+        eventName: 'plan_offer_declined',
+        properties: {
+          customer_id: customer?.id,
+          plan_id: recData?.data?.recommended_plan?.id,
+          recommendation_score: recData?.data?.recommendation_score || 0,
+        },
+      });
+    } catch {}
+    onClose();
+  };
+
   const r = recData?.data;
   const plan = r?.recommended_plan;
-
-  // Normaliza economia (retrocompat + novo formato)
-  const economy = r?.economy || {
-    monthly_savings: r?.monthly_savings || 0,
-    annual_savings: r?.annual_savings || 0,
-    economy_level: 'baixa',
-    effective_uses: r?.visits_per_month || 0,
-  };
+  const economy = r?.economy || { monthly_savings: r?.monthly_savings || 0, annual_savings: r?.annual_savings || 0 };
   const conversion = r?.conversion || null;
-  const badges = r?.badges || [];
+  const planHealth = r?.plan_health || null;
+  const biz = r?.business_metrics || null;
+  const justifications = r?.justifications || [];
+  const alerts = r?.alerts || [];
 
   const noOffer = !isLoading && (!r || r.no_match || r.no_savings || r.insufficient_data || r.already_subscribed || r.no_plans_available);
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/50 z-[9999] overflow-y-auto" onClick={onClose}>
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-
-          {/* ── Header ── */}
-          <div className="relative bg-[#2563EB] p-6 text-white">
-            <button onClick={onClose} className="absolute top-3 right-3 p-1.5 hover:bg-white/20 rounded-lg">
-              <X className="w-5 h-5" />
+    <div className="fixed inset-0 bg-black/60 z-[9999] overflow-y-auto" onClick={handleCancel}>
+      <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
+        <div
+          className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* ── Header fixo ── */}
+          <div className="relative bg-[#111827] px-5 pt-5 pb-4 rounded-t-2xl sm:rounded-t-2xl flex-shrink-0">
+            <button onClick={handleCancel} className="absolute top-3 right-3 p-1.5 hover:bg-white/10 rounded-lg">
+              <X className="w-5 h-5 text-white" />
             </button>
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-5 h-5" />
-              <span className="text-xs font-bold uppercase tracking-wider opacity-90">Recomendação inteligente</span>
+            <div className="flex items-center gap-2 mb-1">
+              <Zap className="w-4 h-4 text-blue-400" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Análise comercial</span>
             </div>
-            <h3 className="text-2xl font-black">Plano ideal para {customer?.name?.split(' ')[0]}</h3>
-            {conversion && (
-              <div className="mt-2">
-                <ConversionPill conversion={conversion} />
-              </div>
-            )}
+            <h3 className="text-xl font-black text-white leading-tight">
+              Converter {customer?.name?.split(' ')[0]} para assinante
+            </h3>
+            <p className="text-[12px] text-gray-400 mt-0.5">
+              {plan?.name} · R${plan?.price_monthly}/mês
+            </p>
           </div>
 
-          {/* ── Body ── */}
-          <div className="p-6">
+          {/* ── Body scrollável ── */}
+          <div className="flex-1 overflow-y-auto modal-scroll p-5 space-y-4">
 
             {/* Loading */}
             {isLoading && (
-              <div className="text-center py-8">
+              <div className="text-center py-10">
                 <Loader2 className="w-6 h-6 text-[#2563EB] animate-spin mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Analisando comportamento do cliente…</p>
-                <p className="text-xs text-gray-400 mt-1">Calculando frequência, ticket médio e aderência</p>
+                <p className="text-sm text-gray-500 font-medium">Analisando perfil comercial…</p>
+                <p className="text-xs text-gray-400 mt-1">Frequência · ticket · recorrência · margem</p>
               </div>
             )}
 
             {/* Sem oferta */}
             {!isLoading && noOffer && (
-              <div className="text-center py-6">
+              <div className="text-center py-8">
                 <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
                 <p className="font-semibold text-[#111827] mb-1">Sem recomendação no momento</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 max-w-xs mx-auto">
                   {r?.already_subscribed && 'Cliente já tem plano ativo.'}
-                  {r?.no_plans_available && 'Crie planos ativos primeiro.'}
-                  {r?.insufficient_data && `Histórico insuficiente (${r.visits_in_window || 0} visita${(r.visits_in_window || 0) === 1 ? '' : 's'} em 180 dias).`}
-                  {(r?.no_match || r?.no_savings) && 'Nenhum plano vigente gera economia real para este cliente com base no histórico atual.'}
+                  {r?.no_plans_available && 'Crie planos ativos em Planos primeiro.'}
+                  {r?.insufficient_data && `Histórico insuficiente (${r.visits_in_window || 0} visita${(r.visits_in_window || 0) === 1 ? '' : 's'} nos últimos 6 meses).`}
+                  {(r?.no_match || r?.no_savings) && 'Nenhum plano vigente é viável para o perfil atual deste cliente.'}
                 </p>
-                <button onClick={onClose} className="mt-4 px-4 py-2 border border-black/10 rounded-lg text-sm font-semibold hover:bg-gray-50">Fechar</button>
+                <button onClick={handleCancel} className="mt-4 px-4 py-2 border border-black/10 rounded-lg text-sm font-semibold hover:bg-gray-50">Fechar</button>
               </div>
             )}
 
-            {/* Oferta principal */}
-            {!isLoading && plan && (
-              <>
-                {/* Selos inteligentes */}
-                {badges.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {badges.map((b, i) => <SmartBadge key={i} label={b.label} color={b.color} />)}
-                  </div>
-                )}
+            {/* Oferta */}
+            {!isLoading && plan && (<>
 
-                {/* Card do plano */}
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB] mb-1">Plano recomendado pelo score</div>
-                      <div className="font-black text-xl text-[#111827]">{plan.name}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {plan.type === 'unlimited' ? 'Cortes ilimitados' : `${plan.usage_limit} ${plan.usage_limit === 1 ? 'corte' : 'cortes'} por mês`}
-                      </div>
-                      {r?.recommendation_score != null && (
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          <BarChart2 className="w-3 h-3 text-[#2563EB]/60" />
-                          <span className="text-[10px] text-[#2563EB]/70 font-semibold">Score: {Math.round(r.recommendation_score)}/100</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-2xl font-black text-[#2563EB]">R${plan.price_monthly}</div>
-                      <div className="text-[10px] text-[#2563EB]/70 uppercase">por mês</div>
-                    </div>
+              {/* Score de conversão */}
+              <ConversionScoreHeader conversion={conversion} score={r?.recommendation_score} />
+
+              {/* Alertas */}
+              {alerts.length > 0 && (
+                <div className="space-y-2">
+                  {alerts.map((a, i) => <AlertBanner key={i} alert={a} />)}
+                </div>
+              )}
+
+              {/* Resumo executivo */}
+              <ExecutiveSummary r={r} plan={plan} biz={biz} />
+
+              {/* Cards de impacto 2×2 */}
+              <div className="grid grid-cols-2 gap-2">
+                <BizCard
+                  icon={TrendingUp}
+                  label="Receita recorrente"
+                  value={`R$${plan.price_monthly}/mês`}
+                  sub={`R$${biz?.annual_recurring_revenue || plan.price_monthly * 12}/ano`}
+                  color="blue"
+                />
+                <BizCard
+                  icon={RefreshCw}
+                  label="Frequência prevista"
+                  value={`${biz?.expected_frequency || r.visits_per_month}x/mês`}
+                  sub="pós-conversão"
+                  color="violet"
+                />
+                <BizCard
+                  icon={Shield}
+                  label="LTV estimado"
+                  value={`R$${biz?.ltv_estimate || '--'}`}
+                  sub={`~${biz?.retention_months_expected || '?'} meses`}
+                  color="emerald"
+                />
+                <BizCard
+                  icon={Sparkles}
+                  label="Churn estimado"
+                  value={biz?.churn_risk === 'baixo' ? 'Baixo' : biz?.churn_risk === 'médio' ? 'Médio' : 'Alto'}
+                  sub="risco de cancelamento"
+                  color={biz?.churn_risk === 'baixo' ? 'emerald' : biz?.churn_risk === 'médio' ? 'amber' : 'amber'}
+                />
+              </div>
+
+              {/* Plano + saúde */}
+              <div className="bg-gray-50 border border-black/8 rounded-xl p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Plano recomendado</div>
+                  <div className="font-black text-base text-[#111827]">{plan.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {plan.type === 'unlimited' ? 'Ilimitado' : `${plan.usage_limit} ${plan.usage_limit === 1 ? 'uso' : 'usos'}/mês`}
                   </div>
                 </div>
-
-                {/* Economia */}
-                <div className="grid grid-cols-2 gap-2 mb-1">
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                    <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">
-                      <TrendingDown className="w-3 h-3" /> Economia/mês
-                    </div>
-                    <div className="text-xl font-black text-emerald-700">R${economy.monthly_savings}</div>
-                  </div>
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                    <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">
-                      <TrendingDown className="w-3 h-3" /> Est. por ano
-                    </div>
-                    <div className="text-xl font-black text-emerald-700">R${economy.annual_savings}</div>
-                    <div className="text-[9px] text-emerald-600/70 mt-0.5">baseado no comportamento atual</div>
-                  </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-xl font-black text-[#2563EB]">R${plan.price_monthly}</div>
+                  <PlanHealthBadge health={planHealth} />
                 </div>
+              </div>
 
-                {/* Barra de nível de economia */}
-                <EconomyBar level={economy.economy_level} />
+              {/* Por que este plano */}
+              <WhyThisPlan justifications={justifications} />
 
-                {/* Tooltip de cálculo */}
-                <HowWeCalculate r={r} plan={plan} />
+              {/* Perfil do cliente (discreto) */}
+              <div className="text-[11px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+                Visitas: <strong className="text-gray-600">{r.visits_per_month}x/mês</strong>
+                {r.avg_ticket > 0 && <> · Ticket: <strong className="text-gray-600">R${r.avg_ticket}</strong></>}
+                · Retenção: <strong className="text-gray-600">{Math.round(r.retention_months || 0)} meses</strong>
+              </div>
 
-                {/* Padrão de uso */}
-                <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mt-4 mb-4 text-xs text-blue-900">
-                  <Calendar className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                  <span>
-                    Vem <strong>{r.visits_per_month}x/mês</strong>
-                    {r.avg_ticket > 0 && <> · ticket médio <strong>R${r.avg_ticket}</strong></>}
-                    {' '}· gasta <strong>R${r.monthly_avulso}/mês</strong> avulso
-                  </span>
+              {/* Erro de ativação */}
+              {subscribeMutation.error && (
+                <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2">
+                  {subscribeMutation.error?.message || 'Erro ao ativar assinatura.'}
                 </div>
+              )}
 
-                {/* Benefícios */}
-                <div className="mb-5">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">Benefícios para o cliente</div>
-                  <ul className="space-y-1.5 text-sm text-[#111827]">
-                    <Benefit text={`Economiza R$${economy.monthly_savings} todo mês`} />
-                    <Benefit text="Hora marcada garantida — sem filas" />
-                    <Benefit text="Sem preocupação com pagamento a cada visita" />
-                    {plan.type === 'unlimited' && <Benefit text="Cortes ilimitados — venha quando quiser" />}
-                    {(r.regularity_score >= 0.6 || r.retention_months >= 3) && (
-                      <Benefit text="Programa de fidelidade exclusivo" />
-                    )}
-                  </ul>
-                </div>
-
-                {subscribeMutation.error && (
-                  <div className="mb-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-2">
-                    {subscribeMutation.error?.message || 'Erro ao ativar assinatura.'}
-                  </div>
-                )}
-
-                {/* Ações */}
-                <div className="flex gap-2">
-                  <button onClick={onClose} className="px-4 py-3 border border-black/10 rounded-xl text-sm font-semibold hover:bg-gray-50">
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={() => subscribeMutation.mutate()}
-                    disabled={subscribeMutation.isPending}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#2563EB] hover:bg-[#1d4ed8] text-white rounded-xl text-sm font-bold disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-colors"
-                  >
-                    {subscribeMutation.isPending ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Ativando…</>
-                    ) : (
-                      <><Sparkles className="w-4 h-4" /> Ativar assinatura</>
-                    )}
-                  </button>
-                </div>
-              </>
-            )}
+            </>)}
           </div>
+
+          {/* ── CTA sticky no rodapé ── */}
+          {!isLoading && plan && (
+            <div className="flex-shrink-0 px-5 py-4 bg-white border-t border-black/5 flex gap-2">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-3 border border-black/10 rounded-xl text-sm font-semibold text-[#111827] hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => subscribeMutation.mutate()}
+                disabled={subscribeMutation.isPending}
+                className="flex-1 inline-flex items-center justify-center gap-2 py-3 bg-[#2563EB] hover:bg-[#1d4ed8] text-white rounded-xl text-sm font-bold disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-colors"
+              >
+                {subscribeMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Ativando…</>
+                ) : (
+                  <><Sparkles className="w-4 h-4" /> Ativar assinatura</>
+                )}
+              </button>
+            </div>
+          )}
+
+          {!isLoading && noOffer && (
+            <div className="flex-shrink-0 px-5 pb-5">
+              <button onClick={handleCancel} className="w-full py-3 border border-black/10 rounded-xl text-sm font-semibold hover:bg-gray-50">
+                Fechar
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
     </div>,
