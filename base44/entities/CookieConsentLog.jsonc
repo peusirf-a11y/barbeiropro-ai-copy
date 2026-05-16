@@ -1,0 +1,66 @@
+{
+  "name": "CookieConsentLog",
+  "type": "object",
+  "properties": {
+    "anonymous_id": {
+      "type": "string",
+      "description": "ID an\u00f4nimo gerado no navegador (localStorage). Persiste mesmo sem login."
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio autenticado (quando aplic\u00e1vel)."
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP no momento do consentimento."
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User-Agent do navegador no momento do consentimento."
+    },
+    "accepted_categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Categorias aceitas: analytics, marketing, functional"
+    },
+    "rejected_categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Categorias rejeitadas."
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "accept_all",
+        "reject_optional",
+        "custom",
+        "revoke",
+        "revalidation_required"
+      ],
+      "description": "Qual a\u00e7\u00e3o o usu\u00e1rio tomou."
+    },
+    "policy_version": {
+      "type": "string",
+      "description": "Vers\u00e3o da pol\u00edtica de cookies vigente no momento do consentimento. Ex: v1.0"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando este consentimento expira (6 ou 12 meses)."
+    },
+    "privacy_first_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Quando true, eventos s\u00e3o anonimizados e fingerprinting \u00e9 evitado."
+    }
+  },
+  "required": [
+    "anonymous_id",
+    "action",
+    "policy_version"
+  ]
+}

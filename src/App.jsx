@@ -7,6 +7,7 @@ import { AuthProvider } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ThemeSync from '@/components/ThemeSync';
+import CookieConsentProvider from '@/components/cookies/CookieConsentProvider';
 import RootRedirect from '@/components/RootRedirect';
 import { ActiveUnitProvider } from '@/hooks/useActiveUnit';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
@@ -88,11 +89,12 @@ function App() {
   return (
     <ErrorBoundary>
     <ThemeSync />
+    <CookieConsentProvider>
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
        <ImpersonationProvider>
        <ActiveUnitProvider>
-        <Router>
+         <Router>
           <Routes>
             {/* ── PUBLIC ROUTES ── */}
             {/* "/" = login automático (app/APK abre direto no login).
@@ -186,6 +188,7 @@ function App() {
        </ImpersonationProvider>
       </QueryClientProvider>
     </AuthProvider>
+    </CookieConsentProvider>
     </ErrorBoundary>
   );
 }

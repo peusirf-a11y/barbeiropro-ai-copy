@@ -8,7 +8,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { useState } from 'react';
-import { Shield, Download, UserX, Search, Clock, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Shield, Download, UserX, Search, Clock, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, FileText, Cookie } from 'lucide-react';
+import CookiePreferencesModal from '@/components/cookies/CookiePreferencesModal';
+import { getConsentState, COOKIE_CATEGORIES, hasConsent } from '@/lib/cookieConsent';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/components/ui/use-toast';
@@ -22,6 +24,87 @@ const CONSENT_LABELS = {
   data_processing_general: 'Tratamento geral de dados',
 };
 
+function CookiesTab({ onOpenModal }) {
+  const state = getConsentState();
+  const categories = Object.values(COOKIE_CATEGORIES);
+
+  return (
+    <div className="space-y-4">
+      {/* Status atual */}
+      <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-[#111827] flex items-center gap-2">
+            <Cookie className="w-4 h-4 text-gray-400" />
+            Preferências de cookies do navegador
+          </h3>
+          <button
+            onClick={onOpenModal}
+            className="text-xs font-bold px-3 py-1.5 bg-[#EFF6FF] text-[#2563EB] rounded-lg hover:bg-[#DBEAFE] transition-colors"
+          >
+            Gerenciar
+          </button>
+        </div>
+        {!state ? (
+          <div className="text-sm text-gray-500 bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+            Consentimento ainda não registrado neste navegador.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {categories.map(cat => {
+              const accepted = cat.always_on || hasConsent(cat.id);
+              return (
+                <div key={cat.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-b-0">
+                  <div>
+                    <div className="text-sm font-semibold text-[#111827]">{cat.label}</div>
+                    <div className="text-xs text-gray-500">{cat.description}</div>
+                  </div>
+                  <div className="flex-shrink-0 ml-3">
+                    {cat.always_on ? (
+                      <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Sempre ativo</span>
+                    ) : accepted ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-3 h-3" /> Aceito
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                        <XCircle className="w-3 h-3" /> Recusado
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            <div className="text-[11px] text-gray-400 pt-1">
+              Versão da política: <strong>{state.policy_version}</strong> ·
+              Consentido em: <strong>{state.consented_at ? new Date(state.consented_at).toLocaleDateString('pt-BR') : '—'}</strong> ·
+              Expira em: <strong>{state.expires_at ? new Date(state.expires_at).toLocaleDateString('pt-BR') : '—'}</strong>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Documentação */}
+      <div className="bg-white rounded-2xl border border-black/5 p-4 shadow-sm flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
+          <FileText className="w-5 h-5 text-[#2563EB]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm text-[#111827]">Política de Cookies</div>
+          <div className="text-xs text-gray-500 mt-0.5">Categorias, finalidades, retenção, terceiros e como revogar.</div>
+          <div className="text-[10px] text-gray-300 mt-0.5 font-mono">docs/COOKIE_POLICY.md</div>
+        </div>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">✓ Criada</span>
+      </div>
+
+      {/* Info LGPD */}
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-xs text-blue-800 leading-relaxed">
+        <strong>Modo Privacidade:</strong> Quando o usuário recusa analytics e marketing, eventos internos são anonimizados, fingerprinting é desabilitado e nenhum script de tracking é carregado. Consentimento expira em <strong>6 meses</strong> e é revalidado automaticamente.
+      </div>
+    </div>
+  );
+}
+
 export default function AppPrivacidade() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -29,6 +112,7 @@ export default function AppPrivacidade() {
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [activeTab, setActiveTab] = useState('logs');
   const [expandedLog, setExpandedLog] = useState(null);
+  const [showCookieModal, setShowCookieModal] = useState(false);
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies'],
@@ -129,6 +213,7 @@ export default function AppPrivacidade() {
   const tabs = [
     { key: 'logs', label: 'Auditoria LGPD' },
     { key: 'search', label: 'Dados por cliente' },
+    { key: 'cookies', label: 'Cookies' },
     { key: 'docs', label: 'Documentação' },
   ];
 
@@ -324,6 +409,18 @@ export default function AppPrivacidade() {
               </>
             )}
           </div>
+        )}
+
+        {/* ── TAB: COOKIES ── */}
+        {activeTab === 'cookies' && (
+          <CookiesTab onOpenModal={() => setShowCookieModal(true)} />
+        )}
+
+        {showCookieModal && (
+          <CookiePreferencesModal
+            onSave={() => setShowCookieModal(false)}
+            onClose={() => setShowCookieModal(false)}
+          />
         )}
 
         {/* ── TAB: DOCUMENTAÇÃO ── */}
