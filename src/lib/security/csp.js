@@ -100,24 +100,29 @@ export function installCSPViolationListener(onViolation) {
  * VULN-013: CORS configurado para origin único (não usar *)
  * VULN-019: CSP em enforcement via header (não apenas meta tag)
  */
-export const SECURITY_HEADERS = {
-  'X-Frame-Options': 'DENY',
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(self)',
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-  'X-XSS-Protection': '1; mode=block',
-  // VULN-013: CORS explícito (não usar *)
-  'Access-Control-Allow-Origin': typeof Deno !== 'undefined' ? Deno.env.get('CORS_ORIGIN') || 'https://app.ocorte.com.br' : 'https://app.ocorte.com.br',
-  'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-  'Access-Control-Max-Age': '86400',
+const getCorsOrigin = () => {
+  if (typeof globalThis !== 'undefined' && globalThis.Deno?.env?.get) {
+    return globalThis.Deno.env.get('CORS_ORIGIN') || 'https://app.ocorte.com.br';
+  }
+  return 'https://app.ocorte.com.br';
 };
 
 /**
  * Aplica security headers a um objeto de headers existente.
  */
 export function applySecurityHeaders(headers = {}) {
-  return { ...headers, ...SECURITY_HEADERS };
+  return {
+    ...headers,
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(self)',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'X-XSS-Protection': '1; mode=block',
+    'Access-Control-Allow-Origin': getCorsOrigin(),
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Max-Age': '86400',
+  };
 }
