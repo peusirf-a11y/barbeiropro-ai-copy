@@ -277,5 +277,5 @@ if (failed === 0) {
   console.log('✅ TODOS OS TESTES DE SEGURANÇA PASSARAM\n');
 } else {
   console.error(`❌ ${failed} TESTE(S) FALHARAM — revisar antes de deploy\n`);
-  if (typeof process !== 'undefined') process.exit(1);
+  if (typeof globalThis.process !== 'undefined') globalThis.process.exit(1);
 }

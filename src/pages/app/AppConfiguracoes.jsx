@@ -9,7 +9,7 @@ import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import DeleteAccountSection from '@/components/configuracoes/DeleteAccountSection';
 import { Link } from 'react-router-dom';
-import { Building2, Sparkles, Shield } from 'lucide-react';
+import { Building2, Sparkles, Shield, ShieldAlert } from 'lucide-react';
 import { useFeatures } from '@/hooks/useFeatures';
 
 const DAYS = [
@@ -271,6 +271,25 @@ export default function AppConfiguracoes() {
         <div className="mt-8">
           <MyEmailLogs />
         </div>
+
+        {/* Segurança & Auditoria */}
+        {company && (
+          <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+            <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
+              <h2 className="font-bold text-[#111827]">Segurança & Auditoria</h2>
+            </div>
+            <p className="text-sm text-[#6B7280] mb-4">
+              Trilha de auditoria de ações críticas, alertas de segurança e eventos da sua conta.
+            </p>
+            <Link
+              to="/app/configuracoes/seguranca"
+              className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              Ver auditoria e segurança
+            </Link>
+          </div>
+        )}
 
         {/* Zona de risco — sair / excluir conta */}
         {company && (

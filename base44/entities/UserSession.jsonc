@@ -1,0 +1,82 @@
+{
+  "name": "UserSession",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio (Customer.id ou User.id)"
+    },
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "customer",
+        "admin"
+      ],
+      "description": "Tipo do usu\u00e1rio"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Tenant ao qual a sess\u00e3o pertence"
+    },
+    "token_hash": {
+      "type": "string",
+      "description": "SHA-256 do token de sess\u00e3o. NUNCA armazenar o token puro."
+    },
+    "device_id": {
+      "type": "string",
+      "description": "ID de dispositivo gerado no cliente (sessionStorage)"
+    },
+    "ip": {
+      "type": "string",
+      "description": "IP no momento da cria\u00e7\u00e3o da sess\u00e3o"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User-Agent no momento da cria\u00e7\u00e3o"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Preenchido quando a sess\u00e3o foi explicitamente revogada"
+    },
+    "last_seen_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima atividade da sess\u00e3o (heartbeat)"
+    },
+    "risk_score": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "description": "Score de risco calculado na cria\u00e7\u00e3o/renova\u00e7\u00e3o"
+    },
+    "risk_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Motivos do score de risco"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "user_id",
+    "company_id",
+    "token_hash"
+  ]
+}

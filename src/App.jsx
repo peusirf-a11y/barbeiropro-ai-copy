@@ -77,6 +77,7 @@ import AppIndicacoes from './pages/app/AppIndicacoes';
 import AppUnidades from './pages/app/AppUnidades.jsx';
 import AppPagamentos from './pages/app/AppPagamentos.jsx';
 import AppPrivacidade from './pages/app/AppPrivacidade.jsx';
+import AppSeguranca from './pages/app/AppSeguranca.jsx';
 import AssinaturaBloqueada from './pages/AssinaturaBloqueada';
 import TermosDeUso from './pages/legal/TermosDeUso';
 import PoliticaDePrivacidade from './pages/legal/PoliticaDePrivacidade';
@@ -181,6 +182,7 @@ function App() {
             <Route path="/app/configuracoes/unidades" element={<PrivateRoute><RoleRoute roles={['admin']}><AppUnidades /></RoleRoute></PrivateRoute>} />
             <Route path="/app/configuracoes/pagamentos" element={<PrivateRoute><RoleRoute roles={['admin']}><AppPagamentos /></RoleRoute></PrivateRoute>} />
             <Route path="/app/configuracoes/privacidade" element={<PrivateRoute><RoleRoute roles={['admin']}><AppPrivacidade /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/configuracoes/seguranca" element={<PrivateRoute><RoleRoute roles={['admin']}><AppSeguranca /></RoleRoute></PrivateRoute>} />
             <Route path="/app/configuracoes/assinatura" element={<PrivateRoute><RoleRoute roles={['admin']}><AppAssinatura /></RoleRoute></PrivateRoute>} />
             <Route path="/app/assinatura-bloqueada" element={<PrivateRoute><AssinaturaBloqueada /></PrivateRoute>} />
 

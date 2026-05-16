@@ -6,6 +6,8 @@ import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Me
 import BrandMark from '@/components/BrandMark';
 import Logo from '@/components/Logo';
 import { base44 } from '@/api/base44Client';
+import ImpersonationCountdown from '@/components/security/ImpersonationCountdown';
+import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 
 const navItems = [
   { label: 'Dashboard',     icon: LayoutDashboard, path: '/master/dashboard' },
@@ -25,6 +27,7 @@ const navItems = [
 export default function MasterLayout() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const { isImpersonating } = useImpersonationContext();
 
   // Fecha o drawer ao trocar de rota
   useEffect(() => { setOpen(false); }, [location.pathname]);
@@ -94,7 +97,8 @@ export default function MasterLayout() {
   const pageTitle = activeNav?.label || 'Master';
 
   return (
-    <div className="min-h-screen bg-[#F7F8FB] font-inter">
+    <div className={`min-h-screen bg-[#F7F8FB] font-inter ${isImpersonating ? 'pt-9' : ''}`}>
+      <ImpersonationCountdown />
       {/* Mobile top bar */}
       <header className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-14 flex items-center justify-between px-4 gap-2">
         <button

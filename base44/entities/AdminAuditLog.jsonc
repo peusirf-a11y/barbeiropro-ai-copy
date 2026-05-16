@@ -1,0 +1,105 @@
+{
+  "name": "AdminAuditLog",
+  "type": "object",
+  "properties": {
+    "actor": {
+      "type": "string",
+      "description": "Email ou ID do ator que executou a a\u00e7\u00e3o"
+    },
+    "actor_role": {
+      "type": "string",
+      "enum": [
+        "super_admin",
+        "admin",
+        "financeiro",
+        "recepcao",
+        "barbeiro",
+        "system"
+      ],
+      "description": "Papel do ator no momento da a\u00e7\u00e3o"
+    },
+    "actor_is_impersonating": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se a\u00e7\u00e3o foi feita via impersona\u00e7\u00e3o"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Tenant alvo da a\u00e7\u00e3o"
+    },
+    "target_entity": {
+      "type": "string",
+      "description": "Entidade afetada: Customer, Appointment, FinancialEntry, etc."
+    },
+    "target_id": {
+      "type": "string",
+      "description": "ID do registro afetado"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_DELETED",
+        "CUSTOMER_ANONYMIZED",
+        "CUSTOMER_EXPORTED",
+        "APPOINTMENT_DELETED",
+        "APPOINTMENT_MODIFIED",
+        "FINANCIAL_ENTRY_DELETED",
+        "FINANCIAL_ENTRY_MODIFIED",
+        "PERMISSION_CHANGED",
+        "PASSWORD_RESET_ADMIN",
+        "STRIPE_CONNECTED",
+        "STRIPE_DISCONNECTED",
+        "SUBSCRIPTION_CHANGED",
+        "SUBSCRIPTION_CANCELLED",
+        "PLAN_CHANGED",
+        "IMPERSONATION_STARTED",
+        "IMPERSONATION_ENDED",
+        "COMPANY_BLOCKED",
+        "COMPANY_ACTIVATED",
+        "COMPANY_DELETED",
+        "COMMISSION_REVERSED",
+        "BULK_EXPORT",
+        "TEAM_MEMBER_REMOVED",
+        "TEAM_MEMBER_ROLE_CHANGED",
+        "LGPD_ACTION"
+      ],
+      "description": "Tipo de a\u00e7\u00e3o administrativa"
+    },
+    "before": {
+      "type": "object",
+      "description": "Estado anterior do recurso (diff). Nunca incluir secrets."
+    },
+    "after": {
+      "type": "object",
+      "description": "Estado posterior do recurso (diff). Nunca incluir secrets."
+    },
+    "ip": {
+      "type": "string"
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "ID \u00fanico do request para correla\u00e7\u00e3o"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "default": "info"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Dados adicionais contextuais (sem secrets)"
+    }
+  },
+  "required": [
+    "actor",
+    "action",
+    "severity"
+  ]
+}
