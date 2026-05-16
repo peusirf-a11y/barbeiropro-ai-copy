@@ -4,9 +4,10 @@ import App from '@/App.jsx'
 import '@/index.css'
 import { initCSP, installCSPViolationListener } from '@/lib/security/csp'
 
-// Ativa CSP em Report-Only mode (não bloqueia, apenas monitora)
-// Para enforcement total: mudar para { reportOnly: false }
-initCSP({ reportOnly: true, reportUri: null })
+// VULN-019: CSP em Enforcement Mode
+// Ativa CSP com bloqueio de recursos não-autorizados (CSP v3)
+// Violações reportadas para /api/cspReport
+initCSP({ reportOnly: false, reportUri: '/api/cspReport' })
 
 // Log de violações no console (dev/staging)
 installCSPViolationListener((report) => {

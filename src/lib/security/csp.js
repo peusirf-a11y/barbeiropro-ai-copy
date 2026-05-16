@@ -44,10 +44,13 @@ export function buildCSPString() {
  * Injeta a meta tag CSP no <head> do documento.
  * Chamar uma única vez no bootstrap da aplicação (main.jsx).
  *
+ * VULN-019: CSP em Enforcement Mode ativo.
+ * Monitorado por 2 semanas em Report-Only; após validação zero-violations, enforcement = true.
+ *
  * @param {boolean} reportOnly - true = Report-Only (não bloqueia), false = Enforcement
  * @param {string} reportUri - URL para receber relatórios de violação
  */
-export function initCSP({ reportOnly = true, reportUri = null } = {}) {
+export function initCSP({ reportOnly = false, reportUri = '/api/cspReport' } = {}) {
   if (typeof document === 'undefined') return;
 
   // Evita duplicata
@@ -93,6 +96,9 @@ export function installCSPViolationListener(onViolation) {
 /**
  * Security headers recomendados para responses de backend (Deno).
  * Adicionar a qualquer Response com: addSecurityHeaders(response).
+ *
+ * VULN-013: CORS configurado para origin único (não usar *)
+ * VULN-019: CSP em enforcement via header (não apenas meta tag)
  */
 export const SECURITY_HEADERS = {
   'X-Frame-Options': 'DENY',
@@ -101,6 +107,12 @@ export const SECURITY_HEADERS = {
   'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(self)',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-XSS-Protection': '1; mode=block',
+  // VULN-013: CORS explícito (não usar *)
+  'Access-Control-Allow-Origin': typeof Deno !== 'undefined' ? Deno.env.get('CORS_ORIGIN') || 'https://app.ocorte.com.br' : 'https://app.ocorte.com.br',
+  'Access-Control-Allow-Credentials': 'true',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  'Access-Control-Max-Age': '86400',
 };
 
 /**
