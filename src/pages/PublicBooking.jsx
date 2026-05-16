@@ -45,6 +45,8 @@ export default function PublicBooking() {
   const [returningCustomer, setReturningCustomer] = useState(null);
   // Forma de pagamento selecionada no step 3 (avulso ou subscription)
   const [paymentMethod, setPaymentMethod] = useState('avulso');
+  // Se cliente está autenticado via token (área pública), rastrear para não pedir dados novamente
+  const [isAuthenticatedCustomer, setIsAuthenticatedCustomer] = useState(false);
 
   const { data: companies = [], isLoading: loadingCompany } = useQuery({
     queryKey: ['company-by-slug', slug],
@@ -66,7 +68,23 @@ export default function PublicBooking() {
 
   // Auth do cliente final (área pública). Quando logado, podemos detectar
   // assinatura e oferecer "usar plano" no momento da confirmação.
-  const { customer: loggedCustomer, token: customerToken } = useCustomerAuth(company?.id);
+  const { customer: loggedCustomer, token: customerToken, loading: loadingCustomerAuth, logout: logoutCustomer } = useCustomerAuth(company?.id);
+
+  // Quando cliente autenticado carrega, pular etapa de identificação e preencher form automaticamente
+  useEffect(() => {
+    if (!loggedCustomer || loadingCustomerAuth) return;
+    if (isAuthenticatedCustomer) return; // já processado
+    setForm(p => ({
+      ...p,
+      name: loggedCustomer.name || p.name,
+      phone: loggedCustomer.phone || p.phone,
+      email: loggedCustomer.email || p.email,
+    }));
+    setReturningCustomer(loggedCustomer);
+    setIsAuthenticatedCustomer(true);
+    // Só avança se ainda estiver na etapa de identificação
+    setStep(prev => prev === 'identify' ? 0 : prev);
+  }, [loggedCustomer, loadingCustomerAuth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: customerSubs = [] } = useQuery({
     queryKey: ['public-customer-subscriptions', company?.id, loggedCustomer?.id],
@@ -286,6 +304,8 @@ export default function PublicBooking() {
       is_flexible_assignment: isAny,
       // M5: tokens gerados no backend; payload não envia mais.
       scope_customer_by_unit: scopeCustomerByUnit,
+      // Se cliente autenticado, passa customer_id para evitar duplicidade
+      ...(isAuthenticatedCustomer && loggedCustomer?.id ? { existing_customer_id: loggedCustomer.id } : {}),
     };
   };
 
@@ -558,16 +578,37 @@ export default function PublicBooking() {
                 {(form.name[0] || '?').toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] text-gray-400 leading-none">Agendando como</div>
+                <div className="text-[11px] text-gray-400 leading-none">
+                  {isAuthenticatedCustomer ? '✓ Logado como' : 'Agendando como'}
+                </div>
                 <div className="text-sm font-bold text-[#111827] truncate">{form.name}</div>
+                {isAuthenticatedCustomer && form.phone && (
+                  <div className="text-[11px] text-gray-400 truncate">{form.phone}</div>
+                )}
               </div>
             </div>
-            <button
-              onClick={() => { setStep('identify'); setFormError(''); }}
-              className="text-[11px] font-semibold text-gray-500 hover:text-[#111827] underline-offset-2 hover:underline flex-shrink-0"
-            >
-              Não sou eu
-            </button>
+            {isAuthenticatedCustomer ? (
+              <button
+                onClick={() => {
+                  logoutCustomer();
+                  setIsAuthenticatedCustomer(false);
+                  setReturningCustomer(null);
+                  setForm({ name: '', phone: '', email: '', notes: '' });
+                  setStep('identify');
+                  setFormError('');
+                }}
+                className="text-[11px] font-semibold text-gray-500 hover:text-[#111827] underline-offset-2 hover:underline flex-shrink-0"
+              >
+                Trocar conta
+              </button>
+            ) : (
+              <button
+                onClick={() => { setStep('identify'); setFormError(''); }}
+                className="text-[11px] font-semibold text-gray-500 hover:text-[#111827] underline-offset-2 hover:underline flex-shrink-0"
+              >
+                Não sou eu
+              </button>
+            )}
           </div>
         </div>
       )}

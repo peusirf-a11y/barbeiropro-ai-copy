@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
       notes,
       scope_customer_by_unit,
       is_flexible_assignment,
+      existing_customer_id,
     } = body;
     // WHY (P0.2): NÃO desestruturamos professional_name, service_name nem price.
     // Esses campos são AUTORITATIVOS DO BANCO. Carregamos abaixo via .get().
@@ -274,13 +275,37 @@ Deno.serve(async (req) => {
     }
     const slotReservation = lockResult.reservation;
 
-    // 1) Lookup cliente por telefone
-    const lookupFilter = scope_customer_by_unit && unit_id
-      ? { company_id, phone: phoneNorm, unit_id }
-      : { company_id, phone: phoneNorm };
+    // 1) Lookup cliente — prioriza existing_customer_id (cliente autenticado) para evitar duplicidade
+    let customer = null;
+    const matches = [];
 
-    const matches = await sdk.entities.Customer.filter(lookupFilter, '-created_date', 1);
-    let customer = matches?.[0] || null;
+    if (existing_customer_id) {
+      // Cliente autenticado: carrega direto pelo ID e valida pertencimento à empresa
+      try {
+        const c = await sdk.entities.Customer.get(existing_customer_id);
+        if (c && c.company_id === company_id) {
+          customer = c;
+          matches.push(c);
+          console.log(`[createPublicAppointment] cliente autenticado reutilizado: ${customer.id}`);
+        } else {
+          console.warn('[createPublicAppointment] existing_customer_id cross-tenant ou inválido', { existing_customer_id, company_id });
+        }
+      } catch (err) {
+        console.warn('[createPublicAppointment] falha ao carregar existing_customer_id:', err.message);
+      }
+    }
+
+    // Fallback: lookup por telefone (cliente anônimo ou falha no ID)
+    if (!customer) {
+      const lookupFilter = scope_customer_by_unit && unit_id
+        ? { company_id, phone: phoneNorm, unit_id }
+        : { company_id, phone: phoneNorm };
+      const found = await sdk.entities.Customer.filter(lookupFilter, '-created_date', 1);
+      if (found?.[0]) {
+        customer = found[0];
+        matches.push(found[0]);
+      }
+    }
 
     // 2) Se não existe → cria
     if (!customer) {
@@ -348,7 +373,7 @@ Deno.serve(async (req) => {
       success: true,
       appointment_id: appointment.id,
       customer_id: customer.id,
-      customer_was_created: !matches?.length,
+      customer_was_created: matches.length === 0,
     });
   } catch (error) {
     // WHY: se erro ocorrer entre acquire e consume, o lock fica órfão.
