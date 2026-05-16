@@ -38,6 +38,7 @@ import MasterUsuarios from './pages/master/MasterUsuarios';
 import MasterConfiguracoes from './pages/master/MasterConfiguracoes';
 import MasterAudit from './pages/master/MasterAudit';
 import MasterLGPD from './pages/master/MasterLGPD';
+import MasterCompliance from './pages/master/MasterCompliance';
 import DemoDataManager from './pages/master/DemoDataManager';
 
 // Demo pages (public)
@@ -148,6 +149,7 @@ function App() {
               <Route path="configuracoes" element={<MasterConfiguracoes />} />
               <Route path="auditoria" element={<MasterAudit />} />
               <Route path="lgpd" element={<MasterLGPD />} />
+              <Route path="compliance" element={<MasterCompliance />} />
               <Route path="dados-demo" element={<DemoDataManager />} />
             </Route>
 

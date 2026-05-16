@@ -2,7 +2,7 @@
 // Responsivo: no mobile, sidebar vira drawer (menu hambúrguer).
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers, Activity, Database, Lock } from 'lucide-react';
+import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers, Activity, Database, Lock, ShieldCheck } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import Logo from '@/components/Logo';
 import { base44 } from '@/api/base44Client';
@@ -16,6 +16,7 @@ const navItems = [
   { label: 'Usuários',       icon: Users,           path: '/master/usuarios' },
   { label: 'Auditoria',      icon: Activity,        path: '/master/auditoria' },
   { label: 'LGPD',           icon: Lock,            path: '/master/lgpd' },
+  { label: 'Compliance',     icon: ShieldCheck,     path: '/master/compliance', badge: 'NEW' },
   { label: 'Dados Demo',     icon: Database,        path: '/master/dados-demo' },
   { label: 'Configurações',  icon: Settings,        path: '/master/configuracoes' },
 ];
@@ -67,7 +68,10 @@ export default function MasterLayout() {
             }
           >
             <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-            <span className="truncate">{item.label}</span>
+            <span className="truncate flex-1">{item.label}</span>
+            {item.badge && (
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-[#2563EB]/30 text-blue-300 flex-shrink-0">{item.badge}</span>
+            )}
           </NavLink>
         ))}
       </nav>
