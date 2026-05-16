@@ -49,8 +49,8 @@ export default function OfferPlanModal({ companyId, customer, onClose, onSubscri
   const plan = r?.recommended_plan;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl my-8" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl my-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="relative bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-t-2xl p-5 text-white">
           <button onClick={onClose} className="absolute top-3 right-3 p-1.5 hover:bg-white/10 rounded-lg">
