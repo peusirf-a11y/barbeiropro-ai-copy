@@ -14,7 +14,9 @@ import PhoneIdentificationStep from '@/components/booking/PhoneIdentificationSte
 import PaymentMethodChooser from '@/components/booking/PaymentMethodChooser';
 import BookingPaymentStep from '@/components/booking/BookingPaymentStep';
 import BookingConsentBlock from '@/components/booking/BookingConsentBlock';
+import AuthGateModal from '@/components/public/AuthGateModal';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
+import { useBookingSession } from '@/contexts/BookingSessionContext';
 
 function generateTimeSlots(openTime, closeTime, durationMin) {
   const slots = [];
@@ -48,6 +50,9 @@ export default function PublicBooking() {
   const [paymentMethod, setPaymentMethod] = useState('avulso');
   // Se cliente está autenticado via token (área pública), rastrear para não pedir dados novamente
   const [isAuthenticatedCustomer, setIsAuthenticatedCustomer] = useState(false);
+  // Fase 6: Modal de autenticação obrigatória
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const { updateBooking } = useBookingSession();
 
   const { data: companies = [], isLoading: loadingCompany } = useQuery({
     queryKey: ['company-by-slug', slug],
@@ -337,7 +342,19 @@ export default function PublicBooking() {
     return true;
   };
 
-  // Click em "Confirmar agendamento":
+  // Click em "Continuar" (step 2 → 3):
+  // Se logado, avança direto. Senão, abre AuthGate e persiste seleção.
+  const handleContinueToConfirmation = () => {
+    if (loggedCustomer && customerToken) {
+      setStep(3);
+      return;
+    }
+    // Não logado: persiste seleção e abre modal
+    updateBooking({ selected });
+    setShowAuthGate(true);
+  };
+
+  // Click em "Confirmar agendamento" (step 3):
   //  - Se plano cobre → cria direto e consome
   //  - Senão → vai para step 4 (pagamento online obrigatório)
   const handleBook = () => {
@@ -790,7 +807,7 @@ export default function PublicBooking() {
                           </div>
                         )}
                         {selected.time && (
-                          <button onClick={() => setStep(3)} className="mt-6 w-full text-white font-bold py-4 rounded-2xl text-sm transition-opacity hover:opacity-90"
+                          <button onClick={handleContinueToConfirmation} className="mt-6 w-full text-white font-bold py-4 rounded-2xl text-sm transition-opacity hover:opacity-90"
                             style={{ backgroundColor: primaryColor }}>
                             Continuar <ChevronRight className="w-4 h-4 inline ml-1" />
                           </button>
@@ -910,6 +927,21 @@ export default function PublicBooking() {
       <footer className="bg-white border-t border-black/10 py-4 text-center">
         <p className="text-xs text-gray-400">Agendamento online por <span className="font-semibold text-[#2563EB] tracking-wider">O CORTE</span></p>
       </footer>
+
+      {/* Fase 6: AuthGateModal — intercepta antes de confirmar */}
+      <AuthGateModal
+        isOpen={showAuthGate}
+        companyId={company?.id}
+        companyName={company?.name}
+        primaryColor={primaryColor}
+        onClose={() => setShowAuthGate(false)}
+        onSuccess={(customerId, token) => {
+          // Recarregar dados do customer (refresh auth context)
+          // Isso vai preencher form automaticamente
+          // Depois avançar para step 3
+          setTimeout(() => setStep(3), 300);
+        }}
+      />
     </div>
   );
 }
