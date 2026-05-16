@@ -21,6 +21,7 @@ import StandardModal from '@/components/ui/standard-modal';
 import FilterSelect from '@/components/ui/filter-select';
 import { safeArray } from '@/lib/safeArray';
 import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
+import { buildTenantQueryKey } from '@/lib/query/buildTenantQueryKey';
 
 // Status habilitados no modal de mudança — ordenados.
 const STATUS_KEYS = ['agendado', 'confirmado', 'concluido', 'cancelado', 'faltou'];
@@ -50,10 +51,10 @@ export default function AppAgenda() {
   const { containerProps: ptrProps, indicator: ptrIndicator } = usePullToRefresh({
     onRefresh: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
-        queryClient.invalidateQueries({ queryKey: ['blocked-times'] }),
-        queryClient.invalidateQueries({ queryKey: ['professionals'] }),
-        queryClient.invalidateQueries({ queryKey: ['customers'] }),
+        queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'appointments', companyId }) }),
+        queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'blocked-times', companyId }) }),
+        queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'professionals', companyId }) }),
+        queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) }),
       ]);
     },
   });
@@ -61,7 +62,7 @@ export default function AppAgenda() {
   // BFF Fase 3: leitura passa pelo backend. Tenant + role (barbeiro) +
   // unit scope são aplicados server-side. O front só passa active_unit_id.
   const { data: appointmentsRaw, isLoading: loadingAppts } = useQuery({
-    queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
+    queryKey: buildTenantQueryKey({ entity: 'appointments', companyId, filters: { activeUnitId, isBarbeiro: isBarbeiro ? myProId : 'all' } }),
     queryFn: async () => {
       const res = await base44.functions.invoke('listAppointments', {
         active_unit_id: activeUnitId || undefined,
@@ -75,28 +76,28 @@ export default function AppAgenda() {
   const appointments = safeArray(appointmentsRaw);
 
   const { data: professionalsRaw } = useQuery({
-    queryKey: ['professionals', companyId, activeUnitId],
+    queryKey: buildTenantQueryKey({ entity: 'professionals', companyId, filters: { activeUnitId } }),
     queryFn: () => base44.entities.Professional.filter({ company_id: companyId, active: true }),
     enabled: !!companyId,
   });
   const professionals = safeArray(professionalsRaw);
 
   const { data: servicesRaw } = useQuery({
-    queryKey: ['services', companyId],
+    queryKey: buildTenantQueryKey({ entity: 'services', companyId }),
     queryFn: () => base44.entities.Service.filter({ company_id: companyId, active: true }),
     enabled: !!companyId,
   });
   const services = safeArray(servicesRaw);
 
   const { data: customersRaw } = useQuery({
-    queryKey: ['customers', companyId, activeUnitId],
+    queryKey: buildTenantQueryKey({ entity: 'customers', companyId, filters: { activeUnitId } }),
     queryFn: () => base44.entities.Customer.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
   const customers = safeArray(customersRaw);
 
   const { data: blockedTimesRaw } = useQuery({
-    queryKey: ['blocked-times', companyId, activeUnitId],
+    queryKey: buildTenantQueryKey({ entity: 'blocked-times', companyId, filters: { activeUnitId } }),
     queryFn: () => base44.entities.BlockedTime.filter({ company_id: companyId }, '-start_time', 200),
     enabled: !!companyId,
   });
@@ -104,13 +105,13 @@ export default function AppAgenda() {
 
   // Assinaturas ativas — para mostrar opção "usar plano" ao agendar e badge de assinante
   const { data: activeSubsRaw } = useQuery({
-    queryKey: ['customer-subscriptions', companyId, activeUnitId],
+    queryKey: buildTenantQueryKey({ entity: 'subscriptions', companyId, filters: { status: 'active', activeUnitId } }),
     queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
     enabled: !!companyId,
   });
   const activeSubs = safeArray(activeSubsRaw);
   const { data: customerPlansRaw } = useQuery({
-    queryKey: ['customer-plans', companyId],
+    queryKey: buildTenantQueryKey({ entity: 'customer-plans', companyId }),
     queryFn: () => base44.entities.CustomerPlan.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
@@ -138,9 +139,10 @@ export default function AppAgenda() {
     mutationFn: ({ id, data }) => invokeMutation({ action: 'update', id, data }),
     // Update otimista — UI reflete a mudança imediatamente, sem esperar o servidor.
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['appointments', companyId] });
-      const previous = queryClient.getQueriesData({ queryKey: ['appointments', companyId] });
-      queryClient.setQueriesData({ queryKey: ['appointments', companyId] }, (old) => {
+      const key = buildTenantQueryKey({ entity: 'appointments', companyId });
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueriesData({ queryKey: key });
+      queryClient.setQueriesData({ queryKey: key }, (old) => {
         if (!Array.isArray(old)) return old;
         return old.map(a => a.id === id ? { ...a, ...data } : a);
       });
@@ -164,7 +166,7 @@ export default function AppAgenda() {
       // Reconcilia com o servidor + invalida cadeias derivadas (comissões/financeiro) quando concluído.
       const isConcluded = vars?.data?.status === 'concluido';
       const isCanceledOrMissed = ['cancelado', 'faltou'].includes(vars?.data?.status);
-      queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
+      queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'appointments', companyId }) });
 
       // Se o agendamento estava cobrindo via plano e foi cancelado/faltou, devolve o uso
       if (isCanceledOrMissed && selectedAppt?.payment_method === 'subscription' && selectedAppt?.subscription_id) {
@@ -177,12 +179,12 @@ export default function AppAgenda() {
 
       if (isConcluded) {
         setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
-          queryClient.invalidateQueries({ queryKey: ['commissions', companyId] });
-          queryClient.invalidateQueries({ queryKey: ['financial', companyId] });
-          queryClient.invalidateQueries({ queryKey: ['financial-entries', companyId] });
-          queryClient.invalidateQueries({ queryKey: ['dashboard', companyId] });
-          queryClient.invalidateQueries({ queryKey: ['cash-register', companyId] });
+          queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'appointments', companyId }) });
+          queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'commissions', companyId }) });
+          queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'financial', companyId }) });
+          queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'financial-entries', companyId }) });
+          queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'dashboard', companyId }) });
+          queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'cash-register', companyId }) });
         }, 1500);
       }
       setSelectedAppt(null);
@@ -198,8 +200,8 @@ export default function AppAgenda() {
     onSuccess: (res) => {
       // BFF retorna { appointment } — sem unwrapping vinha como undefined.
       const created = res?.appointment;
-      queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['customers', companyId] });
+      queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'appointments', companyId }) });
+      queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) });
       setShowNewForm(false);
       setForm(emptyForm);
 
@@ -234,9 +236,9 @@ export default function AppAgenda() {
     mutationFn: ({ action, subscription_id, appointment_id, service_id, service_name }) =>
       base44.functions.invoke('consumeSubscriptionUse', { action, subscription_id, appointment_id, service_id, service_name }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['appointments', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'appointments', companyId }) });
+      queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'subscriptions', companyId }) });
+      queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'subscription' }) });
       setPendingSubscriptionDialog(null);
     },
     onError: (err) => {
@@ -266,7 +268,7 @@ export default function AppAgenda() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => invokeMutation({ action: 'delete', id }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments', companyId] }); setSelectedAppt(null); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'appointments', companyId }) }); setSelectedAppt(null); },
   });
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -330,7 +332,7 @@ export default function AppAgenda() {
         });
         if (res?.data?.customer) {
           customer = res.data.customer;
-          queryClient.invalidateQueries({ queryKey: ['customers', companyId] });
+          queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) });
         }
       } catch (err) {
         console.warn('[AppAgenda] falha ao criar cliente automaticamente:', err.message);

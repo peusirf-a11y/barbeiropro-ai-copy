@@ -24,6 +24,7 @@ import WhatsAppButton from '@/components/whatsapp/WhatsAppButton';
 import { buildReactivationMessage } from '@/lib/whatsappCompose';
 import { safeArray } from '@/lib/safeArray';
 import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
+import { buildTenantQueryKey } from '@/lib/query/buildTenantQueryKey';
 
 const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
 
@@ -45,7 +46,7 @@ export default function AppClientes() {
   // O frontend não toca mais em `Customer.filter` — reduz superfície de leak
   // e remove a duplicação de regra `shouldScopeCustomersByUnit` no cliente.
   const { data: customersData, isLoading } = useQuery({
-    queryKey: ['customers', companyId, activeUnitId],
+    queryKey: buildTenantQueryKey({ entity: 'customers', companyId, filters: { activeUnitId } }),
     queryFn: async () => {
       const res = await base44.functions.invoke('listCustomers', {
         active_unit_id: activeUnitId,
@@ -59,7 +60,7 @@ export default function AppClientes() {
   const customers = safeArray(customersData?.customers ?? customersData);
 
   const { data: appointmentsRaw } = useQuery({
-    queryKey: ['appointments', companyId, activeUnitId],
+    queryKey: buildTenantQueryKey({ entity: 'appointments', companyId, filters: { activeUnitId } }),
     queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
@@ -67,7 +68,7 @@ export default function AppClientes() {
 
   // Map customer_id => assinatura ativa, para mostrar badge na lista (BFF Fase 4)
   const { data: activeSubs = [] } = useQuery({
-    queryKey: ['customer-subscriptions', companyId, activeUnitId],
+    queryKey: buildTenantQueryKey({ entity: 'subscriptions', companyId, filters: { status: 'active', activeUnitId } }),
     queryFn: async () => {
       const res = await base44.functions.invoke('listSubscriptions', {
         active_unit_id: activeUnitId,
@@ -91,17 +92,17 @@ export default function AppClientes() {
 
   const createMutation = useMutation({
     mutationFn: (data) => invokeMutation({ action: 'create', data, active_unit_id: activeUnitId }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers'] }); closeForm(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) }); closeForm(); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => invokeMutation({ action: 'update', id, data }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customers'] }); closeForm(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) }); closeForm(); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => invokeMutation({ action: 'delete', id }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customers'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) }),
   });
 
   const closeForm = () => { setShowForm(false); setEditing(null); setForm(emptyForm); };
@@ -278,7 +279,7 @@ export default function AppClientes() {
             companyId={companyId}
             customer={offeringTo}
             onClose={() => setOfferingTo(null)}
-            onActivated={() => queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] })}
+            onActivated={() => queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'subscriptions', companyId }) })}
           />
         )}
 
