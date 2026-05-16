@@ -1,0 +1,54 @@
+{
+  "name": "SecurityRateLimit",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Chave \u00fanica: {route}:{identifier} ex: login:email@x.com, impersonation:ip"
+    },
+    "route": {
+      "type": "string",
+      "description": "Identificador da rota/function: customerAuth_login, startImpersonation, etc."
+    },
+    "ip": {
+      "type": "string",
+      "description": "IP do requestor"
+    },
+    "identifier": {
+      "type": "string",
+      "description": "Email, telefone ou IP que est\u00e1 sendo limitado"
+    },
+    "attempts": {
+      "type": "number",
+      "default": 1,
+      "description": "N\u00famero de tentativas no janela atual"
+    },
+    "window_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "In\u00edcio da janela de rate limit"
+    },
+    "window_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fim da janela \u2014 quando o rate limit expira"
+    },
+    "blocked_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "At\u00e9 quando o acesso est\u00e1 bloqueado (ap\u00f3s exceder limite)"
+    },
+    "is_blocked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Est\u00e1 atualmente bloqueado"
+    }
+  },
+  "required": [
+    "key",
+    "route",
+    "attempts",
+    "window_start",
+    "window_end"
+  ]
+}

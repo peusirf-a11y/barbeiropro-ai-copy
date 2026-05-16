@@ -380,7 +380,7 @@ Deno.serve(async (req) => {
     // O cleanup job vai expirar em <=90s — não vazamos slot permanentemente.
     // Não temos slotReservation no escopo aqui (variável local), então
     // a limpeza é responsabilidade do job. Aceitável.
-    console.error('[createPublicAppointment] erro:', error.message, error.stack);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    console.error('[createPublicAppointment] INTERNAL_ERROR:', error?.message, error?.stack);
+    return Response.json({ success: false, error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 });

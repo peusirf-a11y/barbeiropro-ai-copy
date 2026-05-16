@@ -77,7 +77,8 @@ export function ImpersonationProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     setState(data);
     window.dispatchEvent(new Event('impersonation-changed'));
-    COMPANY_CACHE_KEYS.forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+    // Limpa cache completo ao iniciar impersonação para evitar dados do tenant anterior
+    queryClient.clear();
   }, [queryClient]);
 
   const stopImpersonation = useCallback(() => {
@@ -89,7 +90,9 @@ export function ImpersonationProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY);
     setState(null);
     window.dispatchEvent(new Event('impersonation-changed'));
-    COMPANY_CACHE_KEYS.forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+    // Limpa TODO o cache do React Query ao fim de impersonação
+    // (garante que dados da empresa impersonada não vazem para a próxima sessão)
+    queryClient.clear();
   }, [queryClient]);
 
   const value = {

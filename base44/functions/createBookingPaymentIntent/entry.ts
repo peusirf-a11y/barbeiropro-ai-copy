@@ -506,13 +506,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    // HARDENED: não expor stripe_connect_account_id nem payment_intent_id internos
     return Response.json({
       success: true,
       appointment_id: appointment.id,
       customer_id: customer.id,
-      payment_intent_id: paymentIntent.id,
       client_secret: paymentIntent.client_secret,
-      stripe_account: company.stripe_connect_account_id,
+      // stripe_account omitido — não deve ser exposto publicamente
       expires_at: expiresAt,
       pix: pixQrCode || pixCopyPaste ? {
         qr_code_url: pixQrCode,
@@ -520,7 +520,7 @@ Deno.serve(async (req) => {
       } : null,
     });
   } catch (error) {
-    console.error('[createBookingPaymentIntent] error:', error.message, error.stack);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('[createBookingPaymentIntent] INTERNAL_ERROR:', error?.message, error?.stack);
+    return Response.json({ success: false, error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 });

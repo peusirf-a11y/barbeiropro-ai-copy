@@ -123,8 +123,13 @@ export default function MasterLGPD() {
   const handleExportCSV = () => {
     if (!privacyLogs.length) return;
     const headers = ['data', 'action', 'severity', 'actor_email', 'actor_type', 'company_id', 'customer_id'];
+    // Proteção contra CSV injection (formula injection em Excel/LibreOffice)
+    const safeCsv = (v) => {
+      const s = String(v || '').replace(/"/g, '""');
+      return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    };
     const rows = privacyLogs.map(l =>
-      headers.map(h => `"${String(l[h] || '').replace(/"/g, '""')}"`).join(',')
+      headers.map(h => `"${safeCsv(l[h])}"`).join(',')
     );
     const csv = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

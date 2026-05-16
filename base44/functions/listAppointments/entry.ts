@@ -1,26 +1,5 @@
 // BFF — Lista de Appointments com tenant + unit + role scope no servidor.
-//
-// Por que existe (BFF Fase 3):
-//  - Antes: AppAgenda chamava base44.entities.Appointment.filter({ company_id })
-//    direto. Frontend decidia escopo de unidade e de barbeiro.
-//  - Agora: servidor resolve tudo a partir do caller. Frontend só passa filtros
-//    de UI (data, unidade ativa). Mesma lógica para web e mobile.
-//
-// Payload (todos opcionais):
-//   {
-//     active_unit_id?: string,    // unidade selecionada na UI (multi-unit)
-//     from?: string (ISO),        // janela de scheduled_at (inclusive)
-//     to?: string (ISO),
-//     limit?: number (default 500, max 2000)
-//   }
-//
-// Regras:
-//   - company_id SEMPRE derivado do caller (nunca aceito do payload)
-//   - role=barbeiro → força professional_id = teamMember.professional_id
-//   - Filtro de unidade aplicado server-side quando multi_unit_enabled + active_unit_id
-//     (mantém compat: appointments sem unit_id ficam visíveis — legacy data)
-//
-// Retorno: { appointments, total, scope: { company_id, professional_id?, unit_id? } }
+// HARDENED: campos sensíveis removidos (confirm_token, review_token, payment_intent_id, payer_tax_id).
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
@@ -28,37 +7,41 @@ class AuthzError extends Error {
   constructor(code, status = 403) { super(code); this.code = code; this.status = status; }
 }
 
+// Campos SEGUROS — nunca incluir tokens públicos, payment secrets, CPF
+const APPOINTMENT_SAFE_FIELDS = [
+  'id', 'company_id', 'unit_id', 'customer_id', 'professional_id', 'service_id',
+  'service_name', 'professional_name', 'customer_name', 'customer_phone', 'customer_email',
+  'scheduled_at', 'status', 'notes', 'source', 'completed_at',
+  'price', 'custom_duration_minutes', 'is_flexible_assignment',
+  'confirmation_email_sent', 'payment_method', 'subscription_id',
+  'paid', 'paid_at', 'paid_online', 'payment_status', 'payment_expires_at',
+  'commission_created', 'confirmed_at', 'reviewed_at',
+  'created_date', 'updated_date', 'created_by',
+];
+
+function sanitizeAppointment(appt) {
+  if (!appt) return null;
+  return Object.fromEntries(APPOINTMENT_SAFE_FIELDS.filter(f => f in appt).map(f => [f, appt[f]]));
+}
+
 async function getCallerContext(base44, user, impersonation_token) {
   if (!user?.email) throw new AuthzError('UNAUTHORIZED', 401);
   const sdk = base44.asServiceRole;
 
-  // Impersonação: Master age como admin da empresa-alvo
   if (impersonation_token && user.is_super_admin) {
     const sessions = await sdk.entities.ImpersonationSession.filter({ token: impersonation_token }, '-created_date', 1);
     const session = sessions?.[0];
-    if (!session || session.ended_at || new Date(session.expires_at).getTime() < Date.now()) {
-      throw new AuthzError('IMPERSONATION_INVALID', 403);
-    }
+    if (!session || session.ended_at || new Date(session.expires_at).getTime() < Date.now()) throw new AuthzError('IMPERSONATION_INVALID', 403);
     if (session.actor_email !== user.email) throw new AuthzError('IMPERSONATION_MISMATCH', 403);
     const company = await sdk.entities.Company.get(session.company_id).catch(() => null);
     if (!company) throw new AuthzError('COMPANY_NOT_FOUND', 404);
-    console.log('[listAppointments] impersonation', { actor: user.email, company_id: company.id });
     return { role: 'admin', company_id: company.id, company, email: user.email, is_impersonating: true };
   }
 
-  if (user.is_super_admin) {
-    throw new AuthzError('USE_MASTER_PANEL', 403);
-  }
+  if (user.is_super_admin) throw new AuthzError('USE_MASTER_PANEL', 403);
 
   const ownerHits = await sdk.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
-  if (ownerHits?.length) {
-    return {
-      role: 'admin',
-      company_id: ownerHits[0].id,
-      company: ownerHits[0],
-      email: user.email,
-    };
-  }
+  if (ownerHits?.length) return { role: 'admin', company_id: ownerHits[0].id, company: ownerHits[0], email: user.email };
 
   const tmHits = await sdk.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
   const tm = tmHits?.[0];
@@ -67,18 +50,11 @@ async function getCallerContext(base44, user, impersonation_token) {
 
   const company = await sdk.entities.Company.get(tm.company_id).catch(() => null);
   if (!company) throw new AuthzError('COMPANY_NOT_FOUND', 404);
-
-  return {
-    role: tm.role,
-    company_id: tm.company_id,
-    company,
-    email: user.email,
-    professional_id: tm.professional_id || null,
-    unit_ids: tm.unit_ids || [],
-  };
+  return { role: tm.role, company_id: tm.company_id, company, email: user.email, professional_id: tm.professional_id || null, unit_ids: tm.unit_ids || [] };
 }
 
 Deno.serve(async (req) => {
+  const rid = crypto.randomUUID().split('-')[0];
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me().catch(() => null);
@@ -88,60 +64,42 @@ Deno.serve(async (req) => {
     const { active_unit_id, from, to, status, impersonation_token } = body || {};
     const caller = await getCallerContext(base44, user, impersonation_token);
     const limit = Math.min(Math.max(parseInt(body?.limit) || 500, 1), 2000);
-
     const sdk = base44.asServiceRole;
 
-    // Filtro base — tenant
     const filter = { company_id: caller.company_id };
 
-    // Barbeiro só vê seus próprios atendimentos (defesa em profundidade —
-    // o frontend já filtra, mas se alguém montar o payload na mão, segura aqui).
+    // Barbeiro só vê seus próprios atendimentos
     if (caller.role === 'barbeiro') {
-      if (!caller.professional_id) {
-        // TeamMember=barbeiro sem professional_id vinculado → não enxerga nada.
-        return Response.json({ appointments: [], total: 0, scope: { company_id: caller.company_id } });
-      }
+      if (!caller.professional_id) return Response.json({ appointments: [], total: 0, scope: { company_id: caller.company_id } });
       filter.professional_id = caller.professional_id;
     }
 
-    // Janela temporal (opcional) — usa $gte/$lte no scheduled_at
     if (from) filter.scheduled_at = { ...(filter.scheduled_at || {}), $gte: from };
     if (to) filter.scheduled_at = { ...(filter.scheduled_at || {}), $lte: to };
-
-    // Filtro de status (opcional). Aceita string ou array.
-    // Útil para páginas como AppFinanceiro (só "concluido") ou Dashboard.
     if (status) {
-      if (Array.isArray(status) && status.length > 0) {
-        filter.status = { $in: status };
-      } else if (typeof status === 'string') {
-        filter.status = status;
-      }
+      if (Array.isArray(status) && status.length > 0) filter.status = { $in: status };
+      else if (typeof status === 'string') filter.status = status;
     }
 
     let appointments = await sdk.entities.Appointment.filter(filter, '-scheduled_at', limit);
 
-    // Filtro de unidade aplicado em memória (Base44 não suporta filtros OR
-    // direto: queremos appointments com unit_id == active_unit_id OU sem unit_id
-    // para manter compat com dados legados pré-multi-unit).
     const multiUnit = !!caller.company?.multi_unit_enabled;
     if (multiUnit && active_unit_id) {
       appointments = appointments.filter(a => !a.unit_id || a.unit_id === active_unit_id);
     }
 
+    // HARDENING: sanitiza todos os agendamentos antes de retornar
+    const safeAppointments = appointments.map(sanitizeAppointment);
+
     return Response.json({
-      appointments,
-      total: appointments.length,
-      scope: {
-        company_id: caller.company_id,
-        professional_id: caller.role === 'barbeiro' ? caller.professional_id : undefined,
-        unit_id: (multiUnit && active_unit_id) || undefined,
-      },
+      appointments: safeAppointments,
+      total: safeAppointments.length,
+      scope: { company_id: caller.company_id, professional_id: caller.role === 'barbeiro' ? caller.professional_id : undefined, unit_id: (multiUnit && active_unit_id) || undefined },
     });
+
   } catch (error) {
-    if (error instanceof AuthzError) {
-      return Response.json({ error: error.code }, { status: error.status });
-    }
-    console.error('[listAppointments] error:', error.message, error.stack);
-    return Response.json({ error: 'INTERNAL_ERROR' }, { status: 500 });
+    if (error instanceof AuthzError) return Response.json({ error: error.code }, { status: error.status });
+    console.error(`[listAppointments] rid=${rid} INTERNAL_ERROR:`, error?.message, error?.stack);
+    return Response.json({ error: 'INTERNAL_ERROR', request_id: rid }, { status: 500 });
   }
 });

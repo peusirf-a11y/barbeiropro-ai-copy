@@ -1,0 +1,70 @@
+{
+  "name": "SecurityEvent",
+  "type": "object",
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "brute_force_attempt",
+        "rate_limit_exceeded",
+        "cross_tenant_attempt",
+        "invalid_token",
+        "impersonation_abuse",
+        "lgpd_export",
+        "lgpd_anonymization",
+        "suspicious_payload",
+        "invalid_impersonation",
+        "privilege_escalation_attempt",
+        "mass_export_attempt",
+        "login_failure",
+        "password_reset_abuse"
+      ],
+      "description": "Tipo do evento de seguran\u00e7a"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Tenant alvo (quando aplic\u00e1vel)"
+    },
+    "actor_email": {
+      "type": "string",
+      "description": "Quem tentou o acesso"
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "route": {
+      "type": "string",
+      "description": "Fun\u00e7\u00e3o/endpoint afetado"
+    },
+    "details": {
+      "type": "object",
+      "description": "Dados adicionais do evento (nunca incluir secrets/tokens)"
+    },
+    "blocked": {
+      "type": "boolean",
+      "default": true,
+      "description": "O acesso foi bloqueado?"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "ID de correla\u00e7\u00e3o do request"
+    }
+  },
+  "required": [
+    "event_type",
+    "severity"
+  ]
+}
