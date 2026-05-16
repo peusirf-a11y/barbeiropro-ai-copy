@@ -1,5 +1,6 @@
 /**
  * riskEngine — Motor de detecção de risco para autenticação e ações críticas.
+ * v2 — integra device fingerprint, impossible travel e device trust score.
  *
  * Detecta:
  *  - mudança de IP/user-agent entre sessões
@@ -134,12 +135,19 @@ export function assessLoginRisk({
   previousUA,
   activeSessions = 1,
   lastSeenAt,
+  currentDeviceId,
+  sessionDeviceId,
+  deviceLoginCount = 0,
+  mfaVerified = false,
 }) {
+  const deviceAssessment = assessDeviceTrust({ currentDeviceId, sessionDeviceId, deviceLoginCount, mfaVerified });
+
   const assessments = [
     assessIpChange(currentIp, previousIp),
     assessUserAgentChange(currentUA, previousUA),
     assessConcurrentSessions(activeSessions),
     assessImpossibleTravel(lastSeenAt, previousIp, currentIp),
+    { score: deviceAssessment.riskScore, reason: deviceAssessment.reason },
   ];
 
   const reasons = assessments.map(a => a.reason).filter(Boolean);
@@ -151,7 +159,58 @@ export function assessLoginRisk({
     numericScore: SCORE_WEIGHT[score],
     shouldBlock: score === RISK_SCORES.CRITICAL,
     shouldWarn: score === RISK_SCORES.HIGH || score === RISK_SCORES.CRITICAL,
+    deviceTrust: deviceAssessment,
   };
+}
+
+// ── DEVICE TRUST SCORE ────────────────────────────────────────────────────────
+
+/**
+ * Calcula o device trust score integrado ao riskEngine.
+ * @param {object} params
+ * @param {string} params.currentDeviceId - device_trust_id atual
+ * @param {string} params.sessionDeviceId - device_trust_id salvo na sessão
+ * @param {number} params.deviceLoginCount - logins bem-sucedidos neste device
+ * @param {boolean} params.mfaVerified
+ * @returns {{ level: string, score: number, riskScore: string, reason: string|null }}
+ */
+export function assessDeviceTrust({ currentDeviceId, sessionDeviceId, deviceLoginCount = 0, mfaVerified = false }) {
+  // Device completamente diferente do registrado na sessão → suspeito
+  if (sessionDeviceId && currentDeviceId && sessionDeviceId !== currentDeviceId) {
+    return {
+      level: 'unknown',
+      score: 0,
+      riskScore: RISK_SCORES.HIGH,
+      reason: `Device ID mudou: ${sessionDeviceId} → ${currentDeviceId}`,
+    };
+  }
+
+  // Calcular nível de confiança baseado no histórico
+  let level, numericScore, riskScore, reason;
+
+  if (deviceLoginCount >= 5 || mfaVerified) {
+    level = 'trusted';
+    numericScore = mfaVerified ? 90 : 70;
+    riskScore = RISK_SCORES.LOW;
+    reason = null;
+  } else if (deviceLoginCount >= 2) {
+    level = 'known';
+    numericScore = 50;
+    riskScore = RISK_SCORES.LOW;
+    reason = null;
+  } else if (deviceLoginCount >= 1) {
+    level = 'suspicious';
+    numericScore = 25;
+    riskScore = RISK_SCORES.MEDIUM;
+    reason = 'Dispositivo com poucos logins registrados';
+  } else {
+    level = 'unknown';
+    numericScore = 0;
+    riskScore = RISK_SCORES.MEDIUM;
+    reason = 'Primeiro acesso neste dispositivo';
+  }
+
+  return { level, score: numericScore, riskScore, reason };
 }
 
 // ── DETECÇÃO DE ABUSO DE AÇÕES ────────────────────────────────────────────────

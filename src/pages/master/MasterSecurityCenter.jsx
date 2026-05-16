@@ -7,8 +7,9 @@ import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import {
   ShieldAlert, AlertTriangle, Globe, UserX, Lock, TrendingDown, CheckCircle2,
-  RefreshCw, Download, Filter
+  RefreshCw, Download, Filter, Activity
 } from 'lucide-react';
+import MasterIncidentPanel from '@/components/security/MasterIncidentPanel';
 
 const SEV_STYLE = {
   critical: { dot: 'bg-red-500',    badge: 'bg-red-50 text-red-700 border-red-200',    label: 'CRÍTICO' },
@@ -53,6 +54,7 @@ function KpiCard({ label, value, icon: Icon, color = 'blue', urgent }) {
 }
 
 export default function MasterSecurityCenter() {
+  const [activeTab, setActiveTab] = useState('incidents');
   const [filterSev, setFilterSev] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterCo, setFilterCo] = useState('');
@@ -138,6 +140,22 @@ export default function MasterSecurityCenter() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+        {[
+          { key: 'incidents', label: 'Incidentes', icon: Activity },
+          { key: 'events', label: 'Eventos', icon: ShieldAlert },
+        ].map(t => (
+          <button key={t.key} onClick={() => setActiveTab(t.key)}
+            className={`flex items-center gap-1.5 flex-1 text-sm font-semibold py-2 px-3 rounded-lg transition-all ${activeTab === t.key ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            <t.icon className="w-3.5 h-3.5" />{t.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'incidents' && <MasterIncidentPanel />}
+
+      {activeTab === 'events' && (<>
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <KpiCard label="Eventos críticos"     value={stats.critical}    icon={AlertTriangle} color="red"    urgent={stats.critical > 0} />
@@ -265,6 +283,7 @@ export default function MasterSecurityCenter() {
           </div>
         </div>
       </div>
+      </>)}
     </div>
   );
 }
