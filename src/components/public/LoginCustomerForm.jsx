@@ -179,6 +179,20 @@ export default function LoginCustomerForm({ companyId, onSuccess, onGoToRegister
       >
         Criar nova conta
       </button>
+
+      {/* Ativar conta legada */}
+      <button
+        type="button"
+        onClick={() => {
+          // Será capturado por AuthGateModal para trocar view
+          const event = new CustomEvent('switchToActivate');
+          document.dispatchEvent(event);
+        }}
+        className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 underline-offset-2 hover:underline transition-colors"
+        disabled={loading}
+      >
+        Tenho agendamentos antigos — ativar conta
+      </button>
     </div>
   );
 }

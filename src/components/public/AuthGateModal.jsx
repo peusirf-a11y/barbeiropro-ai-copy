@@ -4,6 +4,7 @@ import { X, Lock } from 'lucide-react';
 import LoginCustomerForm from './LoginCustomerForm';
 import RegisterCustomerForm from './RegisterCustomerForm';
 import ForgotPasswordModal from './ForgotPasswordModal';
+import ActivateAccountForm from './ActivateAccountForm';
 
 /**
  * Modal de autenticação obrigatória para finalizar booking.
@@ -30,7 +31,7 @@ export default function AuthGateModal({
   onClose,
   onSuccess,
 }) {
-  const [view, setView] = useState('login'); // 'login' | 'register' | 'forgot'
+  const [view, setView] = useState('login'); // 'login' | 'register' | 'forgot' | 'activate'
 
   // Reseta view ao abrir
   useEffect(() => {
@@ -38,6 +39,13 @@ export default function AuthGateModal({
       setView('login');
     }
   }, [isOpen]);
+
+  // Listener para trocar para view de ativação
+  useEffect(() => {
+    const handler = () => setView('activate');
+    document.addEventListener('switchToActivate', handler);
+    return () => document.removeEventListener('switchToActivate', handler);
+  }, []);
 
   const handleSuccess = (customerId, token) => {
     // Aguarda um pouco para animação, depois fecha
@@ -115,6 +123,15 @@ export default function AuthGateModal({
                   <ForgotPasswordModal
                     companyId={companyId}
                     onBack={() => setView('login')}
+                    primaryColor={primaryColor}
+                  />
+                )}
+
+                {view === 'activate' && (
+                  <ActivateAccountForm
+                    companyId={companyId}
+                    onSuccess={handleSuccess}
+                    onGoToLogin={() => setView('login')}
                     primaryColor={primaryColor}
                   />
                 )}

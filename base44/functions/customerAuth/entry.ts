@@ -219,6 +219,36 @@ async function handleResetPassword(sdk, { company_id, email, reset_token, new_pa
   return { success: true, customer_id: customer.id, token, message: 'Senha alterada com sucesso' };
 }
 
+async function handleActivateAccount(sdk, { company_id, email, phone, password, password_confirm }) {
+  if (!email || !phone || !password) throw new Error('email, phone e password obrigatórios');
+  if (password !== password_confirm) throw new Error('As senhas não coincidem');
+  if (password.length < 8) throw new Error('Senha deve ter no mínimo 8 caracteres');
+
+  const phoneNorm = String(phone).replace(/\D/g, '');
+  const emailLower = email.toLowerCase();
+
+  // Procura cliente legado (sem senha) pelo email e telefone
+  const customers = await sdk.entities.Customer.filter({ company_id, email: emailLower });
+  const customer = customers?.find(c => c.phone === phoneNorm);
+
+  if (!customer) throw new Error('Cliente não encontrado com este email e telefone');
+  if (customer.password_hash) throw new Error('Esta conta já foi ativada');
+
+  // Gerar hash e tokens
+  const passwordHash = await hashPassword(password);
+  const token = generateToken();
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  await sdk.entities.Customer.update(customer.id, {
+    password_hash: passwordHash,
+    auth_token: token,
+    auth_token_expires_at: expiresAt,
+  });
+
+  console.log('[customerAuth] activate_account sucesso', { customer_id: customer.id });
+  return { success: true, customer_id: customer.id, token, message: 'Conta ativada com sucesso' };
+}
+
 // ──────────────────────────────────────
 // MAIN HANDLER
 // ──────────────────────────────────────
@@ -242,6 +272,8 @@ Deno.serve(async (req) => {
       result = await handleRequestPasswordReset(base44.asServiceRole, { company_id, ...payload });
     } else if (action === 'reset_password') {
       result = await handleResetPassword(base44.asServiceRole, { company_id, ...payload });
+    } else if (action === 'activate_account') {
+      result = await handleActivateAccount(base44.asServiceRole, { company_id, ...payload });
     } else {
       return Response.json({ success: false, error: 'action desconhecida' }, { status: 400 });
     }
