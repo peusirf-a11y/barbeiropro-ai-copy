@@ -3,8 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { Sparkles } from 'lucide-react';
 
 // Badge inline + botão "Oferecer plano" para a tabela de clientes.
-// Quando onOffer é passado, vira clicável e dispara o modal de oferta no parent.
-// Renderiza apenas quando há recomendação válida com economia > 0.
+// Elegibilidade alinhada com a tela de Planos: cliente com frequência >= ~1x/mês
+// OU com economia positiva — o mesmo critério amplo do generatePlanSuggestions.
 export default function CustomerPlanRecommendation({ companyId, customerId, onOffer }) {
   const { data, isLoading } = useQuery({
     queryKey: ['plan-rec', companyId, customerId],
@@ -18,18 +18,30 @@ export default function CustomerPlanRecommendation({ companyId, customerId, onOf
 
   if (isLoading) return <span className="text-[10px] text-gray-300">…</span>;
   const r = data?.data;
-  if (!r || r.error || !r.recommended_plan || r.no_match || r.no_savings || r.insufficient_data || r.already_subscribed || r.no_plans_available) {
+
+  // Oculta apenas quando explicitamente não elegível
+  if (!r || r.error || !r.recommended_plan || r.no_match || r.insufficient_data || r.already_subscribed || r.no_plans_available) {
     return null;
   }
+
+  // Label adaptado: com economia mostra valor, sem economia mostra "fidelização"
+  const hasEconomy = (r.monthly_savings || 0) > 0;
+  const badgeLabel = hasEconomy
+    ? `${r.recommended_plan.name} · –R$${r.monthly_savings}/mês`
+    : `${r.recommended_plan.name} · recorrência`;
+
+  const tooltipText = hasEconomy
+    ? `Vem ${r.visits_per_month}x/mês. Plano "${r.recommended_plan.name}" economiza R$${r.monthly_savings}/mês.`
+    : `Vem ${r.visits_per_month}x/mês — elegível para fidelização com o plano "${r.recommended_plan.name}".`;
 
   return (
     <div className="inline-flex items-center gap-1.5 max-w-full flex-wrap">
       <span
         className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-50 text-[#2563EB] px-2 py-1 rounded-md border border-blue-100"
-        title={`Vem ${r.visits_per_month}x/mês. Plano "${r.recommended_plan.name}" economiza R$${r.monthly_savings}/mês (R$${r.annual_savings}/ano).`}
+        title={tooltipText}
       >
         <Sparkles className="w-2.5 h-2.5 flex-shrink-0" />
-        <span className="truncate">{r.recommended_plan.name} · –R${r.monthly_savings}/mês</span>
+        <span className="truncate">{badgeLabel}</span>
       </span>
       {onOffer && (
         <button

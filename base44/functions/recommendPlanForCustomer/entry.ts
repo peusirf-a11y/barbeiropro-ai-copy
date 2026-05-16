@@ -227,7 +227,13 @@ Deno.serve(async (req) => {
     });
 
     const best = scored[0];
-    if (best.economy.monthly_savings <= 0) {
+    // Critério relaxado: mostra recomendação se:
+    // 1) há economia positiva, OU
+    // 2) cliente vem >= 1x/mês (elegível por frequência — fidelização/recorrência justificam mesmo sem economia grande)
+    // Alinha com o critério de "elegível" da tela de Planos (2+ visitas/30 dias ≈ ~1x/mês).
+    const hasEconomy = best.economy.monthly_savings > 0;
+    const isFrequent = metrics.visits_per_month >= 0.8; // ~1 visita/mês
+    if (!hasEconomy && !isFrequent) {
       return Response.json({
         success: true, no_savings: true,
         visits_per_month: metrics.visits_per_month,
