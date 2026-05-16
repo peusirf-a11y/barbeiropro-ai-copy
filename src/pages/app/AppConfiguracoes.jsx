@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
-import { Save, Globe, Copy, CheckCircle, Settings, CreditCard } from 'lucide-react';
+import { Save, Globe, Copy, CheckCircle, Settings, CreditCard, Shield } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
@@ -248,6 +248,26 @@ export default function AppConfiguracoes() {
 
         <div className="mt-8">
           <MyEmailLogs />
+        </div>
+
+        {/* Privacidade & LGPD */}
+        <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+          <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
+            <h2 className="font-bold text-[#111827]">Privacidade & LGPD</h2>
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Adequado
+            </span>
+          </div>
+          <p className="text-sm text-[#6B7280] mb-4">
+            Central de compliance LGPD: exportação e anonimização de dados, auditoria de privacidade, checklist de conformidade e gestão de consentimentos.
+          </p>
+          <Link
+            to="/app/configuracoes/privacidade"
+            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
+          >
+            <Shield className="w-4 h-4" />
+            Abrir central de privacidade
+          </Link>
         </div>
 
         {/* Zona de risco — sair / excluir conta */}

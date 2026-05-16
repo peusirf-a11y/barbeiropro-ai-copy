@@ -97,6 +97,23 @@ function pickCampaignForCustomer(customer, hasActivePlan) {
   return null;
 }
 
+// Verifica consentimento de marketing WhatsApp (LGPD guard)
+// Retorna true se o cliente tem consentimento ativo ou se não há registro (fallback seguro = false para marketing)
+async function hasMarketingConsent(sdk, customerId, companyId) {
+  try {
+    const consents = await sdk.entities.CustomerConsent.filter({
+      company_id: companyId,
+      customer_id: customerId,
+      consent_type: 'whatsapp_marketing',
+    }, '-created_date', 1);
+    if (consents.length === 0) return false; // sem registro = sem consentimento
+    const c = consents[0];
+    return c.granted === true && !c.revoked_at;
+  } catch (_) {
+    return false; // em caso de erro, bloqueia por segurança
+  }
+}
+
 async function processCompany(sdk, company, baseUrl, { dryRun, limit }) {
   const campaigns = mergeCampaigns(company.lifecycle_campaigns);
   const anyEnabled = Object.values(campaigns).some(c => c?.enabled);
@@ -229,6 +246,17 @@ async function processCompany(sdk, company, baseUrl, { dryRun, limit }) {
     if (isInCooldown(customer, campaignKey, cfg.cooldown_days)) {
       stats.skipped_cooldown++;
       continue;
+    }
+
+    // LGPD guard: campanhas de marketing exigem consentimento explícito
+    // Campanhas como fiel_sem_plano, vip_inativo são consideradas marketing/CRM
+    const MARKETING_CAMPAIGNS = ['em_risco', 'inativo', 'perdido', 'vip_inativo', 'fiel_sem_plano'];
+    if (MARKETING_CAMPAIGNS.includes(campaignKey)) {
+      const hasConsent = await hasMarketingConsent(sdk, customer.id, company.id);
+      if (!hasConsent) {
+        stats.skipped_no_consent = (stats.skipped_no_consent || 0) + 1;
+        continue;
+      }
     }
 
     try {

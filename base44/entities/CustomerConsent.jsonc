@@ -1,0 +1,74 @@
+{
+  "name": "CustomerConsent",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "ID do cliente titular dos dados"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID da empresa (tenant). Consentimentos s\u00e3o isolados por empresa."
+    },
+    "consent_type": {
+      "type": "string",
+      "enum": [
+        "whatsapp_marketing",
+        "email_marketing",
+        "automated_reminders",
+        "post_service_review",
+        "ai_recommendations",
+        "data_processing_general"
+      ],
+      "description": "Tipo de consentimento. whatsapp_marketing e email_marketing s\u00e3o OPCIONAIS e exigem opt-in expl\u00edcito. automated_reminders e post_service_review s\u00e3o operacionais mas devem ser registrados."
+    },
+    "granted": {
+      "type": "boolean",
+      "default": false,
+      "description": "true = consentimento concedido | false = recusado ou revogado"
+    },
+    "granted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o consentimento foi concedido"
+    },
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o consentimento foi revogado (se revogado)"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "booking_flow",
+        "customer_dashboard",
+        "staff_on_behalf",
+        "import",
+        "api"
+      ],
+      "description": "Canal de onde o consentimento foi coletado"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP do titular no momento do consentimento (para auditoria)"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User-Agent do navegador/dispositivo no momento do consentimento"
+    },
+    "legal_text_version": {
+      "type": "string",
+      "description": "Vers\u00e3o do texto legal exibido ao usu\u00e1rio (ex: 'v1.0', '2024-01-15'). Permite rastrear qual pol\u00edtica estava vigente."
+    },
+    "legal_text_snippet": {
+      "type": "string",
+      "description": "Trecho do texto exibido ao titular no momento do consentimento (prova jur\u00eddica)"
+    }
+  },
+  "required": [
+    "customer_id",
+    "company_id",
+    "consent_type",
+    "granted"
+  ]
+}
