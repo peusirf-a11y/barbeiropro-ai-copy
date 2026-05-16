@@ -225,7 +225,7 @@ export default function AppClientes() {
                           {c.email && <div className="text-xs text-[#6B7280]">{c.email}</div>}
                           {!subByCustomer[c.id] && (
                             <div className="mt-1">
-                              <CustomerPlanRecommendation companyId={companyId} customerId={c.id} />
+                              <CustomerPlanRecommendation companyId={companyId} customerId={c.id} onOffer={() => setOfferingTo(c)} />
                             </div>
                           )}
                         </div>
@@ -253,15 +253,7 @@ export default function AppClientes() {
                             message={buildReactivationMessage({ company, customer: c })}
                             title={`Enviar WhatsApp para ${c.name}`}
                           />
-                          {!subByCustomer[c.id] && (
-                            <button
-                              onClick={() => setOfferingTo(c)}
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2563EB] bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-1 rounded-lg"
-                              title="Oferecer plano de assinatura"
-                            >
-                              <Sparkles className="w-3 h-3" /> Oferecer plano
-                            </button>
-                          )}
+
                           <button onClick={() => openEdit(c)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
                           <button onClick={() => { if (confirm('Excluir cliente?')) deleteMutation.mutate(c.id); }} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
                         </div>
