@@ -20,6 +20,37 @@ async function resolveCallerCompanyId(sdk, user, company_id_claimed) {
   return null;
 }
 
+// Rate limit: máx 10 exportações por empresa por hora (anti-exfiltração)
+async function checkExportRateLimit(sdk, identifier) {
+  const key = `exportCustomerData:${identifier}`;
+  const now = new Date();
+  const windowMs = 60 * 60 * 1000;
+  const limit = 10;
+  const existing = await sdk.entities.SecurityRateLimit.filter({ key }, '-created_date', 1).catch(() => []);
+  const record = existing?.[0];
+  if (record?.is_blocked && record?.blocked_until && new Date(record.blocked_until) > now) {
+    return { allowed: false };
+  }
+  if (record && record.window_end && new Date(record.window_end) > now) {
+    const newAttempts = (record.attempts || 0) + 1;
+    if (newAttempts >= limit) {
+      const blocked_until = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+      await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts, is_blocked: true, blocked_until }).catch(() => {});
+      return { allowed: false };
+    }
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts }).catch(() => {});
+    return { allowed: true };
+  }
+  const window_start = now.toISOString();
+  const window_end = new Date(now.getTime() + windowMs).toISOString();
+  if (record) {
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: 1, window_start, window_end, is_blocked: false, blocked_until: null }).catch(() => {});
+  } else {
+    await sdk.entities.SecurityRateLimit.create({ key, route: 'exportCustomerData', ip: '', identifier, attempts: 1, window_start, window_end, is_blocked: false }).catch(() => {});
+  }
+  return { allowed: true };
+}
+
 Deno.serve(async (req) => {
   const rid = REQUEST_ID();
   try {
@@ -36,13 +67,36 @@ Deno.serve(async (req) => {
     let actorType = 'system';
 
     if (customer_token) {
-      // Autenticação por token do próprio cliente
+      // Autenticação por token do próprio cliente — rate limit por customer_id
+      const rl = await checkExportRateLimit(sdk, `customer:${customer_id}`);
+      if (!rl.allowed) {
+        return Response.json({ error: 'Muitas exportações. Tente novamente em 1 hora.', request_id: rid }, { status: 429 });
+      }
       const customer = await sdk.entities.Customer.get(customer_id).catch(() => null);
-      if (!customer || customer.auth_token !== customer_token || customer.company_id !== company_id) {
+      // HARDENED: verifica expiração ANTES do token (evita timing oracle)
+      if (!customer || customer.company_id !== company_id) {
         return Response.json({ error: 'Token inválido ou expirado', request_id: rid }, { status: 401 });
       }
       if (customer.auth_token_expires_at && new Date(customer.auth_token_expires_at) < new Date()) {
-        return Response.json({ error: 'Token expirado', request_id: rid }, { status: 401 });
+        return Response.json({ error: 'Token inválido ou expirado', request_id: rid }, { status: 401 });
+      }
+      // Comparação timing-safe via HMAC
+      const enc = new TextEncoder();
+      const tokenA = enc.encode(customer.auth_token || '');
+      const tokenB = enc.encode(customer_token || '');
+      let tokenMatch = false;
+      if (tokenA.length === tokenB.length && tokenA.length > 0) {
+        try {
+          const key = await crypto.subtle.importKey('raw', enc.encode('cmp'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+          const challenge = crypto.getRandomValues(new Uint8Array(32));
+          const [sigA, sigB] = await Promise.all([crypto.subtle.sign('HMAC', key, tokenA), crypto.subtle.sign('HMAC', key, tokenB)]);
+          const arrA = new Uint8Array(sigA), arrB = new Uint8Array(sigB);
+          let diff = 0; for (let i = 0; i < arrA.length; i++) diff |= arrA[i] ^ arrB[i];
+          tokenMatch = diff === 0;
+        } catch { tokenMatch = false; }
+      }
+      if (!tokenMatch) {
+        return Response.json({ error: 'Token inválido ou expirado', request_id: rid }, { status: 401 });
       }
       actorType = 'customer_self';
       actorEmail = customer.email || customer.phone;
@@ -74,6 +128,18 @@ Deno.serve(async (req) => {
           request_id: rid,
         }).catch(() => {});
         return Response.json({ error: 'FORBIDDEN_TENANT', request_id: rid }, { status: 403 });
+      }
+
+      // Rate limit por empresa (anti-exfiltração em massa)
+      const rl = await checkExportRateLimit(sdk, `company:${company_id}:${user.email}`);
+      if (!rl.allowed) {
+        console.warn(`[exportCustomerData] rid=${rid} RATE_LIMITED user=${user.email} company=${company_id}`);
+        await sdk.entities.SecurityEvent.create({
+          event_type: 'mass_export_attempt', severity: 'high',
+          actor_email: user.email, company_id, route: 'exportCustomerData',
+          details: { customer_id, request_id: rid }, blocked: true, request_id: rid,
+        }).catch(() => {});
+        return Response.json({ error: 'Limite de exportações atingido. Tente novamente em 1 hora.', request_id: rid }, { status: 429 });
       }
 
       actorEmail = user.email;

@@ -80,11 +80,17 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'appointment_id required' }, { status: 400 });
     }
 
-    // Detecta automação (sem user) vs. chamada de usuário logado
+    // Detecta automação (header interno) vs. chamada de usuário logado
+    const isInternalAutomation = req.headers.get('x-base44-source') === 'automation';
     let user = null;
     try { user = await base44.auth.me(); } catch { /* automation/no auth */ }
 
-    // RBAC quando vem de usuário logado
+    // RBAC: requer autenticação OU header de automação interna verificável
+    if (!user && !isInternalAutomation) {
+      console.warn('[registerCommission] unauthenticated call without automation header — BLOCKED');
+      return Response.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
+    }
+
     let caller = null;
     if (user) {
       caller = await getCallerContext(base44, user);

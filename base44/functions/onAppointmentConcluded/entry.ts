@@ -177,7 +177,9 @@ Deno.serve(async (req) => {
     console.log('[onAppointmentConcluded] ok', { appointment_id: appt.id, result });
     return Response.json({ success: true, result });
   } catch (error) {
-    console.error('[onAppointmentConcluded] error:', error.message, error.stack);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    // HARDENED: nunca expor error.message ao caller externo
+    const cid = crypto.randomUUID().split('-')[0];
+    console.error(`[onAppointmentConcluded] cid=${cid} INTERNAL_ERROR:`, error?.message, error?.stack?.split('\n').slice(0, 3).join(' | '));
+    return Response.json({ success: false, error: 'INTERNAL_ERROR', correlation_id: cid }, { status: 500 });
   }
 });

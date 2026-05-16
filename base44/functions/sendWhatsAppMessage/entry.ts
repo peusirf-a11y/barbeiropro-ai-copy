@@ -15,6 +15,39 @@
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// Rate limit persistente por company_id (anti-spam/flood)
+async function checkWhatsAppRateLimit(sdk, company_id) {
+  const key = `sendWhatsApp:${company_id}`;
+  const now = new Date();
+  const windowMs = 60 * 60 * 1000; // 1 hora
+  const limit = 500; // mensagens por hora por empresa
+
+  const existing = await sdk.entities.SecurityRateLimit.filter({ key }, '-created_date', 1).catch(() => []);
+  const record = existing?.[0];
+
+  if (record?.is_blocked && record?.blocked_until && new Date(record.blocked_until) > now) {
+    return { allowed: false };
+  }
+  if (record && record.window_end && new Date(record.window_end) > now) {
+    const newAttempts = (record.attempts || 0) + 1;
+    if (newAttempts >= limit) {
+      const blocked_until = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+      await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts, is_blocked: true, blocked_until }).catch(() => {});
+      return { allowed: false };
+    }
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts }).catch(() => {});
+    return { allowed: true };
+  }
+  const window_start = now.toISOString();
+  const window_end = new Date(now.getTime() + windowMs).toISOString();
+  if (record) {
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: 1, window_start, window_end, is_blocked: false, blocked_until: null }).catch(() => {});
+  } else {
+    await sdk.entities.SecurityRateLimit.create({ key, route: 'sendWhatsApp', ip: '', identifier: company_id, attempts: 1, window_start, window_end, is_blocked: false }).catch(() => {});
+  }
+  return { allowed: true };
+}
+
 // Normaliza telefone para formato E.164 sem "+" (esperado pela Z-API). Brasil = 55.
 function normalizePhone(raw) {
   if (!raw) return null;
@@ -54,6 +87,16 @@ async function sendViaZapi({ phone, message }) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+
+    // HARDENED: requer autenticação OU header de automação interna
+    const isInternalAutomation = req.headers.get('x-base44-source') === 'automation';
+    if (!isInternalAutomation) {
+      const user = await base44.auth.me().catch(() => null);
+      if (!user) {
+        return Response.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+      }
+    }
+
     const body = await req.json().catch(() => ({}));
 
     const {
@@ -75,6 +118,13 @@ Deno.serve(async (req) => {
     const normalizedPhone = normalizePhone(phone);
     if (!normalizedPhone) {
       return Response.json({ error: 'Invalid phone number' }, { status: 400 });
+    }
+
+    // Rate limit por empresa (anti-flood/spam)
+    const rl = await checkWhatsAppRateLimit(base44.asServiceRole, company_id);
+    if (!rl.allowed) {
+      console.warn(`[sendWhatsAppMessage] RATE_LIMITED company_id=${company_id}`);
+      return Response.json({ error: 'RATE_LIMIT_EXCEEDED', message: 'Limite de mensagens atingido. Tente novamente em 1 hora.' }, { status: 429 });
     }
 
     // ─── A8: dedup forte por idempotency_key ─────────────────────────────

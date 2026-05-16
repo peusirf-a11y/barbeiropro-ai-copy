@@ -85,12 +85,15 @@ const EDITABLE_FIELDS = new Set([
   'scheduled_at',
   'status',
   'notes',
-  'price',
   'custom_duration_minutes',
   'paid', 'paid_at',     // marcação presencial (não confundir com paid_online)
   'completed_at',
   'is_flexible_assignment',  // flag de preferência do barbeiro (drag livre na agenda)
+  // 'price' removido: campo financeiro — só alterável por admin via campo separado abaixo
 ]);
+
+// Campos extras que APENAS admins podem alterar
+const ADMIN_ONLY_FIELDS = new Set(['price']);
 
 const VALID_STATUS = new Set([
   'aguardando_pagamento', 'agendado', 'confirmado',
@@ -260,6 +263,14 @@ Deno.serve(async (req) => {
       }
 
       const clean = sanitizePayload(data);
+
+      // Permite alteração de price apenas para admin
+      if (caller.role === 'admin' && data?.price != null) {
+        const priceVal = Number(data.price);
+        if (!isNaN(priceVal) && priceVal >= 0) {
+          clean.price = priceVal;
+        }
+      }
 
       // Auto-stamp completed_at quando status vira concluido
       if (clean.status === 'concluido' && !clean.completed_at && !existing.completed_at) {

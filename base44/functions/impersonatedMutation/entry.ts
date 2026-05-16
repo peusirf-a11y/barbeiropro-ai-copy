@@ -20,13 +20,36 @@ const COMPANY_ALLOWED_FIELDS = new Set([
   'address', 'business_hours', 'whatsapp_settings', 'slug',
 ]);
 
-const buckets = new Map();
-function rateLimit(key, limit = 60, windowMs = 60_000) {
-  const now = Date.now();
-  const arr = (buckets.get(key) || []).filter(t => now - t < windowMs);
-  if (arr.length >= limit) return false;
-  arr.push(now);
-  buckets.set(key, arr);
+// Rate limit persistente no banco (substitui Map volátil em memória)
+async function checkPersistentRateLimit(sdk, email, ip) {
+  const key = `impersonatedMutation:${email}:${ip}`;
+  const now = new Date();
+  const windowMs = 60 * 1000; // 1 minuto
+  const limit = 60;
+
+  const existing = await sdk.entities.SecurityRateLimit.filter({ key }, '-created_date', 1).catch(() => []);
+  const record = existing?.[0];
+
+  if (record?.is_blocked && record?.blocked_until && new Date(record.blocked_until) > now) {
+    return false;
+  }
+  if (record && record.window_end && new Date(record.window_end) > now) {
+    const newAttempts = (record.attempts || 0) + 1;
+    if (newAttempts >= limit) {
+      const blocked_until = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+      await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts, is_blocked: true, blocked_until }).catch(() => {});
+      return false;
+    }
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts }).catch(() => {});
+    return true;
+  }
+  const window_start = now.toISOString();
+  const window_end = new Date(now.getTime() + windowMs).toISOString();
+  if (record) {
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: 1, window_start, window_end, is_blocked: false, blocked_until: null }).catch(() => {});
+  } else {
+    await sdk.entities.SecurityRateLimit.create({ key, route: 'impersonatedMutation', ip, identifier: email, attempts: 1, window_start, window_end, is_blocked: false }).catch(() => {});
+  }
   return true;
 }
 
@@ -48,7 +71,13 @@ Deno.serve(async (req) => {
     if (!ALLOWED_ENTITIES.has(entity)) {
       return Response.json({ success: false, error: 'ENTITY_NOT_ALLOWED' }, { status: 400 });
     }
-    if (!rateLimit(`imp_mut_${user.email}`)) {
+    if (!await checkPersistentRateLimit(base44.asServiceRole, user.email, ip)) {
+      console.warn(`[impersonatedMutation] RATE_LIMITED: ${user.email} ip=${ip}`);
+      await base44.asServiceRole.entities.SecurityEvent.create({
+        event_type: 'rate_limit_exceeded', severity: 'high',
+        actor_email: user.email, ip_address: ip, route: 'impersonatedMutation',
+        details: { reason: 'persistent_rate_limit' }, blocked: true,
+      }).catch(() => {});
       return Response.json({ success: false, error: 'RATE_LIMIT' }, { status: 429 });
     }
 
@@ -80,10 +109,11 @@ Deno.serve(async (req) => {
     let result = null;
 
     if (op === 'create') {
-      // Força isolamento por company_id (exceto a própria Company)
-      const payload = entity === 'Company'
-        ? { ...(data || {}) }
-        : { ...(data || {}), company_id };
+      // Força isolamento por company_id — Company não pode ser criada via impersonação
+      if (entity === 'Company') {
+        return Response.json({ success: false, error: 'COMPANY_CREATE_FORBIDDEN_IN_IMPERSONATION' }, { status: 403 });
+      }
+      const payload = { ...(data || {}), company_id };
       result = await Entity.create(payload);
     } else if (op === 'update') {
       if (!id) return Response.json({ success: false, error: 'id required' }, { status: 400 });
