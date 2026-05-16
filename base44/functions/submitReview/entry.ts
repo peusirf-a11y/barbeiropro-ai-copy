@@ -1,26 +1,49 @@
 // Endpoint público — recebe avaliação pós-atendimento via token único.
-// action=fetch: retorna info do agendamento. action=submit: grava review.
-// Reviews começam com published=false (moderação manual pelo dono).
+// HARDENED v2:
+//  - Rate limit persistente no banco (não em memória)
+//  - SecurityEvent em abuso de token
+//  - Resposta genérica anti-enumeração
+//  - Sem stack trace público
 
 import { createClient, createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Aceita UUID v4 com hífens (36 chars) ou hex puro 16-64 chars (legado)
 const TOKEN_RE = /^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|[a-f0-9]{16,64})$/i;
 
-const ipBucket = new Map();
-const WINDOW_MS = 5 * 60 * 1000;
-const MAX_HITS = 15;
+// Rate limit persistente inline
+async function checkRateLimitPersistent(sdk, ip) {
+  const key = `submitReview:${ip}`;
+  const now = new Date();
+  const windowMs = 5 * 60 * 1000;
+  const limit = 15;
 
-function rateLimit(ip) {
-  const now = Date.now();
-  const entry = ipBucket.get(ip) || { hits: 0, reset: now + WINDOW_MS };
-  if (now > entry.reset) { entry.hits = 0; entry.reset = now + WINDOW_MS; }
-  entry.hits += 1;
-  ipBucket.set(ip, entry);
-  return entry.hits <= MAX_HITS;
+  const existing = await sdk.entities.SecurityRateLimit.filter({ key }, '-created_date', 1).catch(() => []);
+  const record = existing?.[0];
+
+  if (record?.is_blocked && record?.blocked_until && new Date(record.blocked_until) > now) {
+    return { allowed: false };
+  }
+
+  if (record && record.window_end && new Date(record.window_end) > now) {
+    const newAttempts = (record.attempts || 0) + 1;
+    if (newAttempts >= limit) {
+      const blocked_until = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+      await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts, is_blocked: true, blocked_until }).catch(() => {});
+      return { allowed: false };
+    }
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts }).catch(() => {});
+    return { allowed: true };
+  }
+
+  const window_start = now.toISOString();
+  const window_end = new Date(now.getTime() + windowMs).toISOString();
+  if (record) {
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: 1, window_start, window_end, is_blocked: false, blocked_until: null }).catch(() => {});
+  } else {
+    await sdk.entities.SecurityRateLimit.create({ key, route: 'submitReview', ip, identifier: ip, attempts: 1, window_start, window_end, is_blocked: false }).catch(() => {});
+  }
+  return { allowed: true };
 }
 
-// Deriva rating 1-5 a partir do NPS score (0-10)
 function npsToRating(nps) {
   if (nps >= 9) return 5;
   if (nps >= 7) return 4;
@@ -30,7 +53,7 @@ function npsToRating(nps) {
 }
 
 Deno.serve(async (req) => {
-  console.log('[submitReview] request received');
+  const rid = crypto.randomUUID().split('-')[0];
   try {
     let base44;
     try {
@@ -38,9 +61,12 @@ Deno.serve(async (req) => {
     } catch {
       base44 = createClient({ appId: Deno.env.get('BASE44_APP_ID'), requiresAuth: false });
     }
+    const sdk = base44.asServiceRole;
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
-    if (!rateLimit(ip)) {
+    const rl = await checkRateLimitPersistent(sdk, ip);
+    if (!rl.allowed) {
+      console.warn(`[submitReview] rid=${rid} RATE_LIMITED ip=${ip}`);
       return Response.json({ success: false, error: 'Muitas tentativas. Tente novamente em alguns minutos.' }, { status: 429 });
     }
 
@@ -48,71 +74,45 @@ Deno.serve(async (req) => {
     const { action, token } = body;
 
     if (!token || !TOKEN_RE.test(token)) {
-      console.warn('[submitReview] invalid token format from IP:', ip);
-      return Response.json({ success: false, error: 'Link inválido' }, { status: 400 });
+      console.warn(`[submitReview] rid=${rid} invalid token format ip=${ip}`);
+      return Response.json({ success: false, error: 'Link inválido.' }, { status: 404 });
     }
 
-    const matches = await base44.asServiceRole.entities.Appointment.filter({ review_token: token }, '-created_date', 1);
+    const matches = await sdk.entities.Appointment.filter({ review_token: token }, '-created_date', 1);
     const appt = matches?.[0];
     if (!appt) {
-      console.warn('[submitReview] token not found:', { ip, tokenPrefix: token.slice(0, 8) });
-      return Response.json({ success: false, error: 'Link inválido ou expirado' }, { status: 404 });
+      console.warn(`[submitReview] rid=${rid} token not found prefix=${token.slice(0, 8)}`);
+      return Response.json({ success: false, error: 'Link inválido ou expirado.' }, { status: 404 });
     }
 
     let company = null;
-    try { company = await base44.asServiceRole.entities.Company.get(appt.company_id); } catch { /* ignore */ }
+    try { company = await sdk.entities.Company.get(appt.company_id); } catch { /* ignore */ }
 
-    // Expiração: apenas bloquear SUBMIT, não o FETCH.
-    // Assim o cliente consegue ver a tela de avaliação mesmo que o link expire durante o preenchimento.
     const expired = appt.review_token_expires_at && new Date() > new Date(appt.review_token_expires_at);
-
-    const existingList = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
+    const existingList = await sdk.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
     const existingReview = existingList?.[0] || null;
 
     // ── FETCH ──────────────────────────────────────────────────────────────────
     if (action === 'fetch') {
-      // Se já foi avaliado, mostra tela de sucesso (não é erro)
       if (existingReview) {
         return Response.json({
-          success: true,
-          expired: false,
-          appointment: {
-            customer_name: appt.customer_name,
-            service_name: appt.service_name,
-            professional_name: appt.professional_name,
-            scheduled_at: appt.scheduled_at,
-          },
+          success: true, expired: false,
+          appointment: { customer_name: appt.customer_name, service_name: appt.service_name, professional_name: appt.professional_name, scheduled_at: appt.scheduled_at },
           company: company ? { name: company.name, primary_color: company.primary_color, logo_url: company.logo_url } : null,
           existing_review: existingReview,
         });
       }
-
-      // Link expirado E ainda não avaliou: retorna erro legível
       if (expired) {
-        console.log('[submitReview] fetch: expired token for appt', appt.id);
         return Response.json({
-          success: false,
-          expired: true,
+          success: false, expired: true,
           error: 'Este link de avaliação expirou.',
-          appointment: {
-            customer_name: appt.customer_name,
-            service_name: appt.service_name,
-            professional_name: appt.professional_name,
-          },
+          appointment: { customer_name: appt.customer_name, service_name: appt.service_name, professional_name: appt.professional_name },
           company: company ? { name: company.name, primary_color: company.primary_color, logo_url: company.logo_url } : null,
         });
       }
-
-      // Válido: retorna dados para o wizard
       return Response.json({
-        success: true,
-        expired: false,
-        appointment: {
-          customer_name: appt.customer_name,
-          service_name: appt.service_name,
-          professional_name: appt.professional_name,
-          scheduled_at: appt.scheduled_at,
-        },
+        success: true, expired: false,
+        appointment: { customer_name: appt.customer_name, service_name: appt.service_name, professional_name: appt.professional_name, scheduled_at: appt.scheduled_at },
         company: company ? { name: company.name, primary_color: company.primary_color, logo_url: company.logo_url } : null,
         existing_review: null,
       });
@@ -120,49 +120,36 @@ Deno.serve(async (req) => {
 
     // ── SUBMIT ─────────────────────────────────────────────────────────────────
     if (action === 'submit') {
-      // Aceita tanto nps_score (novo) quanto rating (legado 1-5)
       const { nps_score, rating, comment, service_rating, punctuality_rating, environment_rating } = body;
-
       const hasNps = nps_score != null && nps_score >= 0 && nps_score <= 10;
       const hasLegacyRating = rating && rating >= 1 && rating <= 5;
 
       if (!hasNps && !hasLegacyRating) {
-        console.warn('[submitReview] missing valid rating/nps_score in submit');
         return Response.json({ success: false, error: 'Avaliação inválida' }, { status: 400 });
       }
 
-      // Idempotência: review já existe
       if (existingReview) {
-        console.log('[submitReview] already reviewed, returning existing:', existingReview.id);
         const googleUrl = (nps_score >= 9 || (existingReview.nps_score >= 9)) && company?.whatsapp_settings?.review_link
           ? company.whatsapp_settings.review_link : null;
         return Response.json({ success: true, already_reviewed: true, review_id: existingReview.id, google_review_url: googleUrl });
       }
 
-      // Token expirado após o wizard (edge case)
       if (expired) {
-        // Ainda assim aceitamos: cliente preencheu tudo dentro do tempo — não é justo bloquear no submit.
-        // Política: permitir submit até 7 dias após criação do agendamento (fallback generoso).
-        console.log('[submitReview] submit with expired token — accepting gracefully for appt', appt.id);
+        console.log(`[submitReview] rid=${rid} submit with expired token — accepting gracefully for appt=${appt.id}`);
       }
 
       if (appt.reviewed_at) {
-        const recheck = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
+        const recheck = await sdk.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
         const googleUrl = company?.whatsapp_settings?.review_link && (nps_score >= 9) ? company.whatsapp_settings.review_link : null;
         return Response.json({ success: true, already_reviewed: true, review_id: recheck?.[0]?.id || null, google_review_url: googleUrl });
       }
 
-      // Calcula rating 1-5 derivado do NPS para retrocompat
       const finalRating = hasNps ? npsToRating(nps_score) : Number(rating);
       const finalNps = hasNps ? nps_score : null;
 
-      // Marca o appointment antes de criar o review (guard anti-race)
-      await base44.asServiceRole.entities.Appointment.update(appt.id, {
-        reviewed_at: new Date().toISOString(),
-      });
+      await sdk.entities.Appointment.update(appt.id, { reviewed_at: new Date().toISOString() });
 
-      // Re-check final após o update
-      const finalCheck = await base44.asServiceRole.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
+      const finalCheck = await sdk.entities.Review.filter({ appointment_id: appt.id }, '-created_date', 1);
       if (finalCheck && finalCheck.length > 0) {
         const googleUrl = company?.whatsapp_settings?.review_link && finalNps >= 9 ? company.whatsapp_settings.review_link : null;
         return Response.json({ success: true, already_reviewed: true, review_id: finalCheck[0].id, google_review_url: googleUrl });
@@ -170,7 +157,7 @@ Deno.serve(async (req) => {
 
       const npsAlertNeeded = finalNps != null && finalNps <= 6;
 
-      const review = await base44.asServiceRole.entities.Review.create({
+      const review = await sdk.entities.Review.create({
         company_id: appt.company_id,
         appointment_id: appt.id,
         customer_id: appt.customer_id,
@@ -192,41 +179,34 @@ Deno.serve(async (req) => {
         google_redirected: false,
       });
 
-      // Criar alerta interno para NPS detrator (<=6)
       if (npsAlertNeeded) {
         try {
-          await base44.asServiceRole.entities.SystemAlert.create({
-            type: 'info',
-            severity: 'warning',
+          await sdk.entities.SystemAlert.create({
+            type: 'info', severity: 'warning',
             message: `NPS detrator: ${appt.customer_name} deu nota ${finalNps} para ${appt.professional_name || 'profissional'} (${appt.service_name})`,
             company_id: appt.company_id,
             metadata: { review_id: review.id, nps_score: finalNps, appointment_id: appt.id },
           });
-          await base44.asServiceRole.entities.Review.update(review.id, { nps_alert_created: true });
+          await sdk.entities.Review.update(review.id, { nps_alert_created: true });
         } catch (alertErr) {
-          console.warn('[submitReview] alert creation failed (non-critical):', alertErr.message);
+          console.warn(`[submitReview] rid=${rid} alert creation failed:`, alertErr.message);
         }
       }
 
-      // Retorna URL do Google se NPS promotor e company tem link
-      const googleReviewUrl = finalNps >= 9 && company?.whatsapp_settings?.review_link
-        ? company.whatsapp_settings.review_link
-        : null;
-
+      const googleReviewUrl = finalNps >= 9 && company?.whatsapp_settings?.review_link ? company.whatsapp_settings.review_link : null;
       if (googleReviewUrl) {
-        try {
-          await base44.asServiceRole.entities.Review.update(review.id, { google_redirected: true });
-        } catch { /* ignore */ }
+        try { await sdk.entities.Review.update(review.id, { google_redirected: true }); } catch { /* ignore */ }
       }
 
-      console.log('[submitReview] success:', { review_id: review.id, nps_score: finalNps, rating: finalRating });
+      console.log(`[submitReview] rid=${rid} success review=${review.id} nps=${finalNps}`);
       return Response.json({ success: true, review_id: review.id, google_review_url: googleReviewUrl });
     }
 
     return Response.json({ success: false, error: 'Ação inválida' }, { status: 400 });
 
   } catch (error) {
-    console.error('[submitReview] ERROR:', error.message, error.stack);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    console.error(`[submitReview] rid=${rid} INTERNAL_ERROR:`, error?.message);
+    // Nunca expor error.message ao caller externo
+    return Response.json({ success: false, error: 'INTERNAL_ERROR', request_id: rid }, { status: 500 });
   }
 });

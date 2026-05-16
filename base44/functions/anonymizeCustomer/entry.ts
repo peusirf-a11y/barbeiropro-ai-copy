@@ -104,7 +104,8 @@ Deno.serve(async (req) => {
     const anonId = generateAnonId();
     const anonName = `Cliente #${anonId}`;
 
-    // 1. Anonimiza o cadastro do cliente — remove todos os dados pessoais
+    // 1. Anonimiza o cadastro do cliente — remove TODOS os dados pessoais e metadados correlacionáveis
+    // LGPD Art. 18, IV — anonimização irreversível real (inclui dados comportamentais)
     await sdk.entities.Customer.update(customer_id, {
       name: anonName,
       phone: '+00000000000',
@@ -113,12 +114,20 @@ Deno.serve(async (req) => {
       tags: [],
       favorite_service: null,
       favorite_professional: null,
+      // Dados comportamentais — correlacionáveis mesmo sem nome
+      lifecycle_status: null,
+      lifecycle_updated_at: null,
+      lifecycle_campaigns_log: null,
+      vip_dismissed_at: null,
+      last_completed_at: null,
+      last_appointment_at: null,
+      // Campos de auth — revoga acesso imediato
       password_hash: null,
       auth_token: null,
       auth_token_expires_at: null,
       reset_token: null,
       reset_token_expires_at: null,
-      token_version: (customer.token_version || 0) + 1, // invalida sessões ativas
+      token_version: (customer.token_version || 0) + 1,
     });
 
     // 2. Anonimiza referências em Appointments
@@ -148,7 +157,27 @@ Deno.serve(async (req) => {
       })
     ));
 
-    // 5. Auditoria completa
+    // 5. Verifica integridade da anonimização (validateAnonymizationIntegrity)
+    const verifyCustomer = await sdk.entities.Customer.get(customer_id).catch(() => null);
+    const integrityPassed = verifyCustomer &&
+      verifyCustomer.name === anonName &&
+      verifyCustomer.phone === '+00000000000' &&
+      verifyCustomer.password_hash == null &&
+      verifyCustomer.auth_token == null &&
+      verifyCustomer.lifecycle_campaigns_log == null &&
+      verifyCustomer.last_completed_at == null;
+
+    if (!integrityPassed) {
+      console.error(`[anonymizeCustomer] rid=${rid} INTEGRITY_CHECK_FAILED for customer=${customer_id}`);
+      await sdk.entities.SecurityEvent.create({
+        event_type: 'lgpd_anonymization', severity: 'critical',
+        actor_email: actorEmail, ip_address: ip, route: 'anonymizeCustomer',
+        details: { customer_id, status: 'integrity_check_failed', request_id: rid },
+        blocked: false, request_id: rid,
+      }).catch(() => {});
+    }
+
+    // 6. Auditoria completa
     await sdk.entities.PrivacyAuditLog.create({
       company_id, customer_id,
       actor_email: actorEmail,
@@ -162,6 +191,7 @@ Deno.serve(async (req) => {
           reviews: reviews.length,
           whatsapp_messages: messages.length,
         },
+        integrity_check: integrityPassed ? 'passed' : 'failed',
         request_id: rid,
       },
       severity: 'warning',
@@ -169,10 +199,24 @@ Deno.serve(async (req) => {
       user_agent: ua,
     }).catch(e => console.warn('[anonymizeCustomer] audit log failed:', e.message));
 
-    console.log(`[anonymizeCustomer] rid=${rid} anonymized customer=${customer_id} as ${anonName} by ${actorEmail}`);
+    // SecurityEvent de conclusão (auditoria positiva LGPD)
+    await sdk.entities.SecurityEvent.create({
+      event_type: 'lgpd_anonymization', severity: 'low',
+      actor_email: actorEmail, ip_address: ip, route: 'anonymizeCustomer',
+      details: {
+        customer_id, anon_id: anonId,
+        integrity_check: integrityPassed ? 'passed' : 'failed',
+        records_affected: { appointments: appointments.length, reviews: reviews.length, messages: messages.length },
+        request_id: rid,
+      },
+      blocked: false, request_id: rid,
+    }).catch(() => {});
+
+    console.log(`[anonymizeCustomer] rid=${rid} anonymized customer=${customer_id} as ${anonName} by ${actorEmail} integrity=${integrityPassed}`);
     return Response.json({
       success: true,
       message: `Cliente anonimizado com sucesso. Esta operação é irreversível.`,
+      integrity_verified: integrityPassed,
     });
 
   } catch (error) {

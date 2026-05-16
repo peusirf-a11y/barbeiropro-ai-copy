@@ -1,6 +1,18 @@
-# SECURITY.md — O Corte SaaS Security Policy
+# SECURITY v3.0.md — O Corte SaaS Security Policy
 
-> Versão: 2.0 | Última revisão: 2026-05 | Nível: Enterprise
+> Versão: 3.0 | Última revisão: 2026-05 | Nível: Enterprise
+>
+> **v3.0 — Hardening completo das vulnerabilidades identificadas em pentest:**
+> - Rate limit distribuído persistente (substituiu Map em memória)
+> - CPF limpo após pagamento aprovado (LGPD minimização)
+> - Tokens públicos com rate limit persistente no banco
+> - Anonimização LGPD com campos comportamentais
+> - Stack traces removidos de todos os endpoints públicos
+> - Anti-enumeração em endpoints públicos
+> - CSV injection protection global
+> - Audit log simétrico (startImpersonation ↔ endImpersonation)
+> - TotpSession com impersonation_count (máx 5 usos por sessão)
+> - QueryKeys com isolamento por tenant (buildTenantQueryKey)
 
 ---
 

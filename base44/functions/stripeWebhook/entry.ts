@@ -449,6 +449,7 @@ Deno.serve(async (req) => {
                   status: 'agendado',
                   payment_status: 'succeeded',
                   paid_online: true,
+                  payer_tax_id: null, // LGPD: limpa CPF após pagamento confirmado (minimização)
                 });
                 console.log('[stripeWebhook] booking confirmed by payment:', apptId);
                 // Dispara e-mail de confirmação (não bloqueia)
@@ -555,7 +556,9 @@ Deno.serve(async (req) => {
 
     return Response.json({ received: true });
   } catch (error) {
-    console.error('stripeWebhook error:', error.message, error.stack);
-    return Response.json({ error: error.message }, { status: 500 });
+    // HARDENED: nunca expor error.message ou stack trace ao caller externo
+    const cid = crypto.randomUUID().split('-')[0];
+    console.error(`[stripeWebhook] cid=${cid} INTERNAL_ERROR:`, error?.message, error?.stack?.split('\n').slice(0, 3).join(' | '));
+    return Response.json({ error: 'INTERNAL_ERROR', correlation_id: cid }, { status: 500 });
   }
 });
