@@ -64,7 +64,7 @@ export default function CustomerTypeBadge({ customer, showVisits = true }) {
       {isFirst ? <Sparkles className="w-3 h-3" strokeWidth={2.5} /> : <span>{t.icon}</span>}
       {t.label}
       {showVisits && total > 0 && (
-        <span className="opacity-70">· {total} visita{total > 1 ? 's' : ''}</span>
+        <span className="opacity-70">· {total} agendamento{total > 1 ? 's' : ''}</span>
       )}
     </span>
   );
