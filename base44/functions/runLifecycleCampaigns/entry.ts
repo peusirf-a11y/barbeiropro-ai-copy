@@ -233,6 +233,20 @@ async function processCompany(sdk, company, baseUrl, { dryRun, limit }) {
     } catch (_) { /* ignora — sem entity ainda */ }
   }
 
+  // Pré-busca consentimentos de marketing para este tenant (LGPD)
+  let marketingConsentSet = new Set();
+  try {
+    const marketingConsents = await sdk.entities.CustomerConsent.filter({
+      company_id: company.id,
+      consent_type: 'whatsapp_marketing',
+      granted: true,
+    }, '-created_date', 2000);
+    marketingConsentSet = new Set(marketingConsents.map(c => c.customer_id));
+  } catch (_) { /* entidade pode não existir em deploys antigos */ }
+
+  // Campanhas que exigem consentimento de marketing explícito (LGPD)
+  const MARKETING_CAMPAIGNS = new Set(['em_risco', 'inativo', 'perdido', 'vip_inativo', 'fiel_sem_plano']);
+
   for (const customer of candidates) {
     if (sentCount >= limit) break;
 
@@ -242,6 +256,12 @@ async function processCompany(sdk, company, baseUrl, { dryRun, limit }) {
 
     const cfg = campaigns[campaignKey];
     if (!cfg?.enabled) continue;
+
+    // LGPD: campanhas de marketing só para clientes com consentimento explícito
+    if (MARKETING_CAMPAIGNS.has(campaignKey) && !marketingConsentSet.has(customer.id)) {
+      stats.skipped_no_consent = (stats.skipped_no_consent || 0) + 1;
+      continue;
+    }
 
     if (isInCooldown(customer, campaignKey, cfg.cooldown_days)) {
       stats.skipped_cooldown++;

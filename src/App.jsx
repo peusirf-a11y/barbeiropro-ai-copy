@@ -72,7 +72,7 @@ import AppAvaliacoes from './pages/app/AppAvaliacoes';
 import AppIndicacoes from './pages/app/AppIndicacoes';
 import AppUnidades from './pages/app/AppUnidades.jsx';
 import AppPagamentos from './pages/app/AppPagamentos.jsx';
-import AppPrivacidade from './pages/app/AppPrivacidade';
+import AppPrivacidade from './pages/app/AppPrivacidade.jsx';
 import AssinaturaBloqueada from './pages/AssinaturaBloqueada';
 import TermosDeUso from './pages/legal/TermosDeUso';
 import PoliticaDePrivacidade from './pages/legal/PoliticaDePrivacidade';

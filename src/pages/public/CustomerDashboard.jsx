@@ -2,11 +2,11 @@ import { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Scissors, Calendar, CreditCard, LogOut, ChevronRight, AlertCircle, Pause, Play, X, Plus, Shield } from 'lucide-react';
-import CustomerConsentPanel from '@/components/clientes/CustomerConsentPanel';
+import { Scissors, CreditCard, LogOut, ChevronRight, AlertCircle, Pause, Play, X, Plus, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
+import CustomerConsentSection from '@/components/public/CustomerConsentSection';
 
 export default function CustomerDashboard() {
   const { slug } = useParams();
@@ -23,7 +23,6 @@ export default function CustomerDashboard() {
 
   const { customer, token, loading: loadingAuth, logout } = useCustomerAuth(company?.id);
 
-  // Redireciona para login se não estiver autenticado
   useEffect(() => {
     if (!loadingCo && !loadingAuth && company && !customer) {
       navigate(`/cliente/${slug}/login`, { replace: true });
@@ -190,12 +189,14 @@ export default function CustomerDashboard() {
 
         {/* Privacidade & Consentimentos */}
         <section>
-          <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Privacidade</h2>
-          <div className="bg-white rounded-2xl border border-black/8 p-5">
-            <CustomerConsentPanel
+          <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3 flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5" /> Privacidade & Comunicações
+          </h2>
+          <div className="bg-white rounded-2xl border border-black/8 p-4">
+            <CustomerConsentSection
               companyId={company.id}
               customerId={customer.id}
-              customerToken={token}
+              token={token}
             />
           </div>
         </section>

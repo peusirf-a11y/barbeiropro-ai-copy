@@ -1,6 +1,6 @@
 // Central de Privacidade & LGPD — Configurações → Privacidade
 // Permite ao admin: ver logs de privacidade, exportar dados de clientes,
-// anonimizar, e ver checklist de compliance.
+// anonimizar clientes, e visualizar consentimentos por cliente.
 
 import AppLayout from '@/components/layout/AppLayout';
 import AppPageHeader from '@/components/app/AppPageHeader';
@@ -8,56 +8,63 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { useState } from 'react';
-import { Shield, Download, UserX, CheckCircle, Clock, Search, AlertTriangle, FileText, Eye } from 'lucide-react';
+import { Shield, Download, UserX, Search, Clock, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/components/ui/use-toast';
-import { useCompany } from '@/hooks/useCompany';
 
-const COMPLIANCE_ITEMS = [
-  { label: 'Mapeamento de dados documentado', done: true, file: 'docs/LGPD_DATA_MAPPING.md' },
-  { label: 'Base legal definida para cada dado', done: true, file: 'docs/LGPD_OVERVIEW.md' },
-  { label: 'Consentimentos separados por finalidade', done: true, file: 'docs/CONSENT_FLOW.md' },
-  { label: 'Mecanismo de revogação de consentimento', done: true },
-  { label: 'Exportação de dados (portabilidade)', done: true },
-  { label: 'Anonimização de dados', done: true },
-  { label: 'Política de retenção definida', done: true, file: 'docs/DATA_RETENTION_POLICY.md' },
-  { label: 'Auditoria de ações de privacidade', done: true },
-  { label: 'Isolamento multi-tenant por company_id', done: true },
-  { label: 'Impersonação master auditada', done: true },
-  { label: 'Guard de consentimento em campanhas de marketing', done: true },
-  { label: 'Tokens com expiração automática', done: true },
-];
+const CONSENT_LABELS = {
+  whatsapp_marketing: 'Marketing WhatsApp',
+  email_marketing: 'E-mail marketing',
+  automated_reminders: 'Lembretes automáticos',
+  post_service_review: 'Avaliação pós-atendimento',
+  ai_recommendations: 'Recomendações de IA',
+  data_processing_general: 'Tratamento geral de dados',
+};
 
 export default function AppPrivacidade() {
-  const { toast } = useToast();
   const { user } = useAuth();
-  const { company } = useCompany();
-  const [searchCustomer, setSearchCustomer] = useState('');
+  const { toast } = useToast();
+  const [searchPhone, setSearchPhone] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
-  const [activeTab, setActiveTab] = useState('checklist');
+  const [activeTab, setActiveTab] = useState('logs');
+  const [expandedLog, setExpandedLog] = useState(null);
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => base44.entities.Company.list(),
+  });
+  const company = companies.find(c => c.owner_email === user?.email) || companies[0];
+
+  // Privacy audit logs
   const { data: privacyLogs = [], isLoading: loadingLogs } = useQuery({
     queryKey: ['privacy-audit-logs', company?.id],
     queryFn: () => base44.entities.PrivacyAuditLog.filter(
-      { company_id: company.id }, '-created_date', 50
+      { company_id: company.id }, '-created_date', 100
     ),
-    enabled: !!company?.id && activeTab === 'logs',
+    enabled: !!company?.id,
   });
 
-  const { data: customers = [], isLoading: loadingCustomers } = useQuery({
-    queryKey: ['customers-search', company?.id, searchCustomer],
-    queryFn: () => base44.entities.Customer.filter({ company_id: company.id }, '-created_date', 20),
-    enabled: !!company?.id && activeTab === 'tools',
+  // Busca cliente por telefone
+  const { data: foundCustomers = [], isFetching: searching } = useQuery({
+    queryKey: ['customer-search-privacy', company?.id, searchPhone],
+    queryFn: () => base44.entities.Customer.filter({ company_id: company.id, phone: searchPhone }),
+    enabled: !!company?.id && searchPhone.length >= 8,
   });
 
-  const filteredCustomers = searchCustomer
-    ? customers.filter(c =>
-        c.name?.toLowerCase().includes(searchCustomer.toLowerCase()) ||
-        c.phone?.includes(searchCustomer)
-      )
-    : customers.slice(0, 10);
+  // Consentimentos do cliente selecionado
+  const { data: consentsData, isLoading: loadingConsents } = useQuery({
+    queryKey: ['consents', company?.id, selectedCustomerId],
+    queryFn: () => base44.functions.invoke('manageConsent', {
+      action: 'list',
+      company_id: company.id,
+      customer_id: selectedCustomerId,
+    }),
+    enabled: !!company?.id && !!selectedCustomerId,
+  });
+  const consents = consentsData?.data?.consents || [];
 
+  // Exportar dados
   const exportMutation = useMutation({
     mutationFn: (customerId) => base44.functions.invoke('exportCustomerData', {
       company_id: company.id,
@@ -65,53 +72,64 @@ export default function AppPrivacidade() {
     }),
     onSuccess: (res) => {
       const data = res?.data?.data;
-      if (!data) { toast({ title: 'Erro ao exportar', variant: 'destructive' }); return; }
+      if (!data) return;
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `dados_${data.personal_data?.name?.replace(/\s+/g, '_') || 'cliente'}_${new Date().toISOString().slice(0,10)}.json`;
+      a.download = `dados_cliente_${data.personal_data?.name?.replace(/\s+/g, '_') || 'export'}_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: 'Exportação concluída', description: 'Arquivo JSON baixado com sucesso.' });
     },
-    onError: (err) => toast({ title: 'Erro na exportação', description: err?.response?.data?.error || err.message, variant: 'destructive' }),
+    onError: () => toast({ title: 'Erro na exportação', variant: 'destructive' }),
   });
 
+  // Anonimizar cliente
   const anonymizeMutation = useMutation({
     mutationFn: ({ customerId, reason }) => base44.functions.invoke('anonymizeCustomer', {
       company_id: company.id,
       customer_id: customerId,
       reason,
     }),
-    onSuccess: () => {
-      toast({ title: 'Cliente anonimizado com sucesso', description: 'Os dados pessoais foram removidos. Esta operação é irreversível.' });
+    onSuccess: (res) => {
+      toast({ title: 'Cliente anonimizado', description: res?.data?.message });
       setSelectedCustomerId(null);
+      setSearchPhone('');
     },
-    onError: (err) => toast({ title: 'Erro na anonimização', description: err?.response?.data?.error || err.message, variant: 'destructive' }),
+    onError: (err) => toast({ title: 'Erro', description: err?.response?.data?.error || 'Erro ao anonimizar', variant: 'destructive' }),
   });
 
   const handleAnonymize = (customer) => {
-    if (!confirm(`⚠️ ATENÇÃO: Esta operação é IRREVERSÍVEL.\n\nVocê está prestes a anonimizar:\n${customer.name}\n${customer.phone}\n\nOs dados pessoais serão substituídos por um identificador anônimo.\nDados financeiros são mantidos conforme obrigação legal.\n\nDeseja continuar?`)) return;
-    const reason = prompt('Motivo da anonimização (para o log de auditoria):') || 'solicitação do titular';
-    anonymizeMutation.mutate({ customerId: customer.id, reason });
+    if (!confirm(`⚠️ ATENÇÃO: Esta operação é IRREVERSÍVEL.\n\nO cliente "${customer.name}" terá nome, telefone, e-mail e dados pessoais removidos.\nDados financeiros e operacionais são mantidos.\n\nConfirmar anonimização?`)) return;
+    anonymizeMutation.mutate({ customerId: customer.id, reason: 'solicitação via painel admin' });
   };
 
-  const actionLabels = {
-    DATA_EXPORT_REQUESTED: { label: 'Exportação solicitada', color: 'text-blue-700 bg-blue-50', icon: Download },
-    DATA_EXPORT_DOWNLOADED: { label: 'Dados baixados', color: 'text-blue-700 bg-blue-50', icon: Download },
-    DATA_ANONYMIZED: { label: 'Dados anonimizados', color: 'text-orange-700 bg-orange-50', icon: UserX },
-    CONSENT_GRANTED: { label: 'Consentimento concedido', color: 'text-emerald-700 bg-emerald-50', icon: CheckCircle },
-    CONSENT_REVOKED: { label: 'Consentimento revogado', color: 'text-red-700 bg-red-50', icon: AlertTriangle },
-    SENSITIVE_DATA_VIEWED: { label: 'Dados sensíveis acessados', color: 'text-amber-700 bg-amber-50', icon: Eye },
-    CUSTOMER_DATA_ACCESSED: { label: 'Dados acessados', color: 'text-gray-700 bg-gray-50', icon: Eye },
-    IMPERSONATION_STARTED: { label: 'Impersonação iniciada', color: 'text-red-700 bg-red-100', icon: AlertTriangle },
+  const severityColor = {
+    info: 'bg-blue-50 text-blue-700 border-blue-100',
+    warning: 'bg-amber-50 text-amber-700 border-amber-100',
+    critical: 'bg-red-50 text-red-700 border-red-100',
+  };
+
+  const actionLabel = {
+    DATA_EXPORT_REQUESTED: 'Exportação solicitada',
+    DATA_EXPORT_DOWNLOADED: 'Dados baixados',
+    DATA_ANONYMIZED: 'Cliente anonimizado',
+    CONSENT_GRANTED: 'Consentimento concedido',
+    CONSENT_REVOKED: 'Consentimento revogado',
+    SENSITIVE_DATA_VIEWED: 'Dados sensíveis visualizados',
+    CUSTOMER_DATA_ACCESSED: 'Dados acessados',
+    CUSTOMER_DELETED: 'Cliente excluído',
+    IMPERSONATION_STARTED: 'Impersonação iniciada',
+    IMPERSONATION_ENDED: 'Impersonação encerrada',
+    RETENTION_CLEANUP_RUN: 'Limpeza de retenção executada',
+    MARKETING_SENT_WITHOUT_CONSENT: '⚠️ Marketing sem consentimento',
   };
 
   const tabs = [
-    { key: 'checklist', label: 'Checklist' },
-    { key: 'tools', label: 'Ferramentas' },
     { key: 'logs', label: 'Auditoria LGPD' },
+    { key: 'search', label: 'Dados por cliente' },
+    { key: 'docs', label: 'Documentação' },
   ];
 
   return (
@@ -119,12 +137,27 @@ export default function AppPrivacidade() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
         <AppPageHeader
           title="Privacidade & LGPD"
-          subtitle="Central de compliance, ferramentas de privacidade e auditoria"
+          subtitle="Central de compliance, consentimentos e direitos dos titulares"
           icon={Shield}
         />
 
+        {/* Status bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {[
+            { label: 'Logs de auditoria', value: privacyLogs.length, color: 'blue' },
+            { label: 'Consentimentos', value: '-', color: 'emerald' },
+            { label: 'Exportações', value: privacyLogs.filter(l => l.action === 'DATA_EXPORT_REQUESTED').length, color: 'violet' },
+            { label: 'Anonimizações', value: privacyLogs.filter(l => l.action === 'DATA_ANONYMIZED').length, color: 'amber' },
+          ].map(s => (
+            <div key={s.label} className="bg-white rounded-xl border border-black/5 p-3 text-center shadow-sm">
+              <div className="text-2xl font-black text-[#111827]">{s.value}</div>
+              <div className="text-[10px] text-gray-500 mt-0.5 leading-tight">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
         {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6">
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
           {tabs.map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)}
               className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-all ${activeTab === t.key ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
@@ -133,189 +166,199 @@ export default function AppPrivacidade() {
           ))}
         </div>
 
-        {/* ── CHECKLIST ── */}
-        {activeTab === 'checklist' && (
-          <div className="space-y-4">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
-              <Shield className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-              <div>
-                <div className="font-bold text-emerald-900 text-sm">
-                  {COMPLIANCE_ITEMS.filter(i => i.done).length}/{COMPLIANCE_ITEMS.length} itens implementados
-                </div>
-                <div className="text-xs text-emerald-700">Sistema preparado para auditoria e escalabilidade</div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-black/5 divide-y divide-black/5">
-              {COMPLIANCE_ITEMS.map((item, i) => (
-                <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${item.done ? 'bg-emerald-100' : 'bg-gray-100'}`}>
-                    {item.done
-                      ? <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                      : <Clock className="w-3.5 h-3.5 text-gray-400" />
-                    }
-                  </div>
-                  <span className={`text-sm ${item.done ? 'text-[#111827]' : 'text-gray-500'}`}>{item.label}</span>
-                  {item.file && (
-                    <span className="ml-auto text-[10px] font-mono text-gray-400">{item.file}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-900">
-              <div className="font-bold mb-1">Documentação disponível</div>
-              <ul className="space-y-0.5 text-xs font-mono text-blue-700">
-                <li>docs/LGPD_OVERVIEW.md</li>
-                <li>docs/LGPD_DATA_MAPPING.md</li>
-                <li>docs/DATA_RETENTION_POLICY.md</li>
-                <li>docs/CONSENT_FLOW.md</li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* ── TOOLS ── */}
-        {activeTab === 'tools' && (
-          <div className="space-y-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
-              <div className="flex items-center gap-2 font-bold mb-1">
-                <AlertTriangle className="w-4 h-4" />
-                Atenção — Operações sensíveis
-              </div>
-              <p className="text-xs">A anonimização é <strong>irreversível</strong>. Use apenas quando solicitado pelo titular ou por obrigação legal. Todas as ações são auditadas.</p>
-            </div>
-
-            {/* Busca de clientes */}
-            <div className="bg-white rounded-2xl border border-black/5 p-5">
-              <h2 className="font-bold text-[#111827] mb-4 flex items-center gap-2">
-                <Search className="w-4 h-4" /> Selecionar cliente
-              </h2>
-              <input
-                type="text"
-                placeholder="Buscar por nome ou telefone..."
-                value={searchCustomer}
-                onChange={e => setSearchCustomer(e.target.value)}
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
-              />
-              <div className="space-y-1 max-h-64 overflow-y-auto">
-                {filteredCustomers.map(c => {
-                  const isAnon = c.name?.startsWith('Cliente #anon_');
-                  return (
-                    <div key={c.id}
-                      onClick={() => !isAnon && setSelectedCustomerId(selectedCustomerId === c.id ? null : c.id)}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all cursor-pointer ${
-                        isAnon ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed' :
-                        selectedCustomerId === c.id ? 'bg-blue-50 border-[#2563EB]' : 'border-transparent hover:bg-gray-50'
-                      }`}>
-                      <div>
-                        <div className="text-sm font-semibold text-[#111827]">{c.name}</div>
-                        <div className="text-xs text-gray-500">{c.phone}</div>
-                      </div>
-                      {isAnon && <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">ANONIMIZADO</span>}
-                      {selectedCustomerId === c.id && !isAnon && (
-                        <span className="text-[10px] font-bold text-[#2563EB] bg-blue-100 px-2 py-0.5 rounded-full">SELECIONADO</span>
-                      )}
-                    </div>
-                  );
-                })}
-                {filteredCustomers.length === 0 && (
-                  <div className="text-center text-sm text-gray-400 py-4">Nenhum cliente encontrado</div>
-                )}
-              </div>
-            </div>
-
-            {/* Ações para cliente selecionado */}
-            {selectedCustomerId && (() => {
-              const c = customers.find(x => x.id === selectedCustomerId);
-              if (!c) return null;
-              return (
-                <div className="bg-white rounded-2xl border border-[#2563EB]/20 p-5 space-y-3">
-                  <h3 className="font-bold text-[#111827] text-sm">Ações para: {c.name}</h3>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <button
-                      onClick={() => exportMutation.mutate(c.id)}
-                      disabled={exportMutation.isPending}
-                      className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl hover:border-[#2563EB] transition-colors text-left disabled:opacity-50"
-                    >
-                      <Download className="w-5 h-5 text-[#2563EB] flex-shrink-0" />
-                      <div>
-                        <div className="font-bold text-sm text-[#111827]">Exportar dados</div>
-                        <div className="text-xs text-gray-500">JSON com todos os dados pessoais</div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => handleAnonymize(c)}
-                      disabled={anonymizeMutation.isPending}
-                      className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl hover:border-red-500 transition-colors text-left disabled:opacity-50"
-                    >
-                      <UserX className="w-5 h-5 text-red-600 flex-shrink-0" />
-                      <div>
-                        <div className="font-bold text-sm text-[#111827]">Anonimizar cliente</div>
-                        <div className="text-xs text-gray-500">Remove dados identificáveis — irreversível</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* ── LOGS ── */}
+        {/* ── TAB: AUDITORIA ── */}
         {activeTab === 'logs' && (
-          <div>
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-black/5 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-400" />
+              <span className="font-bold text-[#111827]">Registro de ações de privacidade</span>
+            </div>
             {loadingLogs ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-6 h-6 border-2 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
-              </div>
+              <div className="p-8 text-center text-gray-400 text-sm">Carregando logs…</div>
             ) : privacyLogs.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-black/5 p-12 text-center">
-                <Shield className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-                <div className="text-sm text-gray-500">Nenhuma ação de privacidade registrada ainda.</div>
+              <div className="p-8 text-center">
+                <Shield className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">Nenhuma ação de privacidade registrada ainda.</p>
+                <p className="text-xs text-gray-300 mt-1">Exportações, anonimizações e alterações de consentimento aparecerão aqui.</p>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-black/5 divide-y divide-black/5">
-                {privacyLogs.map(log => {
-                  const cfg = actionLabels[log.action] || { label: log.action, color: 'text-gray-700 bg-gray-50', icon: FileText };
-                  const Icon = cfg.icon;
-                  return (
-                    <div key={log.id} className="flex items-start gap-3 px-5 py-4">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
+              <div className="divide-y divide-black/5">
+                {privacyLogs.map(log => (
+                  <div key={log.id} className="px-5 py-3">
+                    <div className="flex items-start gap-3 justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm text-[#111827]">{cfg.label}</span>
-                          {log.severity === 'warning' && (
-                            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">ALERTA</span>
-                          )}
-                          {log.severity === 'critical' && (
-                            <span className="text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">CRÍTICO</span>
-                          )}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${severityColor[log.severity] || severityColor.info}`}>
+                            {log.severity?.toUpperCase()}
+                          </span>
+                          <span className="text-sm font-semibold text-[#111827]">{actionLabel[log.action] || log.action}</span>
                         </div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          {log.actor_email && <span>{log.actor_email} · </span>}
-                          <span>{log.actor_type}</span>
-                          {log.customer_id && <span> · cliente #{log.customer_id.slice(-6)}</span>}
+                          {log.actor_email && <span>Por: <strong>{log.actor_email}</strong> · </span>}
+                          {log.actor_type && <span className="capitalize">{log.actor_type}</span>}
+                          {log.customer_id && <span> · Cliente: {log.customer_id.slice(-6)}</span>}
                         </div>
-                        {log.details && Object.keys(log.details).length > 0 && (
-                          <div className="text-[11px] font-mono text-gray-400 mt-1 truncate">
-                            {JSON.stringify(log.details).slice(0, 80)}
-                          </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-[11px] text-gray-400">
+                          {log.created_date ? format(new Date(log.created_date), "dd/MM/yy HH:mm", { locale: ptBR }) : '—'}
+                        </span>
+                        {log.details && (
+                          <button onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
+                            className="text-gray-300 hover:text-gray-500">
+                            {expandedLog === log.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </button>
                         )}
                       </div>
-                      <div className="text-[10px] text-gray-400 flex-shrink-0">
-                        {log.created_date
-                          ? format(new Date(log.created_date), "dd/MM/yy HH:mm", { locale: ptBR })
-                          : '—'
-                        }
-                      </div>
                     </div>
-                  );
-                })}
+                    {expandedLog === log.id && log.details && (
+                      <pre className="mt-2 text-[11px] text-gray-600 bg-gray-50 rounded-lg p-2 overflow-x-auto">
+                        {JSON.stringify(log.details, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── TAB: DADOS POR CLIENTE ── */}
+        {activeTab === 'search' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
+              <h3 className="font-bold text-[#111827] mb-3 flex items-center gap-2">
+                <Search className="w-4 h-4 text-gray-400" />
+                Buscar cliente por telefone
+              </h3>
+              <input
+                type="text"
+                placeholder="Ex: 11999999999"
+                value={searchPhone}
+                onChange={e => setSearchPhone(e.target.value)}
+                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+              />
+              {searching && <p className="text-xs text-gray-400 mt-2">Buscando…</p>}
+              {foundCustomers.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {foundCustomers.map(c => (
+                    <div key={c.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedCustomerId === c.id ? 'border-[#2563EB] bg-blue-50' : 'border-black/8 hover:border-black/15'}`}
+                      onClick={() => setSelectedCustomerId(c.id)}>
+                      <div>
+                        <div className="font-semibold text-sm text-[#111827]">{c.name}</div>
+                        <div className="text-xs text-gray-500">{c.phone} · {c.total_appointments || 0} agendamentos</div>
+                      </div>
+                      {selectedCustomerId === c.id && <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {searchPhone.length >= 8 && !searching && foundCustomers.length === 0 && (
+                <p className="text-xs text-gray-400 mt-2">Nenhum cliente encontrado.</p>
+              )}
+            </div>
+
+            {selectedCustomerId && (
+              <>
+                {/* Consentimentos */}
+                <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
+                  <h3 className="font-bold text-[#111827] mb-4">Consentimentos registrados</h3>
+                  {loadingConsents ? (
+                    <p className="text-sm text-gray-400">Carregando…</p>
+                  ) : consents.length === 0 ? (
+                    <p className="text-sm text-gray-400">Nenhum consentimento registrado para este cliente.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {consents.map(c => (
+                        <div key={c.id} className="flex items-center justify-between gap-3 py-2 border-b border-black/5 last:border-b-0">
+                          <div>
+                            <div className="text-sm font-semibold text-[#111827]">{CONSENT_LABELS[c.consent_type] || c.consent_type}</div>
+                            <div className="text-xs text-gray-500">
+                              {c.granted ? (
+                                <span className="text-emerald-600">Concedido em {c.granted_at ? format(new Date(c.granted_at), "dd/MM/yyyy HH:mm") : '—'}</span>
+                              ) : (
+                                <span className="text-red-500">Revogado {c.revoked_at ? format(new Date(c.revoked_at), "dd/MM/yyyy HH:mm") : ''}</span>
+                              )}
+                              {c.source && <span className="ml-2 opacity-60">via {c.source}</span>}
+                            </div>
+                          </div>
+                          {c.granted
+                            ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                            : <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Ações LGPD */}
+                <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
+                  <h3 className="font-bold text-[#111827] mb-1">Ações sobre os dados</h3>
+                  <p className="text-xs text-gray-500 mb-4">Exercício dos direitos do titular (LGPD Art. 18)</p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => exportMutation.mutate(selectedCustomerId)}
+                      disabled={exportMutation.isPending}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#EFF6FF] text-[#2563EB] rounded-xl text-sm font-semibold hover:bg-[#DBEAFE] transition-colors disabled:opacity-50"
+                    >
+                      <Download className="w-4 h-4" />
+                      {exportMutation.isPending ? 'Exportando…' : 'Exportar dados (JSON)'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        const customer = foundCustomers.find(c => c.id === selectedCustomerId);
+                        if (customer) handleAnonymize(customer);
+                      }}
+                      disabled={anonymizeMutation.isPending}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                      <UserX className="w-4 h-4" />
+                      {anonymizeMutation.isPending ? 'Anonimizando…' : 'Anonimizar cliente'}
+                    </button>
+                  </div>
+                  <div className="mt-3 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span>A anonimização é <strong>irreversível</strong>. Remove nome, telefone, e-mail e CPF. Dados financeiros são mantidos para obrigação fiscal.</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB: DOCUMENTAÇÃO ── */}
+        {activeTab === 'docs' && (
+          <div className="space-y-3">
+            {[
+              { title: 'Visão Geral LGPD', path: 'docs/LGPD_OVERVIEW.md', desc: 'Papéis, bases legais, checklist de compliance e direitos dos titulares.' },
+              { title: 'Mapeamento de Dados', path: 'docs/LGPD_DATA_MAPPING.md', desc: 'Todos os dados pessoais coletados, finalidade, base legal e retenção.' },
+              { title: 'Política de Retenção', path: 'docs/DATA_RETENTION_POLICY.md', desc: 'Por quanto tempo cada dado é mantido e quando deve ser excluído.' },
+              { title: 'Fluxo de Consentimentos', path: 'docs/CONSENT_FLOW.md', desc: 'Como os consentimentos são coletados, registrados e revogados.' },
+            ].map(doc => (
+              <div key={doc.path} className="bg-white rounded-2xl border border-black/5 p-4 shadow-sm flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-[#2563EB]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-[#111827]">{doc.title}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{doc.desc}</div>
+                  <div className="text-[10px] text-gray-300 mt-0.5 font-mono">{doc.path}</div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">✓ Criado</span>
+              </div>
+            ))}
+
+            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+              <div className="font-semibold text-sm text-[#2563EB] mb-1">Política de Privacidade Pública</div>
+              <div className="text-xs text-blue-700 mb-3">
+                A política de privacidade está disponível publicamente em <code className="bg-blue-100 px-1 rounded">/politica-de-privacidade</code> e deve ser linkada no fluxo de agendamento.
+              </div>
+              <a href="/politica-de-privacidade" target="_blank"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] hover:underline">
+                <FileText className="w-3.5 h-3.5" />
+                Ver política de privacidade
+              </a>
+            </div>
           </div>
         )}
       </div>
