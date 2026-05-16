@@ -152,6 +152,44 @@ function computeBadges(metrics, plan, economy, profit, conversion) {
   return badges.slice(0, 2);
 }
 
+// ─── Elegibilidade central (inline — sem local imports em functions/) ──────────
+// Espelha lib/subscriptionEligibility.js. Manter em sync manualmente ou via CI.
+const ELIGIBILITY_MIN_VISITS = 0.8;
+
+function isEligible(metrics, economy) {
+  const { visits_per_month, regularity_score, retention_months, avg_ticket, totalVisits } = metrics;
+  const savings = economy?.monthly_savings || 0;
+  if (visits_per_month >= ELIGIBILITY_MIN_VISITS) return { eligible: true, reason: 'frequency' };
+  if (savings > 0)                                  return { eligible: true, reason: 'economy' };
+  if (regularity_score >= 0.4 && retention_months >= 2) return { eligible: true, reason: 'stable_recurrence' };
+  if (avg_ticket >= 70 && visits_per_month >= 0.5)  return { eligible: true, reason: 'premium_ticket' };
+  if (retention_months >= 4 && (totalVisits || 0) >= 4) return { eligible: true, reason: 'long_history' };
+  return { eligible: false, reason: 'insufficient' };
+}
+
+function deriveRecType(metrics, economy) {
+  const { visits_per_month, avg_ticket, regularity_score, retention_months } = metrics;
+  const savings = economy?.monthly_savings || 0;
+  if (savings >= 20) return 'economy';
+  if (avg_ticket >= 80 && visits_per_month >= 1) return 'premium';
+  if (retention_months >= 3 && visits_per_month >= 1) return 'retention';
+  if (regularity_score < 0.3 && retention_months >= 2) return 'churn_prevention';
+  return 'retention';
+}
+
+function deriveChurnRisk(metrics) {
+  const { regularity_score = 0, retention_months = 0, visits_per_month = 0 } = metrics;
+  if (regularity_score >= 0.55 && retention_months >= 3) return 'low';
+  if (regularity_score >= 0.3 || (retention_months >= 2 && visits_per_month >= 1)) return 'medium';
+  return 'high';
+}
+
+function deriveConfidence(totalVisits, retention_months) {
+  if (totalVisits >= 8 && retention_months >= 3) return 'high';
+  if (totalVisits >= 4 && retention_months >= 1) return 'medium';
+  return 'low';
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   try {
@@ -196,18 +234,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Candidatos que cobrem minimamente a frequência
-    const candidates = plans.filter(p => {
-      if (p.type === 'unlimited') return true;
-      return (p.usage_limit || 0) >= Math.floor(Math.max(metrics.visits_per_month, 1));
-    });
-
+    // Candidatos: todos os planos (engine de score decide o melhor).
+    // Inclui planos abaixo da frequência — cliente pode não usar tudo (retention/economy type).
+    const candidates = plans.length > 0 ? plans : [];
     if (candidates.length === 0) {
-      return Response.json({
-        success: true, no_match: true,
-        visits_per_month: metrics.visits_per_month,
-        monthly_avulso: roundInt(metrics.monthly_avulso),
-      });
+      return Response.json({ success: true, no_match: true, visits_per_month: metrics.visits_per_month });
     }
 
     // Score de cada candidato
@@ -219,7 +250,7 @@ Deno.serve(async (req) => {
       return { plan, economy, profit, conversion, score };
     });
 
-    // Ordena: score → lucro → menor desconto
+    // Ordena: score → lucro → menor preço (mais acessível)
     scored.sort((a, b) => {
       if (Math.abs(b.score - a.score) > 0.5) return b.score - a.score;
       if (Math.abs(b.profit - a.profit) > 0.5) return b.profit - a.profit;
@@ -227,13 +258,10 @@ Deno.serve(async (req) => {
     });
 
     const best = scored[0];
-    // Critério relaxado: mostra recomendação se:
-    // 1) há economia positiva, OU
-    // 2) cliente vem >= 1x/mês (elegível por frequência — fidelização/recorrência justificam mesmo sem economia grande)
-    // Alinha com o critério de "elegível" da tela de Planos (2+ visitas/30 dias ≈ ~1x/mês).
-    const hasEconomy = best.economy.monthly_savings > 0;
-    const isFrequent = metrics.visits_per_month >= 0.8; // ~1 visita/mês
-    if (!hasEconomy && !isFrequent) {
+
+    // ── Critério de elegibilidade central (espelha lib/subscriptionEligibility.js) ──
+    const eligibility = isEligible(metrics, best.economy);
+    if (!eligibility.eligible) {
       return Response.json({
         success: true, no_savings: true,
         visits_per_month: metrics.visits_per_month,
@@ -241,9 +269,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Metadados de elegibilidade
+    const recommendation_type = deriveRecType(metrics, best.economy);
+    const churn_risk = deriveChurnRisk(metrics);
+    const confidence = deriveConfidence(metrics.totalVisits, metrics.retention_months);
     const badges = computeBadges(metrics, best.plan, best.economy, best.profit, best.conversion);
 
-    console.log('[recommendPlanForCustomer] score:', best.score, 'plan:', best.plan.name, 'conversion:', best.conversion.label);
+    console.log('[recommendPlanForCustomer] eligible:', eligibility.reason, '| type:', recommendation_type, '| plan:', best.plan.name, '| score:', best.score);
 
     return Response.json({
       success: true,
@@ -258,6 +290,10 @@ Deno.serve(async (req) => {
       profit: best.profit,
       conversion: best.conversion,
       recommendation_score: best.score,
+      eligibility_reason: eligibility.reason,
+      recommendation_type,
+      churn_risk,
+      confidence,
       badges,
       ranked_plans: scored.map(s => ({
         plan_id: s.plan.id,

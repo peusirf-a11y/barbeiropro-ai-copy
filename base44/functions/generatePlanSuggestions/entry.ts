@@ -304,8 +304,32 @@ Deno.serve(async (req) => {
       return sum + (s.price_monthly * (s.target_count || 0) * conversionRate);
     }, 0);
 
-    // ─── MÉTRICAS DE CONVERSÃO (regra de ouro: plano não vendido = feature morta) ────
-    // Cliente elegível: veio 2+ vezes nos últimos 30 dias E não tem assinatura ativa.
+    // ─── MÉTRICAS DE CONVERSÃO ────────────────────────────────────────────────
+    // Critério de elegibilidade alinhado com lib/subscriptionEligibility.js:
+    // cliente elegível = frequência >= 0.8x/mês (nos últimos 180 dias) E sem assinatura ativa.
+    // Antes: usava "2+ visitas nos últimos 30 dias" — critério muito volátil.
+    // Agora: usa janela de 180 dias / 6 meses para estabilidade e coerência com a tela de Clientes.
+    const ELIG_MIN_VISITS_PER_MONTH = 0.8;
+    const subscriberIds = new Set(activeSubs.map(s => s.customer_id));
+
+    // Agrupa visitas por cliente na janela de 180 dias (já filtrado em concluded)
+    const visits180ByCustomer = {};
+    concluded.forEach(a => {
+      if (!a.customer_id) return;
+      visits180ByCustomer[a.customer_id] = (visits180ByCustomer[a.customer_id] || 0) + 1;
+    });
+
+    // Calcula frequência mensal e aplica critério central
+    const eligibleIds = Object.keys(visits180ByCustomer).filter(cid => {
+      if (subscriberIds.has(cid)) return false;
+      const visitsPerMonth = visits180ByCustomer[cid] / MONTHS_IN_WINDOW;
+      return visitsPerMonth >= ELIG_MIN_VISITS_PER_MONTH;
+    });
+
+    // Clientes ativos = qualquer cliente com visita nos últimos 180 dias
+    const totalActiveCustomers = Object.keys(visits180ByCustomer).length;
+
+    // Manter compatibilidade com visits30ByCustomer (usado só para activeCustomers)
     const last30 = new Date();
     last30.setDate(last30.getDate() - 30);
     const last30ISO = last30.toISOString();
@@ -314,11 +338,6 @@ Deno.serve(async (req) => {
       if (!a.customer_id || a.scheduled_at < last30ISO) return;
       visits30ByCustomer[a.customer_id] = (visits30ByCustomer[a.customer_id] || 0) + 1;
     });
-    const subscriberIds = new Set(activeSubs.map(s => s.customer_id));
-    const eligibleIds = Object.keys(visits30ByCustomer).filter(
-      cid => visits30ByCustomer[cid] >= 2 && !subscriberIds.has(cid)
-    );
-    const totalActiveCustomers = Object.keys(visits30ByCustomer).length;
     const eligiblePct = totalActiveCustomers > 0
       ? Math.round((eligibleIds.length / totalActiveCustomers) * 100) : 0;
     const convertedPct = totalActiveCustomers > 0
