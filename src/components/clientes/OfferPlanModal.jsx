@@ -3,6 +3,7 @@
 // ao clicar em "Ativar assinatura". Reutiliza a lógica de buildInitialSubscription.
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Sparkles, Check, TrendingDown, Calendar, Loader2, AlertCircle } from 'lucide-react';
 
@@ -54,8 +55,8 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
   const plan = r?.recommended_plan;
   const noOffer = !isLoading && (!r || r.no_match || r.no_savings || r.insufficient_data || r.already_subscribed || r.no_plans_available);
 
-  return (
-    <div className="fixed inset-0 bg-black/50 z-[60] overflow-y-auto" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 z-[9999] overflow-y-auto" onClick={onClose}>
       <div className="flex min-h-full items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
@@ -175,7 +176,8 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
         </div>
       </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
