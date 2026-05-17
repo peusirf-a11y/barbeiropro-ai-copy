@@ -32,12 +32,18 @@ export default function StripeConnectCard({ company }) {
 
   const connectMutation = useMutation({
     mutationFn: async () => {
-      const res = await base44.functions.invoke('createConnectOnboardingLink', {
-        company_id: company.id,
-        return_url: window.location.origin + window.location.pathname,
-      });
-      if (res?.data?.error) throw new Error(res.data.error);
-      return res.data;
+      try {
+        const res = await base44.functions.invoke('createConnectOnboardingLink', {
+          company_id: company.id,
+          return_url: window.location.origin + window.location.pathname,
+        });
+        if (res?.data?.error) throw new Error(res.data.error);
+        return res.data;
+      } catch (err) {
+        // Extrai mensagem real do response (Axios encapsula erros HTTP em err.response.data)
+        const serverMsg = err?.response?.data?.error || err?.response?.data?.message || err.message;
+        throw new Error(serverMsg);
+      }
     },
     onSuccess: (data) => {
       if (data?.url) window.location.href = data.url;
