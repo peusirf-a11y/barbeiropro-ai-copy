@@ -275,10 +275,15 @@ async function handleResetPassword(sdk, { company_id, email, reset_token, passwo
   if (!customer.reset_token) throw new Error('Nenhuma solicitação de reset ativa');
   if (new Date(customer.reset_token_expires_at) < new Date()) throw new Error('Link expirou. Solicite um novo.');
 
-  // Comparação segura (constant-time)
+  // Comparação segura (constant-time) — usa Uint8Array para compatibilidade com Deno
   let tokensMatch = false;
   try {
-    tokensMatch = timingSafeEqual(Buffer.from(reset_token), Buffer.from(customer.reset_token));
+    const enc = new TextEncoder();
+    const a = enc.encode(reset_token);
+    const b = enc.encode(customer.reset_token);
+    if (a.length === b.length) {
+      tokensMatch = timingSafeEqual(a, b);
+    }
   } catch {
     tokensMatch = false;
   }
