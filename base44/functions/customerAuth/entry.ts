@@ -52,6 +52,8 @@ async function verifyPassword(password, hashHex) {
     keyMaterial, 256,
   );
   const derivedArray = new Uint8Array(derivedBits);
+  // Buffers de tamanhos diferentes causam exceção no timingSafeEqual — retorna false em vez de quebrar
+  if (storedHash.length !== derivedArray.length) return false;
   return timingSafeEqual(storedHash, derivedArray);
 }
 
@@ -147,6 +149,10 @@ async function handleLogin(sdk, { company_id, email, password }) {
   const customer = customers?.[0];
   if (!customer || !customer.password_hash) throw new Error('E-mail ou senha incorretos');
 
+  // Detecta hash bcrypt legado (começa com $2b$ ou $2a$) — não suportado pelo novo verificador PBKDF2
+  if (customer.password_hash.startsWith('$2b$') || customer.password_hash.startsWith('$2a$')) {
+    throw new Error('Sua senha precisa ser redefinida. Use "Esqueceu a senha?" para criar uma nova.');
+  }
   const valid = await verifyPassword(password, customer.password_hash);
   if (!valid) throw new Error('E-mail ou senha incorretos');
 
