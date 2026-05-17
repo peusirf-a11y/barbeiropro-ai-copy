@@ -61,7 +61,7 @@ export default function LoginCustomerForm({ companyId, onSuccess, onGoToRegister
       onSuccess(customer_id, token);
     } catch (err) {
       console.error('[LoginCustomerForm] error:', err);
-      setError(err.message || 'Erro ao conectar. Tente novamente.');
+      setError(err?.response?.data?.error || err.message || 'Erro ao conectar. Tente novamente.');
     } finally {
       setLoading(false);
     }
