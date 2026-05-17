@@ -13,6 +13,7 @@ import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } f
 import BookingPaymentStep from './BookingPaymentStep';
 import BookingConsentBlock from './BookingConsentBlock';
 import PaymentMethodChooser from './PaymentMethodChooser';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
 
 const DAY_MAP = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
 
@@ -43,6 +44,7 @@ export default function BookingModal({
   initialService = null,
 }) {
   const primaryColor = company?.primary_color || '#2563EB';
+  const { isDark, tw } = usePublicTheme();
   const [step, setStep] = useState(0); // 0=serviço, 1=prof, 2=data/hora, 3=confirmar, 4=pagar
   const [selected, setSelected] = useState({ service: initialService, professional: null, date: null, time: null });
   const [form, setForm] = useState({ notes: '' });
@@ -210,29 +212,29 @@ export default function BookingModal({
           <motion.div
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1a2e] rounded-t-3xl max-h-[92vh] flex flex-col"
+            className={`fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl max-h-[92vh] flex flex-col ${isDark ? 'bg-[#1a1a2e]' : 'bg-white'}`}
           >
             {/* Handle bar */}
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-              <div className="w-10 h-1 bg-white/20 rounded-full" />
+              <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-white/20' : 'bg-black/15'}`} />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 flex-shrink-0 border-b border-white/10">
+            <div className={`flex items-center justify-between px-5 py-3 flex-shrink-0 border-b ${tw.divider}`}>
               <div className="flex items-center gap-3">
                 {step > 0 && step < 4 && (
-                  <button onClick={() => setStep(s => s - 1)} className="text-white/60 hover:text-white">
+                  <button onClick={() => setStep(s => s - 1)} className={`${tw.textMuted} hover:opacity-70`}>
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                 )}
                 <div>
-                  <h3 className="text-white font-bold text-base">{stepTitles[step]}</h3>
+                  <h3 className={`${tw.text} font-bold text-base`}>{stepTitles[step]}</h3>
                   {selected.service && step > 0 && (
-                    <p className="text-white/50 text-xs">{selected.service.name} · R$ {selected.service.price}</p>
+                    <p className={`${tw.textMuted} text-xs`}>{selected.service.name} · R$ {selected.service.price}</p>
                   )}
                 </div>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20">
+              <button onClick={onClose} className={`w-8 h-8 rounded-full flex items-center justify-center ${tw.iconBg} ${tw.text} hover:opacity-70`}>
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -246,16 +248,16 @@ export default function BookingModal({
                   {services.map(s => (
                     <button key={s.id}
                       onClick={() => { setSelected(p => ({ ...p, service: s })); setStep(1); }}
-                      className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 text-left transition-all"
+                      className={`w-full flex items-center gap-4 ${tw.card} rounded-2xl p-4 text-left transition-all`}
                     >
-                      <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-bold text-sm">{s.name[0]}</span>
+                      <div className={`w-12 h-12 rounded-xl ${tw.iconBg} flex items-center justify-center flex-shrink-0`}>
+                        <span className={`${tw.text} font-bold text-sm`}>{s.name[0]}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-white font-semibold truncate">{s.name}</div>
+                        <div className={`${tw.text} font-semibold truncate`}>{s.name}</div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-emerald-400 font-bold text-sm">R$ {s.price.toFixed(2)}</span>
-                          <span className="text-white/40 text-xs flex items-center gap-1"><Clock className="w-3 h-3" />{s.duration_minutes} min</span>
+                          <span className="text-emerald-500 font-bold text-sm">R$ {s.price.toFixed(2)}</span>
+                          <span className={`${tw.textFaint} text-xs flex items-center gap-1`}><Clock className="w-3 h-3" />{s.duration_minutes} min</span>
                         </div>
                       </div>
                       <span className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex-shrink-0" style={{ backgroundColor: primaryColor }}>
@@ -271,21 +273,21 @@ export default function BookingModal({
                 <div className="space-y-2">
                   <button
                     onClick={() => { setSelected(p => ({ ...p, professional: { id: 'any', name: 'Sem Preferência' } })); setStep(2); }}
-                    className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 text-left transition-all"
+                    className={`w-full flex items-center gap-4 ${tw.card} rounded-2xl p-4 text-left transition-all`}
                   >
-                    <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-white/40" />
+                    <div className={`w-12 h-12 rounded-full ${tw.iconBg} flex items-center justify-center flex-shrink-0`}>
+                      <User className={`w-5 h-5 ${tw.textFaint}`} />
                     </div>
                     <div className="flex-1">
-                      <div className="text-white font-semibold">Sem Preferência</div>
-                      <div className="text-white/40 text-xs">Primeiro disponível</div>
+                      <div className={`${tw.text} font-semibold`}>Sem Preferência</div>
+                      <div className={`${tw.textFaint} text-xs`}>Primeiro disponível</div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-white/30" />
+                    <ChevronRight className={`w-4 h-4 ${tw.textFaint}`} />
                   </button>
                   {professionals.map(p => (
                     <button key={p.id}
                       onClick={() => { setSelected(s => ({ ...s, professional: p })); setStep(2); }}
-                      className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 text-left transition-all"
+                      className={`w-full flex items-center gap-4 ${tw.card} rounded-2xl p-4 text-left transition-all`}
                     >
                       {p.photo_url ? (
                         <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
@@ -295,10 +297,10 @@ export default function BookingModal({
                         </div>
                       )}
                       <div className="flex-1">
-                        <div className="text-white font-semibold">{p.name}</div>
-                        {p.specialty && <div className="text-white/40 text-xs">{p.specialty}</div>}
+                        <div className={`${tw.text} font-semibold`}>{p.name}</div>
+                        {p.specialty && <div className={`${tw.textFaint} text-xs`}>{p.specialty}</div>}
                       </div>
-                      <ChevronRight className="w-4 h-4 text-white/30" />
+                      <ChevronRight className={`w-4 h-4 ${tw.textFaint}`} />
                     </button>
                   ))}
                 </div>
@@ -314,7 +316,7 @@ export default function BookingModal({
                       return (
                         <button key={i}
                           onClick={() => setSelected(p => ({ ...p, date: day, time: null }))}
-                          className={`flex-shrink-0 flex flex-col items-center px-3 py-3 rounded-2xl border transition-all min-w-[56px] ${isSel ? 'border-transparent text-white' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}
+                          className={`flex-shrink-0 flex flex-col items-center px-3 py-3 rounded-2xl border transition-all min-w-[56px] ${isSel ? 'border-transparent text-white' : `${tw.card} ${tw.textMuted}`}`}
                           style={{ backgroundColor: isSel ? primaryColor : undefined }}
                         >
                           <span className="text-[10px] uppercase tracking-wide opacity-70">{format(day, 'EEE', { locale: ptBR })}</span>
@@ -327,9 +329,9 @@ export default function BookingModal({
 
                   {selected.date && (
                     <>
-                      <p className="text-white/50 text-sm mb-3">{format(selected.date, "EEEE, d 'de' MMMM", { locale: ptBR })}</p>
+                      <p className={`${tw.textMuted} text-sm mb-3`}>{format(selected.date, "EEEE, d 'de' MMMM", { locale: ptBR })}</p>
                       {availableSlots.length === 0 ? (
-                        <div className="text-center py-8 text-white/40">
+                        <div className={`text-center py-8 ${tw.textFaint}`}>
                           <p className="text-sm">Nenhum horário disponível neste dia</p>
                         </div>
                       ) : (
@@ -340,7 +342,7 @@ export default function BookingModal({
                               return (
                                 <button key={t}
                                   onClick={() => setSelected(p => ({ ...p, time: t }))}
-                                  className={`relative py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSel ? 'text-white border-transparent' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'} ${smart && !isSel ? 'ring-1 ring-amber-400/50' : ''}`}
+                                  className={`relative py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSel ? 'text-white border-transparent' : `${tw.card} ${tw.textMuted}`} ${smart && !isSel ? 'ring-1 ring-amber-400/50' : ''}`}
                                   style={{ backgroundColor: isSel ? primaryColor : undefined }}
                                 >
                                   {t}
@@ -363,7 +365,7 @@ export default function BookingModal({
                   )}
 
                   {!selected.date && (
-                    <div className="text-center py-6 text-white/30 text-sm">
+                    <div className={`text-center py-6 ${tw.textFaint} text-sm`}>
                       Selecione uma data acima
                     </div>
                   )}
@@ -374,15 +376,15 @@ export default function BookingModal({
               {step === 3 && (
                 <div className="space-y-4">
                   {/* Resumo */}
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2.5">
-                    <Row label="Cliente" value={loggedCustomer?.name || '—'} />
-                    <Row label="WhatsApp" value={loggedCustomer?.phone || '—'} />
-                    <Row label="Serviço" value={selected.service?.name} />
-                    <Row label="Profissional" value={selected.professional?.name} />
-                    <Row label="Data e hora" value={`${selected.date ? format(selected.date, "d 'de' MMM", { locale: ptBR }) : ''} às ${selected.time}`} />
-                    <div className="flex justify-between items-center pt-2 border-t border-white/10">
-                      <span className="text-white/50 text-sm">Valor</span>
-                      <span className="text-emerald-400 font-black text-lg">R$ {selected.service?.price?.toFixed(2)}</span>
+                  <div className={`${tw.card} rounded-2xl p-4 space-y-2.5`}>
+                    <Row label="Cliente" value={loggedCustomer?.name || '—'} tw={tw} />
+                    <Row label="WhatsApp" value={loggedCustomer?.phone || '—'} tw={tw} />
+                    <Row label="Serviço" value={selected.service?.name} tw={tw} />
+                    <Row label="Profissional" value={selected.professional?.name} tw={tw} />
+                    <Row label="Data e hora" value={`${selected.date ? format(selected.date, "d 'de' MMM", { locale: ptBR }) : ''} às ${selected.time}`} tw={tw} />
+                    <div className={`flex justify-between items-center pt-2 border-t ${tw.divider}`}>
+                      <span className={`${tw.textMuted} text-sm`}>Valor</span>
+                      <span className="text-emerald-500 font-black text-lg">R$ {selected.service?.price?.toFixed(2)}</span>
                     </div>
                   </div>
 
@@ -413,10 +415,10 @@ export default function BookingModal({
                   )}
 
                   <div>
-                    <label className="text-xs font-semibold text-white/50 block mb-1">Observações (opcional)</label>
+                    <label className={`text-xs font-semibold ${tw.textMuted} block mb-1`}>Observações (opcional)</label>
                     <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
                       placeholder="Preferências ou informações adicionais"
-                      className="w-full px-4 py-3 border border-white/10 rounded-xl text-sm bg-white/5 text-white placeholder-white/30 resize-none" />
+                      className={`w-full px-4 py-3 border ${tw.divider} rounded-xl text-sm ${tw.card} ${tw.text} resize-none`} />
                   </div>
 
                   <BookingConsentBlock companyId={company.id} customerId={loggedCustomer?.id} customerToken={customerToken} />
@@ -456,11 +458,11 @@ export default function BookingModal({
   );
 }
 
-function Row({ label, value }) {
+function Row({ label, value, tw }) {
   return (
     <div className="flex justify-between items-center">
-      <span className="text-white/50 text-sm">{label}</span>
-      <span className="text-white font-semibold text-sm truncate ml-2 max-w-[60%] text-right">{value}</span>
+      <span className={`${tw?.textMuted || 'text-white/50'} text-sm`}>{label}</span>
+      <span className={`${tw?.text || 'text-white'} font-semibold text-sm truncate ml-2 max-w-[60%] text-right`}>{value}</span>
     </div>
   );
 }
