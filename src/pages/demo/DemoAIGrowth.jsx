@@ -1,19 +1,20 @@
 /**
- * DemoAIGrowth — Réplica exata do AppAIGrowth com dados demo.
- * Mesmos insights, mesmos cards, mesmas mensagens sugeridas.
+ * DemoAIGrowth — Cópia EXATA do AppAIGrowth com dados demo.
+ * Apenas AppLayout → DemoLayout e dados reais → demoData.
+ * Mesma lógica de insights: inactiveCustomers, vipInactive, weakHours, unsoldServices.
  */
 import DemoLayout from '@/components/layout/DemoLayout.jsx';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Zap, Copy, AlertCircle, TrendingUp, Star, CheckCircle, Sparkles } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import { demoCustomers, demoAppointments, demoServices } from '@/lib/demoData';
-import { toast } from 'sonner';
 
 export default function DemoAIGrowth() {
   const [copied, setCopied] = useState(null);
   const now = new Date();
 
+  // Mesma lógica exata do AppAIGrowth
   const inactiveCustomers = demoCustomers.filter(c => {
     if (!c.last_appointment_at) return false;
     return differenceInDays(now, new Date(c.last_appointment_at)) > 30;
@@ -24,6 +25,23 @@ export default function DemoAIGrowth() {
     if (!c.last_appointment_at) return false;
     return differenceInDays(now, new Date(c.last_appointment_at)) > 21;
   });
+
+  const hourCounts = {};
+  demoAppointments.filter(a => {
+    const d = new Date(a.scheduled_at);
+    return d >= startOfMonth(subMonths(now, 1)) && d <= endOfMonth(subMonths(now, 1));
+  }).forEach(a => {
+    const h = new Date(a.scheduled_at).getHours();
+    hourCounts[h] = (hourCounts[h] || 0) + 1;
+  });
+  const weakHours = Object.entries(hourCounts).filter(([, v]) => v < 2).map(([h]) => `${h}:00`);
+
+  const thisMonthAppts = demoAppointments.filter(a => {
+    const d = new Date(a.scheduled_at);
+    return d >= startOfMonth(now) && d <= endOfMonth(now);
+  });
+  const soldServiceIds = new Set(thisMonthAppts.map(a => a.service_id));
+  const unsoldServices = demoServices.filter(s => s.active && !soldServiceIds.has(s.id));
 
   const companyName = 'Studio 47';
 
@@ -37,7 +55,7 @@ export default function DemoAIGrowth() {
       icon: Star,
       iconColor: 'text-yellow-500',
       iconBg: 'bg-yellow-50',
-      message: `Olá [Nome]! 🌟 Aqui é do ${companyName}. Seu espaço preferido está esperando por você! Temos horários disponíveis essa semana — é só confirmar. Sua satisfação é nossa prioridade! ✂️`,
+      message: `Olá [Nome]! 🌟 Aqui é do ${companyName}. Seu espaço preferido está esperando por você! Temos horários disponíveis essa semana — é só confirmar aqui ou me chamar no WhatsApp. Sua satisfação é nossa prioridade! ✂️`,
     }] : []),
     ...(inactiveCustomers.length > 0 ? [{
       id: 'inactive',
@@ -48,36 +66,35 @@ export default function DemoAIGrowth() {
       icon: AlertCircle,
       iconColor: 'text-orange-500',
       iconBg: 'bg-orange-50',
-      message: `Oi [Nome]! Já faz um tempinho que não te vemos no ${companyName}. 😄 Que tal garantir seu horário essa semana? A agenda está aberta e te esperamos! Bora agendar? ✂️`,
+      message: `Oi [Nome]! Já faz um tempinho que não te vemos aqui. 😄 Que tal garantir seu horário essa semana? A agenda está aberta e te esperamos! Bora agendar? ✂️`,
     }] : []),
-    {
+    ...(weakHours.length > 0 ? [{
       id: 'weak_hours',
-      title: 'Horários com pouca demanda: 13:00, 14:00',
+      title: `Horários com pouca demanda: ${weakHours.slice(0, 3).join(', ')}`,
       description: 'Esses horários tiveram menos de 2 agendamentos no mês passado. Considere promoções para preencher a agenda.',
       priority: 'media',
-      count: 2,
+      count: weakHours.length,
       icon: TrendingUp,
       iconColor: 'text-blue-500',
       iconBg: 'bg-blue-50',
-      message: `Ei, [Nome]! 🕐 Que tal aproveitar um horário especial? Estamos com disponibilidade às 13h e 14h com condição diferenciada. Me chama pra agendar! ✂️`,
-    },
-    {
-      id: 'upsell',
-      title: 'Hidratação vendida apenas 2x este mês',
-      description: 'Serviço tem boa margem mas baixa demanda. Experimente oferecer como combo com corte.',
+      message: `Ei, [Nome]! 🕐 Que tal aproveitar um horário especial? Estamos com disponibilidade em ${weakHours.slice(0, 2).join(' e ')} com condição diferenciada. Me chama pra agendar! ✂️`,
+    }] : []),
+    ...(unsoldServices.length > 0 ? [{
+      id: 'unsold',
+      title: `${unsoldServices.length} serviço${unsoldServices.length > 1 ? 's' : ''} sem agendamento este mês`,
+      description: `Serviço${unsoldServices.length > 1 ? 's' : ''} ativo${unsoldServices.length > 1 ? 's' : ''} sem nenhum agendamento no mês atual: ${unsoldServices.slice(0, 2).map(s => s.name).join(', ')}`,
       priority: 'media',
-      count: 2,
+      count: unsoldServices.length,
       icon: Zap,
       iconColor: 'text-purple-500',
       iconBg: 'bg-purple-50',
-      message: `Dica ${companyName}: que tal incluir nossa hidratação no seu próximo corte? 20 min extras que fazem toda a diferença! ✂️`,
-    },
+      message: `Oi [Nome]! 💈 Você já conheceu nosso ${unsoldServices[0]?.name}? É um dos favoritos da casa e temos horários disponíveis essa semana. Me chama pra marcar!`,
+    }] : []),
   ];
 
   const handleCopy = (id, msg) => {
     navigator.clipboard.writeText(msg).then(() => {
       setCopied(id);
-      toast.success('Mensagem copiada!');
       setTimeout(() => setCopied(null), 2500);
     });
   };
@@ -87,43 +104,55 @@ export default function DemoAIGrowth() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
         <AppPageHeader
           title="AI Growth Engine"
-          subtitle="Insights automáticos baseados nos dados da sua barbearia"
+          subtitle="Insights automáticos baseados nos dados reais da sua barbearia"
           icon={Sparkles}
         />
 
-        <div className="grid gap-5">
-          {insights.map(insight => (
-            <div key={insight.id} className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all duration-200">
-              <div className="flex items-start gap-4 mb-5">
-                <div className={`w-11 h-11 ${insight.iconBg} ring-1 ring-black/5 rounded-xl flex items-center justify-center flex-shrink-0`}>
-                  <insight.icon className={`w-5 h-5 ${insight.iconColor}`} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-bold text-[#111827]">{insight.title}</h3>
-                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${insight.priority === 'alta' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
-                      {insight.priority === 'alta' ? '🔴 Alta' : '🟡 Média'}
-                    </span>
+        {insights.length > 0 ? (
+          <div className="grid gap-5">
+            {insights.map(insight => (
+              <div key={insight.id} className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all duration-200">
+                <div className="flex items-start gap-4 mb-5">
+                  <div className={`w-11 h-11 ${insight.iconBg} ring-1 ring-black/5 rounded-xl flex items-center justify-center flex-shrink-0`}>
+                    <insight.icon className={`w-5 h-5 ${insight.iconColor}`} />
                   </div>
-                  <p className="text-sm text-[#6B7280]">{insight.description}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="font-bold text-[#111827]">{insight.title}</h3>
+                      <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${insight.priority === 'alta' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
+                        {insight.priority === 'alta' ? '🔴 Alta' : '🟡 Média'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#6B7280]">{insight.description}</p>
+                  </div>
+                  <div className="text-2xl font-black text-[#2563EB] flex-shrink-0 tracking-tight">{insight.count}</div>
                 </div>
-                <div className="text-2xl font-black text-[#2563EB] flex-shrink-0 tracking-tight">{insight.count}</div>
+                <div className="bg-[#FAFBFC] rounded-xl p-4 border border-black/5">
+                  <div className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-2">💬 Mensagem sugerida para WhatsApp</div>
+                  <p className="text-sm text-gray-700 italic mb-3">"{insight.message}"</p>
+                  <button
+                    onClick={() => handleCopy(insight.id, insight.message)}
+                    className={`flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl transition-all ${copied === insight.id ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8] shadow-[0_4px_12px_rgba(37,99,235,0.25)]'}`}
+                  >
+                    {copied === insight.id
+                      ? <><CheckCircle className="w-3.5 h-3.5" />Copiado!</>
+                      : <><Copy className="w-3.5 h-3.5" />Copiar mensagem</>}
+                  </button>
+                </div>
               </div>
-              <div className="bg-[#FAFBFC] rounded-xl p-4 border border-black/5">
-                <div className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-2">💬 Mensagem sugerida para WhatsApp</div>
-                <p className="text-sm text-gray-700 italic mb-3">"{insight.message}"</p>
-                <button
-                  onClick={() => handleCopy(insight.id, insight.message)}
-                  className={`flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl transition-all ${copied === insight.id ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8] shadow-[0_4px_12px_rgba(37,99,235,0.25)]'}`}
-                >
-                  {copied === insight.id
-                    ? <><CheckCircle className="w-3.5 h-3.5" />Copiado!</>
-                    : <><Copy className="w-3.5 h-3.5" />Copiar mensagem</>}
-                </button>
-              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-black/5 p-16 text-center shadow-[var(--shadow-sm)]">
+            <div className="w-14 h-14 bg-emerald-50 ring-1 ring-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-7 h-7 text-emerald-600" />
             </div>
-          ))}
-        </div>
+            <h3 className="font-bold text-[#111827] mb-2">Tudo certo por enquanto!</h3>
+            <p className="text-[#6B7280] text-sm max-w-sm mx-auto">
+              Nenhum alerta crítico no momento. Continue registrando atendimentos para análises mais precisas.
+            </p>
+          </div>
+        )}
       </div>
     </DemoLayout>
   );

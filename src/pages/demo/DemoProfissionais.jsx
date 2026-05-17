@@ -1,22 +1,23 @@
 /**
- * DemoProfissionais — Réplica exata do AppProfissionais com dados demo.
- * Usa os mesmos componentes e layout. Mutations temporárias em memória.
+ * DemoProfissionais — Cópia EXATA do AppProfissionais com dados demo.
+ * Apenas AppLayout → DemoLayout e dados reais → demoData.
  */
 import DemoLayout from '@/components/layout/DemoLayout.jsx';
-import { demoProfessionals, demoServices } from '@/lib/demoData';
 import { useState } from 'react';
-import { Scissors, Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Scissors, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
+import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
+import { demoProfessionals, demoServices } from '@/lib/demoData';
 
 const DAYS = [
   { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
   { key: 'qui', label: 'Qui' }, { key: 'sex', label: 'Sex' }, { key: 'sab', label: 'Sáb' }, { key: 'dom', label: 'Dom' },
 ];
 const defaultSchedule = Object.fromEntries(DAYS.map(d => [d.key, { open: '09:00', close: '18:00', active: d.key !== 'dom' }]));
-const emptyForm = { name: '', specialty: '', photo_url: '', active: true, work_schedule: defaultSchedule, service_ids: [], commission_type: 'percent', commission_value: 0 };
+const emptyForm = { name: '', specialty: '', photo_url: '', active: true, work_schedule: defaultSchedule, service_ids: [], unit_ids: [], commission_type: 'percent', commission_value: 0 };
 
 export default function DemoProfissionais() {
   const [professionals, setProfessionals] = useState(demoProfessionals);
@@ -25,17 +26,19 @@ export default function DemoProfissionais() {
   const [form, setForm] = useState(emptyForm);
   const [tab, setTab] = useState('info');
 
-  const demo = (msg = 'Ação') =>
-    toast.info(`${msg} disponível na conta real. Crie sua conta grátis!`, { duration: 2500 });
-
   const closeForm = () => { setShowForm(false); setEditing(null); setForm(emptyForm); setTab('info'); };
 
   const openEdit = (p) => {
     setEditing(p);
     setForm({
-      name: p.name, specialty: p.specialty || '', photo_url: p.photo_url || '',
-      active: p.active, work_schedule: p.work_schedule || defaultSchedule,
-      service_ids: p.service_ids || [], commission_type: p.commission_type || 'percent',
+      name: p.name,
+      specialty: p.specialty || '',
+      photo_url: p.photo_url || '',
+      active: p.active,
+      work_schedule: p.work_schedule || defaultSchedule,
+      service_ids: p.service_ids || [],
+      unit_ids: p.unit_ids || [],
+      commission_type: p.commission_type || 'percent',
       commission_value: p.commission_value || 0,
     });
     setShowForm(true);
@@ -52,6 +55,16 @@ export default function DemoProfissionais() {
     closeForm();
   };
 
+  const handleDelete = (id) => {
+    if (confirm('Excluir profissional?')) {
+      setProfessionals(prev => prev.filter(p => p.id !== id));
+    }
+  };
+
+  const setSchedule = (day, field, val) => {
+    setForm(p => ({ ...p, work_schedule: { ...p.work_schedule, [day]: { ...p.work_schedule[day], [field]: val } } }));
+  };
+
   const toggleService = (sid) => {
     setForm(p => ({
       ...p,
@@ -59,56 +72,60 @@ export default function DemoProfissionais() {
     }));
   };
 
-  const setSchedule = (day, field, val) => {
-    setForm(p => ({ ...p, work_schedule: { ...p.work_schedule, [day]: { ...p.work_schedule[day], [field]: val } } }));
-  };
-
   return (
     <DemoLayout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
         <AppPageHeader
           title="Profissionais"
-          subtitle={`${professionals.length} profissionais cadastrados`}
+          subtitle={`${professionals.length} ${professionals.length === 1 ? 'profissional' : 'profissionais'} cadastrados`}
           icon={Scissors}
         >
           <PrimaryButton onClick={() => setShowForm(true)}>Novo profissional</PrimaryButton>
         </AppPageHeader>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {professionals.map(pro => (
-            <div key={pro.id} className={`bg-white rounded-2xl border p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200 ${pro.active ? 'border-black/5' : 'border-black/5 opacity-60'}`}>
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  {pro.photo_url ? (
-                    <img src={pro.photo_url} alt={pro.name} className="w-12 h-12 rounded-xl object-cover ring-2 ring-white shadow-sm" />
-                  ) : (
-                    <div className="w-12 h-12 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-xl flex items-center justify-center shadow-sm">
-                      <Scissors className="w-5 h-5 text-white" />
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-bold text-[#111827]">{pro.name}</h3>
-                    <p className="text-xs text-[#6B7280]">{pro.specialty || 'Barbeiro'}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className={`w-2 h-2 rounded-full ${pro.active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                      <span className="text-xs text-[#6B7280]">{pro.active ? 'Ativo' : 'Inativo'}</span>
+        {professionals.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-black/5 p-16 text-center text-[#6B7280] shadow-[var(--shadow-sm)]">
+            <Scissors className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm mb-3">Nenhum profissional cadastrado</p>
+            <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] hover:underline">Adicionar primeiro profissional</button>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {professionals.map(pro => (
+              <div key={pro.id} className={`bg-white rounded-2xl border p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200 ${pro.active ? 'border-black/5' : 'border-black/5 opacity-60'}`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {pro.photo_url ? (
+                      <img src={pro.photo_url} alt={pro.name} className="w-12 h-12 rounded-xl object-cover ring-2 ring-white shadow-sm" />
+                    ) : (
+                      <div className="w-12 h-12 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-xl flex items-center justify-center shadow-sm">
+                        <Scissors className="w-5 h-5 text-white" />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-bold text-[#111827]">{pro.name}</h3>
+                      <p className="text-xs text-[#6B7280]">{pro.specialty || 'Barbeiro'}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <div className={`w-2 h-2 rounded-full ${pro.active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                        <span className="text-xs text-[#6B7280]">{pro.active ? 'Ativo' : 'Inativo'}</span>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => openEdit(pro)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
+                    <button onClick={() => handleDelete(pro.id)} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button onClick={() => openEdit(pro)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
-                  <button onClick={() => demo('Excluir profissional')} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
-                </div>
+                {pro.service_ids && pro.service_ids.length > 0 && (
+                  <div className="text-xs text-[#6B7280]">{pro.service_ids.length} serviços vinculados</div>
+                )}
+                {pro.commission_value > 0 && (
+                  <div className="text-xs text-[#6B7280] mt-1">Comissão: {pro.commission_value}{pro.commission_type === 'percent' ? '%' : ' R$'}</div>
+                )}
               </div>
-              {pro.service_ids && pro.service_ids.length > 0 && (
-                <div className="text-xs text-[#6B7280]">{pro.service_ids.length} serviços vinculados</div>
-              )}
-              {pro.commission_value > 0 && (
-                <div className="text-xs text-[#6B7280] mt-1">Comissão: {pro.commission_value}{pro.commission_type === 'percent' ? '%' : ' R$'}</div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <StandardModal
           open={showForm}
@@ -127,7 +144,11 @@ export default function DemoProfissionais() {
         >
           <div>
             <div className="flex border-b border-black/8 -mx-6 mb-4">
-              {[{ id: 'info', label: 'Dados' }, { id: 'schedule', label: 'Horários' }, { id: 'services', label: 'Serviços' }].map(t => (
+              {[
+                { id: 'info', label: 'Dados' },
+                { id: 'schedule', label: 'Horários' },
+                { id: 'services', label: 'Serviços' },
+              ].map(t => (
                 <button key={t.id} onClick={() => setTab(t.id)}
                   className={`flex-1 py-2.5 text-sm font-medium transition-all ${tab === t.id ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-gray-400 hover:text-gray-600'}`}>
                   {t.label}
@@ -151,11 +172,11 @@ export default function DemoProfissionais() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Tipo comissão</label>
-                    <select value={form.commission_type} onChange={e => setForm(p => ({ ...p, commission_type: e.target.value }))}
+                    <MobileSelect value={form.commission_type} onChange={v => setForm(p => ({ ...p, commission_type: v }))}
                       className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none">
                       <option value="percent">Porcentagem (%)</option>
                       <option value="fixed">Valor fixo (R$)</option>
-                    </select>
+                    </MobileSelect>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Valor</label>
@@ -184,10 +205,10 @@ export default function DemoProfissionais() {
                       {h.active ? (
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
                           <input type="time" value={h.open} onChange={e => setSchedule(key, 'open', e.target.value)}
-                            className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm" />
+                            className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                           <span className="text-gray-400 text-xs flex-shrink-0">até</span>
                           <input type="time" value={h.close} onChange={e => setSchedule(key, 'close', e.target.value)}
-                            className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm" />
+                            className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
                         </div>
                       ) : (
                         <span className="text-xs text-gray-400 flex-1">Folga</span>

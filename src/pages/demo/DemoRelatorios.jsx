@@ -1,6 +1,6 @@
 /**
- * DemoRelatorios — Réplica exata do AppRelatorios com dados demo.
- * Mesmos gráficos, mesmos KPIs, mesma estrutura visual.
+ * DemoRelatorios — Cópia EXATA do AppRelatorios com dados demo.
+ * Apenas AppLayout → DemoLayout e dados reais → demoData.
  */
 import DemoLayout from '@/components/layout/DemoLayout.jsx';
 import { useState, useMemo } from 'react';
@@ -15,16 +15,12 @@ const COLORS = ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'];
 
 export default function DemoRelatorios() {
   const [period, setPeriod] = useState('this_month');
-
   const now = new Date();
 
   const filterByPeriod = (item, dateField = 'scheduled_at') => {
     const d = new Date(item[dateField]);
     if (period === 'this_month') return d >= startOfMonth(now) && d <= endOfMonth(now);
-    if (period === 'last_month') {
-      const lm = subMonths(now, 1);
-      return d >= startOfMonth(lm) && d <= endOfMonth(lm);
-    }
+    if (period === 'last_month') { const lm = subMonths(now, 1); return d >= startOfMonth(lm) && d <= endOfMonth(lm); }
     return true;
   };
 
@@ -36,38 +32,38 @@ export default function DemoRelatorios() {
   const apptRevenue = completedAppts.reduce((s, a) => s + (a.price || 0), 0);
   const effectiveRevenue = totalRevenue || apptRevenue;
   const avgTicket = completedAppts.length > 0 ? effectiveRevenue / completedAppts.length : 0;
-  const cancelledRate = periodAppts.length > 0
-    ? ((periodAppts.filter(a => a.status === 'cancelado').length / periodAppts.length) * 100).toFixed(0)
-    : 0;
+  const cancelledRate = periodAppts.length > 0 ? ((periodAppts.filter(a => a.status === 'cancelado').length / periodAppts.length) * 100).toFixed(0) : 0;
 
   const serviceData = useMemo(() => {
-    const map = {};
+    const serviceMap = {};
     completedAppts.forEach(a => {
       if (!a.service_name) return;
-      map[a.service_name] = (map[a.service_name] || 0) + 1;
+      serviceMap[a.service_name] = (serviceMap[a.service_name] || 0) + 1;
     });
-    return Object.entries(map).map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total).slice(0, 6);
+    return Object.entries(serviceMap).map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total).slice(0, 6);
   }, [completedAppts]);
 
   const proData = useMemo(() => {
-    const map = {};
+    const proMap = {};
     completedAppts.forEach(a => {
       if (!a.professional_name) return;
-      map[a.professional_name] = (map[a.professional_name] || 0) + 1;
+      proMap[a.professional_name] = (proMap[a.professional_name] || 0) + 1;
     });
-    return Object.entries(map).map(([name, atendimentos]) => ({ name, atendimentos })).sort((a, b) => b.atendimentos - a.atendimentos);
+    return Object.entries(proMap).map(([name, atendimentos]) => ({ name, atendimentos })).sort((a, b) => b.atendimentos - a.atendimentos);
   }, [completedAppts]);
 
-  const customerMap = {};
-  completedAppts.forEach(a => { if (a.customer_id) customerMap[a.customer_id] = (customerMap[a.customer_id] || 0) + 1; });
-  const recurringCount = Object.values(customerMap).filter(v => v >= 2).length;
+  const recurringCount = useMemo(() => {
+    const customerMap = {};
+    completedAppts.forEach(a => { if (a.customer_id) customerMap[a.customer_id] = (customerMap[a.customer_id] || 0) + 1; });
+    return Object.values(customerMap).filter(v => v >= 2).length;
+  }, [completedAppts]);
 
   return (
     <DemoLayout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
         <AppPageHeader
           title="Relatórios"
-          subtitle="Análise da operação Studio 47"
+          subtitle="Dados reais da sua operação"
           icon={BarChart2}
         >
           <FilterSelect value={period} onChange={setPeriod} aria-label="Período">
