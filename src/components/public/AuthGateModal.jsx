@@ -75,9 +75,9 @@ export default function AuthGateModal({
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
+            <div className="w-full max-w-sm bg-[#1a1a2e] rounded-3xl shadow-2xl overflow-hidden border border-white/10">
               {/* Header */}
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-6 flex items-center justify-between gap-4 border-b border-blue-200">
+              <div className="px-6 py-5 flex items-center justify-between gap-4 border-b border-white/10">
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0"
@@ -86,15 +86,15 @@ export default function AuthGateModal({
                     <Lock className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-gray-600">Acesso seguro</div>
-                    <div className="text-sm font-black text-gray-900 truncate">{companyName}</div>
+                    <div className="text-xs font-semibold text-white/50">Acesso seguro</div>
+                    <div className="text-sm font-black text-white truncate">{companyName}</div>
                   </div>
                 </div>
                 <button
                   onClick={onClose}
-                  className="flex-shrink-0 p-2 hover:bg-white/50 rounded-lg transition-colors"
+                  className="flex-shrink-0 p-2 hover:bg-white/10 rounded-lg transition-colors"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-white/60" />
                 </button>
               </div>
 
@@ -138,8 +138,8 @@ export default function AuthGateModal({
               </div>
 
               {/* Footer — dica de segurança */}
-              <div className="bg-blue-50 border-t border-blue-200 px-6 py-4 text-center">
-                <p className="text-[11px] text-gray-500">
+              <div className="border-t border-white/10 px-6 py-4 text-center">
+                <p className="text-[11px] text-white/30">
                   🔒 Seus dados estão protegidos com encriptação SSL
                 </p>
               </div>

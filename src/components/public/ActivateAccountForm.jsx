@@ -2,12 +2,7 @@ import { useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
-export default function ActivateAccountForm({
-  companyId,
-  onSuccess,
-  onGoToLogin,
-  primaryColor = '#2563EB',
-}) {
+export default function ActivateAccountForm({ companyId, onSuccess, onGoToLogin, primaryColor = '#2563EB' }) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -25,18 +20,8 @@ export default function ActivateAccountForm({
       setLoading(false);
       return;
     }
-
-    if (password !== passwordConfirm) {
-      setError('As senhas não coincidem');
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Senha deve ter no mínimo 8 caracteres');
-      setLoading(false);
-      return;
-    }
+    if (password !== passwordConfirm) { setError('As senhas não coincidem'); setLoading(false); return; }
+    if (password.length < 8) { setError('Senha deve ter no mínimo 8 caracteres'); setLoading(false); return; }
 
     try {
       const response = await base44.functions.invoke('customerAuth', {
@@ -49,7 +34,6 @@ export default function ActivateAccountForm({
       });
 
       if (response.data?.success) {
-        // Persistir sessão usando a mesma chave do useCustomerAuth
         localStorage.setItem(`bt_customer_token_${companyId}`, response.data.token);
         onSuccess(response.data.customer_id, response.data.token);
       } else {
@@ -62,85 +46,56 @@ export default function ActivateAccountForm({
     }
   };
 
+  const inputClass = "w-full px-4 py-3 border border-white/10 rounded-xl text-sm bg-white/5 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30";
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
-        <p className="text-sm text-gray-600 mb-4">
-          Parece que você tem um histórico de agendamentos conosco! Ative sua conta agora com a mesma informação de contato.
+        <h3 className="text-lg font-black text-white mb-1">Ativar conta</h3>
+        <p className="text-sm text-white/40">
+          Você tem um histórico de agendamentos conosco! Ative sua conta agora.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">E-mail</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="seu@email.com"
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-            disabled={loading}
-          />
+          <label className="block text-xs font-semibold text-white/50 mb-2">E-mail</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="seu@email.com" className={inputClass} disabled={loading} />
         </div>
-
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Telefone (com WhatsApp)</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="(11) 98765-4321"
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-            disabled={loading}
-          />
+          <label className="block text-xs font-semibold text-white/50 mb-2">Telefone (com WhatsApp)</label>
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+            placeholder="(11) 98765-4321" className={inputClass} disabled={loading} />
         </div>
-
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Criar Senha</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-            disabled={loading}
-          />
+          <label className="block text-xs font-semibold text-white/50 mb-2">Criar Senha</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••" className={inputClass} disabled={loading} />
         </div>
-
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Confirmar Senha</label>
-          <input
-            type="password"
-            value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
-            placeholder="••••••••"
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-            disabled={loading}
-          />
+          <label className="block text-xs font-semibold text-white/50 mb-2">Confirmar Senha</label>
+          <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)}
+            placeholder="••••••••" className={inputClass} disabled={loading} />
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+          <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 p-3 rounded-lg">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {error}
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full text-white font-semibold py-2.5 rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          style={{ backgroundColor: primaryColor }}
-        >
+        <button type="submit" disabled={loading}
+          className="w-full text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          style={{ backgroundColor: primaryColor }}>
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
           {loading ? 'Ativando...' : 'Ativar Conta'}
         </button>
       </form>
 
-      <button
-        onClick={onGoToLogin}
-        className="w-full text-sm text-gray-600 hover:text-gray-900 font-medium py-2"
-      >
+      <button onClick={onGoToLogin}
+        className="w-full text-sm text-white/40 hover:text-white/70 font-medium py-2 transition-colors">
         Voltar ao login
       </button>
     </div>
