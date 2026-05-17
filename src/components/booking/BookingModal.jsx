@@ -126,7 +126,7 @@ export default function BookingModal({
       source: 'online',
       is_flexible_assignment: isAny,
       scope_customer_by_unit: scopeCustomerByUnit,
-      ...(isAuthenticatedCustomer && loggedCustomer?.id ? { existing_customer_id: loggedCustomer.id } : {}),
+      ...(isAuthenticatedCustomer && loggedCustomer?.id ? { customer_id: loggedCustomer.id } : {}),
     };
   };
 
