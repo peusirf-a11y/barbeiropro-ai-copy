@@ -1,35 +1,37 @@
 /**
- * DemoClientes — Usa os mesmos componentes visuais do AppClientes.
- * Busca, filtros, tabela e status idênticos ao app real.
+ * DemoClientes — Réplica exata do AppClientes com dados demo.
+ * Mesma tabela, mesmos filtros, mesmas badges.
  */
-import DemoLayout from '@/components/layout/DemoLayout';
+import DemoLayout from '@/components/layout/DemoLayout.jsx';
 import { demoCustomers } from '@/lib/demoData';
-import { Search, Star, Plus } from 'lucide-react';
+import { Search, Star, Users } from 'lucide-react';
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
 
 const statusBadge = {
-  active: { label: 'Ativo',   color: 'bg-green-100 text-green-700' },
-  inactive:{ label: 'Inativo', color: 'bg-red-100 text-red-600' },
-  vip:    { label: 'VIP',     color: 'bg-yellow-100 text-yellow-700' },
+  active:   { label: 'Ativo',   color: 'bg-green-100 text-green-700' },
+  inactive: { label: 'Inativo', color: 'bg-red-100 text-red-600' },
+  vip:      { label: 'VIP',     color: 'bg-yellow-100 text-yellow-700' },
 };
 
 const lifecycleBadge = {
-  primeira_visita: { label: '1ª Visita',  color: 'bg-blue-100 text-blue-700' },
-  fiel:            { label: 'Fiel',        color: 'bg-green-100 text-green-700' },
-  em_risco:        { label: 'Em risco',    color: 'bg-orange-100 text-orange-700' },
-  inativo:         { label: 'Inativo',     color: 'bg-gray-100 text-gray-600' },
-  perdido:         { label: 'Perdido',     color: 'bg-red-100 text-red-600' },
+  primeira_visita: { label: '1ª Visita', color: 'bg-blue-100 text-blue-700' },
+  fiel:            { label: 'Fiel',       color: 'bg-green-100 text-green-700' },
+  em_risco:        { label: 'Em risco',   color: 'bg-orange-100 text-orange-700' },
+  inativo:         { label: 'Inativo',    color: 'bg-gray-100 text-gray-600' },
+  perdido:         { label: 'Perdido',    color: 'bg-red-100 text-red-600' },
 };
 
 export default function DemoClientes() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
 
-  const handleDemoAction = () =>
-    toast.info('Ação disponível na conta real. Crie sua conta grátis!', { duration: 3000 });
+  const demo = () =>
+    toast.info('Ação disponível na conta real. Crie sua conta grátis!', { duration: 2500 });
 
   const filtered = demoCustomers.filter(c => {
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -41,19 +43,14 @@ export default function DemoClientes() {
 
   return (
     <DemoLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Clientes</h1>
-            <p className="text-gray-500 text-sm mt-1">{demoCustomers.length} clientes cadastrados</p>
-          </div>
-          <button
-            onClick={handleDemoAction}
-            className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1d4ed8] transition-colors flex items-center gap-2 shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
-          >
-            <Plus className="w-4 h-4" />Novo cliente
-          </button>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Clientes"
+          subtitle={`${demoCustomers.length} clientes cadastrados`}
+          icon={Users}
+        >
+          <PrimaryButton onClick={demo}>Novo cliente</PrimaryButton>
+        </AppPageHeader>
 
         {/* Filtros */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
@@ -109,7 +106,7 @@ export default function DemoClientes() {
                   <tr
                     key={c.id}
                     className="border-b border-black/5 hover:bg-[#FAFBFC] transition-colors cursor-pointer"
-                    onClick={handleDemoAction}
+                    onClick={demo}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">

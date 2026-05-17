@@ -14,6 +14,7 @@ import ProfessionalRanking from '@/components/dashboard/ProfessionalRanking';
 import QuickActions from '@/components/dashboard/QuickActions';
 import InsightsCard from '@/components/dashboard/InsightsCard';
 import TodayAgendaList from '@/components/dashboard/TodayAgendaList';
+import { toast } from 'sonner';
 
 import {
   demoCompany,

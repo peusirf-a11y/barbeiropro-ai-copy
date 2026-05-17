@@ -1,15 +1,18 @@
 /**
- * DemoFinanceiro — Usa RevenueChart e tabela de lançamentos idênticos ao AppFinanceiro.
+ * DemoFinanceiro — Réplica exata do AppFinanceiro com dados demo.
+ * Mesmos KPIs, mesmo gráfico RevenueChart, mesma tabela de lançamentos.
  */
-import DemoLayout from '@/components/layout/DemoLayout';
+import DemoLayout from '@/components/layout/DemoLayout.jsx';
 import { demoFinancial } from '@/lib/demoData';
-import { TrendingUp, TrendingDown as TrendingDownIcon, DollarSign, Plus, Filter } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Plus, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import KpiCard from '@/components/dashboard/KpiCard';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
 
 const PAYMENT_LABELS = {
   dinheiro: 'Dinheiro',
@@ -22,8 +25,8 @@ const PAYMENT_LABELS = {
 export default function DemoFinanceiro() {
   const [typeFilter, setTypeFilter] = useState('all');
 
-  const handleDemoAction = () =>
-    toast.info('Ação disponível na conta real. Crie sua conta grátis!', { duration: 3000 });
+  const demo = () =>
+    toast.info('Ação disponível na conta real. Crie sua conta grátis!', { duration: 2500 });
 
   const entradas = demoFinancial.filter(f => f.type === 'entrada');
   const saidas = demoFinancial.filter(f => f.type === 'saida');
@@ -37,25 +40,20 @@ export default function DemoFinanceiro() {
 
   return (
     <DemoLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#1B1C1E]">Financeiro</h1>
-            <p className="text-gray-500 text-sm mt-1">Visão do período atual</p>
-          </div>
-          <button
-            onClick={handleDemoAction}
-            className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1d4ed8] transition-colors flex items-center gap-2 shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
-          >
-            <Plus className="w-4 h-4" />Lançamento manual
-          </button>
-        </div>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Financeiro"
+          subtitle="Visão do período atual"
+          icon={DollarSign}
+        >
+          <PrimaryButton onClick={demo}>Lançamento manual</PrimaryButton>
+        </AppPageHeader>
 
         {/* KPI Cards */}
         <div className="grid md:grid-cols-3 gap-4 mb-6">
-          <KpiCard label="Entradas" value={`R$ ${totalEntradas.toFixed(2).replace('.',',')}`} icon={TrendingUp}       tone="green" sub="Receitas do período" />
-          <KpiCard label="Saídas"   value={`R$ ${totalSaidas.toFixed(2).replace('.',',')}`}  icon={TrendingDownIcon} tone="red"   sub="Despesas do período" />
-          <KpiCard label="Saldo"    value={`R$ ${saldo.toFixed(2).replace('.',',')}`}         icon={DollarSign}      tone={saldo >= 0 ? 'green' : 'red'} sub="Resultado líquido" />
+          <KpiCard label="Entradas" value={`R$ ${totalEntradas.toFixed(2).replace('.', ',')}`} icon={TrendingUp}   tone="green" sub="Receitas do período" />
+          <KpiCard label="Saídas"   value={`R$ ${totalSaidas.toFixed(2).replace('.', ',')}`}  icon={TrendingDown} tone="red"   sub="Despesas do período" />
+          <KpiCard label="Saldo"    value={`R$ ${saldo.toFixed(2).replace('.', ',')}`}          icon={DollarSign}  tone={saldo >= 0 ? 'green' : 'red'} sub="Resultado líquido" />
         </div>
 
         {/* Gráfico */}
@@ -85,12 +83,12 @@ export default function DemoFinanceiro() {
               <div
                 key={entry.id}
                 className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#FAFBFC] transition-colors cursor-pointer"
-                onClick={handleDemoAction}
+                onClick={demo}
               >
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${entry.type === 'entrada' ? 'bg-green-100' : 'bg-red-100'}`}>
                   {entry.type === 'entrada'
                     ? <TrendingUp className="w-4 h-4 text-green-600" />
-                    : <TrendingDownIcon className="w-4 h-4 text-red-500" />}
+                    : <TrendingDown className="w-4 h-4 text-red-500" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm text-[#1B1C1E] truncate">{entry.description}</div>

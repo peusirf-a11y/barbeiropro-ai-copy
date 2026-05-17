@@ -4,7 +4,9 @@
  */
 import DemoLayout from '@/components/layout/DemoLayout.jsx';
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar, CalendarDays } from 'lucide-react';
+import AppPageHeader from '@/components/app/AppPageHeader';
+import PrimaryButton from '@/components/app/PrimaryButton';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -47,15 +49,13 @@ export default function DemoAgenda() {
 
   return (
     <DemoLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-          <div>
-            <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">Agendamentos</h1>
-            <p className="text-gray-500 text-sm mt-1 capitalize">
-              {format(currentDate, "EEEE, dd MMM yyyy", { locale: ptBR })}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <AppPageHeader
+          title="Agendamentos"
+          subtitle={format(currentDate, "EEEE, dd MMM yyyy", { locale: ptBR })}
+          icon={CalendarDays}
+        >
+          <div className="flex items-center gap-2 flex-wrap">
             {demoProfessionals.length > 0 && (
               <FilterSelect value={filterPro} onChange={setFilterPro} aria-label="Filtrar por profissional">
                 <option value="all">Todos os profissionais</option>
@@ -64,32 +64,20 @@ export default function DemoAgenda() {
             )}
             <div className="hidden sm:flex items-center bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
               {[10, 15].map(v => (
-                <button
-                  key={v}
-                  onClick={() => setSlotInterval(v)}
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${slotInterval === v ? 'bg-[#2563EB] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
+                <button key={v} onClick={() => setSlotInterval(v)}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${slotInterval === v ? 'bg-[#2563EB] text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                   {v}min
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-1 bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
-              <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
+              <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="p-1.5 hover:bg-gray-100 rounded-lg"><ChevronLeft className="w-4 h-4" /></button>
               <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold px-3 py-1 rounded-lg hover:bg-gray-100">Hoje</button>
-              <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="p-1.5 hover:bg-gray-100 rounded-lg"><ChevronRight className="w-4 h-4" /></button>
             </div>
-            <button
-              onClick={() => handleDemoAction('Criar agendamento')}
-              className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1d4ed8] transition-all flex items-center gap-2 shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
-            >
-              <Plus className="w-4 h-4" />Novo
-            </button>
+            <PrimaryButton onClick={() => handleDemoAction('Criar agendamento')}><Plus className="w-4 h-4" />Novo</PrimaryButton>
           </div>
-        </div>
+        </AppPageHeader>
 
         {/* Seletor de dias */}
         <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
