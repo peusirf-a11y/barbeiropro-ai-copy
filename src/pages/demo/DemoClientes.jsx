@@ -13,7 +13,10 @@ import PrimaryButton from '@/components/app/PrimaryButton';
 import StandardModal from '@/components/ui/standard-modal';
 import FilterSelect from '@/components/ui/filter-select';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
-import { demoCustomers, demoAppointments, demoSubscriptions } from '@/lib/demoData';
+import LifecycleStatusCard from '@/components/clientes/LifecycleStatusCard';
+import WhatsAppButton from '@/components/whatsapp/WhatsAppButton';
+import { demoCustomers, demoAppointments, demoSubscriptions, demoCompany } from '@/lib/demoData';
+import { buildReactivationMessage } from '@/lib/whatsappCompose';
 
 const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
 
@@ -285,9 +288,24 @@ export default function DemoClientes() {
                 <option value="inactive">Inativo manual</option>
               </FilterSelect>
               <p className="text-[11px] text-[#6B7280] mt-1 leading-snug">
-                Marcação manual da equipe. O ciclo de vida é calculado automaticamente.
+                Marcação manual da equipe. Para o ciclo de vida automático, veja o card abaixo.
               </p>
             </div>
+
+            {editing && form.phone && (
+              <div className="flex flex-wrap gap-2">
+                <WhatsAppButton
+                  phone={form.phone}
+                  message={buildReactivationMessage({ company: demoCompany, customer: editing })}
+                  variant="inline"
+                  label="Enviar WhatsApp"
+                  title="Abrir WhatsApp deste cliente"
+                />
+              </div>
+            )}
+
+            {editing && <LifecycleStatusCard customer={editing} />}
+
             <div>
               <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
               <textarea
@@ -298,6 +316,24 @@ export default function DemoClientes() {
                 className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none"
               />
             </div>
+
+            {editing && (
+              <div className="mt-5 pt-5 border-t border-black/5 space-y-4">
+                <div className="bg-[#FAFBFC] rounded-xl p-4 border border-black/5">
+                  <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-2">Assinatura</p>
+                  {subByCustomer[editing.id] ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase bg-blue-100 text-[#2563EB] px-1.5 py-0.5 rounded">
+                        <Package className="w-2.5 h-2.5" /> Assinante ativo
+                      </span>
+                      <span className="text-[#6B7280]">{subByCustomer[editing.id].plan_name || 'Plano ativo'}</span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#6B7280]">Sem assinatura ativa</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </StandardModal>
       </div>
