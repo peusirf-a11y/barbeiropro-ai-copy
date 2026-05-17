@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Shield, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Shield, Loader2, ChevronDown } from 'lucide-react';
 
 const CONSENT_CONFIG = [
   {
@@ -48,6 +48,7 @@ export default function CustomerConsentSection({ companyId, customerId, token })
   const queryClient = useQueryClient();
   const [localState, setLocalState] = useState({});
   const [saving, setSaving] = useState({});
+  const [expanded, setExpanded] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['customer-consents', companyId, customerId],
@@ -106,13 +107,22 @@ export default function CustomerConsentSection({ companyId, customerId, token })
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-4">
-        <Shield className="w-4 h-4 text-gray-400" />
-        <div>
-          <div className="font-bold text-sm text-[#1B1C1E]">Suas preferências de comunicação</div>
-          <div className="text-xs text-gray-400">Revogue a qualquer momento. Algumas comunicações são essenciais ao serviço.</div>
+      <button
+        onClick={() => setExpanded(p => !p)}
+        className="w-full flex items-center justify-between gap-2"
+      >
+        <div className="flex items-center gap-2">
+          <Shield className="w-4 h-4 text-gray-400" />
+          <div className="text-left">
+            <div className="font-bold text-sm text-[#1B1C1E]">Suas preferências de comunicação</div>
+            {!expanded && <div className="text-xs text-gray-400">Toque para gerenciar</div>}
+          </div>
         </div>
-      </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {expanded && <>
+        <div className="text-xs text-gray-400 -mt-1">Revogue a qualquer momento. Algumas comunicações são essenciais ao serviço.</div>
 
       {CONSENT_CONFIG.map(cfg => {
         const isGranted = localState[cfg.type] ?? cfg.default;
@@ -143,6 +153,7 @@ export default function CustomerConsentSection({ companyId, customerId, token })
       <div className="text-[10px] text-gray-400 text-center pt-1">
         Seus consentimentos são registrados com data/hora para sua proteção. · <a href="/politica-de-privacidade" className="underline" target="_blank">Política de Privacidade</a>
       </div>
+      </>}
     </div>
   );
 }
