@@ -273,16 +273,7 @@ export default function PublicBooking() {
           </div>
         </div>
 
-        {/* Botão principal Agendar agora */}
-        {canAcceptPayments && (
-          <button
-            onClick={() => openBooking()}
-            className="w-full py-4 rounded-2xl text-white font-black text-base shadow-lg mt-2 transition-opacity hover:opacity-90"
-            style={{ backgroundColor: primaryColor }}
-          >
-            Agendar agora
-          </button>
-        )}
+
       </div>
 
       {/* ─── TABS ─── */}
