@@ -1,10 +1,10 @@
-// DemoDashboard — espelho visual EXATO de pages/app/AppDashboard.
-// Reutiliza KpiCard, RevenueChart, ProfessionalRanking, InsightsCard,
-// TodayAgendaList e QuickActions. Dados vêm de demoData.
-
+/**
+ * DemoDashboard — Usa EXATAMENTE os mesmos componentes do AppDashboard.
+ * Apenas a fonte dos dados é demo.
+ */
 import DemoLayout from '@/components/layout/DemoLayout.jsx';
 import { useMemo } from 'react';
-import { Calendar, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Calendar, Users, DollarSign, TrendingUp, Repeat } from 'lucide-react';
 import { format, startOfMonth, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -19,6 +19,7 @@ import {
   demoCompany,
   demoAppointments,
   demoFinancial,
+  demoSubscriptions,
 } from '@/lib/demoData';
 
 export default function DemoDashboard() {
@@ -61,6 +62,8 @@ export default function DemoDashboard() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
   }, []);
+
+  const mrr = demoSubscriptions.reduce((s, sub) => s + (sub.plan_price_snapshot || 0), 0);
 
   const alerts = [
     {
@@ -115,7 +118,7 @@ export default function DemoDashboard() {
             value={todayCustomers}
             sub="Hoje"
             icon={Users}
-            tone="violet"
+            tone="blue"
           />
           <KpiCard
             label="Ticket médio"
@@ -123,6 +126,31 @@ export default function DemoDashboard() {
             sub="Mês corrente"
             icon={TrendingUp}
             tone="amber"
+          />
+        </div>
+
+        {/* KPIs de Assinaturas */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mb-6">
+          <KpiCard
+            label="Assinantes ativos"
+            value={demoSubscriptions.length}
+            sub="Todos em dia"
+            icon={Repeat}
+            tone="green"
+          />
+          <KpiCard
+            label="MRR"
+            value={`R$ ${mrr.toFixed(2).replace('.', ',')}`}
+            sub="Receita recorrente mensal"
+            icon={TrendingUp}
+            tone="blue"
+          />
+          <KpiCard
+            label="ARR projetado"
+            value={`R$ ${(mrr * 12).toFixed(2).replace('.', ',')}`}
+            sub="MRR × 12 meses"
+            icon={DollarSign}
+            tone="green"
           />
         </div>
 

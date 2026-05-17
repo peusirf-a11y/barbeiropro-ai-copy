@@ -1,11 +1,13 @@
-// DemoLayout — espelho visual do AppLayout, sem RBAC nem dados reais.
-// Mantém sidebar dark + header desktop idênticos ao /app.
-
+/**
+ * DemoLayout — Espelho visual EXATO do AppLayout.
+ * Sidebar idêntica, banner discreto de demonstração no topo.
+ * Mais navegação = mais paridade com o sistema real.
+ */
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
   Calendar, Users, Briefcase, DollarSign, BarChart2, Zap,
-  LayoutDashboard, Menu, X, Scissors,
+  LayoutDashboard, Menu, X, Scissors, Star, Repeat,
 } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';
@@ -48,12 +50,12 @@ export default function DemoLayout({ children }) {
 
       <NavList items={navItems} />
 
-      <div className="px-3 py-4 border-t border-white/5">
+      <div className="px-3 py-4 border-t border-white/5 mt-auto">
         <Link
           to="/"
           className="flex items-center justify-center gap-2 text-sm text-white bg-[#2563EB] hover:bg-[#1d4ed8] transition-colors w-full px-3 py-2.5 rounded-xl font-semibold shadow-[0_4px_12px_rgba(37,99,235,0.35)]"
         >
-          Criar minha conta grátis
+          Criar minha conta grátis →
         </Link>
       </div>
     </>
@@ -73,10 +75,13 @@ export default function DemoLayout({ children }) {
         <Link to="/demo/dashboard">
           <BrandMark size={32} tone="light" />
         </Link>
-        <div className="w-9" />
+        {/* Banner mobile */}
+        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+          Demo
+        </span>
       </header>
 
-      {/* Desktop sidebar — DARK */}
+      {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-64 min-h-screen bg-[#0B1020] border-r border-white/5 flex-col fixed h-screen overflow-hidden z-40">
         {SidebarContent}
       </aside>
@@ -94,23 +99,40 @@ export default function DemoLayout({ children }) {
         </aside>
       </div>
 
-      {/* Desktop top header — banner DEMO */}
+      {/* Desktop top header — banner demo + CTA */}
       <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-16 items-center justify-between px-8 gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+        <div className="flex items-center gap-2.5 text-sm">
+          <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-amber-100 text-amber-700 ring-1 ring-amber-200">
             Demonstração
           </span>
-          <span className="text-gray-500">Você está visualizando dados fictícios.</span>
+          <span className="text-gray-500">Você está visualizando dados de exemplo.</span>
         </div>
         <Link
           to="/"
           className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#1d4ed8] transition-colors shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
         >
-          Criar conta grátis
+          Criar conta grátis →
         </Link>
       </header>
 
-      <main className="lg:ml-64 min-h-[calc(100vh-4rem)] animate-fade-in">
+      {/* Mobile bottom nav (espelha AppLayout) */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-black/5 flex items-stretch h-16 safe-area-inset-bottom">
+        {navItems.slice(0, 5).map(item => {
+          const isActive = location.pathname === item.path;
+          return (
+            <Link
+              key={item.key}
+              to={item.path}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors ${isActive ? 'text-[#2563EB]' : 'text-gray-400'}`}
+            >
+              <item.icon className={`w-5 h-5 ${isActive ? 'text-[#2563EB]' : 'text-gray-400'}`} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <main className="lg:ml-64 min-h-[calc(100vh-4rem)] pb-16 lg:pb-0 animate-fade-in">
         {children}
       </main>
     </div>
