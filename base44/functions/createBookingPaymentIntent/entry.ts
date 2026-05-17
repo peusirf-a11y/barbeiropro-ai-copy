@@ -506,13 +506,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // HARDENED: não expor stripe_connect_account_id nem payment_intent_id internos
     return Response.json({
       success: true,
       appointment_id: appointment.id,
       customer_id: customer.id,
       client_secret: paymentIntent.client_secret,
-      // stripe_account omitido — não deve ser exposto publicamente
+      stripe_account: company.stripe_connect_account_id,
       expires_at: expiresAt,
       pix: pixQrCode || pixCopyPaste ? {
         qr_code_url: pixQrCode,
