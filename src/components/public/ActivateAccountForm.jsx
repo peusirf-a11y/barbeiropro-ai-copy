@@ -49,6 +49,8 @@ export default function ActivateAccountForm({
       });
 
       if (response.data?.success) {
+        // Persistir sessão usando a mesma chave do useCustomerAuth
+        localStorage.setItem(`bt_customer_token_${companyId}`, response.data.token);
         onSuccess(response.data.customer_id, response.data.token);
       } else {
         setError(response.data?.error || 'Erro ao ativar conta');

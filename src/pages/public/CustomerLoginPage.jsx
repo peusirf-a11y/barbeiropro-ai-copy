@@ -80,7 +80,7 @@ export default function CustomerLoginPage() {
         password: form.password,
       });
       if (res?.data?.success) {
-        login(res.data.token, res.data.customer);
+        login(res.data.token, res.data.customer || { id: res.data.customer_id });
         navigate(`/cliente/${slug}`, { replace: true });
       } else {
         setError(res?.data?.error || 'E-mail ou senha incorretos');
@@ -112,7 +112,7 @@ export default function CustomerLoginPage() {
         phone: form.phone.replace(/\D/g, ''),
       });
       if (res?.data?.success) {
-        login(res.data.token, res.data.customer);
+        login(res.data.token, res.data.customer || { id: res.data.customer_id });
         navigate(`/cliente/${slug}`, { replace: true });
       } else {
         setError(res?.data?.error || 'Erro ao criar conta');
@@ -130,7 +130,7 @@ export default function CustomerLoginPage() {
     setError(''); setInfo(''); setSubmitting(true);
     try {
       await base44.functions.invoke('customerAuth', {
-        action: 'request_reset',
+        action: 'request_reset',   // backend aceita tanto request_reset quanto request_password_reset
         company_id: company.id,
         email: form.email.trim().toLowerCase(),
       });
@@ -154,10 +154,10 @@ export default function CustomerLoginPage() {
         company_id: company.id,
         email: form.email.trim().toLowerCase(),
         reset_token: form.resetToken,
-        password: form.password,
+        password: form.password,   // backend unificado usa 'password' (não new_password)
       });
       if (res?.data?.success) {
-        login(res.data.token, res.data.customer);
+        login(res.data.token, res.data.customer || { id: res.data.customer_id });
         navigate(`/cliente/${slug}`, { replace: true });
       } else {
         setError(res?.data?.error || 'Erro ao redefinir senha');

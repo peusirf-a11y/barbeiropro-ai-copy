@@ -33,7 +33,7 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Email inválido';
     if (!phone.trim()) return 'Telefone obrigatório';
     if (phone.replace(/\D/g, '').length < 11) return 'Telefone deve ter 11 dígitos';
-    if (password.length < 8) return 'Senha deve ter no mínimo 8 caracteres';
+    if (password.length < 6) return 'Senha deve ter no mínimo 6 caracteres';
     if (password !== confirmPassword) return 'Senhas não conferem';
     if (!acceptedTerms) return 'Você deve aceitar os termos e política de privacidade';
 
@@ -54,7 +54,7 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
     try {
       const res = await base44.functions.invoke('customerAuth', {
         company_id: companyId,
-        action: 'register',
+        action: 'signup',   // ação unificada (backend aceita 'register' como alias)
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         phone: form.phone.replace(/\D/g, ''),
@@ -72,13 +72,8 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
         return;
       }
 
-      // Persistir sessão automaticamente após cadastro
-      localStorage.setItem('customer_session', JSON.stringify({
-        customer_id,
-        token,
-        company_id: companyId,
-        created_at: new Date().toISOString(),
-      }));
+      // Persistir sessão usando a mesma chave do useCustomerAuth
+      localStorage.setItem(`bt_customer_token_${companyId}`, token);
 
       onSuccess(customer_id, token);
     } catch (err) {

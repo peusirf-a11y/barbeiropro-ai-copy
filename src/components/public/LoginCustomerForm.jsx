@@ -53,14 +53,9 @@ export default function LoginCustomerForm({ companyId, onSuccess, onGoToRegister
         return;
       }
 
-      // Persistir sessão
+      // Persistir sessão usando a mesma chave do useCustomerAuth
       if (rememberMe) {
-        localStorage.setItem('customer_session', JSON.stringify({
-          customer_id,
-          token,
-          company_id: companyId,
-          created_at: new Date().toISOString(),
-        }));
+        localStorage.setItem(`bt_customer_token_${companyId}`, token);
       }
 
       onSuccess(customer_id, token);
