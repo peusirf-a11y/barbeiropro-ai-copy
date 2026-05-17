@@ -72,7 +72,7 @@ export default function PublicBooking() {
 
   // Auth do cliente final (área pública). Quando logado, podemos detectar
   // assinatura e oferecer "usar plano" no momento da confirmação.
-  const { customer: loggedCustomer, token: customerToken, loading: loadingCustomerAuth, logout: logoutCustomer } = useCustomerAuth(company?.id);
+  const { customer: loggedCustomer, token: customerToken, loading: loadingCustomerAuth, logout: logoutCustomer, login } = useCustomerAuth(company?.id);
 
   // Quando cliente autenticado carrega, preencher form automaticamente
   useEffect(() => {
@@ -901,9 +901,25 @@ export default function PublicBooking() {
         primaryColor={primaryColor}
         onClose={() => setShowAuthGate(false)}
         onSuccess={(customerId, token) => {
-          // Recarregar dados do customer (refresh auth context)
-          // Isso vai preencher form automaticamente
-          // Depois avançar para step 3
+          // Persiste sessão no hook para que loggedCustomer seja atualizado
+          // e o form preenchido automaticamente pelo useEffect acima
+          base44.functions.invoke('customerAuth', {
+            action: 'me',
+            company_id: company?.id,
+            token,
+          }).then(res => {
+            if (res?.data?.customer) {
+              login(token, res.data.customer);
+              const c = res.data.customer;
+              setForm(p => ({
+                ...p,
+                name: c.name || p.name,
+                phone: c.phone || p.phone,
+                email: c.email || p.email,
+              }));
+              setIsAuthenticatedCustomer(true);
+            }
+          }).catch(() => {});
           setTimeout(() => setStep(3), 300);
         }}
       />
