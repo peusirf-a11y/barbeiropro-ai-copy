@@ -1,55 +1,23 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { Scissors, Clock, ChevronRight, Check, User, ChevronLeft, AlertCircle, MapPin, UserCircle2 } from 'lucide-react';
-import { format, addDays, startOfDay, endOfDay } from 'date-fns';
+import { Scissors, Clock, User, AlertCircle, MapPin, UserCircle2, Star, Check } from 'lucide-react';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-// M5 — Tokens públicos (confirm_token / review_token) NÃO são mais gerados no frontend.
-// O backend (createPublicAppointment / createBookingPaymentIntent) gera com crypto.randomUUID().
 import { nextDaysRange, dateRangeFilter } from '@/lib/dateRangeQueries';
-import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } from '@/lib/scheduling';
-import UnitPicker from '@/components/booking/UnitPicker';
-import PhoneIdentificationStep from '@/components/booking/PhoneIdentificationStep';
-import PaymentMethodChooser from '@/components/booking/PaymentMethodChooser';
-import BookingPaymentStep from '@/components/booking/BookingPaymentStep';
-import BookingConsentBlock from '@/components/booking/BookingConsentBlock';
+import BookingModal from '@/components/booking/BookingModal';
 import AuthGateModal from '@/components/public/AuthGateModal';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { useBookingSession } from '@/contexts/BookingSessionContext';
 
-function generateTimeSlots(openTime, closeTime, durationMin) {
-  const slots = [];
-  const [oh, om] = openTime.split(':').map(Number);
-  const [ch, cm] = closeTime.split(':').map(Number);
-  let current = oh * 60 + om;
-  const end = ch * 60 + cm;
-  while (current + durationMin <= end) {
-    const h = Math.floor(current / 60).toString().padStart(2, '0');
-    const m = (current % 60).toString().padStart(2, '0');
-    slots.push(`${h}:${m}`);
-    current += 30; // 30-min interval slots
-  }
-  return slots;
-}
-
-const DAY_MAP = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-
 export default function PublicBooking() {
   const { slug } = useParams();
-  // Fluxo: 0 (serviço) → 1 (profissional) → 2 (horário) → 3 (confirmação)
-  // Identificação agora é OBRIGATÓRIA antes de confirmar (step 3 via AuthGateModal)
-  const [step, setStep] = useState(0);
-  const [selected, setSelected] = useState({ unit: null, service: null, professional: null, date: null, time: null });
-  const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
-  const [bookingDone, setBookingDone] = useState(null);
-  const [formError, setFormError] = useState('');
-  // Forma de pagamento selecionada no step 3 (avulso ou subscription)
-  const [paymentMethod, setPaymentMethod] = useState('avulso');
-  // Se cliente está autenticado via token (área pública), rastrear para não pedir dados novamente
-  const [isAuthenticatedCustomer, setIsAuthenticatedCustomer] = useState(false);
-  // Fase 6: Modal de autenticação obrigatória
+  const [activeTab, setActiveTab] = useState('servicos');
+  const [bookingService, setBookingService] = useState(null); // serviço que abre o modal
+  const [showBookingModal, setShowBookingModal] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
+  const [bookingDone, setBookingDone] = useState(null);
   const { updateBooking } = useBookingSession();
 
   const { data: companies = [], isLoading: loadingCompany } = useQuery({
@@ -58,45 +26,32 @@ export default function PublicBooking() {
     enabled: !!slug,
   });
   const company = companies[0];
+  const primaryColor = company?.primary_color || '#2563EB';
 
-  // Verifica se a barbearia pode aceitar pagamentos online (Stripe Connect ativo).
-  // Se não puder, o link público fica indisponível.
   const { data: connectStatus, isLoading: loadingConnect } = useQuery({
     queryKey: ['public-connect-status', company?.id],
-    queryFn: () => base44.functions.invoke('getCompanyConnectStatus', { company_id: company.id })
-      .then(r => r.data),
+    queryFn: () => base44.functions.invoke('getCompanyConnectStatus', { company_id: company.id }).then(r => r.data),
     enabled: !!company?.id,
   });
   const canAcceptPayments = !!connectStatus?.can_accept_payments;
-  const pixEnabled = !!connectStatus?.pix_enabled;
 
-  // Auth do cliente final (área pública). Quando logado, podemos detectar
-  // assinatura e oferecer "usar plano" no momento da confirmação.
   const { customer: loggedCustomer, token: customerToken, loading: loadingCustomerAuth, logout: logoutCustomer, login } = useCustomerAuth(company?.id);
+  const [isAuthenticatedCustomer, setIsAuthenticatedCustomer] = useState(false);
+  const [form, setForm] = useState({ name: '', phone: '', email: '' });
 
-  // Quando cliente autenticado carrega, preencher form automaticamente
   useEffect(() => {
-    if (!loggedCustomer || loadingCustomerAuth) return;
-    if (isAuthenticatedCustomer) return; // já processado
-    setForm(p => ({
-      ...p,
-      name: loggedCustomer.name || p.name,
-      phone: loggedCustomer.phone || p.phone,
-      email: loggedCustomer.email || p.email,
-    }));
+    if (!loggedCustomer || loadingCustomerAuth || isAuthenticatedCustomer) return;
+    setForm({ name: loggedCustomer.name || '', phone: loggedCustomer.phone || '', email: loggedCustomer.email || '' });
     setIsAuthenticatedCustomer(true);
   }, [loggedCustomer, loadingCustomerAuth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: customerSubs = [] } = useQuery({
     queryKey: ['public-customer-subscriptions', company?.id, loggedCustomer?.id],
-    queryFn: () => base44.entities.CustomerSubscription.filter({
-      company_id: company.id, customer_id: loggedCustomer.id, status: 'active',
-    }),
+    queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: company.id, customer_id: loggedCustomer.id, status: 'active' }),
     enabled: !!company?.id && !!loggedCustomer?.id,
   });
   const activeSubscription = customerSubs[0] || null;
 
-  // Carrega o plano vinculado para conhecer regras (off-peak, serviços, unidades)
   const { data: activePlan } = useQuery({
     queryKey: ['public-customer-plan', activeSubscription?.plan_id],
     queryFn: () => base44.entities.CustomerPlan.get(activeSubscription.plan_id),
@@ -115,7 +70,12 @@ export default function PublicBooking() {
     enabled: !!company?.id,
   });
 
-  // Unidades ativas (apenas se a empresa tem multi_unit_enabled)
+  const { data: reviews = [] } = useQuery({
+    queryKey: ['public-reviews', company?.id],
+    queryFn: () => base44.entities.Review.filter({ company_id: company.id, published: true }, '-created_date', 20),
+    enabled: !!company?.id,
+  });
+
   const isMultiUnit = !!company?.multi_unit_enabled;
   const { data: units = [] } = useQuery({
     queryKey: ['public-units', company?.id],
@@ -126,338 +86,90 @@ export default function PublicBooking() {
     enabled: !!company?.id && isMultiUnit,
   });
 
-  // Pré-seleciona unidade via query param (?unidade=slug) ou quando há apenas 1 ativa
-  useEffect(() => {
-    if (!isMultiUnit || selected.unit) return;
-    if (!units.length) return;
-    const params = new URLSearchParams(window.location.search);
-    const wantedSlug = params.get('unidade');
-    const byParam = wantedSlug ? units.find(u => u.slug === wantedSlug) : null;
-    if (byParam) {
-      setSelected(p => ({ ...p, unit: byParam }));
-      return;
-    }
-    if (units.length === 1) {
-      setSelected(p => ({ ...p, unit: units[0] }));
-    }
-  }, [isMultiUnit, units, selected.unit]);
-
-  // Filtra profissionais pela unidade escolhida (legados sem unit_ids[] aparecem em todas)
-  const professionals = (isMultiUnit && selected.unit)
-    ? allProfessionals.filter(p => !p.unit_ids || p.unit_ids.length === 0 || p.unit_ids.includes(selected.unit.id))
-    : allProfessionals;
-
-  // A4: janela temporal — só carregamos agendamentos da janela visível (hoje → +14d).
-  // Antes: `filter({ company_id })` trazia TUDO (10k+ em barbearias grandes →
-  // página lenta, payload absurdo, risco de OOM no client).
-  // Agora: ~200 registros mesmo em barbearia movimentada.
-  // Também excluímos status='cancelado' (não bloqueia slot) via $ne.
   const bookingRange = nextDaysRange(14);
   const apptRangeFilter = dateRangeFilter('scheduled_at', bookingRange, 'datetime');
 
   const { data: allAppointments = [] } = useQuery({
     queryKey: ['public-appointments', company?.id],
-    queryFn: () => base44.entities.Appointment.filter(
-      { company_id: company.id, status: { $ne: 'cancelado' }, ...apptRangeFilter },
-      '-scheduled_at',
-      2000,
-    ),
+    queryFn: () => base44.entities.Appointment.filter({ company_id: company.id, status: { $ne: 'cancelado' }, ...apptRangeFilter }, '-scheduled_at', 2000),
     enabled: !!company?.id,
-    staleTime: 30_000, // cache curto: agendamentos são quente, mas não imediatos
+    staleTime: 30_000,
   });
 
-  // Bloqueios: janela ainda mais simples — só os que terminam DEPOIS de hoje.
-  // (Bloqueios passados não impactam a UI; recorrentes não têm end_time.)
   const { data: allBlockedTimes = [] } = useQuery({
     queryKey: ['public-blocks', company?.id],
-    queryFn: () => base44.entities.BlockedTime.filter(
-      { company_id: company.id },
-      '-start_time',
-      200,
-    ),
+    queryFn: () => base44.entities.BlockedTime.filter({ company_id: company.id }, '-start_time', 200),
     enabled: !!company?.id,
     staleTime: 60_000,
   });
 
-  // Filtra agendamentos e bloqueios pela unidade selecionada (registros sem unit_id são considerados aplicáveis a todas)
-  const existingAppointments = (isMultiUnit && selected.unit)
-    ? allAppointments.filter(a => !a.unit_id || a.unit_id === selected.unit.id)
-    : allAppointments;
-  const blockedTimes = (isMultiUnit && selected.unit)
-    ? allBlockedTimes.filter(b => !b.unit_id || b.unit_id === selected.unit.id)
-    : allBlockedTimes;
-
-  // Em modo "clientes por unidade", o lookup e o create do Customer ficam restritos à unidade
   const customersSharedMode = company?.customers_shared_across_units !== false;
-  const scopeCustomerByUnit = isMultiUnit && !customersSharedMode && !!selected.unit?.id;
+  const scopeCustomerByUnit = isMultiUnit && !customersSharedMode;
 
-  // Mutation usada APENAS quando o cliente paga com plano (subscription).
-  // Para Pix/Cartão, o appointment é criado dentro do BookingPaymentStep
-  // (createBookingPaymentIntent) e só é confirmado pelo webhook após pagamento.
-  const createApptMutation = useMutation({
-    mutationFn: async (data) => {
-      const res = await base44.functions.invoke('createPublicAppointment', {
-        ...data,
-        scope_customer_by_unit: scopeCustomerByUnit,
-      });
-      if (!res?.data?.success) {
-        throw new Error(res?.data?.error || 'Falha ao criar agendamento');
-      }
-      if (activeSubscription && customerToken && res.data.appointment_id) {
-        const consumeRes = await base44.functions.invoke('consumeSubscriptionUse', {
-          action: 'consume',
-          subscription_id: activeSubscription.id,
-          appointment_id: res.data.appointment_id,
-          service_id: data.service_id,
-          service_name: data.service_name,
-          customer_token: customerToken,
-          company_id: company.id,
-        });
-        if (consumeRes?.data?.error) {
-          throw new Error(`Agendado, mas falha ao usar plano: ${consumeRes.data.error}`);
-        }
-      }
-      return res.data;
-    },
-    onSuccess: (result) => setBookingDone(result),
-    onError: (err) => setFormError(err.message || 'Erro ao confirmar agendamento. Tente novamente.'),
-  });
-
-  const primaryColor = company?.primary_color || '#2563EB';
-
-  // Compute available time slots for selected date/professional/service.
-  // Retorna [{ time, smart }] — `smart=true` quando o slot preenche um buraco
-  // na agenda do profissional (encaixe inteligente).
-  const getAvailableSlots = () => {
-    if (!selected.date || !selected.service || !company) return [];
-    const dayKey = DAY_MAP[selected.date.getDay()];
-    const hours = company.business_hours?.[dayKey];
-    if (!hours?.active) return [];
-    const slots = generateTimeSlots(hours.open || '09:00', hours.close || '19:00', selected.service.duration_minutes || 30);
-
-    const now = new Date();
-    const isToday = selected.date.toDateString() === now.toDateString();
-    const proId = selected.professional?.id;
-    const dur = selected.service.duration_minutes || 30;
-
-    const apptsWithDuration = existingAppointments.map(a => ({
-      ...a,
-      __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
-    }));
-
-    // 1) filtra slots indisponíveis (passado, conflito, bloqueio)
-    const available = slots.filter(time => {
-      const [h, m] = time.split(':');
-      const slotStart = new Date(selected.date);
-      slotStart.setHours(+h, +m, 0, 0);
-      if (isToday && slotStart <= now) return false;
-      if (!proId || proId === 'any') return true;
-      if (appointmentConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, appointments: apptsWithDuration })) return false;
-      if (blockedConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, blocks: blockedTimes })) return false;
-      return true;
-    });
-
-    // 2) reordena priorizando encaixes (preenche buracos primeiro)
-    const ranked = rankSlotsByFit({
-      slots: available,
-      date: selected.date,
-      durationMin: dur,
-      professionalId: proId,
-      appointments: apptsWithDuration,
-      blocks: blockedTimes,
-    });
-
-    // 3) anota quais são "smart" (encaixe ideal) para destacar na UI
-    const annotated = annotateSlots({
-      slots: ranked,
-      date: selected.date,
-      durationMin: dur,
-      professionalId: proId,
-      appointments: apptsWithDuration,
-      blocks: blockedTimes,
-    });
-
-    return annotated;
-  };
-
-  // Monta o payload comum do agendamento (usado tanto pelo plano quanto pelo pagamento online)
-  const buildBookingPayload = () => {
-    const [h, m] = selected.time.split(':');
-    const dt = new Date(selected.date);
-    dt.setHours(+h, +m, 0, 0);
-    const isAny = selected.professional?.id === 'any';
-    const proId = isAny ? professionals[0]?.id : selected.professional?.id;
-    return {
-      company_id: company.id,
-      unit_id: selected.unit?.id || undefined,
-      professional_id: proId,
-      service_id: selected.service.id,
-      service_name: selected.service.name,
-      professional_name: isAny ? 'Qualquer disponível' : selected.professional?.name,
-      customer_name: form.name,
-      customer_phone: form.phone,
-      customer_email: form.email.trim() || undefined,
-      scheduled_at: dt.toISOString(),
-      notes: form.notes,
-      price: selected.service.price,
-      source: 'online',
-      // true = cliente não escolheu barbeiro específico → borda tracejada + drag livre na agenda
-      is_flexible_assignment: isAny,
-      // M5: tokens gerados no backend; payload não envia mais.
-      scope_customer_by_unit: scopeCustomerByUnit,
-      // Se cliente autenticado, passa customer_id para evitar duplicidade
-      ...(isAuthenticatedCustomer && loggedCustomer?.id ? { existing_customer_id: loggedCustomer.id } : {}),
-    };
-  };
-
-  const validateBeforeSubmit = () => {
-    if (!form.phone.trim()) { setFormError('Telefone obrigatório.'); return false; }
-    if (!form.name.trim()) { setFormError('Nome obrigatório.'); return false; }
-    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      setFormError('Informe um e-mail válido'); return false;
-    }
-    const [h, m] = selected.time.split(':');
-    const dt = new Date(selected.date);
-    dt.setHours(+h, +m, 0, 0);
-    const proId = selected.professional?.id === 'any' ? professionals[0]?.id : selected.professional?.id;
-    const apptsWithDuration = existingAppointments.map(a => ({
-      ...a,
-      __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
-    }));
-    const dur = selected.service.duration_minutes || 30;
-    if (appointmentConflict({ professionalId: proId, dateTime: dt, durationMin: dur, appointments: apptsWithDuration })) {
-      setFormError('Horário indisponível — alguém acabou de pegar esse horário. Escolha outro.');
-      return false;
-    }
-    if (blockedConflict({ professionalId: proId, dateTime: dt, durationMin: dur, blocks: blockedTimes })) {
-      setFormError('Horário indisponível neste momento.');
-      return false;
-    }
-    setFormError('');
-    return true;
-  };
-
-  // Click em "Continuar" (step 2 → 3):
-  // Se logado, avança direto. Senão, abre AuthGate e persiste seleção.
-  const handleContinueToConfirmation = () => {
-    if (loggedCustomer && customerToken) {
-      setStep(3);
-      return;
-    }
-    // Não logado: persiste seleção e abre modal
-    updateBooking({ selected });
-    setShowAuthGate(true);
-  };
-
-  // Click em "Confirmar agendamento" (step 3):
-  //  - Se plano cobre → cria direto e consome
-  //  - Senão → vai para step 4 (pagamento online obrigatório)
-  const handleBook = () => {
-    if (!validateBeforeSubmit()) return;
-    if (paymentMethod === 'subscription' && canUseSubscription) {
-      const payload = buildBookingPayload();
-      createApptMutation.mutate({ ...payload, status: 'agendado' });
-    } else {
-      setStep(4);
-    }
-  };
-
-  // Inclui o dia de hoje (i começa em 0). Horários passados são filtrados em getAvailableSlots.
-  const next7Days = Array.from({ length: 14 }, (_, i) => addDays(startOfDay(new Date()), i)).filter(day => {
-    if (!company?.business_hours) return true;
-    const dayKey = DAY_MAP[day.getDay()];
-    return company.business_hours[dayKey]?.active !== false;
-  });
-
-  const availableSlots = getAvailableSlots();
-
-  // Valida se a assinatura ativa pode cobrir o serviço selecionado neste horário.
-  // Retorna string com o motivo do bloqueio quando NÃO pode usar.
+  // Bloqueio de assinatura
   const subscriptionBlocker = (() => {
-    if (!activeSubscription || !selected.service) return null;
+    if (!activeSubscription) return null;
     const sub = activeSubscription;
     if (new Date(sub.current_cycle_end) <= new Date()) return 'Sua assinatura está com o ciclo vencido.';
     if (sub.plan_type_snapshot !== 'unlimited' && (sub.uses_remaining ?? 0) <= 0) return 'Você já usou todos os seus cortes deste mês.';
-    // Plano off-peak: valida horário escolhido
-    if (activePlan?.off_peak_enabled && selected.date && selected.time) {
-      const [h, m] = selected.time.split(':');
-      const when = new Date(selected.date);
-      when.setHours(+h, +m, 0, 0);
-      const start = activePlan.off_peak_start || '00:00';
-      const end = activePlan.off_peak_end || '23:59';
-      const weekdays = activePlan.off_peak_weekdays || [];
-      const hhmm = `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`;
-      const dayOk = weekdays.length === 0 || weekdays.includes(when.getDay());
-      if (!dayOk || hhmm < start || hhmm > end) {
-        return `Seu plano (${activePlan.name}) só vale entre ${start} e ${end}. Neste horário você paga à parte.`;
-      }
-    }
     return null;
   })();
   const canUseSubscription = !!activeSubscription && !subscriptionBlocker;
 
-  // Pré-seleciona "subscription" quando válido; força "avulso" quando bloqueado
-  useEffect(() => {
-    if (step !== 3) return;
-    if (canUseSubscription && paymentMethod === 'avulso') setPaymentMethod('subscription');
-    if (!canUseSubscription && paymentMethod === 'subscription') setPaymentMethod('avulso');
-  }, [step, canUseSubscription]); // eslint-disable-line react-hooks/exhaustive-deps
+  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1) : null;
 
-  // Error state if slug not found
-  if (!slug) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F7F3]">
-        <div className="text-center p-8">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <p className="font-semibold text-gray-700">Link de agendamento inválido</p>
-        </div>
-      </div>
-    );
-  }
+  const openBooking = (service = null) => {
+    setBookingService(service);
+    setShowBookingModal(true);
+  };
 
-  if (loadingCompany) {
+  const handleNeedAuth = () => {
+    setShowBookingModal(false);
+    updateBooking({ bookingService });
+    setShowAuthGate(true);
+  };
+
+  const tabs = [
+    { id: 'servicos', label: 'Serviços' },
+    { id: 'profissionais', label: 'Profissionais' },
+    { id: 'avaliacoes', label: 'Avaliações' },
+  ];
+
+  // ─── LOADING ───
+  if (loadingCompany || !slug) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F7F3]">
-        <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-white/10 border-t-white/70 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!company) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F7F3]">
-        <div className="text-center p-8">
-          <AlertCircle className="w-12 h-12 text-orange-400 mx-auto mb-4" />
-          <p className="font-semibold text-gray-700">Barbearia não encontrada</p>
-          <p className="text-sm text-gray-400 mt-2">Verifique o link e tente novamente</p>
+      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-6">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-white/30 mx-auto mb-4" />
+          <p className="text-white font-semibold">Barbearia não encontrada</p>
+          <p className="text-white/40 text-sm mt-1">Verifique o link e tente novamente</p>
         </div>
       </div>
     );
   }
 
-  // Bloqueio rígido: barbearia precisa ter Stripe Connect ativo para receber agendamentos online.
+  // ─── STRIPE NÃO CONFIGURADO ───
   if (!loadingConnect && !canAcceptPayments) {
     return (
-      <div className="min-h-screen bg-[#F8F7F3] flex flex-col">
-        <header className="bg-white border-b border-black/10 px-6 py-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-            <Scissors className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-bold text-[#1B1C1E]">{company.name}</span>
-        </header>
+      <div className="min-h-screen bg-[#0f0f1a] flex flex-col">
         <div className="flex-1 flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl border border-black/8 p-8 text-center max-w-sm w-full shadow-lg">
-            <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-7 h-7 text-amber-600" />
+          <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-center max-w-sm w-full">
+            <div className="w-14 h-14 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-7 h-7 text-amber-400" />
             </div>
-            <h2 className="text-lg font-black text-[#1B1C1E] mb-2">Agendamento online indisponível</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              {company.name} ainda não está aceitando pagamentos online. Entre em contato direto pelo WhatsApp para marcar.
-            </p>
+            <h2 className="text-lg font-black text-white mb-2">Agendamento online indisponível</h2>
+            <p className="text-sm text-white/50 mb-5">{company.name} ainda não está aceitando pagamentos online.</p>
             {company.whatsapp && (
               <a href={`https://wa.me/55${company.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                className="block w-full text-center text-white text-sm font-bold py-3 rounded-xl transition-opacity hover:opacity-90"
-                style={{ backgroundColor: '#25D366' }}>
+                className="block w-full text-center text-white text-sm font-bold py-3 rounded-xl bg-[#25D366]">
                 Falar pelo WhatsApp
               </a>
             )}
@@ -467,51 +179,38 @@ export default function PublicBooking() {
     );
   }
 
+  // ─── AGENDAMENTO CONCLUÍDO ───
   if (bookingDone) {
+    const { selected, paid_online } = bookingDone;
     return (
-      <div className="min-h-screen bg-[#F8F7F3] flex flex-col">
-        <header className="bg-white border-b border-black/10 px-6 py-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-            <Scissors className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-bold text-[#1B1C1E]">{company.name}</span>
-        </header>
+      <div className="min-h-screen bg-[#0f0f1a] flex flex-col">
         <div className="flex-1 flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl border border-black/8 p-10 text-center max-w-sm w-full shadow-lg">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Check className="w-8 h-8 text-green-600" />
+          <div className="bg-white/5 border border-white/10 rounded-3xl p-10 text-center max-w-sm w-full">
+            <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Check className="w-8 h-8 text-emerald-400" />
             </div>
-            <h2 className="text-2xl font-black text-[#1B1C1E] mb-2">Agendado!</h2>
-            <p className="text-gray-500 text-sm mb-2">Seu horário foi confirmado com sucesso.</p>
-            {form.email && (
-              <p className="text-xs text-gray-400 mb-6">Uma confirmação foi enviada para <span className="font-semibold text-gray-600">{form.email}</span></p>
-            )}
-            {!form.email && <div className="mb-6" />}
-            <div className="bg-[#F8F7F3] rounded-xl p-4 text-left space-y-2 mb-6">
-              {selected.unit && (
-                <div className="flex justify-between text-sm"><span className="text-gray-500">Unidade</span><span className="font-semibold text-[#1B1C1E]">{selected.unit.name}</span></div>
+            <h2 className="text-2xl font-black text-white mb-2">Agendado!</h2>
+            <p className="text-white/50 text-sm mb-6">Seu horário foi confirmado com sucesso.</p>
+            <div className="bg-white/5 rounded-xl p-4 text-left space-y-2 mb-6">
+              <Row label="Serviço" value={selected?.service?.name} />
+              <Row label="Profissional" value={selected?.professional?.name} />
+              {selected?.date && selected?.time && (
+                <Row label="Data" value={`${format(selected.date, "d 'de' MMM", { locale: ptBR })} às ${selected.time}`} />
               )}
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Serviço</span><span className="font-semibold text-[#1B1C1E]">{selected.service?.name}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold text-[#1B1C1E]">{selected.professional?.name}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Data</span><span className="font-semibold text-[#1B1C1E]">{selected.date ? format(selected.date, "d 'de' MMMM", { locale: ptBR }) : ''}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Horário</span><span className="font-semibold text-[#1B1C1E]">{selected.time}</span></div>
-              <div className="flex justify-between text-sm border-t border-black/8 pt-2 mt-2">
-                <span className="text-gray-500">Valor</span>
-                {paymentMethod === 'subscription' && activeSubscription ? (
-                  <span className="font-black text-sm text-violet-700">Pago pelo plano ✓</span>
-                ) : (
-                  <span className="font-black text-lg" style={{ color: primaryColor }}>R${selected.service?.price}</span>
-                )}
+              <div className="flex justify-between items-center pt-2 border-t border-white/10">
+                <span className="text-white/50 text-sm">Valor</span>
+                <span className="text-emerald-400 font-black text-lg">R$ {selected?.service?.price?.toFixed(2)}</span>
               </div>
             </div>
             {company.whatsapp && (
               <a href={`https://wa.me/55${company.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                className="block w-full text-center text-white text-sm font-bold py-3 rounded-xl transition-opacity hover:opacity-90"
-                style={{ backgroundColor: '#25D366' }}>
+                className="block w-full text-center text-white text-sm font-bold py-3 rounded-xl mb-3 bg-[#25D366]">
                 Confirmar pelo WhatsApp
               </a>
             )}
-            <p className="text-xs text-gray-400 mt-4">Dúvidas? Entre em contato com {company.name}</p>
+            <button onClick={() => setBookingDone(null)} className="text-white/40 text-xs hover:text-white/70 underline">
+              Voltar ao início
+            </button>
           </div>
         </div>
       </div>
@@ -519,381 +218,228 @@ export default function PublicBooking() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F7F3] flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-black/10 px-6 py-4 sticky top-0 z-10">
-        <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-              <Scissors className="w-4 h-4 text-white" />
-            </div>
-            <div className="min-w-0">
-              <div className="font-bold text-sm text-[#1B1C1E] truncate">{company.name}</div>
-              {selected.unit?.address ? (
-                <div className="text-xs text-gray-400 truncate">{selected.unit.address}</div>
-              ) : company.address ? (
-                <div className="text-xs text-gray-400 truncate">{company.address}</div>
-              ) : null}
-            </div>
+    <div className="min-h-screen bg-[#0f0f1a] flex flex-col">
+      {/* ─── HERO / CAPA ─── */}
+      <div className="relative">
+        {company.logo_url ? (
+          <div className="h-52 w-full overflow-hidden">
+            <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0f0f1a]" />
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {isMultiUnit && selected.unit && units.length > 1 && (
-              <button
-                onClick={() => {
-                  setSelected({ unit: null, service: null, professional: null, date: null, time: null });
-                  setStep(0);
-                }}
-                className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg border border-black/5"
-                title="Trocar de unidade"
-              >
-                <MapPin className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                <span className="max-w-[120px] truncate">{selected.unit.name}</span>
-              </button>
-            )}
-            <Link
-              to={loggedCustomer ? `/cliente/${slug}` : `/cliente/${slug}/login`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg border border-black/5"
-              title={loggedCustomer ? 'Minha conta' : 'Entrar'}
-            >
-              <UserCircle2 className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-              <span className="hidden sm:inline">{loggedCustomer ? 'Minha conta' : 'Entrar'}</span>
-            </Link>
+        ) : (
+          <div className="h-52 w-full" style={{ background: `linear-gradient(135deg, ${primaryColor}33, #0f0f1a)` }}>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Scissors className="w-20 h-20 text-white/10" />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0f0f1a]" />
           </div>
-        </div>
-      </header>
+        )}
 
-      {/* Progress bar — só aparece após identificação */}
-      {typeof step === 'number' && (
-        <div className="bg-white border-b border-black/10">
-          <div className="max-w-xl mx-auto px-6 py-3">
-            <div className="flex items-center gap-2">
-              {['Serviço', 'Profissional', 'Horário', 'Confirmar', 'Pagar'].map((s, i) => (
-                <div key={s} className="flex items-center gap-2 flex-1">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < step ? 'text-white' : i === step ? 'text-white' : 'bg-gray-100 text-gray-400'}`}
-                    style={{ backgroundColor: i <= step ? primaryColor : undefined }}>
-                    {i < step ? <Check className="w-3 h-3" /> : i + 1}
-                  </div>
-                  <span className={`text-xs font-medium hidden sm:block ${i === step ? 'text-[#1B1C1E]' : 'text-gray-400'}`}>{s}</span>
-                  {i < 4 && <div className={`flex-1 h-px`} style={{ backgroundColor: i < step ? primaryColor : '#e5e7eb' }} />}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Selo de cliente identificado — visível quando logado */}
-      {typeof step === 'number' && isAuthenticatedCustomer && form.name && (
-      <div className="bg-white border-b border-black/5">
-        <div className="max-w-xl mx-auto px-6 py-2.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-              {(form.name[0] || '?').toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <div className="text-[11px] text-gray-400 leading-none">✓ Logado como</div>
-              <div className="text-sm font-bold text-[#111827] truncate">{form.name}</div>
-              {form.phone && (
-                <div className="text-[11px] text-gray-400 truncate">{form.phone}</div>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              logoutCustomer();
-              setIsAuthenticatedCustomer(false);
-              setForm({ name: '', phone: '', email: '', notes: '' });
-              setFormError('');
-            }}
-            className="text-[11px] font-semibold text-gray-500 hover:text-[#111827] underline-offset-2 hover:underline flex-shrink-0"
+        {/* Botão de login no topo direito */}
+        <div className="absolute top-4 right-4">
+          <Link
+            to={loggedCustomer ? `/cliente/${slug}` : `/cliente/${slug}/login`}
+            className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-xs font-semibold px-3 py-2 rounded-full border border-white/20"
           >
-            Trocar conta
-          </button>
+            <UserCircle2 className="w-3.5 h-3.5" />
+            {loggedCustomer ? 'Minha conta' : 'Entrar'}
+          </Link>
         </div>
       </div>
-      )}
 
-      <div className="flex-1 max-w-xl mx-auto w-full px-6 py-8">
-
-        {/* Pré-passo: seleção de unidade (somente multi-unit com 2+ unidades) */}
-        {isMultiUnit && !selected.unit && units.length > 1 && (
-          <UnitPicker
-            units={units}
-            primaryColor={primaryColor}
-            onSelect={(u) => setSelected(p => ({ ...p, unit: u }))}
-          />
-        )}
-
-        {/* Loading enquanto busca unidades em modo multi-unit */}
-        {isMultiUnit && !selected.unit && units.length === 0 && (
-          <div className="text-center py-16 text-gray-400">
-            <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin mx-auto" />
-          </div>
-        )}
-
-        {/* Fluxo normal — só renderiza depois que a unidade foi escolhida (ou não há multi-unit) */}
-         {(!isMultiUnit || selected.unit) && (<>
-
-        {/* Step 0: Service */}
-        {step === 0 && (
-          <div>
-            <h2 className="text-xl font-black text-[#1B1C1E] mb-6">Escolha o serviço</h2>
-            {services.length === 0 ? (
-              <div className="text-center py-10 text-gray-400">
-                <p>Nenhum serviço disponível no momento.</p>
-              </div>
+      {/* ─── INFO DA BARBEARIA ─── */}
+      <div className="px-5 -mt-8 relative z-10 mb-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-14 h-14 rounded-2xl border-2 border-white/10 overflow-hidden flex-shrink-0 bg-[#1a1a2e] flex items-center justify-center"
+            style={{ borderColor: primaryColor + '60' }}>
+            {company.logo_url ? (
+              <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="grid gap-3">
-                {services.map(s => (
-                  <button key={s.id} onClick={() => { setSelected(p => ({ ...p, service: s })); setStep(1); }}
-                    className="bg-white rounded-2xl border border-black/8 p-5 text-left hover:shadow-md transition-all flex items-center justify-between group"
-                    style={{ borderColor: selected.service?.id === s.id ? primaryColor : undefined }}>
-                    <div>
-                      <div className="font-bold text-[#1B1C1E] mb-1">{s.name}</div>
-                      {s.description && <div className="text-sm text-gray-500 mb-2">{s.description}</div>}
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
+              <Scissors className="w-6 h-6" style={{ color: primaryColor }} />
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              {avgRating && (
+                <span className="flex items-center gap-1 text-amber-400 text-xs font-bold">
+                  <Star className="w-3 h-3 fill-amber-400" /> {avgRating}
+                </span>
+              )}
+              <h1 className="text-white font-black text-xl truncate">{company.name}</h1>
+            </div>
+            {(company.address || company.phone) && (
+              <p className="text-white/40 text-xs truncate">{company.address || company.phone}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Botão principal Agendar agora */}
+        {canAcceptPayments && (
+          <button
+            onClick={() => openBooking()}
+            className="w-full py-4 rounded-2xl text-white font-black text-base shadow-lg mt-2 transition-opacity hover:opacity-90"
+            style={{ backgroundColor: primaryColor }}
+          >
+            Agendar agora
+          </button>
+        )}
+      </div>
+
+      {/* ─── TABS ─── */}
+      <div className="border-b border-white/10 px-5 flex-shrink-0">
+        <div className="flex gap-0 overflow-x-auto">
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${activeTab === t.id ? 'text-white border-current' : 'text-white/40 border-transparent hover:text-white/60'}`}
+              style={{ borderColor: activeTab === t.id ? primaryColor : undefined, color: activeTab === t.id ? 'white' : undefined }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── CONTEÚDO DAS TABS ─── */}
+      <div className="flex-1 px-5 py-5">
+
+        {/* SERVIÇOS */}
+        {activeTab === 'servicos' && (
+          <div className="space-y-3">
+            {services.length === 0 ? (
+              <div className="text-center py-12 text-white/30">Nenhum serviço disponível</div>
+            ) : (
+              services.map(s => (
+                <div key={s.id} className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl p-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-base">{s.name[0]}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-semibold truncate">{s.name}</div>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-emerald-400 font-bold text-sm">R$ {s.price.toFixed(2)}</span>
+                      <span className="text-white/40 text-xs flex items-center gap-1">
                         <Clock className="w-3 h-3" />{s.duration_minutes} min
-                      </div>
+                      </span>
                     </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <div className="text-xl font-black mb-2" style={{ color: primaryColor }}>R${s.price}</div>
-                      <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-[#1B3A4B] ml-auto transition-colors" />
-                    </div>
+                  </div>
+                  <button
+                    onClick={() => openBooking(s)}
+                    className="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-xl text-white transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    Agendar
                   </button>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </div>
         )}
 
-        {/* Step 1: Professional */}
-        {step === 1 && (
-          <div>
-            <button onClick={() => setStep(0)} className="flex items-center gap-1 text-sm text-gray-500 mb-5 hover:text-[#1B1C1E]">
-              <ChevronLeft className="w-4 h-4" />Voltar
-            </button>
-            <h2 className="text-xl font-black text-[#1B1C1E] mb-6">Escolha o profissional</h2>
-            <div className="grid gap-3">
-              <button onClick={() => { setSelected(p => ({ ...p, professional: { id: 'any', name: 'Qualquer disponível' } })); setStep(2); }}
-                className="bg-white rounded-2xl border border-black/8 p-5 text-left hover:shadow-md transition-all flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                  <User className="w-5 h-5 text-gray-400" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-bold text-[#1B1C1E]">Qualquer disponível</div>
-                  <div className="text-xs text-gray-400">Primeiro horário livre</div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-gray-300" />
-              </button>
-              {professionals.map(p => (
-                <button key={p.id} onClick={() => { setSelected(s => ({ ...s, professional: p })); setStep(2); }}
-                  className="bg-white rounded-2xl border border-black/8 p-5 text-left hover:shadow-md transition-all flex items-center gap-4">
-                  {p.photo_url ? (
-                    <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-xl object-cover" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-                      {(p.name || '?')[0]}
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="font-bold text-[#1B1C1E]">{p.name}</div>
-                    {p.specialty && <div className="text-xs text-gray-400">{p.specialty}</div>}
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-300" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Date & Time */}
-        {step === 2 && (
-          <div>
-            <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-gray-500 mb-5 hover:text-[#1B1C1E]">
-              <ChevronLeft className="w-4 h-4" />Voltar
-            </button>
-            <h2 className="text-xl font-black text-[#1B1C1E] mb-6">Escolha o horário</h2>
-            
-            {next7Days.length === 0 ? (
-              <div className="text-center py-10 text-gray-400">
-                <AlertCircle className="w-8 h-8 mx-auto mb-3 opacity-40" />
-                <p>Nenhum dia disponível nas próximas 2 semanas</p>
-              </div>
+        {/* PROFISSIONAIS */}
+        {activeTab === 'profissionais' && (
+          <div className="space-y-3">
+            {allProfessionals.length === 0 ? (
+              <div className="text-center py-12 text-white/30">Nenhum profissional cadastrado</div>
             ) : (
               <>
-                {/* Date picker */}
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                  {next7Days.slice(0, 10).map((day, i) => {
-                    const isSelected = selected.date?.toDateString() === day.toDateString();
-                    return (
-                      <button key={i} onClick={() => setSelected(p => ({ ...p, date: day, time: null }))}
-                        className={`flex-shrink-0 flex flex-col items-center p-3 rounded-2xl border transition-all min-w-[64px] ${isSelected ? 'text-white border-transparent' : 'bg-white border-black/10 text-gray-600 hover:border-[#2563EB]'}`}
-                        style={{ backgroundColor: isSelected ? primaryColor : undefined }}>
-                        <span className="text-xs uppercase tracking-wide opacity-70">{format(day, 'EEE', { locale: ptBR })}</span>
-                        <span className="text-xl font-black">{format(day, 'd')}</span>
-                        <span className="text-xs opacity-70">{format(day, 'MMM', { locale: ptBR })}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {selected.date && (
-                  <div>
-                    <div className="text-sm font-semibold text-gray-500 mb-3">
-                      {format(selected.date, "EEEE, d 'de' MMMM", { locale: ptBR })}
-                    </div>
-                    {availableSlots.length === 0 ? (
-                      <div className="text-center py-8 text-gray-400">
-                        <p className="text-sm">Nenhum horário disponível neste dia</p>
-                        <p className="text-xs mt-1">Tente outro dia</p>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="grid grid-cols-4 gap-2">
-                          {availableSlots.map(({ time: t, smart }) => {
-                            const isSelected = selected.time === t;
-                            return (
-                              <button key={t} onClick={() => setSelected(p => ({ ...p, time: t }))}
-                                className={`relative py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSelected ? 'text-white border-transparent' : 'bg-white border-black/10 text-gray-700 hover:border-[#2563EB]'} ${smart && !isSelected ? 'ring-1 ring-amber-300' : ''}`}
-                                style={{ backgroundColor: isSelected ? primaryColor : undefined }}
-                                title={smart ? 'Encaixe ideal — preenche um intervalo na agenda' : undefined}>
-                                {t}
-                                {smart && !isSelected && (
-                                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {availableSlots.some(s => s.smart) && (
-                          <div className="flex items-center gap-1.5 mt-3 text-[11px] text-gray-400">
-                            <span className="w-2 h-2 bg-amber-400 rounded-full" />
-                            Horários com pontinho são encaixes ideais na agenda
-                          </div>
-                        )}
-                        {selected.time && (
-                          <button onClick={handleContinueToConfirmation} className="mt-6 w-full text-white font-bold py-4 rounded-2xl text-sm transition-opacity hover:opacity-90"
-                            style={{ backgroundColor: primaryColor }}>
-                            Continuar <ChevronRight className="w-4 h-4 inline ml-1" />
-                          </button>
-                        )}
-                      </>
-                    )}
+                {/* "Sem preferência" */}
+                <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl p-4">
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <User className="w-5 h-5 text-white/30" />
                   </div>
-                )}
+                  <div className="flex-1">
+                    <div className="text-white font-semibold">Sem Preferência</div>
+                    <div className="text-white/40 text-xs">Primeiro disponível</div>
+                  </div>
+                </div>
+                {allProfessionals.map(p => (
+                  <div key={p.id} className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl p-4">
+                    {p.photo_url ? (
+                      <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                        style={{ backgroundColor: primaryColor + '40' }}>
+                        {(p.name || '?')[0]}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="text-white font-semibold">{p.name}</div>
+                      <div className="text-white/40 text-xs">{p.specialty || 'Sem observação'}</div>
+                    </div>
+                  </div>
+                ))}
               </>
             )}
           </div>
         )}
 
-        {/* Step 3: Confirmação — nome e telefone já foram coletados na etapa de identificação */}
-        {step === 3 && (
-          <div>
-            <button onClick={() => setStep(2)} className="flex items-center gap-1 text-sm text-gray-500 mb-5 hover:text-[#1B1C1E]">
-              <ChevronLeft className="w-4 h-4" />Voltar
-            </button>
-            <h2 className="text-xl font-black text-[#1B1C1E] mb-6">Confirmar agendamento</h2>
-
-            {/* Summary completo */}
-            <div className="bg-white rounded-2xl border border-black/8 p-4 mb-6 space-y-2">
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Cliente</span><span className="font-semibold text-[#1B1C1E] truncate ml-2">{form.name}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">WhatsApp</span><span className="font-semibold text-[#1B1C1E]">{form.phone}</span></div>
-              {selected.unit && (
-                <div className="flex justify-between text-sm"><span className="text-gray-500">Unidade</span><span className="font-semibold text-[#1B1C1E]">{selected.unit.name}</span></div>
-              )}
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Serviço</span><span className="font-semibold text-[#1B1C1E]">{selected.service?.name}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-500">Profissional</span><span className="font-semibold text-[#1B1C1E]">{selected.professional?.name}</span></div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Data e hora</span>
-                <span className="font-semibold text-[#1B1C1E]">{selected.date ? format(selected.date, "d 'de' MMM", { locale: ptBR }) : ''} às {selected.time}</span>
-              </div>
-              <div className="flex justify-between text-sm border-t border-black/8 pt-2 mt-2">
-                <span className="text-gray-500">Valor</span>
-                <span className="font-black text-lg" style={{ color: primaryColor }}>R${selected.service?.price}</span>
-              </div>
-            </div>
-
-            {isAuthenticatedCustomer && (
-              <div className="mb-4 flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <p className="text-[12px] text-emerald-800 leading-relaxed">
-                  <span className="font-semibold">Logado.</span> Este agendamento será vinculado ao seu perfil.
-                </p>
-              </div>
+        {/* AVALIAÇÕES */}
+        {activeTab === 'avaliacoes' && (
+          <div className="space-y-3">
+            {reviews.length === 0 ? (
+              <div className="text-center py-12 text-white/30">Nenhuma avaliação ainda</div>
+            ) : (
+              reviews.map(r => (
+                <div key={r.id} className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {(r.customer_name || '?')[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-white font-semibold text-sm">{r.customer_name || 'Cliente'}</div>
+                        <div className="text-white/30 text-xs">
+                          {r.submitted_at ? format(new Date(r.submitted_at), "dd/MM/yyyy HH:mm") : format(new Date(r.created_date), "dd/MM/yyyy HH:mm")}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={`w-3.5 h-3.5 ${i < (r.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-white/20'}`} />
+                      ))}
+                    </div>
+                  </div>
+                  {r.comment && <p className="text-white/60 text-sm leading-relaxed">{r.comment}</p>}
+                </div>
+              ))
             )}
-
-            {/* Forma de pagamento — só aparece quando o cliente está LOGADO e tem assinatura */}
-            {activeSubscription && (
-              <PaymentMethodChooser
-                subscription={activeSubscription}
-                value={paymentMethod}
-                onChange={setPaymentMethod}
-                primaryColor={primaryColor}
-                blocker={subscriptionBlocker}
-              />
-            )}
-
-            {/* Upsell discreto — cliente logado SEM plano */}
-            {loggedCustomer && !activeSubscription && (
-              <Link
-                to={`/cliente/${slug}/planos`}
-                className="block mb-4 px-4 py-3 rounded-xl border border-dashed border-amber-300 bg-amber-50 hover:bg-amber-100 transition-colors"
-              >
-                <div className="text-xs font-semibold text-amber-900">💡 Tenha cortes garantidos todo mês</div>
-                <div className="text-[11px] text-amber-700 mt-0.5">Conheça os planos da {company.name}</div>
-              </Link>
-            )}
-
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Observações (opcional)</label>
-              <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
-                placeholder="Preferências ou informações adicionais"
-                className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white resize-none" />
-            </div>
-
-            {/* Consentimento LGPD compacto */}
-            <BookingConsentBlock
-              companyId={company.id}
-              customerId={loggedCustomer?.id}
-              customerToken={customerToken}
-            />
-
-            {formError && (
-              <div className="mt-3 flex items-center gap-2 text-red-600 text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />{formError}
-              </div>
-            )}
-
-            <button onClick={handleBook} disabled={!form.name || !form.phone || createApptMutation.isPending}
-              className="mt-6 w-full text-white font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-              style={{ backgroundColor: primaryColor }}>
-              {createApptMutation.isPending
-                ? 'Confirmando...'
-                : (paymentMethod === 'subscription' && canUseSubscription)
-                  ? 'Confirmar agendamento'
-                  : 'Continuar para pagamento →'}
-            </button>
           </div>
         )}
-
-        {/* Step 4: Pagamento online (Pix ou Cartão) */}
-        {step === 4 && (
-          <BookingPaymentStep
-            payload={buildBookingPayload()}
-            primaryColor={primaryColor}
-            pixEnabled={false}
-            onBack={() => setStep(3)}
-            onSucceeded={(intent) => setBookingDone({ appointment_id: intent.appointment_id, paid_online: true })}
-          />
-        )}
-        </>)}
       </div>
 
-      <footer className="bg-white border-t border-black/10 py-4 text-center">
-        <p className="text-xs text-gray-400">Agendamento online por <span className="font-semibold text-[#2563EB] tracking-wider">O CORTE</span></p>
-      </footer>
+      {/* Footer */}
+      <div className="py-4 text-center border-t border-white/5">
+        <p className="text-xs text-white/20">Agendamento online por <span className="font-semibold text-white/40">O CORTE</span></p>
+      </div>
 
-      {/* Fase 6: AuthGateModal — intercepta antes de confirmar */}
+      {/* ─── BOOKING MODAL ─── */}
+      <BookingModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        company={company}
+        services={services}
+        professionals={allProfessionals}
+        existingAppointments={allAppointments}
+        blockedTimes={allBlockedTimes}
+        scopeCustomerByUnit={scopeCustomerByUnit}
+        unitId={null}
+        loggedCustomer={loggedCustomer}
+        customerToken={customerToken}
+        isAuthenticatedCustomer={isAuthenticatedCustomer}
+        activeSubscription={activeSubscription}
+        activePlan={activePlan}
+        canUseSubscription={canUseSubscription}
+        subscriptionBlocker={subscriptionBlocker}
+        slug={slug}
+        initialService={bookingService}
+        onBookingDone={(result) => {
+          setShowBookingModal(false);
+          setBookingDone(result);
+        }}
+        onNeedAuth={handleNeedAuth}
+      />
+
+      {/* ─── AUTH GATE MODAL ─── */}
       <AuthGateModal
         isOpen={showAuthGate}
         companyId={company?.id}
@@ -901,28 +447,28 @@ export default function PublicBooking() {
         primaryColor={primaryColor}
         onClose={() => setShowAuthGate(false)}
         onSuccess={(customerId, token) => {
-          // Persiste sessão no hook para que loggedCustomer seja atualizado
-          // e o form preenchido automaticamente pelo useEffect acima
-          base44.functions.invoke('customerAuth', {
-            action: 'me',
-            company_id: company?.id,
-            token,
-          }).then(res => {
-            if (res?.data?.customer) {
-              login(token, res.data.customer);
-              const c = res.data.customer;
-              setForm(p => ({
-                ...p,
-                name: c.name || p.name,
-                phone: c.phone || p.phone,
-                email: c.email || p.email,
-              }));
-              setIsAuthenticatedCustomer(true);
-            }
-          }).catch(() => {});
-          setTimeout(() => setStep(3), 300);
+          base44.functions.invoke('customerAuth', { action: 'me', company_id: company?.id, token })
+            .then(res => {
+              if (res?.data?.customer) {
+                login(token, res.data.customer);
+                const c = res.data.customer;
+                setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '' });
+                setIsAuthenticatedCustomer(true);
+              }
+            }).catch(() => {});
+          setShowAuthGate(false);
+          setTimeout(() => setShowBookingModal(true), 300);
         }}
       />
+    </div>
+  );
+}
+
+function Row({ label, value }) {
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-white/50 text-sm">{label}</span>
+      <span className="text-white font-semibold text-sm truncate ml-2 max-w-[60%] text-right">{value}</span>
     </div>
   );
 }
