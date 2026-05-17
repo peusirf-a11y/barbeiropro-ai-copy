@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lock } from 'lucide-react';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
 import LoginCustomerForm from './LoginCustomerForm';
 import RegisterCustomerForm from './RegisterCustomerForm';
 import ForgotPasswordModal from './ForgotPasswordModal';
@@ -31,6 +32,7 @@ export default function AuthGateModal({
   onClose,
   onSuccess,
 }) {
+  const { isDark, tw } = usePublicTheme();
   const [view, setView] = useState('login'); // 'login' | 'register' | 'forgot' | 'activate'
 
   // Reseta view ao abrir
@@ -75,9 +77,9 @@ export default function AuthGateModal({
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="w-full max-w-sm bg-[#1a1a2e] rounded-3xl shadow-2xl overflow-hidden border border-white/10">
+            <div className={`w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden ${isDark ? 'bg-[#1a1a2e] border border-white/10' : 'bg-white border border-black/8'}`}>
               {/* Header */}
-              <div className="px-6 py-5 flex items-center justify-between gap-4 border-b border-white/10">
+              <div className={`px-6 py-5 flex items-center justify-between gap-4 border-b ${tw.divider}`}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0"
@@ -86,15 +88,15 @@ export default function AuthGateModal({
                     <Lock className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-white/50">Acesso seguro</div>
-                    <div className="text-sm font-black text-white truncate">{companyName}</div>
+                    <div className={`text-xs font-semibold ${tw.textMuted}`}>Acesso seguro</div>
+                    <div className={`text-sm font-black ${tw.text} truncate`}>{companyName}</div>
                   </div>
                 </div>
                 <button
                   onClick={onClose}
-                  className="flex-shrink-0 p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  className={`flex-shrink-0 p-2 hover:opacity-70 rounded-lg transition-colors ${tw.textMuted}`}
                 >
-                  <X className="w-5 h-5 text-white/60" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -138,8 +140,8 @@ export default function AuthGateModal({
               </div>
 
               {/* Footer — dica de segurança */}
-              <div className="border-t border-white/10 px-6 py-4 text-center">
-                <p className="text-[11px] text-white/30">
+              <div className={`border-t ${tw.divider} px-6 py-4 text-center`}>
+                <p className={`text-[11px] ${tw.textFaint}`}>
                   🔒 Seus dados estão protegidos com encriptação SSL
                 </p>
               </div>

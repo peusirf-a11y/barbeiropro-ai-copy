@@ -44,7 +44,14 @@ const CONSENT_CONFIG = [
   },
 ];
 
-export default function CustomerConsentSection({ companyId, customerId, token }) {
+export default function CustomerConsentSection({ companyId, customerId, token, isDark = true, tw: twProp }) {
+  const tw = twProp || {
+    text: isDark ? 'text-white' : 'text-[#111827]',
+    textMuted: isDark ? 'text-white/40' : 'text-gray-500',
+    textFaint: isDark ? 'text-white/20' : 'text-gray-400',
+    card: isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-black/8',
+    divider: isDark ? 'border-white/10' : 'border-black/8',
+  };
   const queryClient = useQueryClient();
   const [localState, setLocalState] = useState({});
   const [saving, setSaving] = useState({});
@@ -112,32 +119,32 @@ export default function CustomerConsentSection({ companyId, customerId, token })
         className="w-full flex items-center justify-between gap-2"
       >
         <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-gray-400" />
+          <Shield className={`w-4 h-4 ${tw.textFaint}`} />
           <div className="text-left">
-            <div className="font-bold text-sm text-[#1B1C1E]">Suas preferências de comunicação</div>
-            {!expanded && <div className="text-xs text-gray-400">Toque para gerenciar</div>}
+            <div className={`font-bold text-sm ${tw.text}`}>Suas preferências de comunicação</div>
+            {!expanded && <div className={`text-xs ${tw.textMuted}`}>Toque para gerenciar</div>}
           </div>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 ${tw.textFaint} flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       {expanded && <>
-        <div className="text-xs text-gray-400 -mt-1">Revogue a qualquer momento. Algumas comunicações são essenciais ao serviço.</div>
+        <div className={`text-xs ${tw.textMuted} -mt-1`}>Revogue a qualquer momento. Algumas comunicações são essenciais ao serviço.</div>
 
       {CONSENT_CONFIG.map(cfg => {
         const isGranted = localState[cfg.type] ?? cfg.default;
         const isSaving = saving[cfg.type];
 
         return (
-          <div key={cfg.type} className="flex items-start justify-between gap-3 bg-white rounded-xl border border-black/8 px-4 py-3">
+          <div key={cfg.type} className={`flex items-start justify-between gap-3 ${tw.card} rounded-xl px-4 py-3`}>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-[#1B1C1E]">{cfg.label}</div>
-              <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">{cfg.desc}</div>
+              <div className={`text-sm font-semibold ${tw.text}`}>{cfg.label}</div>
+              <div className={`text-xs ${tw.textMuted} mt-0.5 leading-relaxed`}>{cfg.desc}</div>
             </div>
             <button
               onClick={() => handleToggle(cfg.type, !isGranted)}
               disabled={isSaving}
-              className={`flex-shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200 mt-0.5 ${isGranted ? 'bg-emerald-500' : 'bg-gray-200'} ${isSaving ? 'opacity-50 cursor-wait' : ''}`}
+              className={`flex-shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200 mt-0.5 ${isGranted ? 'bg-emerald-500' : isDark ? 'bg-white/20' : 'bg-gray-200'} ${isSaving ? 'opacity-50 cursor-wait' : ''}`}
               aria-label={isGranted ? 'Revogar consentimento' : 'Conceder consentimento'}
             >
               {isSaving ? (
@@ -150,7 +157,7 @@ export default function CustomerConsentSection({ companyId, customerId, token })
         );
       })}
 
-      <div className="text-[10px] text-gray-400 text-center pt-1">
+      <div className={`text-[10px] ${tw.textFaint} text-center pt-1`}>
         Seus consentimentos são registrados com data/hora para sua proteção. · <a href="/politica-de-privacidade" className="underline" target="_blank">Política de Privacidade</a>
       </div>
       </>}

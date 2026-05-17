@@ -2,16 +2,18 @@ import { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Scissors, CreditCard, LogOut, ChevronRight, AlertCircle, Pause, Play, X, Plus, Shield } from 'lucide-react';
+import { Scissors, CreditCard, LogOut, ChevronRight, AlertCircle, Pause, Play, X, Plus, Shield, Sun, Moon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import CustomerConsentSection from '@/components/public/CustomerConsentSection';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
 
 export default function CustomerDashboard() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isDark, toggle, tw } = usePublicTheme();
 
   const { data: companies = [], isLoading: loadingCo } = useQuery({
     queryKey: ['company-by-slug', slug],
@@ -55,7 +57,7 @@ export default function CustomerDashboard() {
 
   if (loadingCo || loadingAuth || !customer) {
     return (
-      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center">
+      <div className={`min-h-screen ${tw.bg} flex items-center justify-center`}>
         <div className="w-8 h-8 border-4 border-white/10 border-t-white/50 rounded-full animate-spin" />
       </div>
     );
@@ -63,10 +65,10 @@ export default function CustomerDashboard() {
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-6">
+      <div className={`min-h-screen ${tw.bg} flex items-center justify-center p-6`}>
         <div className="text-center">
-          <AlertCircle className="w-10 h-10 text-white/30 mx-auto mb-3" />
-          <p className="font-semibold text-white">Barbearia não encontrada</p>
+          <AlertCircle className={`w-10 h-10 ${tw.textFaint} mx-auto mb-3`} />
+          <p className={`font-semibold ${tw.text}`}>Barbearia não encontrada</p>
         </div>
       </div>
     );
@@ -84,25 +86,32 @@ export default function CustomerDashboard() {
   const pausedSub = subscriptions.find(s => s.status === 'paused');
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a]">
+    <div className={`min-h-screen ${tw.bg}`}>
       {/* Header */}
-      <header className="bg-[#0f0f1a] border-b border-white/10 px-5 py-4 sticky top-0 z-10">
+      <header className={`${tw.header} border-b px-5 py-4 sticky top-0 z-10`}>
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: primaryColor }}>
               <Scissors className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <div className="font-bold text-sm text-white truncate">{company.name}</div>
-              <div className="text-xs text-white/40 truncate">Olá, {customer.name?.split(' ')[0]}</div>
+              <div className={`font-bold text-sm ${tw.text} truncate`}>{company.name}</div>
+              <div className={`text-xs ${tw.textMuted} truncate`}>Olá, {customer.name?.split(' ')[0]}</div>
             </div>
           </div>
-          <button
-            onClick={() => { logout(); navigate(`/agendar/${slug}`); }}
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={toggle}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${tw.logoutBtn}`}
+              title={isDark ? 'Tema claro' : 'Tema escuro'}>
+              {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              onClick={() => { logout(); navigate(`/agendar/${slug}`); }}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${tw.logoutBtn}`}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -110,32 +119,26 @@ export default function CustomerDashboard() {
 
         {/* Quick action: novo agendamento */}
         <Link to={`/agendar/${slug}`}
-          className="flex items-center justify-between gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/8 transition-all">
+          className={`flex items-center justify-between gap-4 ${tw.card} rounded-2xl p-4 ${tw.cardHover} transition-all`}>
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: primaryColor }}>
               <Plus className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-bold text-white">Agendar novo horário</div>
-              <div className="text-xs text-white/40">Escolha serviço, profissional e data</div>
+              <div className={`font-bold ${tw.text}`}>Agendar novo horário</div>
+              <div className={`text-xs ${tw.textMuted}`}>Escolha serviço, profissional e data</div>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-white/20" />
+          <ChevronRight className={`w-5 h-5 ${tw.textFaint}`} />
         </Link>
 
         {/* Plano */}
         <section>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-3">Meu Plano</h2>
+          <h2 className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-3`}>Meu Plano</h2>
           {activeSub ? (
-            <SubscriptionCard
-              sub={activeSub}
-              primaryColor={primaryColor}
+            <SubscriptionCard sub={activeSub} primaryColor={primaryColor} tw={tw}
               onPause={() => subActionMutation.mutate({ action: 'pause', subscription_id: activeSub.id })}
-              onCancel={() => {
-                if (confirm('Tem certeza que deseja cancelar sua assinatura?')) {
-                  subActionMutation.mutate({ action: 'cancel', subscription_id: activeSub.id });
-                }
-              }}
+              onCancel={() => { if (confirm('Tem certeza que deseja cancelar sua assinatura?')) subActionMutation.mutate({ action: 'cancel', subscription_id: activeSub.id }); }}
               isPending={subActionMutation.isPending}
             />
           ) : pendingSub ? (
@@ -148,39 +151,38 @@ export default function CustomerDashboard() {
               <p className="text-xs text-amber-400/70">{pendingSub.plan_name_snapshot} — R${pendingSub.plan_price_snapshot}/mês</p>
             </Link>
           ) : pausedSub ? (
-            <PausedCard
-              sub={pausedSub}
+            <PausedCard sub={pausedSub} primaryColor={primaryColor} tw={tw}
               onResume={(id) => subActionMutation.mutate({ action: 'resume', subscription_id: id })}
               isPending={subActionMutation.isPending}
-              primaryColor={primaryColor}
             />
           ) : (
             <Link to={`/cliente/${slug}/planos`}
-              className="flex items-center justify-between gap-3 bg-white/5 border border-dashed border-white/15 rounded-2xl p-4 hover:bg-white/8 transition-all">
+              className={`flex items-center justify-between gap-3 ${tw.card} border-dashed! rounded-2xl p-4 ${tw.cardHover} transition-all`}
+              style={{ borderStyle: 'dashed' }}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <CreditCard className="w-5 h-5 text-white/40" />
+                <div className={`w-10 h-10 rounded-xl ${tw.iconBg} flex items-center justify-center flex-shrink-0`}>
+                  <CreditCard className={`w-5 h-5 ${tw.iconText}`} />
                 </div>
                 <div>
-                  <div className="font-bold text-white text-sm">Conheça nossos planos</div>
-                  <div className="text-xs text-white/40">Cortes garantidos por mensalidade</div>
+                  <div className={`font-bold ${tw.text} text-sm`}>Conheça nossos planos</div>
+                  <div className={`text-xs ${tw.textMuted}`}>Cortes garantidos por mensalidade</div>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-white/20" />
+              <ChevronRight className={`w-4 h-4 ${tw.textFaint}`} />
             </Link>
           )}
         </section>
 
         {/* Próximos agendamentos */}
         <section>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-3">Próximos Agendamentos</h2>
+          <h2 className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-3`}>Próximos Agendamentos</h2>
           {upcomingAppts.length === 0 ? (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center text-sm text-white/30">
+            <div className={`${tw.card} rounded-2xl p-6 text-center text-sm ${tw.textMuted}`}>
               Nenhum horário marcado ainda.
             </div>
           ) : (
             <div className="space-y-2">
-              {upcomingAppts.map(a => <AppointmentCard key={a.id} appt={a} primaryColor={primaryColor} />)}
+              {upcomingAppts.map(a => <AppointmentCard key={a.id} appt={a} primaryColor={primaryColor} tw={tw} />)}
             </div>
           )}
         </section>
@@ -188,20 +190,20 @@ export default function CustomerDashboard() {
         {/* Histórico */}
         {pastAppts.length > 0 && (
           <section>
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-3">Histórico</h2>
+            <h2 className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-3`}>Histórico</h2>
             <div className="space-y-2">
-              {pastAppts.map(a => <AppointmentCard key={a.id} appt={a} primaryColor={primaryColor} muted />)}
+              {pastAppts.map(a => <AppointmentCard key={a.id} appt={a} primaryColor={primaryColor} tw={tw} muted />)}
             </div>
           </section>
         )}
 
         {/* Privacidade */}
         <section>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-3 flex items-center gap-1.5">
+          <h2 className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-3 flex items-center gap-1.5`}>
             <Shield className="w-3 h-3" /> Privacidade & Comunicações
           </h2>
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <CustomerConsentSection companyId={company.id} customerId={customer.id} token={token} />
+          <div className={`${tw.card} rounded-2xl p-4`}>
+            <CustomerConsentSection companyId={company.id} customerId={customer.id} token={token} isDark={isDark} tw={tw} />
           </div>
         </section>
 
@@ -211,36 +213,36 @@ export default function CustomerDashboard() {
   );
 }
 
-function SubscriptionCard({ sub, primaryColor, onPause, onCancel, isPending }) {
+function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending }) {
   const cycleEnd = sub.current_cycle_end ? new Date(sub.current_cycle_end) : null;
   const isUnlimited = sub.plan_type_snapshot === 'unlimited';
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+    <div className={`${tw.card} rounded-2xl p-5`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: primaryColor }}>Plano ativo</div>
-          <div className="font-black text-lg text-white">{sub.plan_name_snapshot}</div>
-          <div className="text-xs text-white/40">R${sub.plan_price_snapshot}/mês</div>
+          <div className={`font-black text-lg ${tw.text}`}>{sub.plan_name_snapshot}</div>
+          <div className={`text-xs ${tw.textMuted}`}>R${sub.plan_price_snapshot}/mês</div>
         </div>
         <div className="text-right">
           {isUnlimited ? (
-            <div className="text-xs font-bold px-2.5 py-1 rounded-full bg-white/10 text-white/70">Ilimitado</div>
+            <div className={`text-xs font-bold px-2.5 py-1 rounded-full ${tw.iconBg} ${tw.textMuted}`}>Ilimitado</div>
           ) : (
             <>
-              <div className="text-3xl font-black text-white">{sub.uses_remaining ?? 0}</div>
-              <div className="text-[10px] text-white/40 uppercase tracking-wide">restantes</div>
+              <div className={`text-3xl font-black ${tw.text}`}>{sub.uses_remaining ?? 0}</div>
+              <div className={`text-[10px] ${tw.textMuted} uppercase tracking-wide`}>restantes</div>
             </>
           )}
         </div>
       </div>
       {cycleEnd && (
-        <div className="text-xs text-white/30 border-t border-white/10 pt-3 mb-3">
+        <div className={`text-xs ${tw.textFaint} border-t ${tw.divider} pt-3 mb-3`}>
           Renova em {format(cycleEnd, "d 'de' MMM", { locale: ptBR })}
         </div>
       )}
       <div className="flex gap-2">
         <button onClick={onPause} disabled={isPending}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all">
+          className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold ${tw.textMuted} ${tw.iconBg} hover:opacity-80 border ${tw.divider} px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all`}>
           <Pause className="w-3.5 h-3.5" /> Pausar
         </button>
         <button onClick={onCancel} disabled={isPending}
@@ -252,11 +254,11 @@ function SubscriptionCard({ sub, primaryColor, onPause, onCancel, isPending }) {
   );
 }
 
-function PausedCard({ sub, onResume, isPending, primaryColor }) {
+function PausedCard({ sub, onResume, isPending, primaryColor, tw }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-      <div className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-1">Plano pausado</div>
-      <div className="font-bold text-white">{sub.plan_name_snapshot}</div>
+    <div className={`${tw.card} rounded-2xl p-5`}>
+      <div className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-1`}>Plano pausado</div>
+      <div className={`font-bold ${tw.text}`}>{sub.plan_name_snapshot}</div>
       <button onClick={() => onResume(sub.id)} disabled={isPending}
         className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-white py-2.5 rounded-xl disabled:opacity-50 transition-all"
         style={{ backgroundColor: primaryColor }}>
@@ -266,7 +268,7 @@ function PausedCard({ sub, onResume, isPending, primaryColor }) {
   );
 }
 
-function AppointmentCard({ appt, primaryColor, muted }) {
+function AppointmentCard({ appt, primaryColor, tw, muted }) {
   const date = new Date(appt.scheduled_at);
   const statusLabel = {
     agendado: 'Agendado', confirmado: 'Confirmado', em_atendimento: 'Em atendimento',
@@ -275,27 +277,27 @@ function AppointmentCard({ appt, primaryColor, muted }) {
   }[appt.status] || appt.status;
 
   const statusColor = {
-    agendado: 'text-blue-400', confirmado: 'text-emerald-400', concluido: 'text-white/30',
+    agendado: 'text-blue-400', confirmado: 'text-emerald-400', concluido: tw.textFaint,
     cancelado: 'text-red-400', faltou: 'text-red-400', em_atendimento: 'text-amber-400',
     aguardando_pagamento: 'text-amber-400',
-  }[appt.status] || 'text-white/30';
+  }[appt.status] || tw.textFaint;
 
   return (
-    <div className={`flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 transition-all ${muted ? 'opacity-50' : ''}`}>
-      <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0 bg-white/10">
-        <span className="text-[10px] uppercase tracking-wide text-white/50">{format(date, 'MMM', { locale: ptBR })}</span>
-        <span className="text-lg font-black text-white leading-none">{format(date, 'd')}</span>
+    <div className={`flex items-center gap-4 ${tw.card} rounded-2xl p-4 transition-all ${muted ? 'opacity-50' : ''}`}>
+      <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${tw.iconBg}`}>
+        <span className={`text-[10px] uppercase tracking-wide ${tw.textMuted}`}>{format(date, 'MMM', { locale: ptBR })}</span>
+        <span className={`text-lg font-black ${tw.text} leading-none`}>{format(date, 'd')}</span>
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-bold text-sm text-white truncate">{appt.service_name || 'Serviço'}</div>
-        <div className="text-xs text-white/40 truncate">
+        <div className={`font-bold text-sm ${tw.text} truncate`}>{appt.service_name || 'Serviço'}</div>
+        <div className={`text-xs ${tw.textMuted} truncate`}>
           {format(date, "HH:mm")} · {appt.professional_name || 'Profissional'}
         </div>
       </div>
       <div className="flex-shrink-0 text-right">
         <div className={`text-[10px] uppercase tracking-wide font-semibold ${statusColor}`}>{statusLabel}</div>
         {appt.payment_method === 'subscription' && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/50 mt-1 block">PLANO</span>
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${tw.iconBg} ${tw.textMuted} mt-1 block`}>PLANO</span>
         )}
       </div>
     </div>

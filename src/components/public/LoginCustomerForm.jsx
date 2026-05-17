@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
 
 export default function LoginCustomerForm({ companyId, onSuccess, onGoToRegister, onGoToForgotPassword, primaryColor = '#2563EB' }) {
+  const { isDark, tw } = usePublicTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,30 +45,30 @@ export default function LoginCustomerForm({ companyId, onSuccess, onGoToRegister
     }
   };
 
-  const inputClass = "w-full px-4 py-3 border border-white/10 rounded-xl text-sm bg-white/5 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30";
+  const inputClass = `w-full px-4 py-3 border rounded-xl text-sm focus:outline-none ${tw.input}`;
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-black text-white mb-1">Entrar</h3>
-        <p className="text-sm text-white/40">Use sua conta para acessar</p>
+        <h3 className={`text-lg font-black ${tw.text} mb-1`}>Entrar</h3>
+        <p className={`text-sm ${tw.textMuted}`}>Use sua conta para acessar</p>
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
-          <label className="text-xs font-semibold text-white/50 block mb-2">Email</label>
+          <label className={`text-xs font-semibold ${tw.textMuted} block mb-2`}>Email</label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="seu@email.com" className={inputClass} disabled={loading} />
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-white/50 block mb-2">Senha</label>
+          <label className={`text-xs font-semibold ${tw.textMuted} block mb-2`}>Senha</label>
           <div className="relative">
             <input type={showPassword ? 'text' : 'password'} value={password}
               onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
               className={`${inputClass} pr-10`} disabled={loading} />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60" disabled={loading}>
+              className={`absolute right-3 top-1/2 -translate-y-1/2 ${tw.textFaint} hover:opacity-70`} disabled={loading}>
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
@@ -75,7 +77,7 @@ export default function LoginCustomerForm({ companyId, onSuccess, onGoToRegister
         <div className="flex items-center gap-2">
           <input type="checkbox" id="remember" checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)} className="w-4 h-4 cursor-pointer" />
-          <label htmlFor="remember" className="text-xs text-white/40 cursor-pointer">
+          <label htmlFor="remember" className={`text-xs ${tw.textMuted} cursor-pointer`}>
             Continuar logado neste dispositivo
           </label>
         </div>
@@ -96,7 +98,7 @@ export default function LoginCustomerForm({ companyId, onSuccess, onGoToRegister
       </form>
 
       <button type="button" onClick={onGoToForgotPassword}
-        className="w-full py-2 text-sm font-semibold text-white/50 hover:text-white/80 transition-colors" disabled={loading}>
+        className={`w-full py-2 text-sm font-semibold ${tw.textMuted} hover:opacity-70 transition-colors`} disabled={loading}>
         Esqueceu a senha?
       </button>
 
@@ -105,7 +107,7 @@ export default function LoginCustomerForm({ companyId, onSuccess, onGoToRegister
           <div className="w-full border-t border-white/10" />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-[#1a1a2e] text-white/30">ou</span>
+          <span className={`px-2 ${isDark ? 'bg-[#1a1a2e]' : 'bg-white'} ${tw.textFaint}`}>ou</span>
         </div>
       </div>
 

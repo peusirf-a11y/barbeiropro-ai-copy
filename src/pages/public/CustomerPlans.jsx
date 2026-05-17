@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Scissors, ArrowLeft, Check, AlertCircle, Infinity as InfinityIcon } from 'lucide-react';
+import { Scissors, ArrowLeft, Check, AlertCircle, Infinity as InfinityIcon, Sun, Moon } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
 
 export default function CustomerPlans() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { isDark, toggle, tw } = usePublicTheme();
 
   const { data: companies = [], isLoading: loadingCo } = useQuery({
     queryKey: ['company-by-slug', slug],
@@ -37,18 +38,12 @@ export default function CustomerPlans() {
 
   const checkoutMutation = useMutation({
     mutationFn: ({ plan_id }) => base44.functions.invoke('createCustomerPlanCheckout', {
-      company_id: company.id,
-      token,
-      plan_id,
+      company_id: company.id, token, plan_id,
     }),
     onSuccess: (res) => {
       const url = res?.data?.url;
-      if (url) {
-        window.location.href = url;
-      } else {
-        alert('Não foi possível abrir o checkout.');
-        setSubmittingPlanId(null);
-      }
+      if (url) { window.location.href = url; }
+      else { alert('Não foi possível abrir o checkout.'); setSubmittingPlanId(null); }
     },
     onError: (err) => {
       alert(err?.response?.data?.error || err?.message || 'Erro ao iniciar pagamento');
@@ -57,44 +52,52 @@ export default function CustomerPlans() {
   });
 
   const handleSubscribe = (plan) => {
-    if (!customer) {
-      navigate(`/cliente/${slug}/login`);
-      return;
-    }
-    if (!plan.stripe_price_id) {
-      alert('Este plano ainda não está disponível para pagamento online. Fale com a barbearia.');
-      return;
-    }
+    if (!customer) { navigate(`/cliente/${slug}/login`); return; }
+    if (!plan.stripe_price_id) { alert('Este plano ainda não está disponível para pagamento online.'); return; }
     setSubmittingPlanId(plan.id);
     checkoutMutation.mutate({ plan_id: plan.id });
   };
 
   if (loadingCo || loadingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F7F3]">
-        <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
+      <div className={`min-h-screen flex items-center justify-center ${tw.bg}`}>
+        <div className="w-8 h-8 border-4 border-white/20 border-t-white/70 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!company) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F7F3] p-6">
+      <div className={`min-h-screen flex items-center justify-center ${tw.bg} p-6`}>
         <div className="text-center">
           <AlertCircle className="w-10 h-10 text-orange-400 mx-auto mb-3" />
-          <p className="font-semibold text-gray-700">Barbearia não encontrada</p>
+          <p className={`font-semibold ${tw.text}`}>Barbearia não encontrada</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F7F3]">
-      <SimpleHeader company={company} primaryColor={primaryColor} slug={slug} />
+    <div className={`min-h-screen ${tw.bg}`}>
+      {/* Header */}
+      <header className={`${tw.header} border-b px-6 py-4`}>
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+          <Link to={`/cliente/${slug}`} className={`p-1 -ml-1 rounded hover:opacity-70 ${tw.textMuted}`}>
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
+            <Scissors className="w-4 h-4 text-white" />
+          </div>
+          <span className={`font-bold text-sm ${tw.text} flex-1 truncate`}>{company.name}</span>
+          <button onClick={toggle} className={`w-8 h-8 rounded-full flex items-center justify-center ${tw.logoutBtn}`}>
+            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </header>
 
       <div className="max-w-2xl mx-auto px-6 py-6">
-        <h1 className="text-2xl font-black text-[#1B1C1E] mb-2">Planos disponíveis</h1>
-        <p className="text-sm text-gray-500 mb-6">Cortes garantidos com mensalidade fixa.</p>
+        <h1 className={`text-2xl font-black ${tw.text} mb-2`}>Planos disponíveis</h1>
+        <p className={`text-sm ${tw.textMuted} mb-6`}>Cortes garantidos com mensalidade fixa.</p>
 
         {hasActiveOrPending && (
           <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
@@ -103,34 +106,28 @@ export default function CustomerPlans() {
         )}
 
         {plans.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/8 p-8 text-center text-gray-500 text-sm">
+          <div className={`${tw.card} rounded-2xl p-8 text-center text-sm ${tw.textMuted}`}>
             Nenhum plano disponível no momento.
           </div>
         ) : (
           <div className="space-y-3">
             {plans.map(p => (
-              <div key={p.id} className="bg-white rounded-2xl border border-black/8 p-5 shadow-sm">
+              <div key={p.id} className={`${tw.card} rounded-2xl p-5`}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
-                    <div className="font-black text-lg text-[#1B1C1E]">{p.name}</div>
-                    {p.description && <div className="text-xs text-gray-500 mt-0.5">{p.description}</div>}
+                    <div className={`font-black text-lg ${tw.text}`}>{p.name}</div>
+                    {p.description && <div className={`text-xs ${tw.textMuted} mt-0.5`}>{p.description}</div>}
                   </div>
                   <div className="text-right flex-shrink-0">
                     <div className="text-2xl font-black" style={{ color: primaryColor }}>R${p.price_monthly}</div>
-                    <div className="text-[10px] text-gray-400 uppercase tracking-wide">por mês</div>
+                    <div className={`text-[10px] ${tw.textFaint} uppercase tracking-wide`}>por mês</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-600 mb-4">
+                <div className={`flex items-center gap-2 text-xs ${tw.textMuted} mb-4`}>
                   {p.type === 'unlimited' ? (
-                    <>
-                      <InfinityIcon className="w-4 h-4" style={{ color: primaryColor }} />
-                      <span><strong>Cortes ilimitados</strong> por mês</span>
-                    </>
+                    <><InfinityIcon className="w-4 h-4" style={{ color: primaryColor }} /><span><strong>Cortes ilimitados</strong> por mês</span></>
                   ) : (
-                    <>
-                      <Check className="w-4 h-4" style={{ color: primaryColor }} />
-                      <span><strong>{p.usage_limit} cortes</strong> por mês</span>
-                    </>
+                    <><Check className="w-4 h-4" style={{ color: primaryColor }} /><span><strong>{p.usage_limit} cortes</strong> por mês</span></>
                   )}
                 </div>
                 <button onClick={() => handleSubscribe(p)} disabled={hasActiveOrPending || submittingPlanId === p.id}
@@ -143,26 +140,10 @@ export default function CustomerPlans() {
           </div>
         )}
 
-        <p className="text-[11px] text-gray-400 text-center mt-6">
+        <p className={`text-[11px] ${tw.textFaint} text-center mt-6`}>
           Pagamento mensal recorrente no cartão. Cancele a qualquer momento na sua conta.
         </p>
       </div>
     </div>
-  );
-}
-
-function SimpleHeader({ company, primaryColor, slug }) {
-  return (
-    <header className="bg-white border-b border-black/10 px-6 py-4">
-      <div className="max-w-2xl mx-auto flex items-center gap-3">
-        <Link to={`/cliente/${slug}`} className="p-1 -ml-1 rounded hover:bg-gray-100">
-          <ArrowLeft className="w-5 h-5 text-gray-500" />
-        </Link>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-          <Scissors className="w-4 h-4 text-white" />
-        </div>
-        <span className="font-bold text-sm text-[#1B1C1E]">{company.name}</span>
-      </div>
-    </header>
   );
 }
