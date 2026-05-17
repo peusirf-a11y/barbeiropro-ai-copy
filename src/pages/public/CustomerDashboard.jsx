@@ -47,31 +47,26 @@ export default function CustomerDashboard() {
 
   const subActionMutation = useMutation({
     mutationFn: ({ action, subscription_id }) => base44.functions.invoke('customerSubscriptionAction', {
-      action,
-      company_id: company.id,
-      token,
-      subscription_id,
+      action, company_id: company.id, token, subscription_id,
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-self'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-self'] }),
     onError: (err) => alert(err?.response?.data?.error || err?.message || 'Erro ao executar ação'),
   });
 
   if (loadingCo || loadingAuth || !customer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F7F3]">
-        <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-white/10 border-t-white/50 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!company) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F7F3] p-6">
+      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-6">
         <div className="text-center">
-          <AlertCircle className="w-10 h-10 text-orange-400 mx-auto mb-3" />
-          <p className="font-semibold text-gray-700">Barbearia não encontrada</p>
+          <AlertCircle className="w-10 h-10 text-white/30 mx-auto mb-3" />
+          <p className="font-semibold text-white">Barbearia não encontrada</p>
         </div>
       </div>
     );
@@ -82,92 +77,105 @@ export default function CustomerDashboard() {
   );
   const pastAppts = appointments.filter(a =>
     new Date(a.scheduled_at) < new Date() || ['cancelado', 'faltou', 'concluido'].includes(a.status),
-  ).slice(0, 5);
+  ).slice(0, 10);
 
   const activeSub = subscriptions.find(s => s.status === 'active');
   const pendingSub = subscriptions.find(s => s.status === 'pending_payment');
+  const pausedSub = subscriptions.find(s => s.status === 'paused');
 
   return (
-    <div className="min-h-screen bg-[#F8F7F3]">
+    <div className="min-h-screen bg-[#0f0f1a]">
       {/* Header */}
-      <header className="bg-white border-b border-black/10 px-6 py-4 sticky top-0 z-10">
+      <header className="bg-[#0f0f1a] border-b border-white/10 px-5 py-4 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: primaryColor }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: primaryColor }}>
               <Scissors className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <div className="font-bold text-sm text-[#1B1C1E] truncate">{company.name}</div>
-              <div className="text-xs text-gray-400 truncate">Olá, {customer.name?.split(' ')[0]}</div>
+              <div className="font-bold text-sm text-white truncate">{company.name}</div>
+              <div className="text-xs text-white/40 truncate">Olá, {customer.name?.split(' ')[0]}</div>
             </div>
           </div>
-          <button onClick={() => { logout(); navigate(`/agendar/${slug}`); }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-red-600 px-2.5 py-1.5 rounded-lg">
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Sair</span>
+          <button
+            onClick={() => { logout(); navigate(`/agendar/${slug}`); }}
+            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-6 py-6 space-y-6">
+      <div className="max-w-2xl mx-auto px-5 py-5 space-y-6">
+
         {/* Quick action: novo agendamento */}
         <Link to={`/agendar/${slug}`}
-          className="flex items-center justify-between gap-4 bg-white rounded-2xl border border-black/8 p-4 hover:shadow-md transition-shadow">
+          className="flex items-center justify-between gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/8 transition-all">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: primaryColor }}>
               <Plus className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-bold text-[#1B1C1E]">Agendar novo horário</div>
-              <div className="text-xs text-gray-500">Escolha serviço, profissional e data</div>
+              <div className="font-bold text-white">Agendar novo horário</div>
+              <div className="text-xs text-white/40">Escolha serviço, profissional e data</div>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-300" />
+          <ChevronRight className="w-5 h-5 text-white/20" />
         </Link>
 
-        {/* Plano ativo / pendente / CTA */}
+        {/* Plano */}
         <section>
-          <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Meu plano</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-3">Meu Plano</h2>
           {activeSub ? (
-            <SubscriptionCard sub={activeSub} primaryColor={primaryColor}
+            <SubscriptionCard
+              sub={activeSub}
+              primaryColor={primaryColor}
               onPause={() => subActionMutation.mutate({ action: 'pause', subscription_id: activeSub.id })}
               onCancel={() => {
                 if (confirm('Tem certeza que deseja cancelar sua assinatura?')) {
                   subActionMutation.mutate({ action: 'cancel', subscription_id: activeSub.id });
                 }
               }}
-              isPending={subActionMutation.isPending} />
+              isPending={subActionMutation.isPending}
+            />
           ) : pendingSub ? (
-            <Link
-              to={`/cliente/${slug}/planos`}
-              className="block bg-amber-50 border border-amber-200 rounded-2xl p-4 hover:border-amber-300 transition-colors"
-            >
-              <div className="flex items-center gap-2 text-amber-900 font-bold text-sm mb-1">
+            <Link to={`/cliente/${slug}/planos`}
+              className="block bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 hover:bg-amber-500/15 transition-colors">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1">
                 <AlertCircle className="w-4 h-4" />
                 Finalize o pagamento do seu plano
               </div>
-              <div className="text-xs text-amber-800 mb-2">{pendingSub.plan_name_snapshot} — R${pendingSub.plan_price_snapshot}/mês</div>
-              <p className="text-xs text-amber-700">Toque para concluir o pagamento. Sua assinatura é ativada automaticamente.</p>
+              <p className="text-xs text-amber-400/70">{pendingSub.plan_name_snapshot} — R${pendingSub.plan_price_snapshot}/mês</p>
             </Link>
-          ) : subscriptions.find(s => s.status === 'paused') ? (
-            <PausedCard sub={subscriptions.find(s => s.status === 'paused')}
+          ) : pausedSub ? (
+            <PausedCard
+              sub={pausedSub}
               onResume={(id) => subActionMutation.mutate({ action: 'resume', subscription_id: id })}
-              isPending={subActionMutation.isPending} />
+              isPending={subActionMutation.isPending}
+              primaryColor={primaryColor}
+            />
           ) : (
             <Link to={`/cliente/${slug}/planos`}
-              className="block bg-white rounded-2xl border border-dashed border-black/15 p-5 text-center hover:border-[#2563EB] hover:bg-[#2563EB]/5 transition-all">
-              <CreditCard className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-              <div className="font-bold text-[#1B1C1E] text-sm">Conheça nossos planos</div>
-              <div className="text-xs text-gray-500 mt-0.5">Cortes garantidos por uma mensalidade fixa</div>
+              className="flex items-center justify-between gap-3 bg-white/5 border border-dashed border-white/15 rounded-2xl p-4 hover:bg-white/8 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="w-5 h-5 text-white/40" />
+                </div>
+                <div>
+                  <div className="font-bold text-white text-sm">Conheça nossos planos</div>
+                  <div className="text-xs text-white/40">Cortes garantidos por mensalidade</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-white/20" />
             </Link>
           )}
         </section>
 
         {/* Próximos agendamentos */}
         <section>
-          <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Próximos agendamentos</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-3">Próximos Agendamentos</h2>
           {upcomingAppts.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-black/8 p-6 text-center text-sm text-gray-500">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center text-sm text-white/30">
               Nenhum horário marcado ainda.
             </div>
           ) : (
@@ -180,26 +188,24 @@ export default function CustomerDashboard() {
         {/* Histórico */}
         {pastAppts.length > 0 && (
           <section>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Histórico</h2>
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-3">Histórico</h2>
             <div className="space-y-2">
               {pastAppts.map(a => <AppointmentCard key={a.id} appt={a} primaryColor={primaryColor} muted />)}
             </div>
           </section>
         )}
 
-        {/* Privacidade & Consentimentos */}
+        {/* Privacidade */}
         <section>
-          <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3 flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5" /> Privacidade & Comunicações
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-3 flex items-center gap-1.5">
+            <Shield className="w-3 h-3" /> Privacidade & Comunicações
           </h2>
-          <div className="bg-white rounded-2xl border border-black/8 p-4">
-            <CustomerConsentSection
-              companyId={company.id}
-              customerId={customer.id}
-              token={token}
-            />
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <CustomerConsentSection companyId={company.id} customerId={customer.id} token={token} />
           </div>
         </section>
+
+        <div className="pb-4" />
       </div>
     </div>
   );
@@ -209,36 +215,36 @@ function SubscriptionCard({ sub, primaryColor, onPause, onCancel, isPending }) {
   const cycleEnd = sub.current_cycle_end ? new Date(sub.current_cycle_end) : null;
   const isUnlimited = sub.plan_type_snapshot === 'unlimited';
   return (
-    <div className="bg-white rounded-2xl border border-black/8 p-5 shadow-sm">
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: primaryColor }}>Plano ativo</div>
-          <div className="font-black text-lg text-[#1B1C1E] mt-1">{sub.plan_name_snapshot}</div>
-          <div className="text-xs text-gray-500">R${sub.plan_price_snapshot}/mês</div>
+          <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: primaryColor }}>Plano ativo</div>
+          <div className="font-black text-lg text-white">{sub.plan_name_snapshot}</div>
+          <div className="text-xs text-white/40">R${sub.plan_price_snapshot}/mês</div>
         </div>
         <div className="text-right">
           {isUnlimited ? (
-            <div className="text-xs font-bold px-2 py-1 rounded-full bg-blue-100 text-[#2563EB]">Ilimitado</div>
+            <div className="text-xs font-bold px-2.5 py-1 rounded-full bg-white/10 text-white/70">Ilimitado</div>
           ) : (
             <>
-              <div className="text-2xl font-black" style={{ color: primaryColor }}>{sub.uses_remaining ?? 0}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wide">restantes</div>
+              <div className="text-3xl font-black text-white">{sub.uses_remaining ?? 0}</div>
+              <div className="text-[10px] text-white/40 uppercase tracking-wide">restantes</div>
             </>
           )}
         </div>
       </div>
       {cycleEnd && (
-        <div className="text-xs text-gray-500 border-t border-black/5 pt-3">
+        <div className="text-xs text-white/30 border-t border-white/10 pt-3 mb-3">
           Renova em {format(cycleEnd, "d 'de' MMM", { locale: ptBR })}
         </div>
       )}
-      <div className="flex gap-2 mt-3">
+      <div className="flex gap-2">
         <button onClick={onPause} disabled={isPending}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg disabled:opacity-50">
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all">
           <Pause className="w-3.5 h-3.5" /> Pausar
         </button>
         <button onClick={onCancel} disabled={isPending}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg disabled:opacity-50">
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all">
           <X className="w-3.5 h-3.5" /> Cancelar
         </button>
       </div>
@@ -246,13 +252,14 @@ function SubscriptionCard({ sub, primaryColor, onPause, onCancel, isPending }) {
   );
 }
 
-function PausedCard({ sub, onResume, isPending }) {
+function PausedCard({ sub, onResume, isPending, primaryColor }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/8 p-5">
-      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Plano pausado</div>
-      <div className="font-bold text-[#1B1C1E] mt-1">{sub.plan_name_snapshot}</div>
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+      <div className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-1">Plano pausado</div>
+      <div className="font-bold text-white">{sub.plan_name_snapshot}</div>
       <button onClick={() => onResume(sub.id)} disabled={isPending}
-        className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg disabled:opacity-50">
+        className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-white py-2.5 rounded-xl disabled:opacity-50 transition-all"
+        style={{ backgroundColor: primaryColor }}>
         <Play className="w-3.5 h-3.5" /> Retomar plano
       </button>
     </div>
@@ -264,23 +271,31 @@ function AppointmentCard({ appt, primaryColor, muted }) {
   const statusLabel = {
     agendado: 'Agendado', confirmado: 'Confirmado', em_atendimento: 'Em atendimento',
     concluido: 'Concluído', cancelado: 'Cancelado', faltou: 'Não compareceu',
+    aguardando_pagamento: 'Aguardando pagamento',
   }[appt.status] || appt.status;
+
+  const statusColor = {
+    agendado: 'text-blue-400', confirmado: 'text-emerald-400', concluido: 'text-white/30',
+    cancelado: 'text-red-400', faltou: 'text-red-400', em_atendimento: 'text-amber-400',
+    aguardando_pagamento: 'text-amber-400',
+  }[appt.status] || 'text-white/30';
+
   return (
-    <div className={`bg-white rounded-2xl border border-black/8 p-4 flex items-center gap-4 ${muted ? 'opacity-70' : ''}`}>
-      <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-        <span className="text-[10px] uppercase tracking-wide opacity-80">{format(date, 'MMM', { locale: ptBR })}</span>
-        <span className="text-lg font-black leading-none">{format(date, 'd')}</span>
+    <div className={`flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 transition-all ${muted ? 'opacity-50' : ''}`}>
+      <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0 bg-white/10">
+        <span className="text-[10px] uppercase tracking-wide text-white/50">{format(date, 'MMM', { locale: ptBR })}</span>
+        <span className="text-lg font-black text-white leading-none">{format(date, 'd')}</span>
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-bold text-sm text-[#1B1C1E] truncate">{appt.service_name || 'Serviço'}</div>
-        <div className="text-xs text-gray-500 truncate">
+        <div className="font-bold text-sm text-white truncate">{appt.service_name || 'Serviço'}</div>
+        <div className="text-xs text-white/40 truncate">
           {format(date, "HH:mm")} · {appt.professional_name || 'Profissional'}
         </div>
       </div>
-      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        <div className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">{statusLabel}</div>
+      <div className="flex-shrink-0 text-right">
+        <div className={`text-[10px] uppercase tracking-wide font-semibold ${statusColor}`}>{statusLabel}</div>
         {appt.payment_method === 'subscription' && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-[#2563EB]">PLANO</span>
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/50 mt-1 block">PLANO</span>
         )}
       </div>
     </div>
