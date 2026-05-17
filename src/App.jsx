@@ -11,6 +11,7 @@ import CookieConsentProvider from '@/components/cookies/CookieConsentProvider';
 import RootRedirect from '@/components/RootRedirect';
 import { ActiveUnitProvider } from '@/hooks/useActiveUnit';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
+import { BookingSessionProvider } from '@/contexts/BookingSessionContext';
 
 // Guards
 import PrivateRoute from '@/components/guards/PrivateRoute';
@@ -96,6 +97,7 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
        <ImpersonationProvider>
+       <BookingSessionProvider>
        <ActiveUnitProvider>
          <Router>
           <Routes>
@@ -191,6 +193,7 @@ function App() {
         </Router>
         <Toaster />
        </ActiveUnitProvider>
+       </BookingSessionProvider>
        </ImpersonationProvider>
       </QueryClientProvider>
     </AuthProvider>
