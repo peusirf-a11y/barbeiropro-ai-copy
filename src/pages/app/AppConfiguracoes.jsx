@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
-import { Save, Globe, Copy, CheckCircle, Settings, CreditCard } from 'lucide-react';
+import { Save, Globe, Copy, CheckCircle, Settings, CreditCard, Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
@@ -25,6 +25,7 @@ export default function AppConfiguracoes() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies'],
@@ -35,7 +36,7 @@ export default function AppConfiguracoes() {
   const { has } = useFeatures();
 
   const [form, setForm] = useState({
-    name: '', slug: '', phone: '', whatsapp: '', address: '', primary_color: '#2563EB', business_hours: defaultHours,
+    name: '', slug: '', phone: '', whatsapp: '', address: '', primary_color: '#2563EB', business_hours: defaultHours, logo_url: '',
   });
 
   useEffect(() => {
@@ -48,9 +49,22 @@ export default function AppConfiguracoes() {
         address: company.address || '',
         primary_color: company.primary_color || '#2563EB',
         business_hours: company.business_hours || defaultHours,
+        logo_url: company.logo_url || '',
       });
     }
   }, [company]);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(p => ({ ...p, logo_url: file_url }));
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Company.create(data),
@@ -109,6 +123,31 @@ export default function AppConfiguracoes() {
           {/* Basic info */}
           <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
             <h2 className="font-bold text-[#111827] mb-5">Informações básicas</h2>
+
+            {/* Logo upload */}
+            <div className="mb-5">
+              <label className="text-xs font-semibold text-gray-500 block mb-2">Logo da barbearia</label>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl border border-black/10 overflow-hidden flex items-center justify-center bg-gray-50 flex-shrink-0">
+                  {form.logo_url ? (
+                    <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl font-black text-gray-300">{form.name?.[0] || '?'}</span>
+                  )}
+                </div>
+                <label className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-gray-50 border border-black/10 hover:bg-gray-100 transition-colors cursor-pointer">
+                  {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploadingLogo ? 'Enviando...' : 'Enviar logo'}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                </label>
+                {form.logo_url && (
+                  <button onClick={() => setForm(p => ({ ...p, logo_url: '' }))} className="text-xs text-red-500 hover:text-red-700">
+                    Remover
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-4">
               {[
                 { label: 'Nome da barbearia', key: 'name', placeholder: 'Ex: Barbearia Studio 47' },
