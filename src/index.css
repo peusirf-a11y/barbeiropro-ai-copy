@@ -554,41 +554,69 @@
 .light .bg-emerald-500\/10,
 .light .bg-emerald-500\/15,
 .light .bg-emerald-500\/20,
+.light .bg-emerald-400\/10,
+.light .bg-emerald-400\/12,
+.light .bg-emerald-400\/15,
+.light .bg-emerald-400\/20,
 .light .bg-green-500\/10,
 .light .bg-green-500\/15 { background-color: rgba(16, 185, 129, 0.10) !important; }
 .light .text-emerald-300,
 .light .text-emerald-200,
+.light .text-emerald-100,
 .light .text-green-300 { color: #047857 !important; }
 .light .ring-emerald-400\/20,
 .light .ring-emerald-400\/25,
+.light .ring-emerald-400\/30,
 .light .border-emerald-400\/20,
-.light .border-emerald-400\/25 { border-color: rgba(16, 185, 129, 0.30) !important; }
+.light .border-emerald-400\/25,
+.light .border-emerald-400\/30,
+.light .border-emerald-400\/35 { border-color: rgba(16, 185, 129, 0.30) !important; }
 
 .light .bg-amber-500\/10,
 .light .bg-amber-500\/15,
 .light .bg-amber-500\/20,
+.light .bg-amber-400\/10,
+.light .bg-amber-400\/15,
+.light .bg-amber-400\/20,
+.light .bg-amber-400\/25,
 .light .bg-yellow-500\/10,
-.light .bg-yellow-500\/15 { background-color: rgba(245, 158, 11, 0.12) !important; }
+.light .bg-yellow-500\/15 { background-color: rgba(245, 158, 11, 0.10) !important; }
 .light .text-amber-300,
 .light .text-amber-200,
-.light .text-yellow-300 { color: #B45309 !important; }
+.light .text-amber-100,
+.light .text-amber-50,
+.light .text-yellow-300 { color: #92400E !important; }
 .light .ring-amber-400\/20,
 .light .ring-amber-400\/25,
+.light .ring-amber-400\/30,
+.light .ring-amber-400\/35,
 .light .border-amber-400\/20,
-.light .border-amber-400\/25 { border-color: rgba(245, 158, 11, 0.30) !important; }
+.light .border-amber-400\/25,
+.light .border-amber-400\/30,
+.light .border-amber-400\/35,
+.light .border-amber-400\/45,
+.light .border-amber-400\/50 { border-color: rgba(245, 158, 11, 0.35) !important; }
 
 .light .bg-rose-500\/10,
 .light .bg-rose-500\/15,
 .light .bg-rose-500\/20,
+.light .bg-rose-400\/10,
+.light .bg-rose-400\/12,
+.light .bg-rose-400\/15,
+.light .bg-rose-400\/20,
 .light .bg-red-500\/10,
 .light .bg-red-500\/15 { background-color: rgba(244, 63, 94, 0.10) !important; }
 .light .text-rose-300,
 .light .text-rose-200,
+.light .text-rose-100,
 .light .text-red-300 { color: #B91C1C !important; }
 .light .ring-rose-400\/20,
 .light .ring-rose-400\/25,
+.light .ring-rose-400\/30,
 .light .border-rose-400\/20,
-.light .border-rose-400\/25 { border-color: rgba(244, 63, 94, 0.30) !important; }
+.light .border-rose-400\/25,
+.light .border-rose-400\/30,
+.light .border-rose-400\/35 { border-color: rgba(244, 63, 94, 0.30) !important; }
 
 .light .bg-purple-500\/10,
 .light .bg-purple-500\/15,
@@ -608,6 +636,30 @@
 .light .drop-shadow-\[0_0_8px_rgba\(96\,165\,250\,0\.6\)\] {
   filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.25)) !important;
 }
+
+/* color-scheme:dark força UI nativa do navegador (input date, select arrow) em
+   esquema escuro. No tema claro, isso deixa selects/inputs com fundo cinza-claro
+   invisível. Forçamos light. */
+.light .\[color-scheme\:dark\] {
+  color-scheme: light !important;
+}
+
+/* Options de <select> com background hardcoded #0A1124 (dropdown nativo)
+   ficam pretas no light. Forçamos branco. */
+.light option {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+
+/* Texto roxo translúcido (PLANO badge) */
+.light .bg-violet-400\/10,
+.light .bg-violet-400\/15,
+.light .bg-violet-400\/20 { background-color: rgba(139, 92, 246, 0.10) !important; }
+.light .text-violet-200,
+.light .text-violet-100 { color: #6D28D9 !important; }
+.light .border-violet-400\/20,
+.light .border-violet-400\/25,
+.light .border-violet-400\/30 { border-color: rgba(139, 92, 246, 0.30) !important; }
 
 /* Skeleton / loading states em light */
 .light .border-\[\#60A5FA\]\/20 { border-color: rgba(37, 99, 235, 0.18) !important; }
