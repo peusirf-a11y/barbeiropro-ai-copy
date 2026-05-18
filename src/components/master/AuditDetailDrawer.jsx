@@ -6,16 +6,16 @@ import { ptBR } from 'date-fns/locale';
 import { useState } from 'react';
 
 function JsonViewer({ data }) {
-  if (!data) return <span className="text-gray-400 text-xs">—</span>;
+  if (!data) return <span className="text-muted-foreground text-xs">—</span>;
   try {
     const str = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
     return (
-      <pre className="text-[11px] font-mono text-[#1e293b] bg-[#F8FAFC] border border-black/5 rounded-xl p-3 overflow-auto max-h-64 whitespace-pre-wrap break-all">
+      <pre className="text-[11px] font-mono text-foreground bg-muted/50 border border-border rounded-xl p-3 overflow-auto max-h-64 whitespace-pre-wrap break-all">
         {str}
       </pre>
     );
   } catch {
-    return <span className="text-xs text-gray-500">{String(data)}</span>;
+    return <span className="text-xs text-muted-foreground">{String(data)}</span>;
   }
 }
 
@@ -31,11 +31,11 @@ function Field({ label, value, mono = false }) {
   };
   return (
     <div className="space-y-1">
-      <div className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">{label}</div>
-      <div className={`flex items-center gap-2 text-sm text-[#111827] ${mono ? 'font-mono' : ''}`}>
+      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</div>
+      <div className={`flex items-center gap-2 text-sm text-foreground ${mono ? 'font-mono' : ''}`}>
         <span className="flex-1 break-all">{str}</span>
-        <button onClick={handleCopy} className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors">
-          {copied ? <span className="text-[10px] text-green-500">✓</span> : <Copy className="w-3 h-3 text-gray-400" />}
+        <button onClick={handleCopy} className="flex-shrink-0 p-1 hover:bg-muted rounded transition-colors">
+          {copied ? <span className="text-[10px] text-emerald-500">✓</span> : <Copy className="w-3 h-3 text-muted-foreground" />}
         </button>
       </div>
     </div>
@@ -43,9 +43,9 @@ function Field({ label, value, mono = false }) {
 }
 
 const SEVERITY_COLORS = {
-  critical: 'bg-red-100 text-red-700 border-red-200',
-  warning: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  info: 'bg-blue-50 text-blue-600 border-blue-100',
+  critical: 'bg-red-500/15 text-red-500 border-red-500/30',
+  warning: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30',
+  info: 'bg-blue-500/15 text-blue-500 border-blue-500/30',
 };
 
 export default function AuditDetailDrawer({ log, onClose }) {
@@ -57,19 +57,19 @@ export default function AuditDetailDrawer({ log, onClose }) {
     <div className="fixed inset-0 z-[9999] flex justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
       <div
-        className="relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col overflow-hidden animate-slide-up sm:animate-fade-in"
+        className="relative w-full max-w-lg bg-card border-l border-border h-full shadow-2xl flex flex-col overflow-hidden animate-slide-up sm:animate-fade-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${sev}`}>
               {log.severity?.toUpperCase() || 'INFO'}
             </span>
-            <span className="font-bold text-sm text-[#111827] font-mono">{log.action}</span>
+            <span className="font-bold text-sm text-foreground font-mono">{log.action}</span>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <X className="w-4 h-4 text-gray-500" />
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors">
+            <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
 
@@ -77,14 +77,14 @@ export default function AuditDetailDrawer({ log, onClose }) {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 modal-scroll">
           {/* Ator */}
           <section>
-            <h3 className="text-xs font-bold text-[#111827] uppercase tracking-wider mb-3">Ator</h3>
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">Ator</h3>
             <div className="space-y-2.5">
               <Field label="E-mail" value={log.actor_email} />
               <Field label="Tipo" value={log.actor_type} />
               <Field label="Nome" value={log.actor_name} />
               <Field label="ID" value={log.actor_id} mono />
               {log.actor_is_super_admin && (
-                <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full bg-purple-50 text-purple-600 border border-purple-100">
+                <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-500 border border-purple-500/30">
                   Super Admin
                 </span>
               )}
@@ -93,7 +93,7 @@ export default function AuditDetailDrawer({ log, onClose }) {
 
           {/* Alvo */}
           <section>
-            <h3 className="text-xs font-bold text-[#111827] uppercase tracking-wider mb-3">Alvo</h3>
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">Alvo</h3>
             <div className="space-y-2.5">
               <Field label="Tipo" value={log.target_type} />
               <Field label="ID" value={log.target_id} mono />
@@ -107,7 +107,7 @@ export default function AuditDetailDrawer({ log, onClose }) {
 
           {/* Request */}
           <section>
-            <h3 className="text-xs font-bold text-[#111827] uppercase tracking-wider mb-3">Request</h3>
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">Request</h3>
             <div className="space-y-2.5">
               <Field label="Data/Hora" value={date} />
               <Field label="IP" value={log.ip || log.ip_address} mono />
@@ -120,7 +120,7 @@ export default function AuditDetailDrawer({ log, onClose }) {
           {/* Diff before/after */}
           {(log.before || log.after) && (
             <section>
-              <h3 className="text-xs font-bold text-[#111827] uppercase tracking-wider mb-3">Diff</h3>
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">Diff</h3>
               <div className="space-y-3">
                 {log.before && (
                   <div>
@@ -130,7 +130,7 @@ export default function AuditDetailDrawer({ log, onClose }) {
                 )}
                 {log.after && (
                   <div>
-                    <div className="text-[11px] font-semibold text-green-500 mb-1">Depois</div>
+                    <div className="text-[11px] font-semibold text-emerald-500 mb-1">Depois</div>
                     <JsonViewer data={log.after} />
                   </div>
                 )}
@@ -141,7 +141,7 @@ export default function AuditDetailDrawer({ log, onClose }) {
           {/* Metadata */}
           {log.metadata && (
             <section>
-              <h3 className="text-xs font-bold text-[#111827] uppercase tracking-wider mb-3">Metadata</h3>
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">Metadata</h3>
               <JsonViewer data={log.metadata} />
             </section>
           )}
