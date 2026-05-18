@@ -67,9 +67,10 @@ export default function AppRelatorios() {
   const periodFinancial = financialScoped.filter(f => filterByPeriod(f, 'date'));
 
   const totalRevenue = periodFinancial.filter(f => f.type === 'entrada').reduce((s, f) => s + (f.amount || 0), 0);
+  // Ticket médio = receita dos agendamentos concluídos ÷ nº de agendamentos concluídos.
+  // Usa price dos appointments (não o financeiro total, que inclui assinaturas/produtos).
   const apptRevenue = completedAppts.reduce((s, a) => s + (a.price || 0), 0);
-  const effectiveRevenue = totalRevenue || apptRevenue; // Use financial if available, else from appointments
-  const avgTicket = completedAppts.length > 0 ? effectiveRevenue / completedAppts.length : 0;
+  const avgTicket = completedAppts.length > 0 ? apptRevenue / completedAppts.length : 0;
   const cancelledRate = periodAppts.length > 0 ? ((periodAppts.filter(a => a.status === 'cancelado').length / periodAppts.length) * 100).toFixed(0) : 0;
 
   // Service stats
@@ -132,7 +133,7 @@ export default function AppRelatorios() {
           {[
             { label: 'Total agendamentos', value: periodAppts.length },
             { label: 'Concluídos', value: completedAppts.length },
-            { label: 'Receita', value: `R$${effectiveRevenue.toFixed(0)}` },
+            { label: 'Receita', value: `R$${totalRevenue > 0 ? totalRevenue.toFixed(0) : apptRevenue.toFixed(0)}` },
             { label: 'Ticket médio', value: `R$${avgTicket.toFixed(0)}` },
             { label: 'Taxa cancelamento', value: `${cancelledRate}%` },
           ].map(s => (
