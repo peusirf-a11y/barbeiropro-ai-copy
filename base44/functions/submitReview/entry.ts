@@ -81,6 +81,39 @@ Deno.serve(async (req) => {
     const matches = await sdk.entities.Appointment.filter({ review_token: token }, '-created_date', 1);
     const appt = matches?.[0];
     if (!appt) {
+      // ── Anti-enumeração (Fase 3) ──────────────────────────────────────────
+      // Conta tentativas FALHAS separadamente. 5 fails em 15min → bloqueio + SecurityEvent.
+      try {
+        const failKey = `submitReview:fail:${ip}`;
+        const now = new Date();
+        const failWindowMs = 15 * 60 * 1000;
+        const failLimit = 5;
+        const existingFail = await sdk.entities.SecurityRateLimit.filter({ key: failKey }, '-created_date', 1).catch(() => []);
+        const failRec = existingFail?.[0];
+        if (failRec && failRec.window_end && new Date(failRec.window_end) > now) {
+          const newAttempts = (failRec.attempts || 0) + 1;
+          if (newAttempts >= failLimit) {
+            const blocked_until = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+            await sdk.entities.SecurityRateLimit.update(failRec.id, { attempts: newAttempts, is_blocked: true, blocked_until }).catch(() => {});
+            await sdk.entities.SecurityEvent.create({
+              event_type: 'brute_force_attempt', severity: 'high',
+              ip_address: ip, route: 'submitReview',
+              details: { fail_attempts: newAttempts, request_id: rid },
+              blocked: true, request_id: rid,
+            }).catch(() => {});
+          } else {
+            await sdk.entities.SecurityRateLimit.update(failRec.id, { attempts: newAttempts }).catch(() => {});
+          }
+        } else {
+          const window_end = new Date(now.getTime() + failWindowMs).toISOString();
+          if (failRec) {
+            await sdk.entities.SecurityRateLimit.update(failRec.id, { attempts: 1, window_start: now.toISOString(), window_end, is_blocked: false, blocked_until: null }).catch(() => {});
+          } else {
+            await sdk.entities.SecurityRateLimit.create({ key: failKey, route: 'submitReview:fail', ip, identifier: ip, attempts: 1, window_start: now.toISOString(), window_end, is_blocked: false }).catch(() => {});
+          }
+        }
+      } catch { /* não bloquear fluxo se SecurityRateLimit falhar */ }
+
       console.warn(`[submitReview] rid=${rid} token not found prefix=${token.slice(0, 8)}`);
       return Response.json({ success: false, error: 'Link inválido ou expirado.' }, { status: 404 });
     }
