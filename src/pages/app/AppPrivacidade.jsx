@@ -31,22 +31,22 @@ function CookiesTab({ onOpenModal }) {
   return (
     <div className="space-y-4">
       {/* Status atual */}
-      <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-[#111827] flex items-center gap-2">
-            <Cookie className="w-4 h-4 text-gray-400" />
+          <h3 className="font-bold text-white flex items-center gap-2">
+            <Cookie className="w-4 h-4 text-white/50" />
             Preferências de cookies do navegador
           </h3>
           <button
             onClick={onOpenModal}
-            className="text-xs font-bold px-3 py-1.5 bg-[#EFF6FF] text-[#2563EB] rounded-lg hover:bg-[#DBEAFE] transition-colors"
+            className="text-xs font-bold px-3 py-1.5 bg-blue-400/12 text-[#93C5FD] ring-1 ring-blue-400/25 rounded-lg hover:bg-blue-400/20 transition-colors"
           >
             Gerenciar
           </button>
         </div>
         {!state ? (
-          <div className="text-sm text-gray-500 bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+          <div className="text-sm text-amber-200 bg-amber-400/10 border border-amber-400/25 rounded-xl p-3 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" />
             Consentimento ainda não registrado neste navegador.
           </div>
         ) : (
@@ -54,20 +54,20 @@ function CookiesTab({ onOpenModal }) {
             {categories.map(cat => {
               const accepted = cat.always_on || hasConsent(cat.id);
               return (
-                <div key={cat.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-b-0">
+                <div key={cat.id} className="flex items-center justify-between py-2 border-b border-white/6 last:border-b-0">
                   <div>
-                    <div className="text-sm font-semibold text-[#111827]">{cat.label}</div>
-                    <div className="text-xs text-gray-500">{cat.description}</div>
+                    <div className="text-sm font-semibold text-white">{cat.label}</div>
+                    <div className="text-xs text-white/55">{cat.description}</div>
                   </div>
                   <div className="flex-shrink-0 ml-3">
                     {cat.always_on ? (
-                      <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Sempre ativo</span>
+                      <span className="text-[10px] font-bold text-white/55 bg-white/8 px-2 py-0.5 rounded-full">Sempre ativo</span>
                     ) : accepted ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-400/15 ring-1 ring-emerald-400/30 px-2 py-0.5 rounded-full">
                         <CheckCircle2 className="w-3 h-3" /> Aceito
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white/60 bg-white/8 ring-1 ring-white/10 px-2 py-0.5 rounded-full">
                         <XCircle className="w-3 h-3" /> Recusado
                       </span>
                     )}
@@ -75,30 +75,30 @@ function CookiesTab({ onOpenModal }) {
                 </div>
               );
             })}
-            <div className="text-[11px] text-gray-400 pt-1">
-              Versão da política: <strong>{state.policy_version}</strong> ·
-              Consentido em: <strong>{state.consented_at ? new Date(state.consented_at).toLocaleDateString('pt-BR') : '—'}</strong> ·
-              Expira em: <strong>{state.expires_at ? new Date(state.expires_at).toLocaleDateString('pt-BR') : '—'}</strong>
+            <div className="text-[11px] text-white/40 pt-1">
+              Versão da política: <strong className="text-white/70">{state.policy_version}</strong> ·
+              Consentido em: <strong className="text-white/70">{state.consented_at ? new Date(state.consented_at).toLocaleDateString('pt-BR') : '—'}</strong> ·
+              Expira em: <strong className="text-white/70">{state.expires_at ? new Date(state.expires_at).toLocaleDateString('pt-BR') : '—'}</strong>
             </div>
           </div>
         )}
       </div>
 
       {/* Documentação */}
-      <div className="bg-white rounded-2xl border border-black/5 p-4 shadow-sm flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
-          <FileText className="w-5 h-5 text-[#2563EB]" />
+      <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-blue-400/12 ring-1 ring-blue-400/25 flex items-center justify-center flex-shrink-0">
+          <FileText className="w-5 h-5 text-[#93C5FD]" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-sm text-[#111827]">Política de Cookies</div>
-          <div className="text-xs text-gray-500 mt-0.5">Categorias, finalidades, retenção, terceiros e como revogar.</div>
-          <div className="text-[10px] text-gray-300 mt-0.5 font-mono">docs/COOKIE_POLICY.md</div>
+          <div className="font-semibold text-sm text-white">Política de Cookies</div>
+          <div className="text-xs text-white/55 mt-0.5">Categorias, finalidades, retenção, terceiros e como revogar.</div>
+          <div className="text-[10px] text-white/30 mt-0.5 font-mono">docs/COOKIE_POLICY.md</div>
         </div>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">✓ Criada</span>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/30 flex-shrink-0">✓ Criada</span>
       </div>
 
       {/* Info LGPD */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-xs text-blue-800 leading-relaxed">
+      <div className="bg-blue-400/10 border border-blue-400/25 rounded-2xl p-4 text-xs text-blue-100 leading-relaxed">
         <strong>Modo Privacidade:</strong> Quando o usuário recusa analytics e marketing, eventos internos são anonimizados, fingerprinting é desabilitado e nenhum script de tracking é carregado. Consentimento expira em <strong>6 meses</strong> e é revalidado automaticamente.
       </div>
     </div>
@@ -190,9 +190,9 @@ export default function AppPrivacidade() {
   };
 
   const severityColor = {
-    info: 'bg-blue-50 text-blue-700 border-blue-100',
-    warning: 'bg-amber-50 text-amber-700 border-amber-100',
-    critical: 'bg-red-50 text-red-700 border-red-100',
+    info: 'bg-blue-400/15 text-blue-200 ring-1 ring-blue-400/30',
+    warning: 'bg-amber-400/15 text-amber-200 ring-1 ring-amber-400/30',
+    critical: 'bg-red-400/15 text-red-200 ring-1 ring-red-400/30',
   };
 
   const actionLabel = {
@@ -229,23 +229,23 @@ export default function AppPrivacidade() {
         {/* Status bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Logs de auditoria', value: privacyLogs.length, color: 'blue' },
-            { label: 'Consentimentos', value: '-', color: 'emerald' },
-            { label: 'Exportações', value: privacyLogs.filter(l => l.action === 'DATA_EXPORT_REQUESTED').length, color: 'violet' },
-            { label: 'Anonimizações', value: privacyLogs.filter(l => l.action === 'DATA_ANONYMIZED').length, color: 'amber' },
+            { label: 'Logs de auditoria', value: privacyLogs.length },
+            { label: 'Consentimentos', value: '-' },
+            { label: 'Exportações', value: privacyLogs.filter(l => l.action === 'DATA_EXPORT_REQUESTED').length },
+            { label: 'Anonimizações', value: privacyLogs.filter(l => l.action === 'DATA_ANONYMIZED').length },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-xl border border-black/5 p-3 text-center shadow-sm">
-              <div className="text-2xl font-black text-[#111827]">{s.value}</div>
-              <div className="text-[10px] text-gray-500 mt-0.5 leading-tight">{s.label}</div>
+            <div key={s.label} className="rounded-xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-3 text-center shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+              <div className="text-2xl font-black text-white">{s.value}</div>
+              <div className="text-[10px] text-white/55 mt-0.5 leading-tight">{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
+        <div className="flex gap-1 bg-white/[0.04] border border-white/8 rounded-xl p-1 mb-6">
           {tabs.map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)}
-              className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-all ${activeTab === t.key ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-all ${activeTab === t.key ? 'bg-white/[0.08] text-white ring-1 ring-blue-400/25 shadow-[0_4px_12px_rgba(37,99,235,0.2)]' : 'text-white/50 hover:text-white/80'}`}>
               {t.label}
             </button>
           ))}
@@ -253,51 +253,51 @@ export default function AppPrivacidade() {
 
         {/* ── TAB: AUDITORIA ── */}
         {activeTab === 'logs' && (
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-black/5 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-gray-400" />
-              <span className="font-bold text-[#111827]">Registro de ações de privacidade</span>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-white/50" />
+              <span className="font-bold text-white">Registro de ações de privacidade</span>
             </div>
             {loadingLogs ? (
-              <div className="p-8 text-center text-gray-400 text-sm">Carregando logs…</div>
+              <div className="p-8 text-center text-white/40 text-sm">Carregando logs…</div>
             ) : privacyLogs.length === 0 ? (
               <div className="p-8 text-center">
-                <Shield className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">Nenhuma ação de privacidade registrada ainda.</p>
-                <p className="text-xs text-gray-300 mt-1">Exportações, anonimizações e alterações de consentimento aparecerão aqui.</p>
+                <Shield className="w-8 h-8 text-white/15 mx-auto mb-2" />
+                <p className="text-sm text-white/40">Nenhuma ação de privacidade registrada ainda.</p>
+                <p className="text-xs text-white/30 mt-1">Exportações, anonimizações e alterações de consentimento aparecerão aqui.</p>
               </div>
             ) : (
-              <div className="divide-y divide-black/5">
+              <div className="divide-y divide-white/6">
                 {privacyLogs.map(log => (
                   <div key={log.id} className="px-5 py-3">
                     <div className="flex items-start gap-3 justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${severityColor[log.severity] || severityColor.info}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${severityColor[log.severity] || severityColor.info}`}>
                             {log.severity?.toUpperCase()}
                           </span>
-                          <span className="text-sm font-semibold text-[#111827]">{actionLabel[log.action] || log.action}</span>
+                          <span className="text-sm font-semibold text-white">{actionLabel[log.action] || log.action}</span>
                         </div>
-                        <div className="text-xs text-gray-500 mt-0.5">
-                          {log.actor_email && <span>Por: <strong>{log.actor_email}</strong> · </span>}
+                        <div className="text-xs text-white/55 mt-0.5">
+                          {log.actor_email && <span>Por: <strong className="text-white/75">{log.actor_email}</strong> · </span>}
                           {log.actor_type && <span className="capitalize">{log.actor_type}</span>}
                           {log.customer_id && <span> · Cliente: {log.customer_id.slice(-6)}</span>}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-[11px] text-gray-400">
+                        <span className="text-[11px] text-white/40">
                           {log.created_date ? format(new Date(log.created_date), "dd/MM/yy HH:mm", { locale: ptBR }) : '—'}
                         </span>
                         {log.details && (
                           <button onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
-                            className="text-gray-300 hover:text-gray-500">
+                            className="text-white/30 hover:text-white/60">
                             {expandedLog === log.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           </button>
                         )}
                       </div>
                     </div>
                     {expandedLog === log.id && log.details && (
-                      <pre className="mt-2 text-[11px] text-gray-600 bg-gray-50 rounded-lg p-2 overflow-x-auto">
+                      <pre className="mt-2 text-[11px] text-white/70 bg-black/30 border border-white/8 rounded-lg p-2 overflow-x-auto">
                         {JSON.stringify(log.details, null, 2)}
                       </pre>
                     )}
@@ -311,9 +311,9 @@ export default function AppPrivacidade() {
         {/* ── TAB: DADOS POR CLIENTE ── */}
         {activeTab === 'search' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
-              <h3 className="font-bold text-[#111827] mb-3 flex items-center gap-2">
-                <Search className="w-4 h-4 text-gray-400" />
+            <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+              <h3 className="font-bold text-white mb-3 flex items-center gap-2">
+                <Search className="w-4 h-4 text-white/50" />
                 Buscar cliente por telefone
               </h3>
               <input
@@ -321,55 +321,55 @@ export default function AppPrivacidade() {
                 placeholder="Ex: 11999999999"
                 value={searchPhone}
                 onChange={e => setSearchPhone(e.target.value)}
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                className="w-full px-3 py-2.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white placeholder:text-white/30"
               />
-              {searching && <p className="text-xs text-gray-400 mt-2">Buscando…</p>}
+              {searching && <p className="text-xs text-white/40 mt-2">Buscando…</p>}
               {foundCustomers.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {foundCustomers.map(c => (
-                    <div key={c.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedCustomerId === c.id ? 'border-[#2563EB] bg-blue-50' : 'border-black/8 hover:border-black/15'}`}
+                    <div key={c.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedCustomerId === c.id ? 'border-blue-400/40 bg-blue-400/10' : 'border-white/8 hover:border-white/15'}`}
                       onClick={() => setSelectedCustomerId(c.id)}>
                       <div>
-                        <div className="font-semibold text-sm text-[#111827]">{c.name}</div>
-                        <div className="text-xs text-gray-500">{c.phone} · {c.total_appointments || 0} agendamentos</div>
+                        <div className="font-semibold text-sm text-white">{c.name}</div>
+                        <div className="text-xs text-white/55">{c.phone} · {c.total_appointments || 0} agendamentos</div>
                       </div>
-                      {selectedCustomerId === c.id && <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />}
+                      {selectedCustomerId === c.id && <CheckCircle2 className="w-4 h-4 text-[#93C5FD]" />}
                     </div>
                   ))}
                 </div>
               )}
               {searchPhone.length >= 8 && !searching && foundCustomers.length === 0 && (
-                <p className="text-xs text-gray-400 mt-2">Nenhum cliente encontrado.</p>
+                <p className="text-xs text-white/40 mt-2">Nenhum cliente encontrado.</p>
               )}
             </div>
 
             {selectedCustomerId && (
               <>
                 {/* Consentimentos */}
-                <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
-                  <h3 className="font-bold text-[#111827] mb-4">Consentimentos registrados</h3>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+                  <h3 className="font-bold text-white mb-4">Consentimentos registrados</h3>
                   {loadingConsents ? (
-                    <p className="text-sm text-gray-400">Carregando…</p>
+                    <p className="text-sm text-white/40">Carregando…</p>
                   ) : consents.length === 0 ? (
-                    <p className="text-sm text-gray-400">Nenhum consentimento registrado para este cliente.</p>
+                    <p className="text-sm text-white/40">Nenhum consentimento registrado para este cliente.</p>
                   ) : (
                     <div className="space-y-2">
                       {consents.map(c => (
-                        <div key={c.id} className="flex items-center justify-between gap-3 py-2 border-b border-black/5 last:border-b-0">
+                        <div key={c.id} className="flex items-center justify-between gap-3 py-2 border-b border-white/6 last:border-b-0">
                           <div>
-                            <div className="text-sm font-semibold text-[#111827]">{CONSENT_LABELS[c.consent_type] || c.consent_type}</div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-sm font-semibold text-white">{CONSENT_LABELS[c.consent_type] || c.consent_type}</div>
+                            <div className="text-xs text-white/55">
                               {c.granted ? (
-                                <span className="text-emerald-600">Concedido em {c.granted_at ? format(new Date(c.granted_at), "dd/MM/yyyy HH:mm") : '—'}</span>
+                                <span className="text-emerald-300">Concedido em {c.granted_at ? format(new Date(c.granted_at), "dd/MM/yyyy HH:mm") : '—'}</span>
                               ) : (
-                                <span className="text-red-500">Revogado {c.revoked_at ? format(new Date(c.revoked_at), "dd/MM/yyyy HH:mm") : ''}</span>
+                                <span className="text-red-300">Revogado {c.revoked_at ? format(new Date(c.revoked_at), "dd/MM/yyyy HH:mm") : ''}</span>
                               )}
                               {c.source && <span className="ml-2 opacity-60">via {c.source}</span>}
                             </div>
                           </div>
                           {c.granted
-                            ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                            : <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                            ? <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                            : <XCircle className="w-4 h-4 text-red-300 flex-shrink-0" />}
                         </div>
                       ))}
                     </div>
@@ -377,14 +377,14 @@ export default function AppPrivacidade() {
                 </div>
 
                 {/* Ações LGPD */}
-                <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
-                  <h3 className="font-bold text-[#111827] mb-1">Ações sobre os dados</h3>
-                  <p className="text-xs text-gray-500 mb-4">Exercício dos direitos do titular (LGPD Art. 18)</p>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+                  <h3 className="font-bold text-white mb-1">Ações sobre os dados</h3>
+                  <p className="text-xs text-white/55 mb-4">Exercício dos direitos do titular (LGPD Art. 18)</p>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={() => exportMutation.mutate(selectedCustomerId)}
                       disabled={exportMutation.isPending}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#EFF6FF] text-[#2563EB] rounded-xl text-sm font-semibold hover:bg-[#DBEAFE] transition-colors disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-400/12 text-[#93C5FD] ring-1 ring-blue-400/25 rounded-xl text-sm font-semibold hover:bg-blue-400/20 hover:text-white transition-colors disabled:opacity-50"
                     >
                       <Download className="w-4 h-4" />
                       {exportMutation.isPending ? 'Exportando…' : 'Exportar dados (JSON)'}
@@ -395,13 +395,13 @@ export default function AppPrivacidade() {
                         if (customer) handleAnonymize(customer);
                       }}
                       disabled={anonymizeMutation.isPending}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-400/12 text-red-300 ring-1 ring-red-400/25 rounded-xl text-sm font-semibold hover:bg-red-400/20 transition-colors disabled:opacity-50"
                     >
                       <UserX className="w-4 h-4" />
                       {anonymizeMutation.isPending ? 'Anonimizando…' : 'Anonimizar cliente'}
                     </button>
                   </div>
-                  <div className="mt-3 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  <div className="mt-3 flex items-start gap-2 text-xs text-amber-200 bg-amber-400/10 border border-amber-400/25 rounded-lg px-3 py-2">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                     <span>A anonimização é <strong>irreversível</strong>. Remove nome, telefone, e-mail e CPF. Dados financeiros são mantidos para obrigação fiscal.</span>
                   </div>
@@ -432,26 +432,26 @@ export default function AppPrivacidade() {
               { title: 'Política de Retenção', path: 'docs/DATA_RETENTION_POLICY.md', desc: 'Por quanto tempo cada dado é mantido e quando deve ser excluído.' },
               { title: 'Fluxo de Consentimentos', path: 'docs/CONSENT_FLOW.md', desc: 'Como os consentimentos são coletados, registrados e revogados.' },
             ].map(doc => (
-              <div key={doc.path} className="bg-white rounded-2xl border border-black/5 p-4 shadow-sm flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-[#2563EB]" />
+              <div key={doc.path} className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-400/12 ring-1 ring-blue-400/25 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-[#93C5FD]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-[#111827]">{doc.title}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{doc.desc}</div>
-                  <div className="text-[10px] text-gray-300 mt-0.5 font-mono">{doc.path}</div>
+                  <div className="font-semibold text-sm text-white">{doc.title}</div>
+                  <div className="text-xs text-white/55 mt-0.5">{doc.desc}</div>
+                  <div className="text-[10px] text-white/30 mt-0.5 font-mono">{doc.path}</div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">✓ Criado</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/30 flex-shrink-0">✓ Criado</span>
               </div>
             ))}
 
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-              <div className="font-semibold text-sm text-[#2563EB] mb-1">Política de Privacidade Pública</div>
-              <div className="text-xs text-blue-700 mb-3">
-                A política de privacidade está disponível publicamente em <code className="bg-blue-100 px-1 rounded">/politica-de-privacidade</code> e deve ser linkada no fluxo de agendamento.
+            <div className="bg-blue-400/10 border border-blue-400/25 rounded-2xl p-4">
+              <div className="font-semibold text-sm text-[#93C5FD] mb-1">Política de Privacidade Pública</div>
+              <div className="text-xs text-blue-100 mb-3">
+                A política de privacidade está disponível publicamente em <code className="bg-blue-400/20 text-white px-1 rounded">/politica-de-privacidade</code> e deve ser linkada no fluxo de agendamento.
               </div>
               <a href="/politica-de-privacidade" target="_blank"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] hover:underline">
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#93C5FD] hover:text-white hover:underline">
                 <FileText className="w-3.5 h-3.5" />
                 Ver política de privacidade
               </a>

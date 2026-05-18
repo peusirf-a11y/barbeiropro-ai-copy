@@ -28,9 +28,9 @@ export default function AppPagamentos() {
         />
 
         {isLoading && (
-          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)] animate-pulse">
-            <div className="h-6 w-48 bg-gray-100 rounded mb-3" />
-            <div className="h-4 w-full bg-gray-100 rounded" />
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] animate-pulse">
+            <div className="h-6 w-48 bg-white/10 rounded mb-3" />
+            <div className="h-4 w-full bg-white/10 rounded" />
           </div>
         )}
 
@@ -56,8 +56,8 @@ export default function AppPagamentos() {
         </div>
 
         {/* FAQ enxuto */}
-        <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-          <h2 className="font-bold text-[#111827] mb-4">Perguntas frequentes</h2>
+        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+          <h2 className="font-bold text-white mb-4">Perguntas frequentes</h2>
           <div className="space-y-4">
             <Faq q="Quanto custa para usar?">
               A BarberTrimly não cobra nada extra. Apenas as taxas padrão do Stripe (~3,99% no cartão e ~0,99% no Pix) são descontadas automaticamente de cada cobrança.
@@ -80,12 +80,12 @@ export default function AppPagamentos() {
 
 function Benefit({ icon: Icon, title, description }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)]">
-      <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center mb-3">
-        <Icon className="w-5 h-5 text-[#2563EB]" />
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+      <div className="w-10 h-10 rounded-xl bg-blue-400/12 ring-1 ring-blue-400/25 flex items-center justify-center mb-3">
+        <Icon className="w-5 h-5 text-[#93C5FD]" />
       </div>
-      <div className="text-sm font-bold text-[#111827] mb-1">{title}</div>
-      <p className="text-xs text-[#6B7280] leading-relaxed">{description}</p>
+      <div className="text-sm font-bold text-white mb-1">{title}</div>
+      <p className="text-xs text-white/55 leading-relaxed">{description}</p>
     </div>
   );
 }
@@ -93,8 +93,8 @@ function Benefit({ icon: Icon, title, description }) {
 function Faq({ q, children }) {
   return (
     <div>
-      <div className="text-sm font-bold text-[#111827] mb-1">{q}</div>
-      <p className="text-sm text-[#6B7280] leading-relaxed">{children}</p>
+      <div className="text-sm font-bold text-white mb-1">{q}</div>
+      <p className="text-sm text-white/60 leading-relaxed">{children}</p>
     </div>
   );
 }

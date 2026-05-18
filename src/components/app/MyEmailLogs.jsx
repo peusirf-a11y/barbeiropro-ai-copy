@@ -15,9 +15,9 @@ const TYPE_LABELS = {
 };
 
 const STATUS_CONFIG = {
-  sent:    { label: 'Enviado',  color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  failed:  { label: 'Falhou',   color: 'bg-red-100 text-red-700',     icon: AlertCircle },
-  pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
+  sent:    { label: 'Enviado',  color: 'bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/30', icon: CheckCircle },
+  failed:  { label: 'Falhou',   color: 'bg-red-400/15 text-red-300 ring-1 ring-red-400/30',             icon: AlertCircle },
+  pending: { label: 'Pendente', color: 'bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/30',      icon: Clock },
 };
 
 export default function MyEmailLogs() {
@@ -32,19 +32,19 @@ export default function MyEmailLogs() {
   const logs = (data?.logs || []).slice(0, 20);
 
   return (
-    <div className="bg-white rounded-2xl border border-black/8 p-6">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
       <div className="flex items-center gap-3 mb-2">
-        <Mail className="w-5 h-5 text-[#2563EB]" />
-        <h2 className="font-bold text-[#1B1C1E]">Notificações por e-mail</h2>
+        <Mail className="w-5 h-5 text-[#93C5FD]" />
+        <h2 className="font-bold text-white">Notificações por e-mail</h2>
       </div>
-      <p className="text-xs text-gray-500 mb-5">
+      <p className="text-xs text-white/55 mb-5">
         Histórico dos últimos e-mails que o sistema enviou em nome da sua barbearia (confirmações para clientes, lembretes, etc.).
       </p>
 
       {isLoading ? (
-        <div className="text-center py-8 text-sm text-gray-400">Carregando…</div>
+        <div className="text-center py-8 text-sm text-white/40">Carregando…</div>
       ) : logs.length === 0 ? (
-        <div className="text-center py-8 text-sm text-gray-400">
+        <div className="text-center py-8 text-sm text-white/40">
           Nenhum e-mail enviado ainda.
         </div>
       ) : (
@@ -54,17 +54,17 @@ export default function MyEmailLogs() {
             const Icon = cfg.icon;
             const ts = log.sent_at || log.created_date;
             return (
-              <div key={log.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#F8F7F3] hover:bg-gray-100 transition-colors">
+              <div key={log.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/8 hover:bg-white/[0.06] transition-colors">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-[#1B1C1E] truncate">{log.recipient}</div>
-                  <div className="text-xs text-gray-500 truncate">
+                  <div className="text-sm font-semibold text-white truncate">{log.recipient}</div>
+                  <div className="text-xs text-white/55 truncate">
                     {TYPE_LABELS[log.type] || log.type} · {ts ? format(new Date(ts), "dd/MM 'às' HH:mm", { locale: ptBR }) : '—'}
                   </div>
                   {log.status === 'failed' && log.error_message && (
-                    <div className="text-[11px] text-red-600 mt-1 font-mono truncate">{log.error_message}</div>
+                    <div className="text-[11px] text-red-300 mt-1 font-mono truncate">{log.error_message}</div>
                   )}
                 </div>
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${cfg.color} flex-shrink-0`}>
