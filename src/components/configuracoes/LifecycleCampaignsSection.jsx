@@ -70,29 +70,30 @@ export default function LifecycleCampaignsSection({ company }) {
   const whatsappOff = company.whatsapp_settings?.enabled === false;
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6">
       <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
-            <Zap className="w-5 h-5 text-white" />
+          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15">
+            <span className="absolute inset-0 rounded-xl bg-[#60A5FA]/30 blur-md opacity-60" aria-hidden="true" />
+            <Zap className="relative w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="font-bold text-[#111827]">Automações de retenção</h2>
-            <p className="text-xs text-[#6B7280] mt-0.5">
+            <h2 className="font-bold text-white">Automações de retenção</h2>
+            <p className="text-xs text-white/55 mt-0.5">
               Mensagens automáticas baseadas no ciclo de vida de cada cliente.
             </p>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-black text-[#2563EB] leading-none">{enabledCount}<span className="text-sm text-gray-400 font-bold">/{CAMPAIGN_KEYS.length}</span></div>
-          <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">campanhas ativas</div>
+          <div className="text-2xl font-black leading-none bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">{enabledCount}<span className="text-sm text-white/40 font-bold">/{CAMPAIGN_KEYS.length}</span></div>
+          <div className="text-[10px] text-white/55 font-semibold uppercase tracking-wider mt-0.5">campanhas ativas</div>
         </div>
       </div>
 
       {whatsappOff && (
-        <div className="mt-4 flex items-start gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2.5 rounded-lg">
-          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span>O envio de WhatsApp está <strong>desligado</strong> nas configurações de mensagens. Ative para que as automações funcionem.</span>
+        <div className="mt-4 flex items-start gap-2 text-xs text-amber-100 bg-amber-400/[0.08] border border-amber-400/30 px-3 py-2.5 rounded-lg">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-300" />
+          <span>O envio de WhatsApp está <strong className="text-amber-200">desligado</strong> nas configurações de mensagens. Ative para que as automações funcionem.</span>
         </div>
       )}
 
@@ -112,7 +113,7 @@ export default function LifecycleCampaignsSection({ company }) {
         <button
           onClick={() => saveMutation.mutate()}
           disabled={!dirty || saveMutation.isPending}
-          className="inline-flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_4px_12px_rgba(37,99,235,0.2)]"
+          className="inline-flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15"
         >
           <Save className="w-4 h-4" />
           {saveMutation.isPending ? 'Salvando...' : dirty ? 'Salvar automações' : 'Tudo salvo'}
@@ -120,14 +121,14 @@ export default function LifecycleCampaignsSection({ company }) {
         <button
           onClick={() => testMutation.mutate()}
           disabled={testMutation.isPending || enabledCount === 0}
-          className="inline-flex items-center gap-2 bg-white border border-black/10 text-[#111827] px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-[#2563EB] hover:text-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/15 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-blue-400/40 hover:text-[#93C5FD] hover:bg-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           title={enabledCount === 0 ? 'Ative pelo menos uma campanha' : 'Simula o envio sem disparar mensagens'}
         >
           <FlaskConical className={`w-4 h-4 ${testMutation.isPending ? 'animate-pulse' : ''}`} />
           {testMutation.isPending ? 'Testando...' : 'Testar agora (sem enviar)'}
         </button>
         {dirty && (
-          <span className="text-[11px] text-amber-700 font-semibold">Você tem mudanças não salvas</span>
+          <span className="text-[11px] text-amber-300 font-semibold">Você tem mudanças não salvas</span>
         )}
       </div>
     </div>
