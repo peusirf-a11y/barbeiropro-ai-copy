@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';
+import ThemeToggle from '@/components/ThemeToggle';
+import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
 
 const navItems = [
   { key: 'dashboard',     label: 'Dashboard',     icon: LayoutDashboard, path: '/demo/dashboard' },
@@ -79,10 +81,11 @@ export default function DemoLayout({ children }) {
   );
 
   return (
-    <div className="min-h-screen bg-[#F7F8FB] font-inter">
-      {/* Mobile top bar — idêntico ao AppLayout */}
+    <div className="min-h-screen font-inter text-white">
+      <AppBackgroundLayer />
+      {/* Mobile top bar — dark glass com blur (igual AppLayout) */}
       <header
-        className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 flex items-center justify-between px-4 gap-2"
+        className="lg:hidden sticky top-0 z-30 bg-[#050816]/85 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 gap-2"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           height: 'calc(56px + env(safe-area-inset-top, 0px))',
@@ -92,7 +95,7 @@ export default function DemoLayout({ children }) {
           <button
             type="button"
             onClick={() => window.history.back()}
-            className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-gray-100 text-[#0F172A] min-w-0"
+            className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-white/10 text-white min-w-0"
             aria-label="Voltar"
           >
             <ChevronLeft className="w-5 h-5 flex-shrink-0" />
@@ -100,13 +103,15 @@ export default function DemoLayout({ children }) {
           </button>
         ) : (
           <Link to="/demo/dashboard" className="min-w-0" aria-label="Dashboard">
-            <BrandMark size={32} tone="light" />
+            <BrandMark size={32} tone="dark" />
           </Link>
         )}
-        {/* Badge demo mobile */}
-        <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 ring-1 ring-amber-200">
-          Demo
-        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30">
+            Demo
+          </span>
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Desktop sidebar — DARK, idêntico ao AppLayout */}
@@ -127,15 +132,16 @@ export default function DemoLayout({ children }) {
         </aside>
       </div>
 
-      {/* Desktop top header — banner demo + CTA (idêntico em altura/estrutura ao AppLayout) */}
-      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-16 items-center justify-between px-8 gap-3">
+      {/* Desktop top header — dark glass com blur premium (igual AppLayout) */}
+      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-[#050816]/80 backdrop-blur-xl border-b border-white/5 h-16 items-center justify-between px-8 gap-3">
         <div className="flex items-center gap-2.5 text-sm">
-          <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+          <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30">
             Demonstração
           </span>
-          <span className="text-gray-500">Você está visualizando dados de exemplo.</span>
+          <span className="text-white/55">Você está visualizando dados de exemplo.</span>
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Link
             to="/"
             className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#1d4ed8] transition-colors shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
@@ -143,7 +149,7 @@ export default function DemoLayout({ children }) {
             Criar conta grátis →
           </Link>
           {/* Avatar placeholder — igual ao AppLayout */}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_16px_rgba(37,99,235,0.5)] ring-1 ring-white/20">
             B
           </div>
         </div>
@@ -154,9 +160,9 @@ export default function DemoLayout({ children }) {
         {children}
       </main>
 
-      {/* Bottom tab bar mobile — estrutura idêntica ao MobileBottomTabs */}
+      {/* Bottom tab bar mobile — dark glass igual MobileBottomTabs do AppLayout */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-black/10 select-none"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-t border-white/5 select-none"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="flex items-stretch h-[58px]">
@@ -170,11 +176,11 @@ export default function DemoLayout({ children }) {
                 onClick={(e) => {
                   if (active) { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
                 }}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors active:bg-gray-100 ${active ? 'text-[#2563EB]' : 'text-gray-500'}`}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors active:bg-white/10 ${active ? 'text-[#60A5FA]' : 'text-white/55'}`}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <Icon className={`w-[22px] h-[22px] transition-transform ${active ? 'scale-110' : ''}`} />
-                <span className={`text-[10px] font-semibold tracking-tight ${active ? 'text-[#2563EB]' : 'text-gray-500'}`}>
+                <span className={`text-[10px] font-semibold tracking-tight ${active ? 'text-[#60A5FA]' : 'text-white/55'}`}>
                   {tab.label}
                 </span>
               </Link>
@@ -184,7 +190,7 @@ export default function DemoLayout({ children }) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 text-gray-500 active:bg-gray-100 transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 text-white/55 active:bg-white/10 transition-colors"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <MoreHorizontal className="w-[22px] h-[22px]" />
