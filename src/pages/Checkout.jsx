@@ -303,7 +303,8 @@ function Field({ label, value, onChange, placeholder, type = 'text' }) {
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3.5 py-2.5 text-sm border border-black/10 rounded-lg bg-white text-[#0F172A] placeholder:text-gray-400 focus:bg-white"
+        style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+        className="w-full px-3.5 py-2.5 text-sm border border-black/10 rounded-lg placeholder:text-gray-400"
       />
     </div>
   );
