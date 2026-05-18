@@ -5,10 +5,10 @@ import { Mail, Send, CheckCircle, AlertCircle, AlertTriangle, RefreshCw } from '
 import { useToast } from '@/components/ui/use-toast';
 
 const HEALTH_CONFIG = {
-  healthy:  { label: 'Provedor Online',     color: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-200',  dot: 'bg-green-500',  icon: CheckCircle },
-  degraded: { label: 'Falhas detectadas',   color: 'text-yellow-700', bg: 'bg-yellow-50', border: 'border-yellow-200', dot: 'bg-yellow-500', icon: AlertTriangle },
-  down:     { label: 'Provedor com erro',   color: 'text-red-700',    bg: 'bg-red-50',    border: 'border-red-200',    dot: 'bg-red-500',    icon: AlertCircle },
-  unknown:  { label: 'Sem envios recentes', color: 'text-gray-600',   bg: 'bg-gray-50',   border: 'border-gray-200',   dot: 'bg-gray-400',   icon: Mail },
+  healthy:  { label: 'Provedor Online',     color: 'text-emerald-600 dark:text-emerald-300',  bg: 'bg-emerald-500/10',  border: 'border-emerald-500/30',  dot: 'bg-emerald-500',  icon: CheckCircle },
+  degraded: { label: 'Falhas detectadas',   color: 'text-amber-600 dark:text-amber-300',      bg: 'bg-amber-500/10',    border: 'border-amber-500/30',    dot: 'bg-amber-500',    icon: AlertTriangle },
+  down:     { label: 'Provedor com erro',   color: 'text-red-600 dark:text-red-300',          bg: 'bg-red-500/10',      border: 'border-red-500/30',      dot: 'bg-red-500',      icon: AlertCircle },
+  unknown:  { label: 'Sem envios recentes', color: 'text-muted-foreground',                   bg: 'bg-muted/40',        border: 'border-border',          dot: 'bg-muted-foreground', icon: Mail },
 };
 
 export default function EmailHealthCard() {
@@ -59,7 +59,7 @@ export default function EmailHealthCard() {
     <div className={`rounded-2xl border ${cfg.border} ${cfg.bg} p-5`}>
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl bg-white border ${cfg.border} flex items-center justify-center`}>
+          <div className={`w-10 h-10 rounded-xl bg-card border ${cfg.border} flex items-center justify-center`}>
             <Icon className={`w-5 h-5 ${cfg.color}`} />
           </div>
           <div>
@@ -67,12 +67,12 @@ export default function EmailHealthCard() {
               <span className={`w-2 h-2 rounded-full ${cfg.dot} animate-pulse`} />
               <h3 className={`font-bold text-sm ${cfg.color}`}>{cfg.label}</h3>
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">Saúde do envio de e-mails (provedor: base44_core)</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Saúde do envio de e-mails (provedor: base44_core)</div>
           </div>
         </div>
         <button
           onClick={() => refetch()}
-          className="p-2 hover:bg-white rounded-lg text-gray-500"
+          className="p-2 hover:bg-muted rounded-lg text-muted-foreground"
           title="Atualizar"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
@@ -80,15 +80,15 @@ export default function EmailHealthCard() {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <Stat label="Enviados" value={data?.stats?.sent ?? '—'} color="text-green-600" />
-        <Stat label="Falhas"   value={data?.stats?.failed ?? '—'} color="text-red-600" />
-        <Stat label="Total"    value={data?.stats?.total ?? '—'} color="text-gray-700" />
+        <Stat label="Enviados" value={data?.stats?.sent ?? '—'} color="text-emerald-600 dark:text-emerald-300" />
+        <Stat label="Falhas"   value={data?.stats?.failed ?? '—'} color="text-red-600 dark:text-red-300" />
+        <Stat label="Total"    value={data?.stats?.total ?? '—'} color="text-foreground" />
       </div>
 
       {data?.last_error && (
-        <div className="bg-white rounded-lg border border-red-200 p-3 mb-4 text-xs">
-          <div className="text-red-700 font-semibold mb-1">Último erro registrado:</div>
-          <div className="text-gray-700 font-mono break-all">{data.last_error}</div>
+        <div className="bg-card rounded-lg border border-red-500/30 p-3 mb-4 text-xs">
+          <div className="text-red-600 dark:text-red-300 font-semibold mb-1">Último erro registrado:</div>
+          <div className="text-foreground/80 font-mono break-all">{data.last_error}</div>
         </div>
       )}
 
@@ -104,9 +104,9 @@ export default function EmailHealthCard() {
         )}
       </button>
 
-      <div className="mt-3 bg-white/70 border border-black/5 rounded-lg p-3 text-[11px] text-gray-600 leading-relaxed">
-        <strong className="text-gray-700">Não recebeu?</strong> Status <code className="bg-gray-100 px-1 rounded">sent</code> significa que o provedor aceitou a mensagem.
-        Verifique a pasta <strong>Spam</strong> e a aba <strong>Promoções</strong> do Gmail — remetentes do <code className="bg-gray-100 px-1 rounded">base44.app</code> caem lá no primeiro contato.
+      <div className="mt-3 bg-card/70 border border-border rounded-lg p-3 text-[11px] text-muted-foreground leading-relaxed">
+        <strong className="text-foreground/80">Não recebeu?</strong> Status <code className="bg-muted px-1 rounded">sent</code> significa que o provedor aceitou a mensagem.
+        Verifique a pasta <strong>Spam</strong> e a aba <strong>Promoções</strong> do Gmail — remetentes do <code className="bg-muted px-1 rounded">base44.app</code> caem lá no primeiro contato.
       </div>
     </div>
   );
@@ -114,9 +114,9 @@ export default function EmailHealthCard() {
 
 function Stat({ label, value, color }) {
   return (
-    <div className="bg-white rounded-lg border border-black/5 p-3">
+    <div className="bg-card rounded-lg border border-border p-3">
       <div className={`text-xl font-black ${color}`}>{value}</div>
-      <div className="text-[11px] text-gray-500 mt-0.5">{label}</div>
+      <div className="text-[11px] text-muted-foreground mt-0.5">{label}</div>
     </div>
   );
 }
