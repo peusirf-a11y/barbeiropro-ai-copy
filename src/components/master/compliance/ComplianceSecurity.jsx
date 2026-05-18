@@ -36,8 +36,8 @@ export default function ComplianceSecurity({ auditLogs, privacyLogs, companies }
   }, [auditLogs]);
 
   const SEV = {
-    critical: { dot:'bg-red-500',   badge:'bg-red-50 text-red-700 border-red-100' },
-    warning:  { dot:'bg-amber-400', badge:'bg-amber-50 text-amber-700 border-amber-100' },
+    critical: { dot:'bg-red-500',   badge:'bg-red-500/15 text-red-500 border-red-500/30' },
+    warning:  { dot:'bg-amber-400', badge:'bg-amber-500/15 text-amber-500 border-amber-500/30' },
   };
 
   return (
@@ -45,32 +45,32 @@ export default function ComplianceSecurity({ auditLogs, privacyLogs, companies }
       {/* KPIs */}
       <div className="grid sm:grid-cols-4 gap-3">
         {[
-          { label: 'Logs críticos',    value: criticalCount, color:'text-red-600' },
-          { label: 'Avisos',           value: warningCount,  color:'text-amber-600' },
-          { label: 'IPs únicos',       value: recentIps.length, color:'text-[#2563EB]' },
-          { label: 'Ações distintas',  value: topActions.length, color:'text-violet-600' },
+          { label: 'Logs críticos',    value: criticalCount, color:'text-red-500' },
+          { label: 'Avisos',           value: warningCount,  color:'text-amber-500' },
+          { label: 'IPs únicos',       value: recentIps.length, color:'text-blue-500' },
+          { label: 'Ações distintas',  value: topActions.length, color:'text-violet-500' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl border border-black/5 p-4 shadow-sm text-center">
+          <div key={s.label} className="bg-card rounded-xl border border-border p-4 shadow-sm text-center">
             <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
-            <div className="text-[11px] text-gray-500 mt-0.5">{s.label}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Eventos suspeitos */}
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/5 flex items-center gap-2">
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
             <AlertOctagon className="w-4 h-4 text-red-500" />
-            <span className="font-bold text-sm text-[#111827]">Eventos de risco</span>
+            <span className="font-bold text-sm text-foreground">Eventos de risco</span>
           </div>
           {suspicious.length === 0 ? (
             <div className="p-8 text-center">
-              <ShieldCheck className="w-8 h-8 text-emerald-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">Nenhum evento suspeito detectado.</p>
+              <ShieldCheck className="w-8 h-8 text-emerald-500/60 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhum evento suspeito detectado.</p>
             </div>
           ) : (
-            <div className="divide-y divide-black/5 max-h-96 overflow-y-auto">
+            <div className="divide-y divide-border max-h-96 overflow-y-auto">
               {suspicious.map(log => {
                 const s = SEV[log.severity] || SEV.warning;
                 return (
@@ -79,9 +79,9 @@ export default function ComplianceSecurity({ auditLogs, privacyLogs, companies }
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${s.badge}`}>{log.severity?.toUpperCase()}</span>
-                        <span className="text-[12px] font-semibold text-[#111827] font-mono truncate">{log.action}</span>
+                        <span className="text-[12px] font-semibold text-foreground font-mono truncate">{log.action}</span>
                       </div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
                         {log.actor_email && `${log.actor_email} · `}
                         {log.company_id && `${companies.find(c=>c.id===log.company_id)?.name || log.company_id.slice(-6)} · `}
                         {log.created_date ? format(new Date(log.created_date), "dd/MM HH:mm") : ''}
@@ -96,21 +96,21 @@ export default function ComplianceSecurity({ auditLogs, privacyLogs, companies }
 
         {/* IPs mais ativos + top ações */}
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-black/5 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-gray-400" />
-              <span className="font-bold text-sm text-[#111827]">IPs mais ativos</span>
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              <span className="font-bold text-sm text-foreground">IPs mais ativos</span>
             </div>
             {recentIps.length === 0 ? (
-              <div className="p-6 text-center text-gray-400 text-sm">Nenhum IP registrado nos logs.</div>
+              <div className="p-6 text-center text-muted-foreground text-sm">Nenhum IP registrado nos logs.</div>
             ) : (
-              <div className="divide-y divide-black/5">
+              <div className="divide-y divide-border">
                 {recentIps.map(ip => (
                   <div key={ip.ip} className="px-4 py-2.5 flex items-center justify-between gap-3">
-                    <span className="text-[12px] font-mono text-gray-700">{ip.ip}</span>
+                    <span className="text-[12px] font-mono text-foreground">{ip.ip}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-gray-400">{ip.count} ações</span>
-                      <span className="text-[11px] text-gray-400">{ip.last ? format(new Date(ip.last), "dd/MM HH:mm") : '—'}</span>
+                      <span className="text-[11px] text-muted-foreground">{ip.count} ações</span>
+                      <span className="text-[11px] text-muted-foreground">{ip.last ? format(new Date(ip.last), "dd/MM HH:mm") : '—'}</span>
                     </div>
                   </div>
                 ))}
@@ -118,16 +118,16 @@ export default function ComplianceSecurity({ auditLogs, privacyLogs, companies }
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-black/5 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-gray-400" />
-              <span className="font-bold text-sm text-[#111827]">APIs mais chamadas</span>
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+              <Activity className="w-4 h-4 text-muted-foreground" />
+              <span className="font-bold text-sm text-foreground">APIs mais chamadas</span>
             </div>
-            <div className="divide-y divide-black/5">
+            <div className="divide-y divide-border">
               {topActions.map(([action, count]) => (
                 <div key={action} className="px-4 py-2 flex items-center justify-between gap-3">
-                  <span className="text-[12px] font-mono text-gray-700 truncate">{action}</span>
-                  <span className="text-[12px] font-bold text-[#2563EB] flex-shrink-0">{count}×</span>
+                  <span className="text-[12px] font-mono text-foreground truncate">{action}</span>
+                  <span className="text-[12px] font-bold text-blue-500 flex-shrink-0">{count}×</span>
                 </div>
               ))}
             </div>
