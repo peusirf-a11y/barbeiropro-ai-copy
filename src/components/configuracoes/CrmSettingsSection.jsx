@@ -69,15 +69,15 @@ export default function CrmSettingsSection({ company }) {
   if (!company) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+    <div className="ds-card">
       <div className="flex items-start justify-between flex-wrap gap-3 mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#2563EB]/10 flex items-center justify-center">
-            <Users className="w-5 h-5 text-[#2563EB]" />
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 ring-1 ring-blue-400/20 flex items-center justify-center">
+            <Users className="w-5 h-5 text-[#60A5FA]" />
           </div>
           <div>
-            <h2 className="font-bold text-[#111827]">CRM — Ciclo de vida dos clientes</h2>
-            <p className="text-xs text-[#6B7280] mt-0.5">Define quando um cliente entra em risco, fica inativo ou é considerado perdido.</p>
+            <h2 className="font-bold text-foreground">CRM — Ciclo de vida dos clientes</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Define quando um cliente entra em risco, fica inativo ou é considerado perdido.</p>
           </div>
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function CrmSettingsSection({ company }) {
       </div>
 
       {!isValid && (
-        <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg">
+        <div className="mt-3 text-xs text-amber-300 bg-amber-500/10 border border-amber-400/25 px-3 py-2 rounded-lg">
           As janelas devem ser crescentes: em risco &lt; inativo &lt; perdido (todas em dias e &gt; 0).
         </div>
       )}
@@ -99,7 +99,7 @@ export default function CrmSettingsSection({ company }) {
         <button
           onClick={() => saveMutation.mutate()}
           disabled={!isValid || saveMutation.isPending}
-          className="inline-flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(37,99,235,0.2)]"
+          className="btn-primary disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
           {saveMutation.isPending ? 'Salvando...' : 'Salvar períodos'}
@@ -107,7 +107,7 @@ export default function CrmSettingsSection({ company }) {
         <button
           onClick={() => recomputeMutation.mutate()}
           disabled={recomputeMutation.isPending}
-          className="inline-flex items-center gap-2 bg-white border border-black/10 text-[#111827] px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-[#2563EB] hover:text-[#2563EB] disabled:opacity-50 transition-all"
+          className="btn-ghost disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${recomputeMutation.isPending ? 'animate-spin' : ''}`} />
           {recomputeMutation.isPending ? 'Recategorizando...' : 'Recategorizar clientes agora'}
@@ -120,16 +120,16 @@ export default function CrmSettingsSection({ company }) {
 function Field({ label, suffix, value, onChange }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold text-gray-500 block mb-1">{label}</span>
-      <div className="flex items-center gap-2 px-3 py-2 border border-black/10 rounded-lg focus-within:ring-2 focus-within:ring-[#2563EB]/20">
+      <span className="text-xs font-semibold text-muted-foreground block mb-1">{label}</span>
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10 focus-within:border-[#60A5FA]/60 focus-within:ring-2 focus-within:ring-[#60A5FA]/20 transition-all">
         <input
           type="number"
           min={0}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-transparent border-0 outline-none text-sm font-semibold text-[#111827]"
+          className="w-full bg-transparent border-0 outline-none text-sm font-semibold text-foreground"
         />
-        <span className="text-[11px] text-gray-400 font-medium">{suffix}</span>
+        <span className="text-[11px] text-muted-foreground font-medium">{suffix}</span>
       </div>
     </label>
   );
