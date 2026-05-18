@@ -73,32 +73,32 @@ export default function MasterAudit() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] ring-1 ring-[#DBEAFE] flex items-center justify-center flex-shrink-0">
-            <Shield className="w-5 h-5 text-[#2563EB]" />
+          <div className="w-10 h-10 rounded-xl bg-blue-500/15 ring-1 ring-blue-500/30 flex items-center justify-center flex-shrink-0">
+            <Shield className="w-5 h-5 text-blue-500" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-[#111827] tracking-tight">Auditoria</h1>
-            <p className="text-sm text-[#6B7280]">Rastreabilidade completa da plataforma.</p>
+            <h1 className="text-2xl font-black text-foreground tracking-tight">Auditoria</h1>
+            <p className="text-sm text-muted-foreground">Rastreabilidade completa da plataforma.</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border border-black/10 bg-white hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border border-border bg-card hover:bg-muted transition-colors text-foreground"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             Atualizar
           </button>
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border border-black/10 bg-white hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border border-border bg-card hover:bg-muted transition-colors text-foreground"
           >
             <Download className="w-4 h-4" /> CSV
           </button>
           <button
             onClick={handleExportJSON}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border border-black/10 bg-white hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border border-border bg-card hover:bg-muted transition-colors text-foreground"
           >
             <Download className="w-4 h-4" /> JSON
           </button>
@@ -112,18 +112,18 @@ export default function MasterAudit() {
       <AuditFiltersBar onFilter={handleFilter} />
 
       {/* Timeline */}
-      <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
-        <div className="px-5 py-4 border-b border-black/5 flex items-center justify-between">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-[var(--shadow-sm)]">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-[#2563EB]" />
-            <span className="font-bold text-[#111827]">Timeline</span>
+            <Activity className="w-4 h-4 text-blue-500" />
+            <span className="font-bold text-foreground">Timeline</span>
             {total > 0 && (
-              <span className="text-[11px] font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+              <span className="text-[11px] font-semibold px-2 py-0.5 bg-muted text-muted-foreground rounded-full border border-border">
                 {total} registros
               </span>
             )}
           </div>
-          <span className="text-xs text-[#6B7280]">Página {page + 1}</span>
+          <span className="text-xs text-muted-foreground">Página {page + 1}</span>
         </div>
 
         <AuditTimeline
@@ -133,21 +133,21 @@ export default function MasterAudit() {
         />
 
         {/* Paginação */}
-        <div className="px-5 py-3 border-t border-black/5 flex items-center justify-between bg-[#FAFBFC]">
+        <div className="px-5 py-3 border-t border-border flex items-center justify-between bg-muted/40">
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0 || isFetching}
-            className="px-4 py-1.5 rounded-lg text-sm font-medium border border-black/10 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
+            className="px-4 py-1.5 rounded-lg text-sm font-medium border border-border bg-card disabled:opacity-40 hover:bg-muted transition-colors text-foreground"
           >
             ← Anterior
           </button>
-          <span className="text-xs text-[#6B7280]">
+          <span className="text-xs text-muted-foreground">
             {page * filters.limit + 1}–{Math.min((page + 1) * filters.limit, total)} de {total}
           </span>
           <button
             onClick={() => setPage(p => p + 1)}
             disabled={!hasMore || isFetching}
-            className="px-4 py-1.5 rounded-lg text-sm font-medium border border-black/10 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
+            className="px-4 py-1.5 rounded-lg text-sm font-medium border border-border bg-card disabled:opacity-40 hover:bg-muted transition-colors text-foreground"
           >
             Próxima →
           </button>

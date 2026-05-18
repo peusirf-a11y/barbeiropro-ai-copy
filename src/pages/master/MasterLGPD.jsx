@@ -37,9 +37,9 @@ const ACTION_LABEL = {
 };
 
 const SEVERITY_COLOR = {
-  info: 'bg-blue-50 text-blue-700 border-blue-100',
-  warning: 'bg-amber-50 text-amber-700 border-amber-100',
-  critical: 'bg-red-50 text-red-700 border-red-100',
+  info: 'bg-blue-500/15 text-blue-500 border-blue-500/30',
+  warning: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
+  critical: 'bg-red-500/15 text-red-500 border-red-500/30',
 };
 
 export default function MasterLGPD() {
@@ -156,17 +156,17 @@ export default function MasterLGPD() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] ring-1 ring-[#DBEAFE] flex items-center justify-center flex-shrink-0">
-            <Shield className="w-5 h-5 text-[#2563EB]" />
+          <div className="w-10 h-10 rounded-xl bg-blue-500/15 ring-1 ring-blue-500/30 flex items-center justify-center flex-shrink-0">
+            <Shield className="w-5 h-5 text-blue-500" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-[#111827] tracking-tight">Privacidade & LGPD</h1>
-            <p className="text-sm text-[#6B7280]">Auditoria de privacidade cross-tenant · Direitos dos titulares</p>
+            <h1 className="text-2xl font-black text-foreground tracking-tight">Privacidade & LGPD</h1>
+            <p className="text-sm text-muted-foreground">Auditoria de privacidade cross-tenant · Direitos dos titulares</p>
           </div>
         </div>
         <button
           onClick={handleExportCSV}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border border-black/10 bg-white hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border border-border bg-card hover:bg-muted transition-colors text-foreground"
         >
           <Download className="w-4 h-4" /> Exportar CSV
         </button>
@@ -175,23 +175,23 @@ export default function MasterLGPD() {
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total de logs', value: privacyLogs.length, color: 'text-[#2563EB]' },
-          { label: 'Críticos', value: criticalCount, color: 'text-red-600' },
-          { label: 'Avisos', value: warningCount, color: 'text-amber-600' },
-          { label: 'Anonimizações', value: anonymizedCount, color: 'text-violet-600' },
+          { label: 'Total de logs', value: privacyLogs.length, color: 'text-blue-500' },
+          { label: 'Críticos', value: criticalCount, color: 'text-red-500' },
+          { label: 'Avisos', value: warningCount, color: 'text-amber-500' },
+          { label: 'Anonimizações', value: anonymizedCount, color: 'text-violet-500' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl border border-black/5 p-4 shadow-sm text-center">
+          <div key={s.label} className="bg-card rounded-xl border border-border p-4 shadow-sm text-center">
             <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
-            <div className="text-[11px] text-gray-500 mt-0.5">{s.label}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <div className="flex gap-1 bg-muted rounded-xl p-1">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
-            className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-all ${activeTab === t.key ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-all ${activeTab === t.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
             {t.label}
           </button>
         ))}
@@ -199,20 +199,20 @@ export default function MasterLGPD() {
 
       {/* ── TAB: AUDITORIA ── */}
       {activeTab === 'logs' && (
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-black/5 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-gray-400" />
-            <span className="font-bold text-[#111827]">Registro de ações de privacidade (todos os tenants)</span>
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <span className="font-bold text-foreground">Registro de ações de privacidade (todos os tenants)</span>
           </div>
           {loadingLogs ? (
-            <div className="p-8 text-center text-gray-400 text-sm">Carregando logs…</div>
+            <div className="p-8 text-center text-muted-foreground text-sm">Carregando logs…</div>
           ) : privacyLogs.length === 0 ? (
             <div className="p-8 text-center">
-              <Shield className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">Nenhuma ação de privacidade registrada ainda.</p>
+              <Shield className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhuma ação de privacidade registrada ainda.</p>
             </div>
           ) : (
-            <div className="divide-y divide-black/5">
+            <div className="divide-y divide-border">
               {privacyLogs.map(log => (
                 <div key={log.id} className="px-5 py-3">
                   <div className="flex items-start gap-3 justify-between">
@@ -221,28 +221,28 @@ export default function MasterLGPD() {
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${SEVERITY_COLOR[log.severity] || SEVERITY_COLOR.info}`}>
                           {log.severity?.toUpperCase()}
                         </span>
-                        <span className="text-sm font-semibold text-[#111827]">{ACTION_LABEL[log.action] || log.action}</span>
+                        <span className="text-sm font-semibold text-foreground">{ACTION_LABEL[log.action] || log.action}</span>
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5 flex flex-wrap gap-x-2">
+                      <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-2">
                         {log.actor_email && <span>Por: <strong>{log.actor_email}</strong></span>}
                         {log.company_id && <span>Empresa: <span className="font-mono">{log.company_id.slice(-6)}</span></span>}
                         {log.customer_id && <span>Cliente: <span className="font-mono">{log.customer_id.slice(-6)}</span></span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[11px] text-gray-400">
+                      <span className="text-[11px] text-muted-foreground">
                         {log.created_date ? format(new Date(log.created_date), "dd/MM/yy HH:mm", { locale: ptBR }) : '—'}
                       </span>
                       {log.details && (
                         <button onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
-                          className="text-gray-300 hover:text-gray-500">
+                          className="text-muted-foreground/60 hover:text-foreground">
                           {expandedLog === log.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
                       )}
                     </div>
                   </div>
                   {expandedLog === log.id && log.details && (
-                    <pre className="mt-2 text-[11px] text-gray-600 bg-gray-50 rounded-lg p-2 overflow-x-auto">
+                    <pre className="mt-2 text-[11px] text-muted-foreground bg-muted rounded-lg p-2 overflow-x-auto">
                       {JSON.stringify(log.details, null, 2)}
                     </pre>
                   )}
@@ -256,18 +256,18 @@ export default function MasterLGPD() {
       {/* ── TAB: DADOS POR CLIENTE ── */}
       {activeTab === 'search' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
-            <h3 className="font-bold text-[#111827] mb-3 flex items-center gap-2">
-              <Search className="w-4 h-4 text-gray-400" />
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+            <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">
+              <Search className="w-4 h-4 text-muted-foreground" />
               Buscar cliente por telefone
             </h3>
             <div className="grid sm:grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Empresa (opcional)</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Empresa (opcional)</label>
                 <select
                   value={selectedCompanyId}
                   onChange={e => setSelectedCompanyId(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value="">Todas as empresas</option>
                   {companies.map(c => (
@@ -276,17 +276,17 @@ export default function MasterLGPD() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Telefone</label>
                 <input
                   type="text"
                   placeholder="Ex: 11999999999"
                   value={searchPhone}
                   onChange={e => setSearchPhone(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-foreground bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
             </div>
-            {searching && <p className="text-xs text-gray-400">Buscando…</p>}
+            {searching && <p className="text-xs text-muted-foreground">Buscando…</p>}
             {foundCustomers.length > 0 && (
               <div className="space-y-2 mt-2">
                 {foundCustomers.map(c => {
@@ -294,47 +294,47 @@ export default function MasterLGPD() {
                   return (
                     <div key={c.id}
                       onClick={() => { setSelectedCustomerId(c.id); setSelectedCompanyId(c.company_id); }}
-                      className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedCustomerId === c.id ? 'border-[#2563EB] bg-blue-50' : 'border-black/8 hover:border-black/15'}`}>
+                      className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedCustomerId === c.id ? 'border-blue-500 bg-blue-500/10' : 'border-border hover:border-border/80'}`}>
                       <div>
-                        <div className="font-semibold text-sm text-[#111827]">{c.name}</div>
-                        <div className="text-xs text-gray-500">{c.phone} · {company?.name || c.company_id?.slice(-6)}</div>
+                        <div className="font-semibold text-sm text-foreground">{c.name}</div>
+                        <div className="text-xs text-muted-foreground">{c.phone} · {company?.name || c.company_id?.slice(-6)}</div>
                       </div>
-                      {selectedCustomerId === c.id && <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />}
+                      {selectedCustomerId === c.id && <CheckCircle2 className="w-4 h-4 text-blue-500" />}
                     </div>
                   );
                 })}
               </div>
             )}
             {searchPhone.length >= 8 && !searching && foundCustomers.length === 0 && (
-              <p className="text-xs text-gray-400 mt-2">Nenhum cliente encontrado.</p>
+              <p className="text-xs text-muted-foreground mt-2">Nenhum cliente encontrado.</p>
             )}
           </div>
 
           {selectedCustomerId && selectedCompanyId && (
             <>
               {/* Consentimentos */}
-              <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
-                <h3 className="font-bold text-[#111827] mb-4">Consentimentos registrados</h3>
+              <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+                <h3 className="font-bold text-foreground mb-4">Consentimentos registrados</h3>
                 {loadingConsents ? (
-                  <p className="text-sm text-gray-400">Carregando…</p>
+                  <p className="text-sm text-muted-foreground">Carregando…</p>
                 ) : consents.length === 0 ? (
-                  <p className="text-sm text-gray-400">Nenhum consentimento registrado para este cliente.</p>
+                  <p className="text-sm text-muted-foreground">Nenhum consentimento registrado para este cliente.</p>
                 ) : (
                   <div className="space-y-2">
                     {consents.map(c => (
-                      <div key={c.id} className="flex items-center justify-between gap-3 py-2 border-b border-black/5 last:border-b-0">
+                      <div key={c.id} className="flex items-center justify-between gap-3 py-2 border-b border-border last:border-b-0">
                         <div>
-                          <div className="text-sm font-semibold text-[#111827]">{CONSENT_LABELS[c.consent_type] || c.consent_type}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-sm font-semibold text-foreground">{CONSENT_LABELS[c.consent_type] || c.consent_type}</div>
+                          <div className="text-xs text-muted-foreground">
                             {c.granted
-                              ? <span className="text-emerald-600">Concedido em {c.granted_at ? format(new Date(c.granted_at), "dd/MM/yyyy HH:mm") : '—'}</span>
+                              ? <span className="text-emerald-500">Concedido em {c.granted_at ? format(new Date(c.granted_at), "dd/MM/yyyy HH:mm") : '—'}</span>
                               : <span className="text-red-500">Revogado {c.revoked_at ? format(new Date(c.revoked_at), "dd/MM/yyyy HH:mm") : ''}</span>}
                             {c.source && <span className="ml-2 opacity-60">via {c.source}</span>}
                           </div>
                         </div>
                         {c.granted
                           ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                          : <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                          : <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
                       </div>
                     ))}
                   </div>
@@ -342,14 +342,14 @@ export default function MasterLGPD() {
               </div>
 
               {/* Ações LGPD */}
-              <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
-                <h3 className="font-bold text-[#111827] mb-1">Ações sobre os dados</h3>
-                <p className="text-xs text-gray-500 mb-4">Exercício dos direitos do titular (LGPD Art. 18)</p>
+              <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+                <h3 className="font-bold text-foreground mb-1">Ações sobre os dados</h3>
+                <p className="text-xs text-muted-foreground mb-4">Exercício dos direitos do titular (LGPD Art. 18)</p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => exportMutation.mutate({ customerId: selectedCustomerId, companyId: selectedCompanyId })}
                     disabled={exportMutation.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#EFF6FF] text-[#2563EB] rounded-xl text-sm font-semibold hover:bg-[#DBEAFE] transition-colors disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500/15 text-blue-500 rounded-xl text-sm font-semibold hover:bg-blue-500/25 transition-colors disabled:opacity-50 border border-blue-500/30"
                   >
                     <Download className="w-4 h-4" />
                     {exportMutation.isPending ? 'Exportando…' : 'Exportar dados (JSON)'}
@@ -360,13 +360,13 @@ export default function MasterLGPD() {
                       if (customer) handleAnonymize(customer);
                     }}
                     disabled={anonymizeMutation.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500/15 text-red-500 rounded-xl text-sm font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50 border border-red-500/30"
                   >
                     <UserX className="w-4 h-4" />
                     {anonymizeMutation.isPending ? 'Anonimizando…' : 'Anonimizar cliente'}
                   </button>
                 </div>
-                <div className="mt-3 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                <div className="mt-3 flex items-start gap-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
                   <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                   <span>A anonimização é <strong>irreversível</strong>. Remove nome, telefone, e-mail e CPF permanentemente.</span>
                 </div>
