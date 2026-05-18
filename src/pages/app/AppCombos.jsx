@@ -96,13 +96,13 @@ export default function AppCombos() {
         </AppPageHeader>
 
         {packages.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/8">
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md">
             <EmptyState
               icon={Package}
               title="Nenhum combo criado"
               description="Combos juntam vários serviços por um preço fixo. Ex: Corte + Barba + Sobrancelha por R$ 80."
               action={
-                <button onClick={() => { setEditing(null); setForm(emptyForm); setShowForm(true); }} className="bg-[#2563EB] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-[#1d4ed8]">
+                <button onClick={() => { setEditing(null); setForm(emptyForm); setShowForm(true); }} className="bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:brightness-110 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all">
                   Criar primeiro combo
                 </button>
               }
@@ -114,32 +114,36 @@ export default function AppCombos() {
               const original = sumOriginal(p.service_ids || []);
               const discount = original > 0 ? Math.round((1 - p.price / original) * 100) : 0;
               return (
-                <div key={p.id} className="bg-white rounded-2xl border border-black/5 p-5 flex flex-col shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-[#2563EB]" />
-                      <h3 className="font-bold text-[#111827]">{p.name}</h3>
+                <div key={p.id} className="group relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 flex flex-col hover:border-[#60A5FA]/30 hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.06] to-transparent pointer-events-none" />
+                  {p.featured && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-400/[0.08] to-transparent pointer-events-none" />
+                  )}
+                  <div className="relative flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Package className="w-4 h-4 text-[#93C5FD] flex-shrink-0" />
+                      <h3 className="font-bold text-white truncate">{p.name}</h3>
                     </div>
-                    {p.featured && <Star className="w-4 h-4 text-amber-400 fill-amber-400" />}
+                    {p.featured && <Star className="w-4 h-4 text-amber-300 fill-amber-400 flex-shrink-0" />}
                   </div>
-                  {p.description && <p className="text-xs text-[#6B7280] mb-3">{p.description}</p>}
-                  <div className="flex flex-wrap gap-1 mb-3">
+                  {p.description && <p className="relative text-xs text-white/55 mb-3">{p.description}</p>}
+                  <div className="relative flex flex-wrap gap-1 mb-3">
                     {(p.service_ids || []).map(sid => {
                       const s = services.find(x => x.id === sid);
-                      return s ? <span key={sid} className="text-[11px] bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">{s.name}</span> : null;
+                      return s ? <span key={sid} className="text-[11px] bg-white/[0.05] text-white/75 border border-white/10 px-2 py-0.5 rounded-full">{s.name}</span> : null;
                     })}
                   </div>
-                  <div className="mt-auto pt-3 border-t border-black/5 flex items-end justify-between">
+                  <div className="relative mt-auto pt-3 border-t border-white/8 flex items-end justify-between">
                     <div>
-                      <div className="text-2xl font-black text-[#111827]">R$ {p.price?.toFixed(2)}</div>
+                      <div className="text-2xl font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">R$ {p.price?.toFixed(2)}</div>
                       {discount > 0 && (
-                        <div className="text-xs text-emerald-600 font-semibold">economia de {discount}% (R$ {original.toFixed(2)})</div>
+                        <div className="text-xs text-emerald-300 font-semibold">economia de {discount}% (R$ {original.toFixed(2)})</div>
                       )}
-                      <div className="text-[11px] text-[#6B7280]">{p.duration_minutes || 0} min · {p.active ? 'ativo' : 'inativo'}</div>
+                      <div className="text-[11px] text-white/50">{p.duration_minutes || 0} min · {p.active ? 'ativo' : 'inativo'}</div>
                     </div>
                     <div className="flex gap-1">
-                      <button onClick={() => openEdit(p)} className="p-1.5 text-gray-400 hover:text-[#2563EB]"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => { if (confirm('Excluir combo?')) deleteMutation.mutate(p.id); }} className="p-1.5 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                      <button onClick={() => openEdit(p)} className="p-1.5 text-white/55 hover:text-[#93C5FD] hover:bg-white/10 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => { if (confirm('Excluir combo?')) deleteMutation.mutate(p.id); }} className="p-1.5 text-white/55 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
                     </div>
                   </div>
                 </div>
@@ -154,9 +158,9 @@ export default function AppCombos() {
           title={editing ? 'Editar combo' : 'Novo combo'}
           footer={
             <>
-              <button onClick={resetForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
+              <button onClick={resetForm} className="flex-1 px-4 py-2.5 border border-white/10 rounded-lg text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] transition-colors">Cancelar</button>
               <button onClick={handleSubmit} disabled={!form.name || !form.price || (createMutation.isPending || updateMutation.isPending)}
-                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
+                className="flex-1 px-4 py-2.5 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all">
                 {(createMutation.isPending || updateMutation.isPending) ? 'Salvando...' : 'Salvar'}
               </button>
             </>
@@ -164,49 +168,49 @@ export default function AppCombos() {
         >
           <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Nome do combo *</label>
+                  <label className="text-xs font-semibold text-white/60 block mb-1">Nome do combo *</label>
                   <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                     placeholder="Ex: Combo Premium"
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+                    className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
+                  <label className="text-xs font-semibold text-white/60 block mb-1">Descrição</label>
                   <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+                    className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 block mb-2">Serviços incluídos</label>
-                  <div className="space-y-1.5 max-h-40 overflow-y-auto border border-black/10 rounded-lg p-2">
-                    {services.length === 0 && <div className="text-xs text-gray-400 text-center py-3">Cadastre serviços primeiro</div>}
+                  <label className="text-xs font-semibold text-white/60 block mb-2">Serviços incluídos</label>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto border border-white/10 bg-white/[0.02] rounded-lg p-2">
+                    {services.length === 0 && <div className="text-xs text-white/40 text-center py-3">Cadastre serviços primeiro</div>}
                     {services.map(s => (
-                      <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
-                        <input type="checkbox" checked={form.service_ids.includes(s.id)} onChange={() => toggleService(s.id)} />
-                        <span className="text-sm flex-1">{s.name}</span>
-                        <span className="text-xs text-gray-400">R$ {s.price} · {s.duration_minutes}min</span>
+                      <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/[0.05] cursor-pointer transition-colors">
+                        <input type="checkbox" checked={form.service_ids.includes(s.id)} onChange={() => toggleService(s.id)} className="accent-[#60A5FA]" />
+                        <span className="text-sm flex-1 text-white/85">{s.name}</span>
+                        <span className="text-xs text-white/45">R$ {s.price} · {s.duration_minutes}min</span>
                       </label>
                     ))}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Preço fixo (R$) *</label>
+                    <label className="text-xs font-semibold text-white/60 block mb-1">Preço fixo (R$) *</label>
                     <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+                      className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Duração (min)</label>
+                    <label className="text-xs font-semibold text-white/60 block mb-1">Duração (min)</label>
                     <input type="number" min="0" value={form.duration_minutes} onChange={e => setForm(p => ({ ...p, duration_minutes: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+                      className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                   </div>
                 </div>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
+            <div className="flex gap-5 pt-1">
+              <label className="flex items-center gap-2 text-sm cursor-pointer text-white/85">
+                <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} className="accent-[#60A5FA]" />
                 Ativo
               </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} />
-                Destaque
+              <label className="flex items-center gap-2 text-sm cursor-pointer text-white/85">
+                <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="accent-amber-400" />
+                <Star className="w-3.5 h-3.5 text-amber-300" /> Destaque
               </label>
             </div>
           </div>
