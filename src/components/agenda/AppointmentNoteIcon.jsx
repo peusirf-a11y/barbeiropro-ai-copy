@@ -34,20 +34,20 @@ export default function AppointmentNoteIcon({ note, size = 'sm', className = '' 
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
         title="Observação do cliente"
         aria-label="Ver observação do cliente"
-        className="inline-flex items-center justify-center text-[#2563EB] hover:text-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 rounded transition-colors"
+        className="inline-flex items-center justify-center text-[#93C5FD] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#60A5FA]/40 rounded transition-colors"
       >
-        <MessageCircle className={`${iconSize} fill-[#DBEAFE]`} />
+        <MessageCircle className={`${iconSize} fill-[#1D4ED8]/40`} />
       </button>
 
       {open && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute z-50 top-full right-0 mt-1.5 w-60 max-w-[80vw] bg-white rounded-xl border border-black/10 shadow-[var(--shadow-lg)] p-3 text-left animate-fade-in"
+          className="absolute z-50 top-full right-0 mt-1.5 w-60 max-w-[80vw] bg-[#0A1124] rounded-xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-md p-3 text-left animate-fade-in"
         >
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+          <div className="text-[10px] font-bold text-white/50 uppercase tracking-wider mb-1">
             Observação
           </div>
-          <p className="text-xs text-[#111827] leading-relaxed whitespace-pre-wrap break-words">
+          <p className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap break-words">
             {note}
           </p>
         </div>
