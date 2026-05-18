@@ -86,22 +86,22 @@ export default function MasterCompliance() {
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-[#111827] tracking-tight">Compliance & LGPD</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Governança · Auditoria · Privacidade · Segurança · Rastreabilidade</p>
+            <h1 className="text-2xl font-black text-foreground tracking-tight">Compliance & LGPD</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Governança · Auditoria · Privacidade · Segurança · Rastreabilidade</p>
           </div>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-0.5 overflow-x-auto pb-0 mb-6 border-b border-black/8 scrollbar-hide">
+      <div className="flex gap-0.5 overflow-x-auto pb-0 mb-6 border-b border-border scrollbar-hide">
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-1.5 px-3 py-2.5 text-[13px] font-semibold whitespace-nowrap border-b-2 transition-all -mb-px ${
               tab === t.key
-                ? 'border-[#2563EB] text-[#2563EB]'
-                : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                ? 'border-blue-500 text-blue-500'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             <t.icon className="w-3.5 h-3.5" />
