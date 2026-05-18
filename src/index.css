@@ -562,7 +562,8 @@
 .light .bg-blue-400\/15,
 .light .bg-blue-400\/20 { background-color: rgba(37, 99, 235, 0.10) !important; }
 .light .text-blue-300,
-.light .text-blue-200 { color: #1D4ED8 !important; }
+.light .text-blue-200,
+.light .text-blue-100 { color: #1D4ED8 !important; }
 .light .ring-blue-400\/20,
 .light .ring-blue-400\/25,
 .light .ring-blue-400\/30,
