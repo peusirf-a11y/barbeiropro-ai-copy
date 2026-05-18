@@ -60,41 +60,42 @@ export function computeLifecycleStatus(customer, settings = DEFAULT_CRM_SETTINGS
 }
 
 // Tokens visuais (label, ícone, classes Tailwind) — fonte única para badges, filtros e cards.
+// Tema DARK glass: tints translúcidas com texto claro.
 export const LIFECYCLE_TOKENS = {
   primeira_visita: {
     key: 'primeira_visita',
     label: 'Visitante',
     icon: '✦',
-    badge: 'bg-blue-50 text-blue-700 border-blue-200',
-    dot: 'bg-blue-500',
+    badge: 'bg-blue-400/15 text-blue-200 border-blue-400/30',
+    dot: 'bg-blue-400',
   },
   fiel: {
     key: 'fiel',
     label: 'Cliente fiel',
     icon: '✓',
-    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    dot: 'bg-emerald-500',
+    badge: 'bg-emerald-400/15 text-emerald-200 border-emerald-400/30',
+    dot: 'bg-emerald-400',
   },
   em_risco: {
     key: 'em_risco',
     label: 'Em risco',
     icon: '⚠️',
-    badge: 'bg-amber-50 text-amber-700 border-amber-200',
-    dot: 'bg-amber-500',
+    badge: 'bg-amber-400/15 text-amber-200 border-amber-400/30',
+    dot: 'bg-amber-400',
   },
   inativo: {
     key: 'inativo',
     label: 'Inativo',
     icon: '💤',
-    badge: 'bg-orange-50 text-orange-700 border-orange-200',
-    dot: 'bg-orange-500',
+    badge: 'bg-orange-400/15 text-orange-200 border-orange-400/30',
+    dot: 'bg-orange-400',
   },
   perdido: {
     key: 'perdido',
     label: 'Perdido',
     icon: '🚫',
-    badge: 'bg-red-50 text-red-700 border-red-200',
-    dot: 'bg-red-500',
+    badge: 'bg-rose-400/15 text-rose-200 border-rose-400/30',
+    dot: 'bg-rose-400',
   },
 };
 

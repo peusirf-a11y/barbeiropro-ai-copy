@@ -12,7 +12,7 @@ const VIP_TOKEN = {
   key: 'vip',
   label: 'VIP',
   icon: '👑',
-  badge: 'bg-amber-100 text-amber-800 border-amber-300',
+  badge: 'bg-amber-400/20 text-amber-100 border-amber-400/40',
 };
 
 // Mantida para compat com chamadas antigas (ex: AgendaAppointmentCard).

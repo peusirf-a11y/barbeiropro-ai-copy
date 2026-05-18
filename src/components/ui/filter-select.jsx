@@ -29,7 +29,7 @@ export default function FilterSelect({
       disabled={disabled}
       aria-label={ariaLabel}
       className={cn(
-        'px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white focus:outline-none shadow-[var(--shadow-xs)]',
+        'px-3 py-2.5 border border-white/10 rounded-xl text-sm bg-white/[0.04] text-white [color-scheme:dark] backdrop-blur-sm hover:bg-white/[0.06] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-colors',
         className
       )}
     >

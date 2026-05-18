@@ -93,7 +93,7 @@ export default function StandardModal({
       <div
         style={innerStyle}
         className={cn(
-          'bg-white w-full shadow-2xl flex flex-col overflow-hidden',
+          'bg-[#0A1124] border border-white/8 text-white w-full shadow-[0_30px_80px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden',
           'rounded-t-3xl sm:rounded-2xl',
           'sm:max-h-[88vh] sm:m-4',
           'animate-slide-up sm:animate-fade-in',
@@ -104,21 +104,21 @@ export default function StandardModal({
       >
         {/* Drag-handle visual (mobile) */}
         <div className="sm:hidden flex justify-center pt-2 pb-1 flex-shrink-0">
-          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+          <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
 
         {/* Header — fixo, compacto */}
         {(title || !hideCloseButton) && (
-          <div className="flex items-center justify-between px-5 sm:px-6 pt-2 sm:pt-5 pb-3 flex-shrink-0">
-            <h3 className="font-bold text-[#1B1C1E] text-base sm:text-lg truncate pr-2">{title}</h3>
+          <div className="flex items-center justify-between px-5 sm:px-6 pt-2 sm:pt-5 pb-3 flex-shrink-0 border-b border-white/5">
+            <h3 className="font-bold text-white text-base sm:text-lg truncate pr-2">{title}</h3>
             {!hideCloseButton && (
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Fechar"
-                className="p-2 -mr-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
+                className="p-2 -mr-2 hover:bg-white/10 active:bg-white/15 rounded-lg transition-colors flex-shrink-0"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-white/60" />
               </button>
             )}
           </div>
@@ -126,7 +126,7 @@ export default function StandardModal({
 
         {/* Body — scroll interno; pb extra garante que último input nunca encoste no footer */}
         <div
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 pb-6 modal-scroll"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 py-4 modal-scroll"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {children}
@@ -135,7 +135,7 @@ export default function StandardModal({
         {/* Footer — sticky, sempre visível, respeita safe-area */}
         {footer && (
           <div
-            className="flex-shrink-0 border-t border-black/5 bg-white px-5 sm:px-6 pt-3 flex gap-3"
+            className="flex-shrink-0 border-t border-white/8 bg-[#0A1124] px-5 sm:px-6 pt-3 flex gap-3"
             style={{ paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0px))` }}
           >
             {footer}
