@@ -93,14 +93,14 @@ export default function AppCaixaRelatorios() {
             <button
               onClick={handleExportCsv}
               disabled={!summaries.length}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-black/10 text-sm font-semibold text-[#111827] hover:border-[#2563EB] hover:text-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm font-semibold text-white/85 hover:border-[#60A5FA]/40 hover:text-[#93C5FD] hover:bg-white/[0.08] backdrop-blur-md transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Download className="w-4 h-4" />Excel
             </button>
             <button
               onClick={handleExportPdf}
               disabled={!summaries.length}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white text-sm font-semibold hover:brightness-110 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FileText className="w-4 h-4" />PDF
             </button>
@@ -119,7 +119,7 @@ export default function AppCaixaRelatorios() {
         />
 
         {summaries.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/8">
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md">
             <EmptyState
               icon={BarChart2}
               title="Nada para reportar ainda"

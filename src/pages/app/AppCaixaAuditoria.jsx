@@ -99,7 +99,7 @@ export default function AppCaixaAuditoria() {
         />
 
         {loadingEvents ? (
-          <div className="bg-white rounded-2xl border border-black/5 p-10 text-center text-sm text-[#6B7280] shadow-[var(--shadow-sm)]">
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-10 text-center text-sm text-white/55">
             Carregando eventos…
           </div>
         ) : (

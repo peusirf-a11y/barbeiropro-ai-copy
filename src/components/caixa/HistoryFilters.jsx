@@ -37,8 +37,8 @@ export function resolveRange(preset, customFrom, customTo) {
 
 export default function HistoryFilters({ preset, setPreset, customFrom, setCustomFrom, customTo, setCustomTo }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-4 sm:p-5 mb-5 shadow-[var(--shadow-sm)]">
-      <div className="flex items-center gap-2 mb-3 text-[11px] uppercase tracking-wider font-bold text-[#6B7280]">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4 sm:p-5 mb-5">
+      <div className="flex items-center gap-2 mb-3 text-[11px] uppercase tracking-wider font-bold text-white/55">
         <Calendar className="w-3.5 h-3.5" /> Período
       </div>
       <div className="flex flex-wrap gap-2">
@@ -48,8 +48,8 @@ export default function HistoryFilters({ preset, setPreset, customFrom, setCusto
             onClick={() => setPreset(p.key)}
             className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ${
               preset === p.key
-                ? 'bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)]'
-                : 'bg-white border border-black/10 text-gray-600 hover:border-[#2563EB] hover:text-[#2563EB]'
+                ? 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white shadow-[0_4px_12px_rgba(37,99,235,0.4)] ring-1 ring-white/15'
+                : 'bg-white/[0.04] border border-white/10 text-white/65 hover:border-[#60A5FA]/30 hover:text-[#93C5FD] hover:bg-white/[0.06]'
             }`}
           >
             {p.label}
@@ -59,24 +59,24 @@ export default function HistoryFilters({ preset, setPreset, customFrom, setCusto
       {preset === 'custom' && (
         <div className="grid grid-cols-2 gap-3 mt-3">
           <div>
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">De</label>
+            <label className="text-[11px] font-semibold text-white/55 block mb-1">De</label>
             <input
               type="date"
               value={customFrom || ''}
               max={customTo || todayISO()}
               onChange={e => setCustomFrom(e.target.value)}
-              className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm"
+              className="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
             />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Até</label>
+            <label className="text-[11px] font-semibold text-white/55 block mb-1">Até</label>
             <input
               type="date"
               value={customTo || ''}
               min={customFrom || ''}
               max={todayISO()}
               onChange={e => setCustomTo(e.target.value)}
-              className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm"
+              className="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
             />
           </div>
         </div>
