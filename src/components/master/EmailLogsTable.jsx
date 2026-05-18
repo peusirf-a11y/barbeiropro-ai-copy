@@ -16,9 +16,9 @@ const TYPE_LABELS = {
 };
 
 const STATUS_CONFIG = {
-  sent:    { label: 'Enviado',  color: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300', icon: CheckCircle },
-  failed:  { label: 'Falhou',   color: 'bg-red-500/15 text-red-700 dark:text-red-300',             icon: AlertCircle },
-  pending: { label: 'Pendente', color: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',       icon: Clock },
+  sent:    { label: 'Enviado',  color: 'bg-emerald-500/15 text-emerald-500', icon: CheckCircle },
+  failed:  { label: 'Falhou',   color: 'bg-red-500/15 text-red-500',         icon: AlertCircle },
+  pending: { label: 'Pendente', color: 'bg-amber-500/15 text-amber-500',     icon: Clock },
 };
 
 export default function EmailLogsTable() {
@@ -93,7 +93,7 @@ export default function EmailLogsTable() {
                         <Icon className="w-3 h-3" /> {cfg.label}
                       </span>
                     </td>
-                    <td className="py-2.5 pr-3 text-xs text-red-600 dark:text-red-300 font-mono truncate max-w-[280px]" title={log.error_message}>
+                    <td className="py-2.5 pr-3 text-xs text-red-500 font-mono truncate max-w-[280px]" title={log.error_message}>
                       {log.error_message || '—'}
                     </td>
                   </tr>

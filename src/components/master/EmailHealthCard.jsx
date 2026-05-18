@@ -5,10 +5,10 @@ import { Mail, Send, CheckCircle, AlertCircle, AlertTriangle, RefreshCw } from '
 import { useToast } from '@/components/ui/use-toast';
 
 const HEALTH_CONFIG = {
-  healthy:  { label: 'Provedor Online',     color: 'text-emerald-600 dark:text-emerald-300',  bg: 'bg-emerald-500/10',  border: 'border-emerald-500/30',  dot: 'bg-emerald-500',  icon: CheckCircle },
-  degraded: { label: 'Falhas detectadas',   color: 'text-amber-600 dark:text-amber-300',      bg: 'bg-amber-500/10',    border: 'border-amber-500/30',    dot: 'bg-amber-500',    icon: AlertTriangle },
-  down:     { label: 'Provedor com erro',   color: 'text-red-600 dark:text-red-300',          bg: 'bg-red-500/10',      border: 'border-red-500/30',      dot: 'bg-red-500',      icon: AlertCircle },
-  unknown:  { label: 'Sem envios recentes', color: 'text-muted-foreground',                   bg: 'bg-muted/40',        border: 'border-border',          dot: 'bg-muted-foreground', icon: Mail },
+  healthy:  { label: 'Provedor Online',     color: 'text-emerald-500',  bg: 'bg-emerald-500/10',  border: 'border-emerald-500/30',  dot: 'bg-emerald-500',  icon: CheckCircle },
+  degraded: { label: 'Falhas detectadas',   color: 'text-amber-500',    bg: 'bg-amber-500/10',    border: 'border-amber-500/30',    dot: 'bg-amber-500',    icon: AlertTriangle },
+  down:     { label: 'Provedor com erro',   color: 'text-red-500',      bg: 'bg-red-500/10',      border: 'border-red-500/30',      dot: 'bg-red-500',      icon: AlertCircle },
+  unknown:  { label: 'Sem envios recentes', color: 'text-muted-foreground', bg: 'bg-muted/30',    border: 'border-border',          dot: 'bg-muted-foreground', icon: Mail },
 };
 
 export default function EmailHealthCard() {
@@ -80,14 +80,14 @@ export default function EmailHealthCard() {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <Stat label="Enviados" value={data?.stats?.sent ?? '—'} color="text-emerald-600 dark:text-emerald-300" />
-        <Stat label="Falhas"   value={data?.stats?.failed ?? '—'} color="text-red-600 dark:text-red-300" />
+        <Stat label="Enviados" value={data?.stats?.sent ?? '—'} color="text-emerald-500" />
+        <Stat label="Falhas"   value={data?.stats?.failed ?? '—'} color="text-red-500" />
         <Stat label="Total"    value={data?.stats?.total ?? '—'} color="text-foreground" />
       </div>
 
       {data?.last_error && (
-        <div className="bg-card rounded-lg border border-red-500/30 p-3 mb-4 text-xs">
-          <div className="text-red-600 dark:text-red-300 font-semibold mb-1">Último erro registrado:</div>
+        <div className="bg-background rounded-lg border border-red-500/30 p-3 mb-4 text-xs">
+          <div className="text-red-500 font-semibold mb-1">Último erro registrado:</div>
           <div className="text-foreground/80 font-mono break-all">{data.last_error}</div>
         </div>
       )}
