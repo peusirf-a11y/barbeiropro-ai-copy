@@ -128,43 +128,45 @@ export default function AppProfissionais() {
         </AppPageHeader>
 
         {visiblePros.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/5 p-16 text-center text-[#6B7280] shadow-[var(--shadow-sm)]">
-            <Scissors className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-16 text-center text-white/55">
+            <Scissors className="w-10 h-10 mx-auto mb-3 text-white/25" />
             <p className="text-sm mb-3">Nenhum profissional cadastrado</p>
-            <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] hover:underline">Adicionar primeiro profissional</button>
+            <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#93C5FD] hover:text-[#BFDBFE] hover:underline transition-colors">Adicionar primeiro profissional</button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {visiblePros.map(pro => (
-              <div key={pro.id} className={`bg-white rounded-2xl border p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200 ${pro.active ? 'border-black/5' : 'border-black/5 opacity-60'}`}>
-                <div className="flex items-start justify-between mb-4">
+              <div key={pro.id} className={`group relative rounded-2xl border bg-white/[0.025] backdrop-blur-md p-5 hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden ${pro.active ? 'border-white/8 hover:border-[#60A5FA]/30' : 'border-white/8 opacity-55'}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.05] to-transparent pointer-events-none" />
+                <div className="relative flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {pro.photo_url ? (
-                      <img src={pro.photo_url} alt={pro.name} className="w-12 h-12 rounded-xl object-cover ring-2 ring-white shadow-sm" />
+                      <img src={pro.photo_url} alt={pro.name} className="w-12 h-12 rounded-xl object-cover ring-2 ring-white/15 shadow-[0_4px_12px_rgba(0,0,0,0.4)]" />
                     ) : (
-                      <div className="w-12 h-12 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-xl flex items-center justify-center shadow-sm">
-                        <Scissors className="w-5 h-5 text-white" />
+                      <div className="relative w-12 h-12 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] rounded-xl flex items-center justify-center shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15">
+                        <span className="absolute inset-0 rounded-xl bg-[#60A5FA]/30 blur-md opacity-60" aria-hidden="true" />
+                        <Scissors className="relative w-5 h-5 text-white" />
                       </div>
                     )}
                     <div>
-                      <h3 className="font-bold text-[#111827]">{pro.name}</h3>
-                      <p className="text-xs text-[#6B7280]">{pro.specialty || 'Barbeiro'}</p>
+                      <h3 className="font-bold text-white">{pro.name}</h3>
+                      <p className="text-xs text-white/55">{pro.specialty || 'Barbeiro'}</p>
                       <div className="flex items-center gap-1 mt-1">
-                        <div className={`w-2 h-2 rounded-full ${pro.active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                        <span className="text-xs text-[#6B7280]">{pro.active ? 'Ativo' : 'Inativo'}</span>
+                        <div className={`w-2 h-2 rounded-full ${pro.active ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-white/20'}`} />
+                        <span className="text-xs text-white/55">{pro.active ? 'Ativo' : 'Inativo'}</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => openEdit(pro)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
-                    <button onClick={() => { if (confirm('Excluir profissional?')) deleteMutation.mutate(pro.id); }} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+                    <button onClick={() => openEdit(pro)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"><Pencil className="w-3.5 h-3.5 text-white/50 hover:text-[#93C5FD]" /></button>
+                    <button onClick={() => { if (confirm('Excluir profissional?')) deleteMutation.mutate(pro.id); }} className="p-1.5 hover:bg-rose-500/10 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5 text-white/40 hover:text-rose-300" /></button>
                   </div>
                 </div>
                 {pro.service_ids && pro.service_ids.length > 0 && (
-                  <div className="text-xs text-[#6B7280]">{pro.service_ids.length} serviços vinculados</div>
+                  <div className="relative text-xs text-white/55">{pro.service_ids.length} serviços vinculados</div>
                 )}
                 {pro.commission_value > 0 && (
-                  <div className="text-xs text-[#6B7280] mt-1">Comissão: {pro.commission_value}{pro.commission_type === 'percent' ? '%' : ' R$'}</div>
+                  <div className="relative text-xs text-white/55 mt-1">Comissão: <span className="text-white/75 font-semibold">{pro.commission_value}{pro.commission_type === 'percent' ? '%' : ' R$'}</span></div>
                 )}
               </div>
             ))}
@@ -178,9 +180,9 @@ export default function AppProfissionais() {
           size="lg"
           footer={
             <>
-              <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>
+              <button onClick={closeForm} className="flex-1 px-4 py-2.5 border border-white/10 rounded-lg text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] transition-colors">Cancelar</button>
               <button onClick={handleSave} disabled={!form.name || createMutation.isPending || updateMutation.isPending}
-                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50">
+                className="flex-1 px-4 py-2.5 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all">
                 {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
               </button>
             </>
@@ -188,7 +190,7 @@ export default function AppProfissionais() {
         >
           <div>
               {/* Tabs */}
-              <div className="flex border-b border-black/8 -mx-6 mb-4">
+              <div className="flex border-b border-white/8 -mx-6 mb-4">
                 {[
                   { id: 'info', label: 'Dados' },
                   { id: 'schedule', label: 'Horários' },
@@ -196,7 +198,7 @@ export default function AppProfissionais() {
                   ...(isMultiUnit ? [{ id: 'units', label: 'Unidades' }] : []),
                 ].map(t => (
                   <button key={t.id} onClick={() => setTab(t.id)}
-                    className={`flex-1 py-2.5 text-sm font-medium transition-all ${tab === t.id ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-gray-400 hover:text-gray-600'}`}>
+                    className={`flex-1 py-2.5 text-sm font-medium transition-all ${tab === t.id ? 'text-[#93C5FD] border-b-2 border-[#60A5FA]' : 'text-white/45 hover:text-white/75'}`}>
                     {t.label}
                   </button>
                 ))}
@@ -206,18 +208,18 @@ export default function AppProfissionais() {
                 {tab === 'info' && (
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
+                      <label className="text-xs font-semibold text-white/60 block mb-1">Nome *</label>
                       <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                        className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 block mb-1">Especialidade</label>
+                      <label className="text-xs font-semibold text-white/60 block mb-1">Especialidade</label>
                       <input type="text" value={form.specialty} onChange={e => setForm(p => ({ ...p, specialty: e.target.value }))}
                         placeholder="Ex: Barba & Navalha"
-                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                        className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 block mb-1">Foto do barbeiro</label>
+                      <label className="text-xs font-semibold text-white/60 block mb-1">Foto do barbeiro</label>
                       <PhotoUpload
                         value={form.photo_url}
                         onChange={(url) => setForm(p => ({ ...p, photo_url: url }))}
@@ -226,21 +228,21 @@ export default function AppProfissionais() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-semibold text-gray-500 block mb-1">Tipo comissão</label>
+                        <label className="text-xs font-semibold text-white/60 block mb-1">Tipo comissão</label>
                         <MobileSelect value={form.commission_type} onChange={v => setForm(p => ({ ...p, commission_type: v }))}
-                          className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none">
+                          className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none">
                           <option value="percent">Porcentagem (%)</option>
                           <option value="fixed">Valor fixo (R$)</option>
                         </MobileSelect>
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-gray-500 block mb-1">Valor</label>
+                        <label className="text-xs font-semibold text-white/60 block mb-1">Valor</label>
                         <input type="number" min="0" value={form.commission_value} onChange={e => setForm(p => ({ ...p, commission_value: +e.target.value }))}
-                          className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none" />
+                          className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                       </div>
                     </div>
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
+                    <label className="flex items-center gap-2 text-sm cursor-pointer text-white/85">
+                      <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} className="accent-[#60A5FA]" />
                       Profissional ativo
                     </label>
                   </div>
@@ -248,14 +250,14 @@ export default function AppProfissionais() {
 
                 {tab === 'schedule' && (
                   <div className="space-y-2">
-                    <p className="text-xs text-gray-500 mb-3">Configure os dias e horários de atendimento</p>
+                    <p className="text-xs text-white/55 mb-3">Configure os dias e horários de atendimento</p>
                     {DAYS.map(({ key, label }) => {
                       const h = form.work_schedule[key] || { open: '09:00', close: '18:00', active: false };
                       return (
                         <div key={key} className="flex items-center gap-2 sm:gap-3">
-                          <label className="flex items-center gap-1.5 w-[68px] flex-shrink-0">
-                            <input type="checkbox" checked={h.active} onChange={e => setSchedule(key, 'active', e.target.checked)} />
-                            <span className={`text-sm font-semibold ${h.active ? 'text-[#1B1C1E]' : 'text-gray-400'}`}>{label}</span>
+                          <label className="flex items-center gap-1.5 w-[68px] flex-shrink-0 cursor-pointer">
+                            <input type="checkbox" checked={h.active} onChange={e => setSchedule(key, 'active', e.target.checked)} className="accent-[#60A5FA]" />
+                            <span className={`text-sm font-semibold ${h.active ? 'text-white' : 'text-white/40'}`}>{label}</span>
                           </label>
                           {h.active ? (
                             <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -263,18 +265,18 @@ export default function AppProfissionais() {
                                 type="time"
                                 value={h.open}
                                 onChange={e => setSchedule(key, 'open', e.target.value)}
-                                className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                                className="flex-1 min-w-0 px-2 py-1.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
                               />
-                              <span className="text-gray-400 text-xs flex-shrink-0">até</span>
+                              <span className="text-white/40 text-xs flex-shrink-0">até</span>
                               <input
                                 type="time"
                                 value={h.close}
                                 onChange={e => setSchedule(key, 'close', e.target.value)}
-                                className="flex-1 min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                                className="flex-1 min-w-0 px-2 py-1.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
                               />
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-400 flex-1">Folga</span>
+                            <span className="text-xs text-white/35 flex-1">Folga</span>
                           )}
                         </div>
                       );
@@ -284,13 +286,13 @@ export default function AppProfissionais() {
 
                 {tab === 'units' && isMultiUnit && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-3">Selecione em quais unidades este profissional atende. Se nenhuma for marcada, aparece em todas.</p>
+                    <p className="text-xs text-white/55 mb-3">Selecione em quais unidades este profissional atende. Se nenhuma for marcada, aparece em todas.</p>
                     <div className="space-y-2">
                       {units.map(u => (
-                        <label key={u.id} className="flex items-center gap-3 p-3 rounded-xl border border-black/8 cursor-pointer hover:bg-[#F8F7F3]">
-                          <input type="checkbox" checked={form.unit_ids.includes(u.id)} onChange={() => toggleUnit(u.id)} />
-                          <span className="text-sm font-medium text-[#1B1C1E]">{u.name}</span>
-                          {u.is_default && <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 ml-auto">Matriz</span>}
+                        <label key={u.id} className="flex items-center gap-3 p-3 rounded-xl border border-white/8 bg-white/[0.025] cursor-pointer hover:bg-white/[0.05] hover:border-white/15 transition-colors">
+                          <input type="checkbox" checked={form.unit_ids.includes(u.id)} onChange={() => toggleUnit(u.id)} className="accent-[#60A5FA]" />
+                          <span className="text-sm font-medium text-white">{u.name}</span>
+                          {u.is_default && <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-200 border border-amber-400/25 ml-auto">Matriz</span>}
                         </label>
                       ))}
                     </div>
@@ -299,17 +301,17 @@ export default function AppProfissionais() {
 
                 {tab === 'services' && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-3">Selecione os serviços que este profissional realiza</p>
+                    <p className="text-xs text-white/55 mb-3">Selecione os serviços que este profissional realiza</p>
                     {services.length === 0 ? (
-                      <p className="text-sm text-gray-400">Nenhum serviço cadastrado ainda</p>
+                      <p className="text-sm text-white/40">Nenhum serviço cadastrado ainda</p>
                     ) : (
                       <div className="space-y-2">
                         {services.map(s => (
-                          <label key={s.id} className="flex items-center gap-3 p-3 rounded-xl border border-black/8 cursor-pointer hover:bg-[#F8F7F3]">
-                            <input type="checkbox" checked={form.service_ids.includes(s.id)} onChange={() => toggleService(s.id)} />
+                          <label key={s.id} className="flex items-center gap-3 p-3 rounded-xl border border-white/8 bg-white/[0.025] cursor-pointer hover:bg-white/[0.05] hover:border-white/15 transition-colors">
+                            <input type="checkbox" checked={form.service_ids.includes(s.id)} onChange={() => toggleService(s.id)} className="accent-[#60A5FA]" />
                             <div className="flex-1">
-                              <span className="text-sm font-medium text-[#1B1C1E]">{s.name}</span>
-                              <span className="text-xs text-gray-400 ml-2">{s.duration_minutes}min · R${s.price}</span>
+                              <span className="text-sm font-medium text-white">{s.name}</span>
+                              <span className="text-xs text-white/45 ml-2">{s.duration_minutes}min · R${s.price}</span>
                             </div>
                           </label>
                         ))}
