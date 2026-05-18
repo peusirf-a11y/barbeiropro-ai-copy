@@ -134,13 +134,13 @@ export default function AppBloqueios() {
         )}
 
         {blocks.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/8">
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md">
             <EmptyState
               icon={Lock}
               title="Nenhum bloqueio criado"
               description="Crie bloqueios para horários indisponíveis (almoço, folga, evento). Eles serão respeitados na agenda e no link público."
               action={
-                <button onClick={() => setShowForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-[#1d4ed8]">
+                <button onClick={() => setShowForm(true)} className="bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:brightness-110 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all">
                   Criar primeiro bloqueio
                 </button>
               }
@@ -162,13 +162,13 @@ export default function AppBloqueios() {
           title="Novo bloqueio"
           footer={
             <>
-              <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium">Cancelar</button>
+              <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-white/10 rounded-lg text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] transition-colors">Cancelar</button>
               <button onClick={handleCreate}
                 disabled={
                   createMutation.isPending ||
                   (form.mode === 'once' ? (!form.start_time || !form.end_time) : (!form.time_start || !form.time_end))
                 }
-                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
+                className="flex-1 px-4 py-2.5 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all">
                 {createMutation.isPending ? 'Salvando...' : 'Bloquear'}
               </button>
             </>
@@ -176,25 +176,25 @@ export default function AppBloqueios() {
         >
           <div className="space-y-3">
                 {/* Tipo de bloqueio */}
-                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+                <div className="grid grid-cols-2 gap-2 p-1 bg-white/[0.04] border border-white/8 rounded-xl">
                   <button
                     type="button"
                     onClick={() => setForm(p => ({ ...p, mode: 'once' }))}
-                    className={`text-sm font-semibold py-2 rounded-lg transition-all ${form.mode === 'once' ? 'bg-white text-[#111827] shadow-sm' : 'text-[#6B7280]'}`}
+                    className={`text-sm font-semibold py-2 rounded-lg transition-all ${form.mode === 'once' ? 'bg-white/[0.08] text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] ring-1 ring-white/10' : 'text-white/55 hover:text-white/80'}`}
                   >
                     Único
                   </button>
                   <button
                     type="button"
                     onClick={() => setForm(p => ({ ...p, mode: 'recurring' }))}
-                    className={`text-sm font-semibold py-2 rounded-lg transition-all ${form.mode === 'recurring' ? 'bg-white text-[#111827] shadow-sm' : 'text-[#6B7280]'}`}
+                    className={`text-sm font-semibold py-2 rounded-lg transition-all ${form.mode === 'recurring' ? 'bg-white/[0.08] text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] ring-1 ring-white/10' : 'text-white/55 hover:text-white/80'}`}
                   >
                     Semanal recorrente
                   </button>
                 </div>
 
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Profissional</label>
               <FilterSelect value={form.professional_id} onChange={(v) => setForm(p => ({ ...p, professional_id: v }))} className="w-full">
                 <option value="">Toda a barbearia</option>
                 {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -204,20 +204,20 @@ export default function AppBloqueios() {
                 {form.mode === 'once' ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 block mb-1">Início *</label>
+                      <label className="text-xs font-semibold text-white/60 block mb-1">Início *</label>
                       <input type="datetime-local" value={form.start_time} onChange={e => setForm(p => ({ ...p, start_time: e.target.value }))}
-                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+                        className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 block mb-1">Fim *</label>
+                      <label className="text-xs font-semibold text-white/60 block mb-1">Fim *</label>
                       <input type="datetime-local" value={form.end_time} onChange={e => setForm(p => ({ ...p, end_time: e.target.value }))}
-                        className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+                        className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                     </div>
                   </div>
                 ) : (
                   <>
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 block mb-1">Dia da semana *</label>
+                      <label className="text-xs font-semibold text-white/60 block mb-1">Dia da semana *</label>
                       <FilterSelect value={String(form.weekday)} onChange={(v) => setForm(p => ({ ...p, weekday: Number(v) }))} className="w-full">
                         {WEEKDAY_LABELS.map((label, i) => (
                           <option key={i} value={String(i)}>Toda {label.toLowerCase()}</option>
@@ -226,27 +226,27 @@ export default function AppBloqueios() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-semibold text-gray-500 block mb-1">Início *</label>
+                        <label className="text-xs font-semibold text-white/60 block mb-1">Início *</label>
                         <input type="time" value={form.time_start} onChange={e => setForm(p => ({ ...p, time_start: e.target.value }))}
-                          className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+                          className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-gray-500 block mb-1">Fim *</label>
+                        <label className="text-xs font-semibold text-white/60 block mb-1">Fim *</label>
                         <input type="time" value={form.time_end} onChange={e => setForm(p => ({ ...p, time_end: e.target.value }))}
-                          className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+                          className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                       </div>
                     </div>
-                    <div className="text-[11px] text-[#6B7280] bg-[#FAFBFC] border border-black/5 rounded-lg p-2.5">
+                    <div className="text-[11px] text-white/55 bg-white/[0.025] border border-white/8 rounded-lg p-2.5">
                       Se aplicará automaticamente toda semana neste dia e horário.
                     </div>
                   </>
                 )}
 
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Motivo</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Motivo</label>
               <input type="text" value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))}
                 placeholder="Ex: Almoço, Folga, Evento"
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+                className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
             </div>
           </div>
         </StandardModal>
@@ -259,27 +259,28 @@ const WEEKDAY_SHORT = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sext
 
 function BlockList({ title, items, proName, onDelete, muted }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
-      <div className="px-5 py-3 border-b border-black/5 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] bg-[#FAFBFC]">{title}</div>
-      <div className="divide-y divide-black/5">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
+      <div className="px-5 py-3 border-b border-white/8 text-[11px] font-semibold uppercase tracking-wider text-white/55 bg-white/[0.02]">{title}</div>
+      <div className="divide-y divide-white/5">
         {items.map(b => {
           const isRec = !!b.recurring;
           const description = isRec
             ? `${proName(b.professional_id)} · Toda ${WEEKDAY_SHORT[b.weekday] || ''} das ${b.time_start} às ${b.time_end}`
             : `${proName(b.professional_id)} · ${format(new Date(b.start_time), "d MMM HH:mm", { locale: ptBR })} → ${format(new Date(b.end_time), "d MMM HH:mm", { locale: ptBR })}`;
           return (
-            <div key={b.id} className={`flex items-center gap-4 p-4 hover:bg-[#FAFBFC] transition-colors ${muted ? 'opacity-60' : ''}`}>
-              <div className="w-9 h-9 bg-[#EFF6FF] ring-1 ring-[#DBEAFE] rounded-xl flex items-center justify-center flex-shrink-0">
-                <Lock className="w-4 h-4 text-[#2563EB]" />
+            <div key={b.id} className={`flex items-center gap-4 p-4 hover:bg-white/[0.04] transition-colors ${muted ? 'opacity-55' : ''}`}>
+              <div className="relative w-9 h-9 rounded-xl bg-blue-500/15 ring-1 ring-blue-400/30 flex items-center justify-center flex-shrink-0">
+                <span className="absolute inset-0 rounded-xl bg-[#60A5FA]/25 blur-md opacity-60" aria-hidden="true" />
+                <Lock className="relative w-4 h-4 text-[#93C5FD]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <div className="font-semibold text-sm text-[#111827] truncate">{b.reason || 'Bloqueado'}</div>
-                  {isRec && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">Semanal</span>}
+                  <div className="font-semibold text-sm text-white truncate">{b.reason || 'Bloqueado'}</div>
+                  {isRec && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-400/15 text-violet-200 border border-violet-400/30">Semanal</span>}
                 </div>
-                <div className="text-xs text-[#6B7280] truncate mt-0.5">{description}</div>
+                <div className="text-xs text-white/55 truncate mt-0.5">{description}</div>
               </div>
-              <button onClick={() => { if (confirm('Remover bloqueio?')) onDelete(b.id); }} className="text-gray-300 hover:text-red-500 p-1">
+              <button onClick={() => { if (confirm('Remover bloqueio?')) onDelete(b.id); }} className="text-white/35 hover:text-rose-300 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
