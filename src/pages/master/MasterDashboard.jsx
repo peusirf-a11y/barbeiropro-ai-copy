@@ -9,8 +9,8 @@ export default function MasterDashboard() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div>
-        <h2 className="text-2xl font-black text-[#111827] tracking-tight">Visão geral do sistema</h2>
-        <p className="text-sm text-[#6B7280] mt-1">Indicadores em tempo real do O CORTE SaaS.</p>
+        <h2 className="text-2xl font-black text-foreground tracking-tight">Visão geral do sistema</h2>
+        <p className="text-sm text-muted-foreground mt-1">Indicadores em tempo real do O CORTE SaaS.</p>
       </div>
       <StripeEnvMismatchBanner />
       <MasterMetrics />

@@ -5,6 +5,7 @@ import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers, Activity, Database, Lock, ShieldCheck, ShieldAlert, Gauge } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import Logo from '@/components/Logo';
+import ThemeToggle from '@/components/ThemeToggle';
 import { base44 } from '@/api/base44Client';
 import ImpersonationCountdown from '@/components/security/ImpersonationCountdown';
 import { useImpersonationContext } from '@/contexts/ImpersonationContext';
@@ -98,22 +99,22 @@ export default function MasterLayout() {
   const pageTitle = activeNav?.label || 'Master';
 
   return (
-    <div className={`min-h-screen bg-[#F7F8FB] font-inter ${isImpersonating ? 'pt-9' : ''}`}>
+    <div className={`min-h-screen bg-background text-foreground font-inter ${isImpersonating ? 'pt-9' : ''}`}>
       <ImpersonationCountdown />
-      {/* Mobile top bar */}
-      <header className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-14 flex items-center justify-between px-4 gap-2">
+      {/* Mobile top bar — theme-aware */}
+      <header className="lg:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border h-14 flex items-center justify-between px-4 gap-2">
         <button
           onClick={() => setOpen(true)}
-          className="p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-700"
+          className="p-2 -ml-2 rounded-lg hover:bg-muted active:bg-muted text-foreground"
           aria-label="Abrir menu"
         >
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2 min-w-0">
           <Logo variant="icon-dark" size={28} className="flex-shrink-0" />
-          <span className="font-bold text-[15px] text-[#0F172A] tracking-tight truncate">{pageTitle}</span>
+          <span className="font-bold text-[15px] text-foreground tracking-tight truncate">{pageTitle}</span>
         </div>
-        <div className="w-9" />
+        <ThemeToggle />
       </header>
 
       {/* Desktop sidebar — DARK, fixed */}
@@ -134,16 +135,17 @@ export default function MasterLayout() {
         </aside>
       </div>
 
-      {/* Desktop top header */}
-      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-16 items-center justify-between px-8 gap-3">
+      {/* Desktop top header — theme-aware */}
+      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border h-16 items-center justify-between px-8 gap-3">
         <div>
-          <div className="text-[11px] text-gray-400 leading-none uppercase tracking-wider font-semibold">Painel Master · O CORTE</div>
-          <h1 className="text-lg font-bold text-[#0F172A] mt-0.5 tracking-tight">{pageTitle}</h1>
+          <div className="text-[11px] text-muted-foreground leading-none uppercase tracking-wider font-semibold">Painel Master · O CORTE</div>
+          <h1 className="text-lg font-bold text-foreground mt-0.5 tracking-tight">{pageTitle}</h1>
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <button
             onClick={() => base44.auth.logout()}
-            className="text-xs text-gray-500 hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center gap-1.5"
+            className="text-xs text-muted-foreground hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors font-medium flex items-center gap-1.5"
           >
             <LogOut className="w-3.5 h-3.5" /> Sair
           </button>
