@@ -57,10 +57,10 @@ const groups = [
 
 export default function PlatformFeatures() {
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-4 sm:p-6 shadow-[var(--shadow-sm)]">
+    <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 shadow-[var(--shadow-sm)]">
       <div className="mb-5">
-        <h2 className="font-bold text-[#111827] text-lg tracking-tight">Funcionalidades da plataforma</h2>
-        <p className="text-xs text-[#6B7280] mt-0.5 font-medium">
+        <h2 className="font-bold text-foreground text-lg tracking-tight">Funcionalidades da plataforma</h2>
+        <p className="text-xs text-muted-foreground mt-0.5 font-medium">
           O que o O CORTE entrega hoje para barbearias modernas.
         </p>
       </div>
@@ -69,19 +69,19 @@ export default function PlatformFeatures() {
         {groups.map((g) => {
           const GIcon = g.icon;
           return (
-            <div key={g.title} className="rounded-xl border border-black/5 bg-[#FAFBFC] p-4">
+            <div key={g.title} className="rounded-xl border border-border bg-muted/40 p-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ring-1 ${g.color}`}>
                   <GIcon className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-sm text-[#111827] tracking-tight">{g.title}</h3>
+                <h3 className="font-bold text-sm text-foreground tracking-tight">{g.title}</h3>
               </div>
               <ul className="space-y-2">
                 {g.items.map((it) => {
                   const Icon = it.icon;
                   return (
-                    <li key={it.label} className="flex items-start gap-2.5 text-[13px] text-[#374151] leading-snug">
-                      <Icon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-[#6B7280]" />
+                    <li key={it.label} className="flex items-start gap-2.5 text-[13px] text-foreground/80 leading-snug">
+                      <Icon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
                       <span>{it.label}</span>
                     </li>
                   );

@@ -34,12 +34,12 @@ export default function MasterMetrics() {
         const raw = data?.[c.key];
         const value = isLoading ? '—' : (c.money ? fmtMoney(raw) : (raw ?? 0));
         return (
-          <div key={c.key} className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200">
+          <div key={c.key} className="bg-card rounded-2xl border border-border p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ring-1 ${c.color}`}>
               <Icon className="w-5 h-5" />
             </div>
-            <div className={`font-black text-[#111827] tracking-tight leading-none ${c.money ? 'text-2xl' : 'text-[28px]'}`}>{value}</div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] mt-2">{c.label}</div>
+            <div className={`font-black text-foreground tracking-tight leading-none ${c.money ? 'text-2xl' : 'text-[28px]'}`}>{value}</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mt-2">{c.label}</div>
           </div>
         );
       })}
