@@ -517,11 +517,96 @@
    em ambos. Apenas suavizamos o "azul ambiente" pra não cantar demais. */
 .light .text-\[\#93C5FD\] { color: #2563EB !important; }
 
-/* Status bar do mobile (header sticky com blur) */
+/* Status bar do mobile (header sticky com blur) + bottom tabs */
 .light .bg-\[\#050816\]\/85,
-.light .bg-\[\#050816\]\/80 {
-  background-color: rgba(244, 247, 251, 0.85) !important;
+.light .bg-\[\#050816\]\/80,
+.light .bg-\[\#050816\]\/90 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
   backdrop-filter: blur(20px);
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Sidebar drawer mobile (bg-[#0B1020]) já coberto acima.
+   Textos cinzas dark (text-gray-300/400/500) viram slate legíveis no light. */
+.light .text-gray-300 { color: rgba(15, 23, 42, 0.75) !important; }
+.light .text-gray-400 { color: rgba(15, 23, 42, 0.62) !important; }
+.light .text-gray-500 { color: rgba(15, 23, 42, 0.55) !important; }
+.light .hover\:text-white:hover { color: #0F172A !important; }
+
+/* Badges com fundo translúcido escuro + texto claro (bg-blue-500/X + text-blue-300)
+   ficam invisíveis no light. Forçamos contraste correto. */
+.light .bg-blue-500\/10,
+.light .bg-blue-500\/15,
+.light .bg-blue-500\/20 { background-color: rgba(37, 99, 235, 0.10) !important; }
+.light .bg-blue-400\/10,
+.light .bg-blue-400\/12,
+.light .bg-blue-400\/15,
+.light .bg-blue-400\/20 { background-color: rgba(37, 99, 235, 0.10) !important; }
+.light .text-blue-300,
+.light .text-blue-200 { color: #1D4ED8 !important; }
+.light .ring-blue-400\/20,
+.light .ring-blue-400\/25,
+.light .ring-blue-400\/30,
+.light .border-blue-400\/20,
+.light .border-blue-400\/25,
+.light .border-blue-400\/30 { border-color: rgba(37, 99, 235, 0.25) !important; }
+
+.light .bg-emerald-500\/10,
+.light .bg-emerald-500\/15,
+.light .bg-emerald-500\/20,
+.light .bg-green-500\/10,
+.light .bg-green-500\/15 { background-color: rgba(16, 185, 129, 0.10) !important; }
+.light .text-emerald-300,
+.light .text-emerald-200,
+.light .text-green-300 { color: #047857 !important; }
+.light .ring-emerald-400\/20,
+.light .ring-emerald-400\/25,
+.light .border-emerald-400\/20,
+.light .border-emerald-400\/25 { border-color: rgba(16, 185, 129, 0.30) !important; }
+
+.light .bg-amber-500\/10,
+.light .bg-amber-500\/15,
+.light .bg-amber-500\/20,
+.light .bg-yellow-500\/10,
+.light .bg-yellow-500\/15 { background-color: rgba(245, 158, 11, 0.12) !important; }
+.light .text-amber-300,
+.light .text-amber-200,
+.light .text-yellow-300 { color: #B45309 !important; }
+.light .ring-amber-400\/20,
+.light .ring-amber-400\/25,
+.light .border-amber-400\/20,
+.light .border-amber-400\/25 { border-color: rgba(245, 158, 11, 0.30) !important; }
+
+.light .bg-rose-500\/10,
+.light .bg-rose-500\/15,
+.light .bg-rose-500\/20,
+.light .bg-red-500\/10,
+.light .bg-red-500\/15 { background-color: rgba(244, 63, 94, 0.10) !important; }
+.light .text-rose-300,
+.light .text-rose-200,
+.light .text-red-300 { color: #B91C1C !important; }
+.light .ring-rose-400\/20,
+.light .ring-rose-400\/25,
+.light .border-rose-400\/20,
+.light .border-rose-400\/25 { border-color: rgba(244, 63, 94, 0.30) !important; }
+
+.light .bg-purple-500\/10,
+.light .bg-purple-500\/15,
+.light .bg-purple-500\/20,
+.light .bg-violet-500\/10 { background-color: rgba(139, 92, 246, 0.10) !important; }
+.light .text-purple-300,
+.light .text-violet-300 { color: #6D28D9 !important; }
+
+.light .bg-slate-500\/10,
+.light .bg-slate-500\/15,
+.light .bg-slate-500\/20 { background-color: rgba(15, 23, 42, 0.05) !important; }
+.light .text-slate-300,
+.light .text-slate-200,
+.light .text-slate-400 { color: rgba(15, 23, 42, 0.65) !important; }
+
+/* Drop shadows com glow do tema dark perdem o sentido no light — neutraliza. */
+.light .drop-shadow-\[0_0_8px_rgba\(96\,165\,250\,0\.6\)\] {
+  filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.25)) !important;
 }
 
 /* Skeleton / loading states em light */
