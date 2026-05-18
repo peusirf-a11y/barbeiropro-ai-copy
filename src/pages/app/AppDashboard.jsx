@@ -231,7 +231,7 @@ export default function AppDashboard() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#60A5FA]/20 border-t-[#60A5FA] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -244,9 +244,9 @@ export default function AppDashboard() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-black text-[#111827] tracking-tight">Dashboard</h1>
-          <p className="text-[#6B7280] text-sm mt-1 capitalize">
-            {format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} · {company?.name || 'Sua barbearia'}
+          <h1 className="text-2xl lg:text-3xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Dashboard</h1>
+          <p className="text-white/50 text-sm mt-1 capitalize">
+            {format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} · <span className="text-white/70">{company?.name || 'Sua barbearia'}</span>
           </p>
         </div>
 

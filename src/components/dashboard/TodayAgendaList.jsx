@@ -1,4 +1,4 @@
-// Lista da agenda do dia — versão clean alinhada ao design system.
+// Agenda de hoje — lista dark glass.
 
 import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
@@ -10,13 +10,16 @@ export default function TodayAgendaList({ appointments = [] }) {
   const sorted = [...appointments].sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-5 sm:p-6 shadow-[var(--shadow-sm)] h-full">
+    <div className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 sm:p-6 h-full overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-[#2563EB]" />
-          <h2 className="font-bold text-[#111827] text-base">Agenda de hoje</h2>
+          <div className="relative">
+            <div className="absolute inset-0 rounded-md bg-[#60A5FA]/40 blur-md" />
+            <Calendar className="relative w-4 h-4 text-[#93C5FD]" />
+          </div>
+          <h2 className="font-bold text-white text-base">Agenda de hoje</h2>
         </div>
-        <Link to="/app/agenda" className="text-xs font-semibold text-[#2563EB] hover:underline">
+        <Link to="/app/agenda" className="text-xs font-semibold text-[#93C5FD] hover:text-white transition-colors">
           Ver agenda →
         </Link>
       </div>
@@ -26,20 +29,25 @@ export default function TodayAgendaList({ appointments = [] }) {
           {sorted.map(appt => (
             <div
               key={appt.id}
-              className="flex items-center gap-4 p-3 rounded-xl bg-[#FAFBFC] hover:bg-[#F1F5F9] transition-colors duration-150"
+              className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.025] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-all duration-150"
             >
               <div className="w-12 text-center flex-shrink-0">
-                <div className="font-bold text-sm text-[#111827]">{format(new Date(appt.scheduled_at), 'HH:mm')}</div>
+                <div className="font-bold text-sm text-white">{format(new Date(appt.scheduled_at), 'HH:mm')}</div>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-sm text-[#111827] truncate">{appt.customer_name || 'Cliente'}</span>
+                  <span className="font-semibold text-sm text-white truncate">{appt.customer_name || 'Cliente'}</span>
                   <AppointmentNoteIcon note={appt.notes} />
                   {(appt.paid || appt.paid_online) && (
-                    <span className="text-[9px] font-bold flex-shrink-0 bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded" title={appt.paid_online ? 'Pago online' : 'Pago'}>PAGO</span>
+                    <span
+                      className="text-[9px] font-bold flex-shrink-0 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25 px-1.5 py-0.5 rounded"
+                      title={appt.paid_online ? 'Pago online' : 'Pago'}
+                    >
+                      PAGO
+                    </span>
                   )}
                 </div>
-                <div className="text-xs text-[#6B7280] truncate">{appt.service_name} · {appt.professional_name}</div>
+                <div className="text-xs text-white/50 truncate">{appt.service_name} · {appt.professional_name}</div>
               </div>
               {(() => {
                 const t = getStatusToken(appt.status);
@@ -53,10 +61,10 @@ export default function TodayAgendaList({ appointments = [] }) {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-[#6B7280]">
+        <div className="text-center py-12 text-white/45">
           <Calendar className="w-8 h-8 mx-auto mb-3 opacity-40" />
           <p className="text-sm">Nenhum agendamento hoje</p>
-          <Link to="/app/agenda" className="text-xs text-[#2563EB] font-semibold mt-2 inline-block hover:underline">
+          <Link to="/app/agenda" className="text-xs text-[#93C5FD] font-semibold mt-2 inline-block hover:text-white transition-colors">
             Criar agendamento →
           </Link>
         </div>
