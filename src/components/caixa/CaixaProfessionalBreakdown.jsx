@@ -10,24 +10,25 @@ export default function CaixaProfessionalBreakdown({ rows }) {
   if (!rows?.length) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 shadow-[var(--shadow-sm)] overflow-hidden mb-5">
-      <div className="px-5 py-3 border-b border-black/5 bg-[#FAFBFC]">
-        <div className="text-[11px] uppercase tracking-wider font-bold text-[#6B7280]">Performance por profissional</div>
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden mb-5">
+      <div className="px-5 py-3 border-b border-white/8 bg-white/[0.02]">
+        <div className="text-[11px] uppercase tracking-wider font-bold text-white/55">Performance por profissional</div>
       </div>
-      <div className="divide-y divide-black/5">
+      <div className="divide-y divide-white/5">
         {rows.map((p, idx) => {
           const methodIcons = Object.keys(p.methods || {}).slice(0, 4);
           return (
-            <div key={p.professional_id} className="flex items-center gap-3 p-4 hover:bg-[#FAFBFC] transition-colors">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                {idx + 1}
+            <div key={p.professional_id} className="flex items-center gap-3 p-4 hover:bg-white/[0.04] transition-colors">
+              <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] ring-1 ring-white/15 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-[0_4px_12px_rgba(37,99,235,0.4)]">
+                <span className="absolute inset-0 rounded-full bg-[#60A5FA]/30 blur-md opacity-60" aria-hidden="true" />
+                <span className="relative">{idx + 1}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <Scissors className="w-3 h-3 text-[#6B7280] flex-shrink-0" />
-                  <span className="font-semibold text-sm text-[#111827] truncate">{p.professional_name}</span>
+                  <Scissors className="w-3 h-3 text-white/45 flex-shrink-0" />
+                  <span className="font-semibold text-sm text-white truncate">{p.professional_name}</span>
                 </div>
-                <div className="text-xs text-[#6B7280] flex items-center gap-3 mt-0.5 flex-wrap">
+                <div className="text-xs text-white/55 flex items-center gap-3 mt-0.5 flex-wrap">
                   <span>{p.appointments} atend.</span>
                   <span>Ticket {fmt(p.ticket_avg)}</span>
                   {methodIcons.length > 0 && (
@@ -36,7 +37,7 @@ export default function CaixaProfessionalBreakdown({ rows }) {
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                <div className="text-sm font-black text-[#111827]">{fmt(p.revenue)}</div>
+                <div className="text-sm font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">{fmt(p.revenue)}</div>
               </div>
             </div>
           );

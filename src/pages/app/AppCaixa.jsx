@@ -291,7 +291,7 @@ export default function AppCaixa() {
             {can('view_audit') && (
               <Link
                 to="/app/caixa/auditoria"
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-black/10 text-sm font-semibold text-[#111827] hover:border-[#2563EB] hover:text-[#2563EB]"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm font-semibold text-white/85 hover:border-[#60A5FA]/40 hover:text-[#93C5FD] hover:bg-white/[0.08] backdrop-blur-md transition-all"
               >
                 <Shield className="w-4 h-4" />Auditoria
               </Link>
@@ -299,7 +299,7 @@ export default function AppCaixa() {
             {can('view_reports') && (
               <Link
                 to="/app/caixa/relatorios"
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-black/10 text-sm font-semibold text-[#111827] hover:border-[#2563EB] hover:text-[#2563EB]"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm font-semibold text-white/85 hover:border-[#60A5FA]/40 hover:text-[#93C5FD] hover:bg-white/[0.08] backdrop-blur-md transition-all"
               >
                 <BarChart2 className="w-4 h-4" />Relatórios
               </Link>
@@ -312,7 +312,7 @@ export default function AppCaixa() {
         )}
 
         {isAllUnits ? null : !openCash ? (
-          <div className="bg-white rounded-2xl border border-black/8">
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md">
             <EmptyState
               icon={Wallet}
               title="Caixa fechado"
@@ -320,7 +320,7 @@ export default function AppCaixa() {
                 ? 'Abra o caixa para começar a registrar entradas, saídas, sangrias e suprimentos do dia.'
                 : 'O caixa está fechado. Peça para um responsável (admin ou financeiro) abrir.'}
               action={can('open_register') ? (
-                <button onClick={() => setShowOpen(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-[#1d4ed8] inline-flex items-center gap-2">
+                <button onClick={() => setShowOpen(true)} className="bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:brightness-110 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all inline-flex items-center gap-2">
                   <Unlock className="w-4 h-4" />Abrir caixa
                 </button>
               ) : null}
@@ -350,8 +350,8 @@ export default function AppCaixa() {
               <CaixaProfessionalBreakdown rows={dre.by_professional} />
             )}
 
-            <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
-              <div className="px-5 py-3 border-b border-black/5 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] bg-[#FAFBFC] flex items-center justify-between">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
+              <div className="px-5 py-3 border-b border-white/8 text-[11px] font-semibold uppercase tracking-wider text-white/55 bg-white/[0.02] flex items-center justify-between">
                 <span>Movimentações deste caixa</span>
                 <span className="text-[10px] font-medium normal-case tracking-normal">
                   {filteredEntries.length} de {registerEntries.length}
@@ -375,23 +375,23 @@ export default function AppCaixa() {
 
         {/* Histórico de fechamentos */}
         {registers.filter(r => r.status === 'fechado').length > 0 && (
-          <div className="mt-6 bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
-            <div className="px-5 py-3 border-b border-black/5 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] bg-[#FAFBFC]">Histórico</div>
-            <div className="divide-y divide-black/5">
+          <div className="mt-6 rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
+            <div className="px-5 py-3 border-b border-white/8 text-[11px] font-semibold uppercase tracking-wider text-white/55 bg-white/[0.02]">Histórico</div>
+            <div className="divide-y divide-white/5">
               {registers.filter(r => r.status === 'fechado').slice(0, 10).map(r => (
-                <div key={r.id} className="flex items-center justify-between p-4 gap-3 flex-wrap hover:bg-[#FAFBFC] transition-colors">
+                <div key={r.id} className="flex items-center justify-between p-4 gap-3 flex-wrap hover:bg-white/[0.04] transition-colors">
                   <div>
-                    <div className="text-sm font-semibold text-[#111827]">
+                    <div className="text-sm font-semibold text-white">
                       {format(new Date(r.opened_at), "d MMM yyyy", { locale: ptBR })}
                     </div>
-                    <div className="text-xs text-[#6B7280]">
+                    <div className="text-xs text-white/55">
                       {format(new Date(r.opened_at), "HH:mm")} → {r.closed_at ? format(new Date(r.closed_at), "HH:mm") : '–'} · por {r.closed_by || '–'}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold text-[#111827]">{fmt(r.final_amount)}</div>
+                    <div className="text-sm font-bold text-white">{fmt(r.final_amount)}</div>
                     {typeof r.difference === 'number' && r.difference !== 0 && (
-                      <div className={`text-xs font-semibold ${r.difference > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      <div className={`text-xs font-semibold ${r.difference > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
                         {r.difference > 0 ? '+' : ''}{r.difference.toFixed(2)} vs esperado
                       </div>
                     )}

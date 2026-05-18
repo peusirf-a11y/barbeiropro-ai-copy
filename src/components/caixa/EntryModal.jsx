@@ -8,10 +8,10 @@ import { PAYMENT_METHODS } from '@/lib/cashRegister';
 import { useCashPermissions } from '@/hooks/useCashPermissions';
 
 const KIND_TABS = [
-  { v: 'entrada',    l: 'Entrada',    color: 'bg-emerald-600', cap: 'create_entry' },
-  { v: 'saida',      l: 'Saída',      color: 'bg-red-600',     cap: 'create_entry' },
-  { v: 'sangria',    l: 'Sangria',    color: 'bg-orange-600',  cap: 'sangria' },
-  { v: 'suprimento', l: 'Suprimento', color: 'bg-[#2563EB]',   cap: 'suprimento' },
+  { v: 'entrada',    l: 'Entrada',    color: 'bg-emerald-500',   cap: 'create_entry' },
+  { v: 'saida',      l: 'Saída',      color: 'bg-rose-500',      cap: 'create_entry' },
+  { v: 'sangria',    l: 'Sangria',    color: 'bg-orange-500',    cap: 'sangria' },
+  { v: 'suprimento', l: 'Suprimento', color: 'bg-gradient-to-br from-[#2563EB] to-[#3B82F6]', cap: 'suprimento' },
 ];
 
 const supportsPaymentMethod = (kind) => kind === 'entrada' || kind === 'saida';
@@ -38,9 +38,9 @@ export default function EntryModal({ open, onClose, form, setForm, onConfirm, lo
       title={isEdit ? 'Editar lançamento' : 'Lançamento no caixa'}
       footer={
         <>
-          <button onClick={onClose} className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50">Cancelar</button>
+          <button onClick={onClose} className="flex-1 min-h-[48px] px-4 border border-white/10 rounded-xl text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] transition-colors">Cancelar</button>
           <button onClick={onConfirm} disabled={disabled || loading}
-            className="flex-1 min-h-[48px] px-4 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50">
+            className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold hover:brightness-110 disabled:opacity-50 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all">
             {loading ? 'Salvando...' : (isEdit ? 'Salvar alterações' : 'Salvar lançamento')}
           </button>
         </>
@@ -59,8 +59,8 @@ export default function EntryModal({ open, onClose, form, setForm, onConfirm, lo
                 onClick={() => setForm(p => ({ ...p, entry_kind: t.v }))}
                 className={`py-2.5 rounded-lg text-xs font-semibold border transition-colors ${
                   active
-                    ? `${t.color} text-white border-transparent`
-                    : 'border-black/10 text-gray-600 hover:border-[#2563EB]/30 bg-white disabled:opacity-40 disabled:hover:border-black/10'
+                    ? `${t.color} text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.4)] ring-1 ring-white/15`
+                    : 'border-white/10 text-white/65 hover:border-[#60A5FA]/30 hover:bg-white/[0.06] bg-white/[0.03] disabled:opacity-40 disabled:hover:border-white/10'
                 }`}
               >
                 {t.l}
@@ -69,30 +69,30 @@ export default function EntryModal({ open, onClose, form, setForm, onConfirm, lo
           })}
         </div>
         {isEdit && (
-          <div className="text-[11px] text-[#6B7280] -mt-1">
+          <div className="text-[11px] text-white/45 -mt-1">
             O tipo do lançamento não pode ser alterado. Para mudar a natureza, exclua e crie um novo.
           </div>
         )}
 
         <div>
-          <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
+          <label className="text-xs font-semibold text-white/60 block mb-1">Descrição</label>
           <input type="text" value={form.description || ''}
             onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
             placeholder="Ex: Venda de pomada, troco do banco..."
-            className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+            className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-gray-500 block mb-1">Valor (R$) *</label>
+          <label className="text-xs font-semibold text-white/60 block mb-1">Valor (R$) *</label>
           <input type="number" inputMode="decimal" min="0" step="0.01"
             value={form.amount}
             onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
-            className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm" />
+            className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
         </div>
 
         {showPayment && (
           <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1.5">Forma de pagamento</label>
+            <label className="text-xs font-semibold text-white/60 block mb-1.5">Forma de pagamento</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {PAYMENT_METHODS.map(m => (
                 <button
@@ -101,8 +101,8 @@ export default function EntryModal({ open, onClose, form, setForm, onConfirm, lo
                   onClick={() => setForm(p => ({ ...p, payment_method: m.value }))}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
                     form.payment_method === m.value
-                      ? 'bg-[#EFF6FF] border-[#2563EB] text-[#2563EB] ring-1 ring-[#DBEAFE]'
-                      : 'bg-white border-black/10 text-gray-600 hover:border-[#2563EB]/30'
+                      ? 'bg-blue-400/[0.12] border-[#60A5FA] text-[#93C5FD] ring-1 ring-blue-400/30'
+                      : 'bg-white/[0.03] border-white/10 text-white/65 hover:border-[#60A5FA]/30 hover:bg-white/[0.06]'
                   }`}
                 >
                   <span>{m.icon}</span><span>{m.label}</span>
@@ -114,7 +114,7 @@ export default function EntryModal({ open, onClose, form, setForm, onConfirm, lo
 
         {needJustification && (
           <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">
+            <label className="text-xs font-semibold text-white/60 block mb-1">
               Motivo da {form.entry_kind === 'sangria' ? 'sangria' : 'suprimento'} *
             </label>
             <textarea
@@ -124,9 +124,9 @@ export default function EntryModal({ open, onClose, form, setForm, onConfirm, lo
               placeholder={form.entry_kind === 'sangria'
                 ? 'Ex: Depósito no banco, pagamento de fornecedor...'
                 : 'Ex: Reforço de troco, aporte do dono...'}
-              className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm resize-none"
+              className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
             />
-            <div className="text-[11px] text-[#6B7280] mt-1">
+            <div className="text-[11px] text-white/45 mt-1">
               Justificativa obrigatória — fica registrada no histórico de auditoria.
             </div>
           </div>
