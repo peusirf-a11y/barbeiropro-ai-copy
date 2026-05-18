@@ -6,39 +6,41 @@
 
 @layer base {
   :root {
-    --background: 220 17% 97%; /* #F7F8FB */
-    --foreground: 220 39% 11%; /* #111827 */
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 20%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%; /* #6B7280 */
-    --accent: 213 94% 68%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84% 60%;
+    /* DARK PREMIUM TOKENS — base global do SaaS (cinematográfico) */
+    --background: 226 70% 5%;         /* #050816 */
+    --foreground: 210 40% 98%;        /* branco premium */
+    --card: 222 47% 8%;               /* #0A1124 — superfícies elevadas */
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;           /* #2563EB-ish */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 65%;  /* texto auxiliar */
+    --accent: 213 94% 68%;            /* #60A5FA */
+    --accent-foreground: 222 47% 6%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 221 83% 53%;
+    --border: 222 30% 16%;            /* glass border */
+    --input: 222 30% 14%;
+    --ring: 217 91% 60%;
     --radius: 0.75rem;
     --font-inter: 'Inter', sans-serif;
 
-    --brand: 221 83% 53%;
+    --brand: 217 91% 60%;
     --brand-light: 213 94% 68%;
-    --brand-mid: 217 91% 60%;
+    --brand-mid: 221 83% 53%;
 
-    /* Premium shadow tokens */
-    --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
-    --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
-    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.05);
-    --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.08);
-    --shadow-xl: 0 24px 48px rgba(15, 23, 42, 0.10);
-    --shadow-brand: 0 8px 24px rgba(37, 99, 235, 0.18);
+    /* Premium shadow + glow tokens (dark) */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.55);
+    --shadow-xl: 0 30px 80px rgba(0, 0, 0, 0.6);
+    --shadow-brand: 0 12px 36px rgba(37, 99, 235, 0.35);
+    --glow-brand: 0 0 0 1px rgba(96, 165, 250, 0.15), 0 0 32px rgba(37, 99, 235, 0.25);
   }
 
   .dark {
@@ -105,16 +107,16 @@
     line-height: 1.2;
   }
 
-  /* Inputs / textareas / selects — premium focus ring */
+  /* Inputs / textareas / selects — premium focus ring (dark) */
   input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
   textarea,
   select {
     transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
-    color: #111827;
+    color: hsl(var(--foreground));
   }
   input::placeholder,
   textarea::placeholder {
-    color: #9CA3AF;
+    color: rgba(148, 163, 184, 0.6);
     opacity: 1;
   }
   /* Botão sem variante explícita herda cor do body (#111827) — evita texto invisível
@@ -126,21 +128,21 @@
   textarea:focus,
   select:focus {
     outline: none;
-    border-color: #2563EB !important;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18) !important;
+    border-color: #60A5FA !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22), 0 0 24px rgba(37, 99, 235, 0.15) !important;
   }
 
-  /* Modern scrollbar */
+  /* Modern scrollbar (dark) */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(15, 23, 42, 0.12);
+    background: rgba(148, 163, 184, 0.18);
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(15, 23, 42, 0.22);
+    background: rgba(148, 163, 184, 0.32);
     background-clip: padding-box;
     border: 2px solid transparent;
   }
@@ -150,52 +152,76 @@
   .shadow-card { box-shadow: var(--shadow-md); }
   .shadow-card-lg { box-shadow: var(--shadow-lg); }
   .shadow-brand { box-shadow: var(--shadow-brand); }
+  .shadow-glow { box-shadow: var(--glow-brand); }
 
   .bg-brand-gradient {
     background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
   }
   .text-brand-gradient {
-    background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+    background: linear-gradient(135deg, #60A5FA 0%, #93C5FD 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
+  /* Texto gradient padrão (branco → azul claro) — usado em headlines */
+  .text-premium-gradient {
+    background: linear-gradient(180deg, #FFFFFF 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  /* Glass surface padrão para cards */
+  .glass-surface {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .glass-surface-hover:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(96, 165, 250, 0.25);
+  }
 
-  /* Premium button base — used optionally via .btn-primary */
+  /* Premium button base — used optionally via .btn-primary (dark) */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold text-white;
-    background: #2563EB;
-    transition: background-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
-    box-shadow: var(--shadow-sm);
+    background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 60%, #3B82F6 100%);
+    transition: transform 0.12s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    box-shadow: var(--shadow-brand);
   }
-  .btn-primary:hover { background: #1d4ed8; box-shadow: var(--shadow-brand); }
+  .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 0 0 1px rgba(96,165,250,0.4), 0 16px 40px rgba(37,99,235,0.45); }
   .btn-primary:active { transform: scale(0.98); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-medium;
-    background: white;
-    color: #1f2937;
-    border: 1px solid #E5E7EB;
+    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-medium text-white/90;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
     transition: all 0.18s ease;
   }
-  .btn-ghost:hover { border-color: #2563EB; color: #2563EB; }
+  .btn-ghost:hover { background: rgba(255,255,255,0.06); border-color: rgba(96,165,250,0.35); color: #fff; }
 
-  /* Card premium */
+  /* Card premium (dark glass) */
   .card-premium {
-    @apply rounded-2xl bg-white border border-black/5 p-5;
+    @apply rounded-2xl p-5;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     box-shadow: var(--shadow-md);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
   }
   .card-premium-hover:hover {
     box-shadow: var(--shadow-lg);
     transform: translateY(-1px);
+    border-color: rgba(96, 165, 250, 0.2);
   }
 
-  /* Skeleton shimmer */
+  /* Skeleton shimmer (dark) */
   .skeleton {
     @apply rounded-md;
-    background: linear-gradient(90deg, #eef2f7 0%, #f7f9fc 50%, #eef2f7 100%);
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
     background-size: 200% 100%;
     animation: shimmer 1.4s ease-in-out infinite;
   }
@@ -269,33 +295,41 @@
     @apply p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto;
   }
 
-  /* Card padrão — qualquer div que precise virar card só usar .ds-card */
+  /* Card padrão — qualquer div que precise virar card só usar .ds-card (dark glass) */
   .ds-card {
-    @apply rounded-2xl bg-white border border-black/5 p-5 transition-all duration-200;
+    @apply rounded-2xl p-5 transition-all duration-200;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     box-shadow: var(--shadow-sm);
   }
-  .ds-card:hover { box-shadow: var(--shadow-md); }
+  .ds-card:hover { box-shadow: var(--shadow-md); border-color: rgba(96, 165, 250, 0.18); }
 
-  /* Tabela padrão */
+  /* Tabela padrão (dark) */
   .ds-table { @apply w-full text-sm; }
   .ds-table thead th {
-    @apply text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 px-4 py-3 border-b border-black/5 bg-[#FAFBFC];
+    @apply text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3;
+    color: rgba(148, 163, 184, 0.7);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.015);
   }
   .ds-table tbody tr {
-    @apply border-b border-black/5 transition-colors duration-150;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background-color 0.15s ease;
   }
-  .ds-table tbody tr:hover { background-color: #FAFBFC; }
-  .ds-table tbody td { @apply px-4 py-3 text-[#111827]; }
+  .ds-table tbody tr:hover { background-color: rgba(96, 165, 250, 0.04); }
+  .ds-table tbody td { @apply px-4 py-3; color: hsl(var(--foreground)); }
 
   /* Badge/Pill padrão */
   .ds-badge {
     @apply inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border;
   }
 
-  /* Section heading */
-  .ds-h1 { @apply text-2xl font-black text-[#111827] tracking-tight; }
-  .ds-h2 { @apply text-lg font-bold text-[#111827] tracking-tight; }
-  .ds-subtitle { @apply text-sm text-[#6B7280]; }
+  /* Section heading (dark) */
+  .ds-h1 { @apply text-2xl font-black tracking-tight; color: #FFFFFF; }
+  .ds-h2 { @apply text-lg font-bold tracking-tight; color: #FFFFFF; }
+  .ds-subtitle { @apply text-sm; color: rgba(148, 163, 184, 0.75); }
 }
 
 /* Smooth scroll global (microinterações) */

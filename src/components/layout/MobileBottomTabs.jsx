@@ -40,7 +40,7 @@ export default function MobileBottomTabs({ allowedKeys, onOpenMore }) {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-black/10 select-none"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-t border-white/8 select-none"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex items-stretch h-[58px]">
@@ -52,13 +52,13 @@ export default function MobileBottomTabs({ allowedKeys, onOpenMore }) {
               key={tab.key}
               to={tab.path}
               onClick={(e) => handleTabClick(e, tab)}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors active:bg-gray-100 ${
-                active ? 'text-[#2563EB]' : 'text-gray-500'
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors active:bg-white/10 ${
+                active ? 'text-[#60A5FA]' : 'text-white/55'
               }`}
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <Icon className={`w-[22px] h-[22px] transition-transform ${active ? 'scale-110' : ''}`} />
-              <span className={`text-[10px] font-semibold tracking-tight ${active ? 'text-[#2563EB]' : 'text-gray-500'}`}>
+              <Icon className={`w-[22px] h-[22px] transition-transform ${active ? 'scale-110 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]' : ''}`} />
+              <span className={`text-[10px] font-semibold tracking-tight ${active ? 'text-[#93C5FD]' : 'text-white/55'}`}>
                 {tab.label}
               </span>
             </Link>
@@ -68,7 +68,7 @@ export default function MobileBottomTabs({ allowedKeys, onOpenMore }) {
         <button
           type="button"
           onClick={onOpenMore}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-gray-500 active:bg-gray-100 transition-colors"
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-white/55 active:bg-white/10 transition-colors"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <MoreHorizontal className="w-[22px] h-[22px]" />

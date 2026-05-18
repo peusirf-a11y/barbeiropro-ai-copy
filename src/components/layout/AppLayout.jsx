@@ -12,6 +12,7 @@ import { useTeamRole } from '@/lib/useTeamRole';
 import { useCompany } from '@/hooks/useCompany';
 import { isPastDueLimited } from '@/lib/billingMode';
 import UnitSwitcher from '@/components/units/UnitSwitcher';
+import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
 
 // Rotas "principais" do mobile — quando estamos numa subrota fora dessa lista,
 // o header mobile mostra um botão de Voltar em vez do logo.
@@ -166,8 +167,9 @@ export default function AppLayout({ children }) {
   // Evita flash de menu completo antes do RBAC carregar.
   if (loadingRole) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#F7F8FB]">
-        <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
+      <div className="fixed inset-0 flex items-center justify-center bg-[#050816]">
+        <AppBackgroundLayer />
+        <div className="relative w-8 h-8 border-4 border-[#60A5FA]/20 border-t-[#60A5FA] rounded-full animate-spin" />
       </div>
     );
   }
@@ -213,10 +215,11 @@ export default function AppLayout({ children }) {
   );
 
   return (
-    <div className="min-h-screen bg-[#F7F8FB] font-inter">
-      {/* Mobile top bar — safe-area-inset-top para devices com notch */}
+    <div className="min-h-screen font-inter text-white">
+      <AppBackgroundLayer />
+      {/* Mobile top bar — dark glass com blur */}
       <header
-        className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 flex items-center justify-between px-4 gap-2"
+        className="lg:hidden sticky top-0 z-30 bg-[#050816]/85 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 gap-2"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           height: 'calc(56px + env(safe-area-inset-top, 0px))',
@@ -226,7 +229,7 @@ export default function AppLayout({ children }) {
           <button
             type="button"
             onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/app/dashboard'))}
-            className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-gray-100 text-[#0F172A] min-w-0"
+            className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-white/10 text-white min-w-0"
             aria-label="Voltar"
           >
             <ChevronLeft className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
@@ -236,7 +239,7 @@ export default function AppLayout({ children }) {
           </button>
         ) : (
           <Link to="/app/dashboard" className="min-w-0" aria-label="Ir para o dashboard">
-            <BrandMark size={32} tone="light" />
+            <BrandMark size={32} tone="dark" />
           </Link>
         )}
         <div className="ml-auto"><UnitSwitcher /></div>
@@ -260,14 +263,14 @@ export default function AppLayout({ children }) {
         </aside>
       </div>
 
-      {/* Desktop top header — saudação + avatar */}
-      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/5 h-16 items-center justify-end px-8 gap-3">
+      {/* Desktop top header — dark glass com blur premium */}
+      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-[#050816]/80 backdrop-blur-xl border-b border-white/5 h-16 items-center justify-end px-8 gap-3">
         <UnitSwitcher />
         <div className="text-right">
-          <div className="text-[11px] text-gray-400 leading-none">Olá,</div>
-          <div className="text-sm font-bold text-[#0F172A] mt-0.5">{company?.owner_name?.split(' ')[0] || 'Bem-vindo'}</div>
+          <div className="text-[11px] text-white/40 leading-none">Olá,</div>
+          <div className="text-sm font-bold text-white mt-0.5">{company?.owner_name?.split(' ')[0] || 'Bem-vindo'}</div>
         </div>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
+        <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_16px_rgba(37,99,235,0.5)] ring-1 ring-white/20">
           {(company?.owner_name?.[0] || company?.name?.[0] || 'B').toUpperCase()}
         </div>
       </header>
