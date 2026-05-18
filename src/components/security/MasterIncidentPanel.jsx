@@ -13,13 +13,13 @@ import SecurityScoreCard from '@/components/security/SecurityScoreCard';
 import { computeSecurityScore } from '@/lib/security/securityScore';
 
 function RiskBar({ score }) {
-  const color = score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-400' : 'bg-red-500';
+  const color = score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-red-500';
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${score}%` }} />
       </div>
-      <span className={`text-[11px] font-black tabular-nums ${score >= 80 ? 'text-emerald-600' : score >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+      <span className={`text-[11px] font-black tabular-nums ${score >= 80 ? 'text-emerald-500' : score >= 50 ? 'text-amber-500' : 'text-red-500'}`}>
         {score}
       </span>
     </div>
@@ -96,50 +96,50 @@ export default function MasterIncidentPanel() {
       {/* KPIs de incidentes */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Incidentes ativos (2h)', value: activeIncidents.length, icon: AlertTriangle, color: activeIncidents.length > 0 ? 'text-red-600' : 'text-emerald-600', urgent: activeIncidents.length > 0 },
-          { label: 'Tenants em risco', value: tenantRisk.filter(t => t.score < 50).length, icon: ShieldAlert, color: 'text-amber-600' },
-          { label: 'IPs bloqueados', value: rateLimits.length, icon: Globe, color: 'text-violet-600' },
-          { label: 'Exportações (24h)', value: recentExports.length, icon: Download, color: 'text-blue-600' },
+          { label: 'Incidentes ativos (2h)', value: activeIncidents.length, icon: AlertTriangle, color: activeIncidents.length > 0 ? 'text-red-500' : 'text-emerald-500', urgent: activeIncidents.length > 0 },
+          { label: 'Tenants em risco', value: tenantRisk.filter(t => t.score < 50).length, icon: ShieldAlert, color: 'text-amber-500' },
+          { label: 'IPs bloqueados', value: rateLimits.length, icon: Globe, color: 'text-violet-500' },
+          { label: 'Exportações (24h)', value: recentExports.length, icon: Download, color: 'text-blue-500' },
         ].map(stat => (
-          <div key={stat.label} className={`bg-white rounded-xl border p-3 shadow-sm ${stat.urgent ? 'border-red-200 ring-1 ring-red-100' : 'border-black/5'}`}>
+          <div key={stat.label} className={`bg-card rounded-xl border p-3 shadow-sm ${stat.urgent ? 'border-red-500/40 ring-1 ring-red-500/20' : 'border-border'}`}>
             <div className="flex items-center gap-2 mb-1">
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
               {stat.urgent && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
             </div>
             <div className={`text-2xl font-black tabular-nums ${stat.color}`}>{stat.value}</div>
-            <div className="text-[10px] text-gray-500">{stat.label}</div>
+            <div className="text-[10px] text-muted-foreground">{stat.label}</div>
           </div>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Incidentes ativos */}
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/5 flex items-center gap-2">
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
             <Activity className="w-4 h-4 text-red-500" />
-            <span className="font-bold text-sm text-[#111827]">Incidentes ativos (2h)</span>
+            <span className="font-bold text-sm text-foreground">Incidentes ativos (2h)</span>
             {activeIncidents.length > 0 && (
               <span className="ml-auto w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             )}
           </div>
           {activeIncidents.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-400">✓ Nenhum incidente ativo</div>
+            <div className="p-4 text-center text-sm text-muted-foreground">✓ Nenhum incidente ativo</div>
           ) : (
-            <div className="divide-y divide-black/5 max-h-52 overflow-y-auto">
+            <div className="divide-y divide-border max-h-52 overflow-y-auto">
               {activeIncidents.map(ev => (
                 <div key={ev.id} className="px-4 py-2.5 flex items-start gap-2">
-                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border flex-shrink-0 mt-0.5 ${ev.severity === 'critical' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
+                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border flex-shrink-0 mt-0.5 ${ev.severity === 'critical' ? 'bg-red-500/15 text-red-500 border-red-500/30' : 'bg-orange-500/15 text-orange-500 border-orange-500/30'}`}>
                     {ev.severity.toUpperCase()}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-semibold text-[#111827]">{ev.event_type?.replace(/_/g, ' ')}</div>
-                    <div className="text-[10px] text-gray-400">
+                    <div className="text-[12px] font-semibold text-foreground">{ev.event_type?.replace(/_/g, ' ')}</div>
+                    <div className="text-[10px] text-muted-foreground">
                       {ev.actor_email && <span>{ev.actor_email} · </span>}
                       {ev.ip_address && <span>{ev.ip_address} · </span>}
                       {ev.company_id && <span>{companyName(ev.company_id)}</span>}
                     </div>
                   </div>
-                  <span className="text-[10px] text-gray-400 flex-shrink-0">
+                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
                     {ev.created_date ? format(new Date(ev.created_date), "HH:mm") : '—'}
                   </span>
                 </div>
@@ -149,21 +149,21 @@ export default function MasterIncidentPanel() {
         </div>
 
         {/* Tenants mais arriscados */}
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/5 flex items-center gap-2">
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-amber-500" />
-            <span className="font-bold text-sm text-[#111827]">Tenants com maior risco</span>
+            <span className="font-bold text-sm text-foreground">Tenants com maior risco</span>
           </div>
           {tenantRisk.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-400">✓ Todos os tenants saudáveis</div>
+            <div className="p-4 text-center text-sm text-muted-foreground">✓ Todos os tenants saudáveis</div>
           ) : (
-            <div className="divide-y divide-black/5 max-h-52 overflow-y-auto">
+            <div className="divide-y divide-border max-h-52 overflow-y-auto">
               {tenantRisk.map(co => (
                 <div key={co.id} className="px-4 py-2.5">
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-[12px] font-semibold text-[#111827] truncate">{co.name}</span>
+                    <span className="text-[12px] font-semibold text-foreground truncate">{co.name}</span>
                     {co.critical > 0 && (
-                      <span className="text-[10px] text-red-600 font-bold flex-shrink-0">{co.critical} crítico(s)</span>
+                      <span className="text-[10px] text-red-500 font-bold flex-shrink-0">{co.critical} crítico(s)</span>
                     )}
                   </div>
                   <RiskBar score={co.score} />
@@ -174,22 +174,22 @@ export default function MasterIncidentPanel() {
         </div>
 
         {/* Exportações recentes */}
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/5 flex items-center gap-2">
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
             <Download className="w-4 h-4 text-blue-500" />
-            <span className="font-bold text-sm text-[#111827]">Exportações LGPD (24h)</span>
+            <span className="font-bold text-sm text-foreground">Exportações LGPD (24h)</span>
           </div>
           {recentExports.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-400">Nenhuma exportação nas últimas 24h</div>
+            <div className="p-4 text-center text-sm text-muted-foreground">Nenhuma exportação nas últimas 24h</div>
           ) : (
-            <div className="divide-y divide-black/5 max-h-40 overflow-y-auto">
+            <div className="divide-y divide-border max-h-40 overflow-y-auto">
               {recentExports.map(log => (
                 <div key={log.id} className="px-4 py-2 flex items-center gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-semibold text-[#111827] truncate">{log.actor}</div>
-                    <div className="text-[10px] text-gray-400">{companyName(log.company_id)}</div>
+                    <div className="text-[12px] font-semibold text-foreground truncate">{log.actor}</div>
+                    <div className="text-[10px] text-muted-foreground">{companyName(log.company_id)}</div>
                   </div>
-                  <span className="text-[10px] text-gray-400 flex-shrink-0">
+                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
                     {log.created_date ? format(new Date(log.created_date), "dd/MM HH:mm") : '—'}
                   </span>
                 </div>
@@ -199,22 +199,22 @@ export default function MasterIncidentPanel() {
         </div>
 
         {/* Impersonações recentes */}
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/5 flex items-center gap-2">
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-violet-500" />
-            <span className="font-bold text-sm text-[#111827]">Impersonações (24h)</span>
+            <span className="font-bold text-sm text-foreground">Impersonações (24h)</span>
           </div>
           {recentImpersonations.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-400">Nenhuma impersonação nas últimas 24h</div>
+            <div className="p-4 text-center text-sm text-muted-foreground">Nenhuma impersonação nas últimas 24h</div>
           ) : (
-            <div className="divide-y divide-black/5 max-h-40 overflow-y-auto">
+            <div className="divide-y divide-border max-h-40 overflow-y-auto">
               {recentImpersonations.map(log => (
                 <div key={log.id} className="px-4 py-2 flex items-center gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-semibold text-[#111827] truncate">{log.actor}</div>
-                    <div className="text-[10px] text-gray-400">{companyName(log.company_id)}</div>
+                    <div className="text-[12px] font-semibold text-foreground truncate">{log.actor}</div>
+                    <div className="text-[10px] text-muted-foreground">{companyName(log.company_id)}</div>
                   </div>
-                  <span className="text-[10px] text-gray-400 flex-shrink-0">
+                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
                     {log.created_date ? format(new Date(log.created_date), "dd/MM HH:mm") : '—'}
                   </span>
                 </div>
