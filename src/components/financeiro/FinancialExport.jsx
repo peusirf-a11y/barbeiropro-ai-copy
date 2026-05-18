@@ -376,104 +376,105 @@ export default function FinancialExport({ companyId, companyName }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 px-3 py-2.5 border border-black/10 bg-white text-[#111827] rounded-xl text-sm font-semibold hover:border-[#2563EB] hover:text-[#2563EB] transition-all shadow-[var(--shadow-xs)]"
+        className="inline-flex items-center gap-2 px-3 py-2.5 border border-white/10 bg-white/[0.04] text-white/85 rounded-xl text-sm font-semibold hover:border-[#60A5FA]/40 hover:text-[#93C5FD] hover:bg-white/[0.08] backdrop-blur-md transition-all"
       >
         <FileDown className="w-4 h-4" />
         Exportar
       </button>
 
       {open && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-[var(--shadow-xl)]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setOpen(false)}>
+          <div className="bg-[#0A1124] border border-white/8 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-[0_30px_80px_rgba(0,0,0,0.7)]" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="p-5 border-b border-black/5 flex items-center justify-between">
+            <div className="p-5 border-b border-white/8 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] ring-1 ring-[#DBEAFE] flex items-center justify-center">
-                  <FileDown className="w-5 h-5 text-[#2563EB]" />
+                <div className="relative w-10 h-10 rounded-xl bg-white/[0.04] ring-1 ring-blue-400/25 flex items-center justify-center">
+                  <span className="absolute inset-0 rounded-xl bg-[#60A5FA]/30 blur-md opacity-60" aria-hidden="true" />
+                  <FileDown className="relative w-5 h-5 text-[#93C5FD]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#111827] tracking-tight">Exportar relatório financeiro</h3>
-                  <p className="text-xs text-[#6B7280]">DRE + lançamentos em PDF ou Excel</p>
+                  <h3 className="font-bold text-white tracking-tight">Exportar relatório financeiro</h3>
+                  <p className="text-xs text-white/55">DRE + lançamentos em PDF ou Excel</p>
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><X className="w-5 h-5" /></button>
+              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/55"><X className="w-5 h-5" /></button>
             </div>
 
             {/* Filtros */}
             <div className="p-5 space-y-4">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/55">
                 <Filter className="w-3.5 h-3.5" /> Filtros
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-[#6B7280] block mb-1.5">De *</label>
+                  <label className="text-xs font-semibold text-white/60 block mb-1.5">De *</label>
                   <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm" />
+                    className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-[#6B7280] block mb-1.5">Até *</label>
+                  <label className="text-xs font-semibold text-white/60 block mb-1.5">Até *</label>
                   <input type="date" value={to} onChange={e => setTo(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm" />
+                    className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-[#6B7280] block mb-1.5">Profissional</label>
+                  <label className="text-xs font-semibold text-white/60 block mb-1.5">Profissional</label>
                   <select value={professionalId} onChange={e => setProfessionalId(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white">
-                    <option value="all">Todos os profissionais</option>
-                    {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20">
+                    <option value="all" className="bg-[#0A1124]">Todos os profissionais</option>
+                    {professionals.map(p => <option key={p.id} value={p.id} className="bg-[#0A1124]">{p.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-[#6B7280] block mb-1.5">Serviço</label>
+                  <label className="text-xs font-semibold text-white/60 block mb-1.5">Serviço</label>
                   <select value={serviceId} onChange={e => setServiceId(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm bg-white">
-                    <option value="all">Todos os serviços</option>
-                    {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20">
+                    <option value="all" className="bg-[#0A1124]">Todos os serviços</option>
+                    {services.map(s => <option key={s.id} value={s.id} className="bg-[#0A1124]">{s.name}</option>)}
                   </select>
                 </div>
               </div>
 
               {data.restrictiveFilter && (
-                <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2.5 leading-relaxed">
+                <div className="text-[11px] text-amber-200 bg-amber-400/[0.08] border border-amber-400/25 rounded-lg p-2.5 leading-relaxed">
                   Com filtros de profissional/serviço ativos, o DRE considera apenas os atendimentos e comissões correspondentes.
                   Lançamentos manuais (entradas/saídas) são incluídos somente quando os filtros estão em "Todos".
                 </div>
               )}
 
               {/* Preview do DRE */}
-              <div className="bg-[#FAFBFC] rounded-xl border border-black/5 p-4">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] mb-3">Pré-visualização do DRE</div>
+              <div className="bg-white/[0.025] rounded-xl border border-white/8 p-4">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-white/55 mb-3">Pré-visualização do DRE</div>
                 <DreRow label="(+) Receita atendimentos" value={data.receitaAtendimentos} />
                 <DreRow label="(+) Entradas extras" value={data.entradasExtras} />
                 <DreRow label="(=) Receita bruta" value={data.receitaBruta} bold />
                 <DreRow label="(-) Comissões" value={-data.totalComissoes} />
                 <DreRow label="(-) Despesas" value={-data.saidas} />
-                <div className="border-t border-black/10 my-2" />
+                <div className="border-t border-white/10 my-2" />
                 <DreRow
                   label="(=) Resultado líquido"
                   value={data.resultadoLiquido}
                   bold
                   highlight={data.resultadoLiquido >= 0 ? 'green' : 'red'}
                 />
-                <div className="text-[11px] text-[#6B7280] mt-1.5">
-                  Margem: <span className="font-semibold text-[#111827]">{data.margem.toFixed(1)}%</span> ·
+                <div className="text-[11px] text-white/55 mt-1.5">
+                  Margem: <span className="font-semibold text-white">{data.margem.toFixed(1)}%</span> ·
                   {' '}{data.filteredAppts.length} atendimentos
                 </div>
               </div>
             </div>
 
             {/* Ações */}
-            <div className="p-5 border-t border-black/5 flex flex-col sm:flex-row gap-2">
+            <div className="p-5 border-t border-white/8 flex flex-col sm:flex-row gap-2">
               <button onClick={() => setOpen(false)}
-                className="sm:flex-1 px-4 py-2.5 border border-black/10 rounded-xl text-sm font-semibold text-[#111827] hover:bg-gray-50 transition-colors">
+                className="sm:flex-1 px-4 py-2.5 border border-white/10 rounded-xl text-sm font-semibold text-white/80 bg-white/[0.03] hover:bg-white/[0.06] transition-colors">
                 Cancelar
               </button>
               <button onClick={exportExcel}
-                className="sm:flex-1 px-4 py-2.5 border border-emerald-600 bg-white text-emerald-700 rounded-xl text-sm font-semibold hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2">
+                className="sm:flex-1 px-4 py-2.5 border border-emerald-400/40 bg-emerald-400/[0.08] text-emerald-200 rounded-xl text-sm font-semibold hover:bg-emerald-400/[0.14] transition-colors flex items-center justify-center gap-2">
                 <FileSpreadsheet className="w-4 h-4" /> Excel (.csv)
               </button>
               <button onClick={exportPDF}
-                className="sm:flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                className="sm:flex-1 px-4 py-2.5 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold hover:brightness-110 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                 <FileText className="w-4 h-4" /> PDF
               </button>
             </div>
@@ -486,12 +487,12 @@ export default function FinancialExport({ companyId, companyName }) {
 
 function DreRow({ label, value, bold, highlight }) {
   const color =
-    highlight === 'green' ? 'text-emerald-600' :
-    highlight === 'red' ? 'text-red-600' :
-    value < 0 ? 'text-red-500' : 'text-[#111827]';
+    highlight === 'green' ? 'text-emerald-300' :
+    highlight === 'red' ? 'text-rose-300' :
+    value < 0 ? 'text-rose-300' : 'text-white';
   return (
     <div className={`flex items-center justify-between py-1 text-sm ${bold ? 'font-bold' : ''}`}>
-      <span className={bold ? 'text-[#111827]' : 'text-[#6B7280]'}>{label}</span>
+      <span className={bold ? 'text-white' : 'text-white/55'}>{label}</span>
       <span className={color}>{fmtBRL(value)}</span>
     </div>
   );

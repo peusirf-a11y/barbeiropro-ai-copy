@@ -197,40 +197,40 @@ export default function AppFinanceiro() {
 
         {/* Appointments revenue hint */}
         {apptRevenue > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 flex items-center justify-between">
+          <div className="bg-blue-400/[0.08] border border-blue-400/25 rounded-xl p-4 mb-4 flex items-center justify-between backdrop-blur-md">
             <div>
-              <p className="text-sm font-semibold text-blue-800">Receita de atendimentos concluídos: R${apptRevenue.toFixed(2)}</p>
-              <p className="text-xs text-blue-600">Valor calculado a partir dos agendamentos com status "concluído" no período</p>
+              <p className="text-sm font-semibold text-[#93C5FD]">Receita de atendimentos concluídos: R${apptRevenue.toFixed(2)}</p>
+              <p className="text-xs text-white/55">Valor calculado a partir dos agendamentos com status "concluído" no período</p>
             </div>
           </div>
         )}
 
         {/* Entries list */}
-        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
-          <div className="p-5 border-b border-black/5">
-            <h2 className="font-bold text-[#111827]">Lançamentos</h2>
+        <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
+          <div className="p-5 border-b border-white/8 bg-white/[0.02]">
+            <h2 className="font-bold text-white">Lançamentos</h2>
           </div>
           {filtered.length === 0 ? (
-            <div className="p-12 text-center text-[#6B7280]">
-              <DollarSign className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <div className="p-12 text-center text-white/55">
+              <DollarSign className="w-10 h-10 mx-auto mb-3 text-white/25" />
               <p className="text-sm">Nenhum lançamento no período selecionado</p>
             </div>
           ) : (
-            <div className="divide-y divide-black/5 max-h-[500px] overflow-y-auto">
+            <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto">
               {filtered.map(entry => (
-                <div key={entry.id} className="flex items-center gap-4 p-4 hover:bg-[#FAFBFC] transition-colors group">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${entry.type === 'entrada' ? 'bg-emerald-50 ring-1 ring-emerald-100' : 'bg-red-50 ring-1 ring-red-100'}`}>
-                    {entry.type === 'entrada' ? <TrendingUp className="w-4 h-4 text-emerald-600" /> : <TrendingDown className="w-4 h-4 text-red-500" />}
+                <div key={entry.id} className="flex items-center gap-4 p-4 hover:bg-white/[0.04] transition-colors group">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${entry.type === 'entrada' ? 'bg-emerald-400/[0.12] ring-1 ring-emerald-400/30' : 'bg-rose-400/[0.12] ring-1 ring-rose-400/30'}`}>
+                    {entry.type === 'entrada' ? <TrendingUp className="w-4 h-4 text-emerald-300" /> : <TrendingDown className="w-4 h-4 text-rose-300" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-[#111827] truncate">{entry.description || entry.category}</div>
-                    <div className="text-xs text-[#6B7280]">{entry.category} · {entry.date ? format(new Date(entry.date + 'T00:00:00'), "d MMM yyyy", { locale: ptBR }) : '–'}</div>
+                    <div className="font-semibold text-sm text-white truncate">{entry.description || entry.category}</div>
+                    <div className="text-xs text-white/55">{entry.category} · {entry.date ? format(new Date(entry.date + 'T00:00:00'), "d MMM yyyy", { locale: ptBR }) : '–'}</div>
                   </div>
-                  <div className={`text-sm font-bold ${entry.type === 'entrada' ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <div className={`text-sm font-bold ${entry.type === 'entrada' ? 'text-emerald-300' : 'text-rose-300'}`}>
                     {entry.type === 'entrada' ? '+' : '-'}R${entry.amount?.toFixed(2)}
                   </div>
                   <button onClick={() => { if (confirm('Excluir lançamento?')) deleteMutation.mutate(entry.id); }}
-                    className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs p-1 transition-opacity">
+                    className="opacity-0 group-hover:opacity-100 text-rose-300/70 hover:text-rose-300 text-xs p-1 transition-opacity">
                     ✕
                   </button>
                 </div>
@@ -246,9 +246,9 @@ export default function AppFinanceiro() {
           title="Novo Lançamento"
           footer={
             <>
-              <button onClick={() => setShowForm(false)} className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50 active:bg-gray-100">Cancelar</button>
+              <button onClick={() => setShowForm(false)} className="flex-1 min-h-[48px] px-4 border border-white/10 rounded-xl text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] transition-colors">Cancelar</button>
               <button onClick={() => createMutation.mutate(form)} disabled={!form.amount || !form.date || createMutation.isPending}
-                className="flex-1 min-h-[48px] px-4 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] active:scale-[0.98] disabled:opacity-50 transition-all">
+                className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold hover:brightness-110 active:scale-[0.98] disabled:opacity-50 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all">
                 {createMutation.isPending ? 'Salvando...' : 'Salvar'}
               </button>
             </>
@@ -256,39 +256,39 @@ export default function AppFinanceiro() {
         >
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Tipo</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Tipo</label>
               <div className="flex gap-3">
                 {[{ v: 'entrada', l: 'Entrada' }, { v: 'saida', l: 'Saída' }].map(t => (
                   <button key={t.v} onClick={() => setForm(p => ({ ...p, type: t.v, category: t.v === 'entrada' ? 'Atendimento' : 'Aluguel' }))}
-                    className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-all ${form.type === t.v ? (t.v === 'entrada' ? 'bg-green-600 text-white border-green-600' : 'bg-red-600 text-white border-red-600') : 'border-black/10 text-gray-600'}`}>
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-all ${form.type === t.v ? (t.v === 'entrada' ? 'bg-emerald-500 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.4)] ring-1 ring-white/15' : 'bg-rose-500 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.4)] ring-1 ring-white/15') : 'border-white/10 text-white/65 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20'}`}>
                     {t.l}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Categoria</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Categoria</label>
               <MobileSelect value={form.category} onChange={v => setForm(p => ({ ...p, category: v }))}
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none">
+                className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none">
                 {(form.type === 'entrada' ? CATEGORIES_IN : CATEGORIES_OUT).map(c => <option key={c}>{c}</option>)}
               </MobileSelect>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Descrição</label>
               <input type="text" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                 placeholder="Ex: Corte Clássico - João Silva"
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Valor (R$) *</label>
+                <label className="text-xs font-semibold text-white/60 block mb-1">Valor (R$) *</label>
                 <input type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                  className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Data *</label>
+                <label className="text-xs font-semibold text-white/60 block mb-1">Data *</label>
                 <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                  className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
               </div>
             </div>
           </div>
