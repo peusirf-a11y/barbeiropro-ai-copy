@@ -64,12 +64,12 @@ export default function StatusActionSheet({
           type="button"
           onClick={onChooseOnly}
           aria-label={copy.onlyLabel}
-          className="w-full flex items-center gap-3 min-h-[56px] px-4 rounded-xl border border-black/10 bg-white hover:bg-gray-50 active:bg-gray-100 text-left transition-colors"
+          className="w-full flex items-center gap-3 min-h-[56px] px-4 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] active:bg-white/[0.09] text-left transition-colors backdrop-blur-sm"
         >
-          <span className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-            <Check className="w-4 h-4 text-gray-700" />
+          <span className="w-9 h-9 rounded-full bg-white/[0.06] ring-1 ring-white/10 flex items-center justify-center flex-shrink-0">
+            <Check className="w-4 h-4 text-white/80" />
           </span>
-          <span className="text-sm font-semibold text-[#111827]">{copy.onlyLabel}</span>
+          <span className="text-sm font-semibold text-white">{copy.onlyLabel}</span>
         </button>
 
         {hasPhone && (
@@ -77,7 +77,7 @@ export default function StatusActionSheet({
             type="button"
             onClick={onChooseWithWhatsApp}
             aria-label={copy.whatsappLabel}
-            className="w-full flex items-center gap-3 min-h-[56px] px-4 rounded-xl border border-[#25D366] bg-[#25D366] hover:bg-[#1fae54] active:bg-[#1a9c4a] text-left transition-colors text-white shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
+            className="w-full flex items-center gap-3 min-h-[56px] px-4 rounded-xl border border-[#25D366]/60 bg-gradient-to-br from-[#1ea953] to-[#25D366] hover:brightness-110 active:scale-[0.98] text-left transition-all text-white shadow-[0_8px_24px_rgba(37,211,102,0.35)] ring-1 ring-white/15"
           >
             <span className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
               <MessageCircle className="w-4 h-4 text-white" />
@@ -87,7 +87,7 @@ export default function StatusActionSheet({
         )}
 
         {!hasPhone && (
-          <div className="text-[12px] text-gray-500 bg-gray-50 border border-black/5 rounded-lg px-3 py-2">
+          <div className="text-[12px] text-white/60 bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2">
             Cliente sem WhatsApp cadastrado — só é possível alterar o status.
           </div>
         )}
@@ -96,7 +96,7 @@ export default function StatusActionSheet({
           type="button"
           onClick={onClose}
           aria-label="Cancelar"
-          className="w-full flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors mt-1"
+          className="w-full flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors mt-1"
         >
           <XIcon className="w-4 h-4" />
           Cancelar

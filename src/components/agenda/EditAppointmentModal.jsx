@@ -180,14 +180,14 @@ export default function EditAppointmentModal({
     <>
       <button
         onClick={onClose}
-        className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium text-[#111827] bg-white hover:bg-gray-50 active:bg-gray-100"
+        className="flex-1 min-h-[48px] px-4 border border-white/10 rounded-xl text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] active:bg-white/[0.08] transition-colors"
       >
         Cancelar
       </button>
       <button
         onClick={handleSave}
         disabled={isSaving}
-        className="flex-1 min-h-[48px] px-4 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] active:scale-[0.98] disabled:opacity-50 transition-all"
+        className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold hover:brightness-110 active:scale-[0.98] disabled:opacity-50 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15"
       >
         {isSaving ? 'Salvando…' : 'Salvar'}
       </button>
@@ -213,16 +213,16 @@ export default function EditAppointmentModal({
         )}
 
         {/* Identificação do cliente (read-only) */}
-        <div className="bg-gray-50 rounded-xl p-3 mb-4">
+        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3 mb-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <span className="text-[11px] text-gray-500 block">Cliente</span>
-              <p className="font-semibold text-sm text-[#111827]">{appointment.customer_name}</p>
+              <span className="text-[11px] text-white/50 block">Cliente</span>
+              <p className="font-semibold text-sm text-white">{appointment.customer_name}</p>
               <div className="mt-1"><CustomerTypeBadge customer={safeCustomers.find(c => c.id === appointment.customer_id)} /></div>
             </div>
             <div>
-              <span className="text-[11px] text-gray-500 block">Telefone</span>
-              <p className="font-semibold text-sm text-[#111827]">{appointment.customer_phone || '–'}</p>
+              <span className="text-[11px] text-white/50 block">Telefone</span>
+              <p className="font-semibold text-sm text-white">{appointment.customer_phone || '–'}</p>
             </div>
           </div>
         </div>
@@ -230,13 +230,13 @@ export default function EditAppointmentModal({
         {/* Campos editáveis */}
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Serviço *</label>
+            <label className="text-xs font-semibold text-white/60 block mb-1">Serviço *</label>
             <MobileSelect
               value={form.service_id}
               onChange={v => setForm(p => ({ ...p, service_id: v }))}
               disabled={isBarbeiro}
               placeholder="Selecionar serviço"
-              className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Selecionar serviço</option>
               {safeServices.map(s => (
@@ -246,13 +246,13 @@ export default function EditAppointmentModal({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional *</label>
+            <label className="text-xs font-semibold text-white/60 block mb-1">Profissional *</label>
             <MobileSelect
               value={form.professional_id}
               onChange={v => setForm(p => ({ ...p, professional_id: v }))}
               disabled={isBarbeiro}
               placeholder="Selecionar profissional"
-              className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Selecionar profissional</option>
               {safeProfessionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -261,24 +261,24 @@ export default function EditAppointmentModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Início *</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Início *</label>
               <input
                 type="datetime-local"
                 value={form.scheduled_at}
                 onChange={e => setForm(p => ({ ...p, scheduled_at: e.target.value }))}
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Fim (calculado)</label>
-              <div className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm bg-gray-50 text-gray-600">
-                {endTime || '–'} <span className="text-[11px] text-gray-400">· {duration}min</span>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Fim (calculado)</label>
+              <div className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm bg-white/[0.02] text-white/70">
+                {endTime || '–'} <span className="text-[11px] text-white/45">· {duration}min</span>
               </div>
             </div>
           </div>
 
           <div>
-            <span className="text-xs font-semibold text-gray-500 block mb-1.5">Status</span>
+            <span className="text-xs font-semibold text-white/60 block mb-1.5">Status</span>
             <div className="grid grid-cols-3 gap-2">
               {STATUS_KEYS.map(key => {
                 const t = STATUS_TOKENS[key];
@@ -288,7 +288,7 @@ export default function EditAppointmentModal({
                     key={key}
                     type="button"
                     onClick={() => handleStatusClick(key)}
-                    className={`text-xs font-medium px-2 py-2 rounded-lg border ${active ? `${t.pill} ring-2 ring-offset-1 ring-current` : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'}`}
+                    className={`text-xs font-medium px-2 py-2 rounded-lg border transition-all ${active ? `${t.pill} ring-2 ring-offset-1 ring-offset-[#0A1124] ring-current` : 'bg-white/[0.03] text-white/65 border-white/10 hover:bg-white/[0.06] hover:text-white'}`}
                   >
                     {t.label}
                   </button>
@@ -300,7 +300,7 @@ export default function EditAppointmentModal({
           {/* Marcação paralela: pago. Independe do status (cliente pode estar
               "agendado" mas já ter pago; ou "concluído" mas ainda não ter pago). */}
           <div>
-            <span className="text-xs font-semibold text-gray-500 block mb-1.5">Pagamento</span>
+            <span className="text-xs font-semibold text-white/60 block mb-1.5">Pagamento</span>
             <button
               type="button"
               onClick={() => setForm(p => ({ ...p, paid: !p.paid }))}
@@ -308,35 +308,35 @@ export default function EditAppointmentModal({
               title={appointment.paid_online ? 'Pago online via Stripe — não é possível alterar' : ''}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border text-sm font-semibold transition-all ${
                 form.paid
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-200'
-                  : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                  ? 'bg-emerald-400/15 text-emerald-200 border-emerald-400/40 ring-2 ring-emerald-400/25'
+                  : 'bg-white/[0.03] text-white/65 border-white/10 hover:bg-white/[0.06] hover:text-white'
               } disabled:opacity-60 disabled:cursor-not-allowed`}
             >
               <span className="flex items-center gap-2">
-                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${form.paid ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 bg-white'}`}>
+                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${form.paid ? 'bg-emerald-500 border-emerald-400' : 'border-white/30 bg-white/5'}`}>
                   {form.paid && <span className="text-white text-[10px] leading-none">✓</span>}
                 </span>
                 {form.paid ? 'Pago' : 'Marcar como pago'}
               </span>
               {appointment.paid_online && (
-                <span className="text-[10px] font-bold uppercase bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">Online</span>
+                <span className="text-[10px] font-bold uppercase bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 px-1.5 py-0.5 rounded">Online</span>
               )}
             </button>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
+            <label className="text-xs font-semibold text-white/60 block mb-1">Observações</label>
             <textarea
               rows={2}
               value={form.notes}
               onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none"
+              className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 resize-none"
             />
           </div>
         </div>
 
         {error && (
-          <div className="mt-3 flex items-start gap-2 text-red-600 text-sm bg-red-50 border border-red-100 rounded-lg p-2.5">
+          <div className="mt-3 flex items-start gap-2 text-rose-200 text-sm bg-rose-500/10 border border-rose-400/30 rounded-lg p-2.5">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />{error}
           </div>
         )}
@@ -344,7 +344,7 @@ export default function EditAppointmentModal({
         {!isBarbeiro && onDelete && (
           <button
             onClick={() => { if (confirm('Excluir este agendamento?')) onDelete(appointment.id); }}
-            className="w-full text-xs text-red-500 hover:text-red-700 font-medium py-2 mt-3"
+            className="w-full text-xs text-rose-300 hover:text-rose-200 font-medium py-2 mt-3 transition-colors"
           >
             Excluir agendamento
           </button>

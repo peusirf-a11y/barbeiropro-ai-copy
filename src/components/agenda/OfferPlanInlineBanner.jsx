@@ -66,17 +66,18 @@ export default function OfferPlanInlineBanner({ companyId, customerId, onOffer }
     <button
       type="button"
       onClick={onOffer}
-      className="w-full flex items-center gap-3 mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 hover:border-[#2563EB] hover:shadow-sm transition-all text-left group"
+      className="w-full flex items-center gap-3 mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-400/30 hover:border-blue-400/60 hover:bg-blue-500/15 backdrop-blur-sm transition-all text-left group"
     >
-      <div className="w-9 h-9 rounded-lg bg-[#2563EB] flex items-center justify-center text-white flex-shrink-0">
-        <Sparkles className="w-4 h-4" />
+      <div className="relative w-9 h-9 rounded-lg bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center text-white flex-shrink-0 ring-1 ring-white/15">
+        <span className="absolute inset-0 rounded-lg bg-[#60A5FA]/40 blur-sm opacity-60" aria-hidden="true" />
+        <Sparkles className="relative w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB]">{copy.label}</div>
-        <div className="text-sm font-bold text-[#111827] truncate">{copy.title}</div>
-        <div className="text-[11px] text-gray-500 truncate">{copy.sub}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[#93C5FD]">{copy.label}</div>
+        <div className="text-sm font-bold text-white truncate">{copy.title}</div>
+        <div className="text-[11px] text-white/55 truncate">{copy.sub}</div>
       </div>
-      <div className="flex items-center gap-1 text-xs font-bold text-[#2563EB] group-hover:translate-x-0.5 transition-transform flex-shrink-0">
+      <div className="flex items-center gap-1 text-xs font-bold text-[#93C5FD] group-hover:translate-x-0.5 transition-transform flex-shrink-0">
         Oferecer<ChevronRight className="w-4 h-4" />
       </div>
     </button>
