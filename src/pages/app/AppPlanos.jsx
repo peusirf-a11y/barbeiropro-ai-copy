@@ -78,7 +78,7 @@ export default function AppPlanos() {
         >
           <button
             onClick={() => setShowSuggestions(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-[#2563EB] bg-white border border-[#2563EB]/30 hover:bg-blue-50 transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-[#93C5FD] bg-white/[0.04] border border-blue-400/30 hover:bg-white/[0.08] hover:border-blue-400/50 backdrop-blur-md transition-all"
           >
             <Sparkles className="w-4 h-4" />
             Gerar planos automaticamente
@@ -109,32 +109,32 @@ export default function AppPlanos() {
 
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-2xl border border-black/5 p-4">
-            <div className="text-xs text-gray-500 mb-1">Planos ativos</div>
-            <div className="text-2xl font-black text-[#111827]">{plans.filter(p => p.active).length}</div>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4">
+            <div className="text-xs text-white/55 mb-1">Planos ativos</div>
+            <div className="text-2xl font-black text-white">{plans.filter(p => p.active).length}</div>
           </div>
-          <div className="bg-white rounded-2xl border border-black/5 p-4">
-            <div className="text-xs text-gray-500 mb-1">Assinantes</div>
-            <div className="text-2xl font-black text-[#111827]">{totalSubscribers}</div>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4">
+            <div className="text-xs text-white/55 mb-1">Assinantes</div>
+            <div className="text-2xl font-black text-white">{totalSubscribers}</div>
           </div>
-          <div className="bg-white rounded-2xl border border-black/5 p-4">
-            <div className="text-xs text-gray-500 mb-1">MRR (recorrente)</div>
-            <div className="text-2xl font-black text-emerald-600">R${mrr.toFixed(2)}</div>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4">
+            <div className="text-xs text-white/55 mb-1">MRR (recorrente)</div>
+            <div className="text-2xl font-black text-emerald-300">R${mrr.toFixed(2)}</div>
           </div>
-          <div className="bg-white rounded-2xl border border-black/5 p-4">
-            <div className="text-xs text-gray-500 mb-1">ARR projetado</div>
-            <div className="text-2xl font-black text-[#111827]">R${(mrr * 12).toFixed(0)}</div>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4">
+            <div className="text-xs text-white/55 mb-1">ARR projetado</div>
+            <div className="text-2xl font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">R${(mrr * 12).toFixed(0)}</div>
           </div>
         </div>
 
         {/* Lista de planos */}
         {isLoading ? (
-          <div className="text-center py-12 text-gray-400">Carregando...</div>
+          <div className="text-center py-12 text-white/40">Carregando...</div>
         ) : plans.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/5 p-12 text-center">
-            <Package className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-            <p className="font-semibold text-[#111827] mb-1">Nenhum plano criado ainda</p>
-            <p className="text-sm text-gray-500 mb-4">Crie seu primeiro plano e comece a fidelizar clientes.</p>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-12 text-center">
+            <Package className="w-10 h-10 mx-auto mb-3 text-white/25" />
+            <p className="font-semibold text-white mb-1">Nenhum plano criado ainda</p>
+            <p className="text-sm text-white/55 mb-4">Crie seu primeiro plano e comece a fidelizar clientes.</p>
             <PrimaryButton onClick={() => { setEditingPlan(null); setShowForm(true); }}>Criar primeiro plano</PrimaryButton>
           </div>
         ) : (

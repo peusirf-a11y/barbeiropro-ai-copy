@@ -72,11 +72,11 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
   const potentialMRR = currentMRR + potentialMRRFromEligibleNonSubscribers;
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-5 mb-6">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 mb-6">
       <div className="flex items-center gap-2 mb-4">
-        <Target className="w-4 h-4 text-[#2563EB]" />
-        <h3 className="text-sm font-bold text-[#111827]">Conversão em planos</h3>
-        <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-wide">Crítico</span>
+        <Target className="w-4 h-4 text-[#93C5FD]" />
+        <h3 className="text-sm font-bold text-white">Conversão em planos</h3>
+        <span className="text-[10px] font-semibold bg-amber-400/15 text-amber-200 border border-amber-400/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Crítico</span>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
@@ -85,40 +85,40 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
           label="Clientes elegíveis"
           value={`${eligibleCount}`}
           sublabel={`${Math.round(eligibilityRate)}% da base`}
-          color="text-blue-600"
+          color="text-[#93C5FD]"
         />
         <ConversionCard
           icon={Target}
           label="Taxa de conversão"
           value={`${Math.round(conversionRate)}%`}
           sublabel={`${convertedFromEligible} de ${eligibleCount} elegíveis`}
-          color={conversionRate >= 30 ? 'text-emerald-600' : conversionRate >= 10 ? 'text-amber-600' : 'text-red-600'}
+          color={conversionRate >= 30 ? 'text-emerald-300' : conversionRate >= 10 ? 'text-amber-300' : 'text-rose-300'}
         />
         <ConversionCard
           icon={TrendingUp}
           label="MRR atual"
           value={`R$${Math.round(currentMRR)}`}
           sublabel={`${subscriptions.length} ${subscriptions.length === 1 ? 'assinante' : 'assinantes'}`}
-          color="text-emerald-600"
+          color="text-emerald-300"
         />
         <ConversionCard
           icon={TrendingUp}
           label="MRR potencial"
           value={`R$${Math.round(potentialMRR)}`}
           sublabel={`+R$${Math.round(potentialMRRFromEligibleNonSubscribers)} se converter todos`}
-          color="text-[#2563EB]"
+          color="text-[#93C5FD]"
         />
       </div>
 
       {/* Barra de progresso */}
       <div>
         <div className="flex items-center justify-between text-xs mb-1.5">
-          <span className="text-gray-500">Conversão de elegíveis em assinantes</span>
-          <span className="font-bold text-[#111827]">{Math.round(conversionRate)}%</span>
+          <span className="text-white/55">Conversão de elegíveis em assinantes</span>
+          <span className="font-bold text-white">{Math.round(conversionRate)}%</span>
         </div>
-        <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-3 bg-white/[0.06] rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#2563EB] transition-all"
+            className="h-full bg-gradient-to-r from-[#2563EB] to-[#60A5FA] transition-all"
             style={{ width: `${Math.min(100, conversionRate)}%` }}
           />
         </div>
@@ -126,9 +126,9 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
 
       {/* Alerta quando conversão < 10% */}
       {conversionRate < 10 && eligibleCount >= 5 && (
-        <div className="mt-4 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3">
-          <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-red-900">
+        <div className="mt-4 flex items-start gap-2 bg-rose-400/[0.08] border border-rose-400/25 rounded-xl p-3">
+          <AlertTriangle className="w-4 h-4 text-rose-300 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-rose-100">
             <strong>Atenção:</strong> você tem {eligibleCount} clientes que economizariam com um plano, mas só {convertedFromEligible} {convertedFromEligible === 1 ? 'assina' : 'assinam'}.
             Use o botão <strong>"Oferecer plano"</strong> na tela de Clientes para fechar essa lacuna.
           </div>
@@ -140,12 +140,12 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
 
 function ConversionCard({ icon: Icon, label, value, sublabel, color }) {
   return (
-    <div className="bg-gray-50 border border-black/5 rounded-xl p-3">
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-1">
+    <div className="bg-white/[0.03] border border-white/8 rounded-xl p-3">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/55 mb-1">
         <Icon className="w-3 h-3" /> {label}
       </div>
       <div className={`text-xl font-black ${color}`}>{value}</div>
-      <div className="text-[11px] text-gray-400 mt-0.5">{sublabel}</div>
+      <div className="text-[11px] text-white/40 mt-0.5">{sublabel}</div>
     </div>
   );
 }

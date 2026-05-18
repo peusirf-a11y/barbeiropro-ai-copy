@@ -16,10 +16,10 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl border border-black/5 p-6 mb-6 animate-pulse">
-        <div className="h-4 bg-gray-100 rounded w-1/3 mb-4" />
+      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6 mb-6 animate-pulse">
+        <div className="h-4 bg-white/[0.06] rounded w-1/3 mb-4" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-gray-50 rounded-xl" />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-white/[0.04] rounded-xl" />)}
         </div>
       </div>
     );
@@ -34,11 +34,11 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
   const totalAvulsoMonthly = (m.revenue_180d || 0) / 6; // média mensal últimos 180 dias
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-5 mb-6">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 mb-6">
       <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="w-4 h-4 text-[#2563EB]" />
-        <h3 className="text-sm font-bold text-[#111827]">Impacto dos planos no negócio</h3>
-        <span className="text-[10px] font-semibold bg-blue-100 text-[#2563EB] px-2 py-0.5 rounded-full uppercase tracking-wide">Últimos 180 dias</span>
+        <TrendingUp className="w-4 h-4 text-[#93C5FD]" />
+        <h3 className="text-sm font-bold text-white">Impacto dos planos no negócio</h3>
+        <span className="text-[10px] font-semibold bg-blue-400/15 text-[#93C5FD] border border-blue-400/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Últimos 180 dias</span>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -47,38 +47,38 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
           label="Receita avulso (mês)"
           value={`R$${Math.round(totalAvulsoMonthly).toLocaleString('pt-BR')}`}
           sublabel="Média histórica"
-          color="text-gray-700"
+          color="text-white"
         />
         <ImpactCard
           icon={TrendingUp}
           label="MRR atual"
           value={`R$${currentMRR.toFixed(0)}`}
           sublabel={`${totalSubscribers} ${totalSubscribers === 1 ? 'assinante' : 'assinantes'}`}
-          color="text-emerald-600"
+          color="text-emerald-300"
         />
         <ImpactCard
           icon={Users}
           label="Potencial de assinatura"
           value={proj.projected_mrr ? `+R$${proj.projected_mrr.toLocaleString('pt-BR')}` : '—'}
           sublabel="MRR adicional projetado"
-          color="text-[#2563EB]"
+          color="text-[#93C5FD]"
         />
         <ImpactCard
           icon={Calendar}
           label="Ocupação"
           value={`${m.occupancy_pct || 0}%`}
           sublabel={m.occupancy_pct > 85 ? 'Agenda saturando' : m.occupancy_pct < 60 ? 'Agenda ociosa' : 'Equilibrada'}
-          color={m.occupancy_pct > 85 ? 'text-emerald-600' : m.occupancy_pct < 60 ? 'text-amber-600' : 'text-blue-600'}
+          color={m.occupancy_pct > 85 ? 'text-emerald-300' : m.occupancy_pct < 60 ? 'text-amber-300' : 'text-[#93C5FD]'}
         />
       </div>
 
       {/* 🔥 MÉTRICAS CRÍTICAS DE CONVERSÃO — regra de ouro: plano não vendido = feature morta */}
       {plansCount > 0 && (
-        <div className="mt-4 pt-4 border-t border-black/5">
+        <div className="mt-4 pt-4 border-t border-white/8">
           <div className="flex items-center gap-2 mb-3">
-            <Flame className="w-4 h-4 text-orange-500" />
-            <h4 className="text-xs font-bold uppercase tracking-wide text-[#111827]">Conversão de planos</h4>
-            <span className="text-[10px] text-gray-400">últimos 30 dias</span>
+            <Flame className="w-4 h-4 text-orange-300" />
+            <h4 className="text-xs font-bold uppercase tracking-wide text-white">Conversão de planos</h4>
+            <span className="text-[10px] text-white/40">últimos 30 dias</span>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             <ConversionCard
@@ -86,28 +86,28 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
               label="Clientes elegíveis"
               value={`${conv.eligible_pct || 0}%`}
               sublabel={`${conv.eligible_count || 0} de ${conv.active_customers_30d || 0} clientes ativos`}
-              color="text-[#2563EB]"
-              bg="bg-blue-50 border-blue-200"
+              color="text-[#93C5FD]"
+              bg="bg-blue-400/[0.08] border-blue-400/25"
             />
             <ConversionCard
               icon={Zap}
               label="Convertidos em plano"
               value={`${conv.converted_pct || 0}%`}
               sublabel={`${conv.converted_count || 0} ${(conv.converted_count || 0) === 1 ? 'assinante' : 'assinantes'}`}
-              color="text-emerald-600"
-              bg="bg-emerald-50 border-emerald-200"
+              color="text-emerald-300"
+              bg="bg-emerald-400/[0.08] border-emerald-400/25"
             />
             <ConversionCard
               icon={DollarSign}
               label="Receita potencial vs atual"
               value={conv.current_mrr != null ? `R$${conv.current_mrr} → R$${(conv.current_mrr || 0) + (conv.potential_mrr || 0)}` : '—'}
               sublabel={conv.potential_mrr > 0 ? `+R$${conv.potential_mrr} se converter os elegíveis` : 'Sem oportunidades agora'}
-              color="text-orange-600"
-              bg="bg-orange-50 border-orange-200"
+              color="text-orange-300"
+              bg="bg-orange-400/[0.08] border-orange-400/25"
             />
           </div>
           {conv.eligible_count > 0 && conv.converted_pct < 30 && (
-            <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+            <div className="mt-3 px-3 py-2 bg-amber-400/[0.08] border border-amber-400/25 rounded-lg text-xs text-amber-100">
               🔥 <strong>{conv.eligible_count} {conv.eligible_count === 1 ? 'cliente está' : 'clientes estão'} pronto{conv.eligible_count === 1 ? '' : 's'} para virar assinante.</strong> Use o botão "Oferecer plano" na tela de Clientes ou aproveite o gatilho na Agenda.
             </div>
           )}
@@ -116,17 +116,17 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
 
       {/* Comparação avulso vs recorrente */}
       {plansCount > 0 && (
-        <div className="mt-4 pt-4 border-t border-black/5">
+        <div className="mt-4 pt-4 border-t border-white/8">
           <div className="flex items-center justify-between text-xs mb-2">
-            <span className="text-gray-500">Modelo recorrente vs avulso</span>
-            <span className="text-gray-400">% da receita total</span>
+            <span className="text-white/55">Modelo recorrente vs avulso</span>
+            <span className="text-white/40">% da receita total</span>
           </div>
-          <div className="flex h-3 rounded-full overflow-hidden bg-gray-100">
-            <div className="bg-[#2563EB] transition-all" style={{ width: `${Math.min(100, (currentMRR / Math.max(totalAvulsoMonthly + currentMRR, 1)) * 100)}%` }} title="Recorrente" />
+          <div className="flex h-3 rounded-full overflow-hidden bg-white/[0.06]">
+            <div className="bg-gradient-to-r from-[#2563EB] to-[#60A5FA] transition-all" style={{ width: `${Math.min(100, (currentMRR / Math.max(totalAvulsoMonthly + currentMRR, 1)) * 100)}%` }} title="Recorrente" />
           </div>
           <div className="flex justify-between text-[11px] mt-1.5">
-            <span className="text-[#2563EB] font-semibold">Recorrente: R${currentMRR.toFixed(0)}</span>
-            <span className="text-gray-500">Avulso: R${Math.round(totalAvulsoMonthly).toLocaleString('pt-BR')}</span>
+            <span className="text-[#93C5FD] font-semibold">Recorrente: R${currentMRR.toFixed(0)}</span>
+            <span className="text-white/55">Avulso: R${Math.round(totalAvulsoMonthly).toLocaleString('pt-BR')}</span>
           </div>
         </div>
       )}
@@ -136,12 +136,12 @@ export default function PlanImpactDashboard({ companyId, currentMRR, totalSubscr
 
 function ImpactCard({ icon: Icon, label, value, sublabel, color }) {
   return (
-    <div className="bg-gray-50 border border-black/5 rounded-xl p-3">
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-1">
+    <div className="bg-white/[0.03] border border-white/8 rounded-xl p-3">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/55 mb-1">
         <Icon className="w-3 h-3" /> {label}
       </div>
       <div className={`text-xl font-black ${color}`}>{value}</div>
-      <div className="text-[11px] text-gray-400 mt-0.5">{sublabel}</div>
+      <div className="text-[11px] text-white/40 mt-0.5">{sublabel}</div>
     </div>
   );
 }
@@ -153,7 +153,7 @@ function ConversionCard({ icon: Icon, label, value, sublabel, color, bg }) {
         <Icon className="w-3 h-3" /> {label}
       </div>
       <div className={`text-xl font-black ${color}`}>{value}</div>
-      <div className="text-[11px] text-gray-600 mt-0.5">{sublabel}</div>
+      <div className="text-[11px] text-white/60 mt-0.5">{sublabel}</div>
     </div>
   );
 }
