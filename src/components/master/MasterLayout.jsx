@@ -99,7 +99,7 @@ export default function MasterLayout() {
   const pageTitle = activeNav?.label || 'Master';
 
   return (
-    <div className={`min-h-screen bg-background text-foreground font-inter ${isImpersonating ? 'pt-9' : ''}`}>
+    <div className={`min-h-screen bg-background text-foreground font-inter overflow-x-hidden w-full max-w-[100vw] ${isImpersonating ? 'pt-9' : ''}`}>
       <ImpersonationCountdown />
       {/* Mobile top bar — theme-aware */}
       <header className="lg:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border h-14 flex items-center justify-between px-4 gap-2">
