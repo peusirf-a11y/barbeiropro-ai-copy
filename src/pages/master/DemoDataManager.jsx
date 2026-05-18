@@ -54,22 +54,22 @@ const SCENARIOS = [
 ];
 
 const MODULES = [
-  { id: 'customers', label: 'Clientes', icon: Users, color: 'text-blue-600 bg-blue-50', key: 'customer' },
-  { id: 'appointments', label: 'Agendamentos', icon: Calendar, color: 'text-emerald-600 bg-emerald-50', key: 'appointment' },
-  { id: 'financial', label: 'Financeiro', icon: DollarSign, color: 'text-amber-600 bg-amber-50', key: 'financialentry' },
-  { id: 'professionals', label: 'Profissionais', icon: Scissors, color: 'text-violet-600 bg-violet-50', key: 'professional' },
-  { id: 'services', label: 'Serviços', icon: Zap, color: 'text-pink-600 bg-pink-50', key: 'service' },
-  { id: 'commissions', label: 'Comissões', icon: Award, color: 'text-indigo-600 bg-indigo-50', key: 'commission' },
-  { id: 'reviews', label: 'Avaliações', icon: Star, color: 'text-orange-600 bg-orange-50', key: 'review' },
+  { id: 'customers', label: 'Clientes', icon: Users, color: 'text-blue-500 bg-blue-500/15', key: 'customer' },
+  { id: 'appointments', label: 'Agendamentos', icon: Calendar, color: 'text-emerald-500 bg-emerald-500/15', key: 'appointment' },
+  { id: 'financial', label: 'Financeiro', icon: DollarSign, color: 'text-amber-500 bg-amber-500/15', key: 'financialentry' },
+  { id: 'professionals', label: 'Profissionais', icon: Scissors, color: 'text-violet-500 bg-violet-500/15', key: 'professional' },
+  { id: 'services', label: 'Serviços', icon: Zap, color: 'text-pink-500 bg-pink-500/15', key: 'service' },
+  { id: 'commissions', label: 'Comissões', icon: Award, color: 'text-indigo-500 bg-indigo-500/15', key: 'commission' },
+  { id: 'reviews', label: 'Avaliações', icon: Star, color: 'text-orange-500 bg-orange-500/15', key: 'review' },
 ];
 
 const SEED_PRESETS = ['barbearia-premium-01','barbearia-demo-BR','corte-teste-2025','showcase-master'];
 
 function LogLine({ type, text }) {
-  const colors = { info: 'text-gray-300', success: 'text-emerald-400', error: 'text-red-400', warn: 'text-amber-400' };
+  const colors = { info: 'text-muted-foreground', success: 'text-emerald-500', error: 'text-red-500', warn: 'text-amber-500' };
   const icons = { info: '·', success: '✓', error: '✗', warn: '!' };
   return (
-    <div className={`flex items-start gap-2 text-xs font-mono ${colors[type] || 'text-gray-300'}`}>
+    <div className={`flex items-start gap-2 text-xs font-mono ${colors[type] || 'text-muted-foreground'}`}>
       <span className="flex-shrink-0 w-4 text-center">{icons[type] || '·'}</span>
       <span>{text}</span>
     </div>
@@ -79,11 +79,11 @@ function LogLine({ type, text }) {
 function ProgressBar({ value, label }) {
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs text-gray-400">
+      <div className="flex justify-between text-xs text-muted-foreground">
         <span>{label}</span>
         <span>{value}%</span>
       </div>
-      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-500"
           style={{ width: `${value}%` }}
@@ -94,9 +94,9 @@ function ProgressBar({ value, label }) {
 }
 
 function CountBadge({ count }) {
-  if (count == null) return <span className="text-gray-500 text-xs">—</span>;
+  if (count == null) return <span className="text-muted-foreground text-xs">—</span>;
   return (
-    <span className={`text-sm font-bold ${count > 0 ? 'text-white' : 'text-gray-500'}`}>
+    <span className={`text-sm font-bold ${count > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
       {count.toLocaleString('pt-BR')}
     </span>
   );
@@ -275,12 +275,12 @@ export default function DemoDataManager() {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] flex items-center justify-center">
               <Database className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">Gerenciador de Dados Demo</h1>
+            <h1 className="text-2xl font-black text-foreground tracking-tight">Gerenciador de Dados Demo</h1>
           </div>
-          <p className="text-sm text-gray-500">Popule qualquer tenant com dados realistas em segundos. Apenas dados com <code className="bg-gray-100 px-1 rounded text-xs">is_demo_data: true</code> são afetados.</p>
+          <p className="text-sm text-muted-foreground">Popule qualquer tenant com dados realistas em segundos. Apenas dados com <code className="bg-muted px-1 rounded text-xs">is_demo_data: true</code> são afetados.</p>
         </div>
         {lastRun && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-white border border-black/5 px-3 py-2 rounded-xl">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-card border border-border px-3 py-2 rounded-xl">
             <Clock className="w-3.5 h-3.5" />
             Última geração: {lastRun.ts.toLocaleTimeString('pt-BR')}
           </div>
@@ -288,17 +288,17 @@ export default function DemoDataManager() {
       </div>
 
       {/* Seleção de empresa */}
-      <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)]">
-        <h2 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+      <div className="bg-card rounded-2xl border border-border p-5 shadow-[var(--shadow-sm)]">
+        <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
           <Building2 className="w-4 h-4 text-[#2563EB]" /> Selecionar Tenant
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-semibold text-gray-500 block mb-1">Barbearia *</label>
+            <label className="text-xs font-semibold text-muted-foreground block mb-1">Barbearia *</label>
             <select
               value={selectedCompany}
               onChange={e => { setSelectedCompany(e.target.value); setSelectedUnit(''); }}
-              className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+              className="w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
             >
               <option value="">Selecione uma barbearia...</option>
               {companies.map(c => (
@@ -308,11 +308,11 @@ export default function DemoDataManager() {
           </div>
           {units.length > 0 && (
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Unidade (opcional)</label>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">Unidade (opcional)</label>
               <select
                 value={selectedUnit}
                 onChange={e => setSelectedUnit(e.target.value)}
-                className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                className="w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
               >
                 <option value="">Todas as unidades</option>
                 {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -323,9 +323,9 @@ export default function DemoDataManager() {
 
         {/* Status de dados demo */}
         {selectedCompany && (
-          <div className="mt-4 pt-4 border-t border-black/5">
+          <div className="mt-4 pt-4 border-t border-border">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-gray-500">Dados demo existentes</span>
+              <span className="text-xs font-semibold text-muted-foreground">Dados demo existentes</span>
               <button onClick={loadCounts} className="text-xs text-[#2563EB] hover:underline flex items-center gap-1">
                 <RefreshCw className="w-3 h-3" /> Atualizar
               </button>
@@ -335,7 +335,7 @@ export default function DemoDataManager() {
                 const Ic = mod.icon;
                 const count = counts[mod.key] ?? counts[mod.id] ?? 0;
                 return (
-                  <div key={mod.id} className={`rounded-xl p-2 text-center ${count > 0 ? mod.color : 'text-gray-400 bg-gray-50'}`}>
+                  <div key={mod.id} className={`rounded-xl p-2 text-center ${count > 0 ? mod.color : 'text-muted-foreground bg-muted'}`}>
                     <Ic className="w-4 h-4 mx-auto mb-1" />
                     <div className="text-xs font-bold">{count}</div>
                     <div className="text-[10px] leading-tight opacity-70">{mod.label}</div>
@@ -344,7 +344,7 @@ export default function DemoDataManager() {
               })}
             </div>
             {hasDemoData && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              <div className="mt-3 flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                 {totalDemoRecords.toLocaleString('pt-BR')} registros demo encontrados neste tenant.
               </div>
@@ -354,8 +354,8 @@ export default function DemoDataManager() {
       </div>
 
       {/* Cenários */}
-      <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)]">
-        <h2 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+      <div className="bg-card rounded-2xl border border-border p-5 shadow-[var(--shadow-sm)]">
+        <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-[#2563EB]" /> Cenário de Demonstração
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
@@ -365,16 +365,16 @@ export default function DemoDataManager() {
               onClick={() => setSelectedScenario(sc.id)}
               className={`relative p-4 rounded-2xl border-2 text-left transition-all ${
                 selectedScenario === sc.id
-                  ? 'border-[#2563EB] bg-[#EFF6FF] shadow-[0_0_0_3px_rgba(37,99,235,0.12)]'
-                  : 'border-black/8 bg-gray-50 hover:border-[#2563EB]/30'
+                  ? 'border-[#2563EB] bg-[#2563EB]/10 shadow-[0_0_0_3px_rgba(37,99,235,0.12)]'
+                  : 'border-border bg-muted/40 hover:border-[#2563EB]/30'
               }`}
             >
               {selectedScenario === sc.id && (
                 <CheckCircle2 className="absolute top-3 right-3 w-4 h-4 text-[#2563EB]" />
               )}
               <div className="text-2xl mb-2">{sc.icon}</div>
-              <div className="text-sm font-bold text-[#0F172A] leading-tight">{sc.label}</div>
-              <div className="text-[11px] text-gray-500 mt-1 leading-snug">{sc.description}</div>
+              <div className="text-sm font-bold text-foreground leading-tight">{sc.label}</div>
+              <div className="text-[11px] text-muted-foreground mt-1 leading-snug">{sc.description}</div>
               <span className={`inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r ${sc.color} text-white`}>
                 {sc.badge}
               </span>
@@ -383,15 +383,15 @@ export default function DemoDataManager() {
         </div>
 
         {/* Seed */}
-        <div className="mt-4 pt-4 border-t border-black/5">
-          <label className="text-xs font-semibold text-gray-500 block mb-2">Seed determinística (demos reproduzíveis)</label>
+        <div className="mt-4 pt-4 border-t border-border">
+          <label className="text-xs font-semibold text-muted-foreground block mb-2">Seed determinística (demos reproduzíveis)</label>
           <div className="flex gap-2 flex-wrap">
             {SEED_PRESETS.map(s => (
               <button
                 key={s}
                 onClick={() => setSeed(s)}
                 className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
-                  seed === s ? 'bg-[#2563EB] text-white border-[#2563EB]' : 'bg-gray-50 border-black/10 text-gray-600 hover:border-[#2563EB]/40'
+                  seed === s ? 'bg-[#2563EB] text-white border-[#2563EB]' : 'bg-muted/40 border-border text-muted-foreground hover:border-[#2563EB]/40'
                 }`}
               >
                 {s}
@@ -401,7 +401,7 @@ export default function DemoDataManager() {
               value={seed}
               onChange={e => setSeed(e.target.value)}
               placeholder="seed customizada"
-              className="text-xs px-3 py-1.5 rounded-lg border border-black/10 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 w-40"
+              className="text-xs px-3 py-1.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 w-40"
             />
           </div>
         </div>
@@ -432,17 +432,17 @@ export default function DemoDataManager() {
         </div>
 
         {/* Limpar */}
-        <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)]">
+        <div className="bg-card rounded-2xl border border-border p-5 shadow-[var(--shadow-sm)]">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-red-500/15 rounded-xl flex items-center justify-center">
               <Trash2 className="w-5 h-5 text-red-500" />
             </div>
             <div>
-              <div className="font-bold text-[#0F172A]">Limpar Dados Demo</div>
-              <div className="text-xs text-gray-400">Remove apenas registros com is_demo_data: true</div>
+              <div className="font-bold text-foreground">Limpar Dados Demo</div>
+              <div className="text-xs text-muted-foreground">Remove apenas registros com is_demo_data: true</div>
             </div>
           </div>
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="text-xs text-muted-foreground mb-4">
             Dados reais <strong>nunca são afetados</strong>. Apenas registros marcados como demo são removidos.
           </p>
           <button
@@ -457,8 +457,8 @@ export default function DemoDataManager() {
       </div>
 
       {/* Geração por módulo */}
-      <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)]">
-        <h2 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+      <div className="bg-card rounded-2xl border border-border p-5 shadow-[var(--shadow-sm)]">
+        <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
           <Database className="w-4 h-4 text-[#2563EB]" /> Gerar por Módulo
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
@@ -469,7 +469,7 @@ export default function DemoDataManager() {
                 key={mod.id}
                 onClick={() => handleGenerate(mod.id)}
                 disabled={running || !selectedCompany}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border border-black/8 ${mod.color} hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all`}
+                className={`flex flex-col items-center gap-2 p-3 rounded-xl border border-border ${mod.color} hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all`}
               >
                 <Ic className="w-5 h-5" />
                 <span className="text-xs font-semibold">{mod.label}</span>
@@ -481,15 +481,15 @@ export default function DemoDataManager() {
 
       {/* Progress + Logs */}
       {(running || logs.length > 0) && (
-        <div className="bg-[#0B1020] rounded-2xl p-5 text-white">
+        <div className="bg-card border border-border rounded-2xl p-5 text-foreground">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold flex items-center gap-2">
               {running
-                ? <><Loader2 className="w-4 h-4 animate-spin text-blue-400" /> Executando...</>
-                : <><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Concluído</>
+                ? <><Loader2 className="w-4 h-4 animate-spin text-blue-500" /> Executando...</>
+                : <><CheckCircle2 className="w-4 h-4 text-emerald-500" /> Concluído</>
               }
             </h2>
-            <button onClick={() => setLogs([])} className="text-[11px] text-gray-500 hover:text-gray-300">limpar</button>
+            <button onClick={() => setLogs([])} className="text-[11px] text-muted-foreground hover:text-foreground">limpar</button>
           </div>
 
           {progress > 0 && (
@@ -510,40 +510,40 @@ export default function DemoDataManager() {
       {/* Confirmação de limpeza */}
       {showClearConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div className="w-12 h-12 bg-red-500/15 rounded-xl flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
               </div>
               <div>
-                <h3 className="font-black text-[#0F172A]">Confirmar limpeza</h3>
-                <p className="text-xs text-gray-500">Esta ação remove permanentemente os dados demo.</p>
+                <h3 className="font-black text-foreground">Confirmar limpeza</h3>
+                <p className="text-xs text-muted-foreground">Esta ação remove permanentemente os dados demo.</p>
               </div>
             </div>
 
             {clearCounts && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
-                <p className="text-xs font-semibold text-red-700 mb-2">Registros que serão removidos:</p>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4">
+                <p className="text-xs font-semibold text-red-500 mb-2">Registros que serão removidos:</p>
                 <div className="grid grid-cols-2 gap-1">
                   {Object.entries(clearCounts).filter(([,v]) => v > 0).map(([k, v]) => (
-                    <div key={k} className="flex justify-between text-xs text-red-600">
+                    <div key={k} className="flex justify-between text-xs text-red-500">
                       <span className="capitalize">{k}</span>
                       <span className="font-bold">{v}</span>
                     </div>
                   ))}
                 </div>
                 {Object.values(clearCounts).every(v => v === 0) && (
-                  <p className="text-xs text-gray-500">Nenhum dado demo encontrado.</p>
+                  <p className="text-xs text-muted-foreground">Nenhum dado demo encontrado.</p>
                 )}
               </div>
             )}
 
-            <p className="text-sm text-gray-600 mb-4">
-              <strong>Dados reais não serão afetados.</strong> Apenas registros marcados com <code className="bg-gray-100 px-1 rounded">is_demo_data: true</code> serão removidos.
+            <p className="text-sm text-muted-foreground mb-4">
+              <strong className="text-foreground">Dados reais não serão afetados.</strong> Apenas registros marcados com <code className="bg-muted px-1 rounded">is_demo_data: true</code> serão removidos.
             </p>
 
             <div className="flex gap-3">
-              <button onClick={() => setShowClearConfirm(false)} className="flex-1 py-2.5 px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50">
+              <button onClick={() => setShowClearConfirm(false)} className="flex-1 py-2.5 px-4 border border-border rounded-xl text-sm font-medium text-foreground hover:bg-muted">
                 Cancelar
               </button>
               <button onClick={handleClear} className="flex-1 py-2.5 px-4 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700">
