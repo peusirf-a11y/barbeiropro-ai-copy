@@ -98,7 +98,7 @@ export default function AppRelatorios() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#60A5FA]/20 border-t-[#60A5FA] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -137,47 +137,47 @@ export default function AppRelatorios() {
             { label: 'Ticket médio', value: `R$${avgTicket.toFixed(0)}` },
             { label: 'Taxa cancelamento', value: `${cancelledRate}%` },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-black/5 p-4 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all">
-              <div className="text-xl lg:text-2xl font-black text-[#111827] tracking-tight">{s.value}</div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] mt-1">{s.label}</div>
+            <div key={s.label} className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4 hover:border-blue-400/25 hover:bg-white/[0.04] transition-all">
+              <div className="text-xl lg:text-2xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">{s.value}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-white/55 mt-1">{s.label}</div>
             </div>
           ))}
         </div>
 
         <div className="grid lg:grid-cols-2 gap-5 mb-5">
           {/* Top services chart */}
-          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-            <h2 className="font-bold text-[#111827] mb-4">Serviços mais vendidos</h2>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6">
+            <h2 className="font-bold text-white mb-4">Serviços mais vendidos</h2>
             {serviceData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={serviceData} margin={{ left: -10 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="total" fill="#2563EB" radius={[4, 4, 0, 0]} name="Vendas" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.55)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                  <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.55)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                  <Tooltip contentStyle={{ background: '#0A1124', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#fff' }} cursor={{ fill: 'rgba(96,165,250,0.08)' }} />
+                  <Bar dataKey="total" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Vendas" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[220px] flex items-center justify-center text-[#6B7280] text-sm">
+              <div className="h-[220px] flex items-center justify-center text-white/45 text-sm">
                 Sem atendimentos concluídos no período
               </div>
             )}
           </div>
 
           {/* Top professionals */}
-          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-            <h2 className="font-bold text-[#111827] mb-4">Profissionais mais ativos</h2>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6">
+            <h2 className="font-bold text-white mb-4">Profissionais mais ativos</h2>
             {proData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={proData} margin={{ left: -10 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.55)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                  <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.55)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                  <Tooltip contentStyle={{ background: '#0A1124', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#fff' }} cursor={{ fill: 'rgba(96,165,250,0.08)' }} />
                   <Bar dataKey="atendimentos" fill="#60A5FA" radius={[4, 4, 0, 0]} name="Atendimentos" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[220px] flex items-center justify-center text-[#6B7280] text-sm">
+              <div className="h-[220px] flex items-center justify-center text-white/45 text-sm">
                 Sem dados no período
               </div>
             )}
@@ -187,11 +187,11 @@ export default function AppRelatorios() {
         {/* Pie + text stats */}
         <div className="grid lg:grid-cols-2 gap-5">
           {serviceData.length > 0 && (
-            <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-              <h2 className="font-bold text-[#111827] mb-4">Distribuição de serviços</h2>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6">
+              <h2 className="font-bold text-white mb-4">Distribuição de serviços</h2>
               <div className="flex items-center gap-6">
                 <PieChart width={140} height={140}>
-                  <Pie data={serviceData} dataKey="total" cx={65} cy={65} outerRadius={60} innerRadius={30}>
+                  <Pie data={serviceData} dataKey="total" cx={65} cy={65} outerRadius={60} innerRadius={30} stroke="#0A1124" strokeWidth={2}>
                     {serviceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                 </PieChart>
@@ -200,9 +200,9 @@ export default function AppRelatorios() {
                     <div key={s.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                        <span className="text-xs text-[#6B7280] truncate max-w-[100px]">{s.name}</span>
+                        <span className="text-xs text-white/65 truncate max-w-[100px]">{s.name}</span>
                       </div>
-                      <span className="text-xs font-bold text-[#111827]">{s.total}x</span>
+                      <span className="text-xs font-bold text-white">{s.total}x</span>
                     </div>
                   ))}
                 </div>
@@ -210,8 +210,8 @@ export default function AppRelatorios() {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-            <h2 className="font-bold text-[#111827] mb-4">Indicadores de clientes</h2>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6">
+            <h2 className="font-bold text-white mb-4">Indicadores de clientes</h2>
             <div className="space-y-4">
               {[
                 { label: 'Total de clientes cadastrados', value: customers.length },
@@ -219,9 +219,9 @@ export default function AppRelatorios() {
                 { label: 'Novos agendamentos no período', value: periodAppts.length },
                 { label: 'Taxa de conclusão', value: periodAppts.length > 0 ? `${((completedAppts.length / periodAppts.length) * 100).toFixed(0)}%` : '–' },
               ].map(item => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
-                  <span className="text-sm text-[#6B7280]">{item.label}</span>
-                  <span className="text-sm font-bold text-[#2563EB]">{item.value}</span>
+                <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                  <span className="text-sm text-white/65">{item.label}</span>
+                  <span className="text-sm font-bold text-[#93C5FD]">{item.value}</span>
                 </div>
               ))}
             </div>

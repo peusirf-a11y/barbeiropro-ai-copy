@@ -49,15 +49,15 @@ export default function UnitBreakdownTable({ units, appointments, financial }) {
   const totalsTicket = totals.completed > 0 ? totals.revenue / totals.completed : 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-5 sm:p-6 shadow-[var(--shadow-sm)] mb-5">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 sm:p-6 mb-5">
       <div className="flex items-center gap-2 mb-4">
-        <Building2 className="w-4 h-4 text-[#2563EB]" />
-        <h2 className="font-bold text-[#111827]">Comparativo por unidade</h2>
+        <Building2 className="w-4 h-4 text-[#93C5FD]" />
+        <h2 className="font-bold text-white">Comparativo por unidade</h2>
       </div>
       <div className="overflow-x-auto -mx-5 sm:-mx-6 px-5 sm:px-6">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] border-b border-black/5">
+            <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-white/55 border-b border-white/8">
               <th className="pb-2 pr-3">Unidade</th>
               <th className="pb-2 px-3 text-right">Agendamentos</th>
               <th className="pb-2 px-3 text-right">Concluídos</th>
@@ -66,24 +66,24 @@ export default function UnitBreakdownTable({ units, appointments, financial }) {
               <th className="pb-2 pl-3 text-right">Cancel.</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-black/5">
+          <tbody className="divide-y divide-white/5">
             {rows.map(r => (
-              <tr key={r.id} className="hover:bg-[#FAFBFC] transition-colors">
+              <tr key={r.id} className="hover:bg-white/[0.04] transition-colors">
                 <td className="py-3 pr-3">
                   <div className="flex items-center gap-2 min-w-0">
-                    {r.id === topId && <Trophy className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
-                    <span className="font-semibold text-[#111827] truncate">{r.name}</span>
+                    {r.id === topId && <Trophy className="w-3.5 h-3.5 text-amber-300 flex-shrink-0" />}
+                    <span className="font-semibold text-white truncate">{r.name}</span>
                     {r.is_default && (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7280] bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0">Matriz</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/65 bg-white/[0.06] border border-white/10 px-1.5 py-0.5 rounded flex-shrink-0">Matriz</span>
                     )}
                   </div>
                 </td>
-                <td className="py-3 px-3 text-right text-[#111827] font-medium">{r.appts}</td>
-                <td className="py-3 px-3 text-right text-emerald-600 font-semibold">{r.completed}</td>
-                <td className="py-3 px-3 text-right text-[#111827] font-bold">R${r.revenue.toFixed(0)}</td>
-                <td className="py-3 px-3 text-right text-[#6B7280]">R${r.avgTicket.toFixed(0)}</td>
+                <td className="py-3 px-3 text-right text-white font-medium">{r.appts}</td>
+                <td className="py-3 px-3 text-right text-emerald-300 font-semibold">{r.completed}</td>
+                <td className="py-3 px-3 text-right text-white font-bold">R${r.revenue.toFixed(0)}</td>
+                <td className="py-3 px-3 text-right text-white/65">R${r.avgTicket.toFixed(0)}</td>
                 <td className="py-3 pl-3 text-right">
-                  <span className={`text-xs font-semibold ${r.cancelRate >= 20 ? 'text-red-500' : r.cancelRate >= 10 ? 'text-amber-600' : 'text-[#6B7280]'}`}>
+                  <span className={`text-xs font-semibold ${r.cancelRate >= 20 ? 'text-rose-300' : r.cancelRate >= 10 ? 'text-amber-300' : 'text-white/55'}`}>
                     {r.cancelRate.toFixed(0)}%
                   </span>
                 </td>
@@ -91,12 +91,12 @@ export default function UnitBreakdownTable({ units, appointments, financial }) {
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t-2 border-black/10 bg-[#FAFBFC]">
-              <td className="py-3 pr-3 font-bold text-[#111827]">Total consolidado</td>
-              <td className="py-3 px-3 text-right font-bold text-[#111827]">{totals.appts}</td>
-              <td className="py-3 px-3 text-right font-bold text-emerald-600">{totals.completed}</td>
-              <td className="py-3 px-3 text-right font-bold text-[#111827]">R${totals.revenue.toFixed(0)}</td>
-              <td className="py-3 px-3 text-right font-bold text-[#6B7280]">R${totalsTicket.toFixed(0)}</td>
+            <tr className="border-t-2 border-white/10 bg-white/[0.02]">
+              <td className="py-3 pr-3 font-bold text-white">Total consolidado</td>
+              <td className="py-3 px-3 text-right font-bold text-white">{totals.appts}</td>
+              <td className="py-3 px-3 text-right font-bold text-emerald-300">{totals.completed}</td>
+              <td className="py-3 px-3 text-right font-bold text-white">R${totals.revenue.toFixed(0)}</td>
+              <td className="py-3 px-3 text-right font-bold text-white/65">R${totalsTicket.toFixed(0)}</td>
               <td className="py-3 pl-3"></td>
             </tr>
           </tfoot>
