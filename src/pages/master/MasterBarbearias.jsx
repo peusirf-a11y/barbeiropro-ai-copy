@@ -25,8 +25,8 @@ export default function MasterBarbearias() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-2xl font-black text-[#111827] tracking-tight">Barbearias</h2>
-          <p className="text-sm text-[#6B7280] mt-1">Todas as empresas cadastradas no sistema.</p>
+          <h2 className="text-2xl font-black text-foreground tracking-tight">Barbearias</h2>
+          <p className="text-sm text-muted-foreground mt-1">Todas as empresas cadastradas no sistema.</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -44,7 +44,7 @@ export default function MasterBarbearias() {
         title="Nova Empresa Cliente"
         footer={
           <>
-            <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-black/10 rounded-xl text-sm font-semibold text-[#111827] hover:bg-gray-50 transition-colors">Cancelar</button>
+            <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-border rounded-xl text-sm font-semibold text-foreground hover:bg-muted transition-colors">Cancelar</button>
             <button
               onClick={() => createMutation.mutate(form)}
               disabled={!form.name || createMutation.isPending}
@@ -61,21 +61,21 @@ export default function MasterBarbearias() {
             { label: 'E-mail do responsável', key: 'owner_email', type: 'email' },
           ].map(f => (
             <div key={f.key}>
-              <label className="text-xs font-semibold text-[#6B7280] block mb-1.5">{f.label}</label>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1.5">{f.label}</label>
               <input
                 type={f.type}
                 value={form[f.key]}
                 onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm"
+                className="w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-background text-foreground"
               />
             </div>
           ))}
           <div>
-            <label className="text-xs font-semibold text-[#6B7280] block mb-1.5">Plano</label>
+            <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Plano</label>
             <select
               value={form.plan_name}
               onChange={e => setForm(p => ({ ...p, plan_name: e.target.value }))}
-              className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm"
+              className="w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-background text-foreground"
             >
               <option>Starter</option>
               <option>Pro</option>

@@ -10,10 +10,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { getTotpToken, clearTotpSession } from '@/lib/totpSession';
 
 const statusConfig = {
-  active: { label: 'Ativa', color: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
-  trial: { label: 'Trial', color: 'bg-amber-50 text-amber-700 border border-amber-200' },
-  inactive: { label: 'Inativa', color: 'bg-gray-100 text-gray-600 border border-gray-200' },
-  blocked: { label: 'Bloqueada', color: 'bg-red-50 text-red-700 border border-red-200' },
+  active: { label: 'Ativa', color: 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' },
+  trial: { label: 'Trial', color: 'bg-amber-500/15 text-amber-500 border border-amber-500/30' },
+  inactive: { label: 'Inativa', color: 'bg-muted text-muted-foreground border border-border' },
+  blocked: { label: 'Bloqueada', color: 'bg-red-500/15 text-red-500 border border-red-500/30' },
 };
 
 export default function CompaniesTable() {
@@ -120,16 +120,16 @@ export default function CompaniesTable() {
   });
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
-      <div className="p-4 sm:p-5 border-b border-black/5 flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="font-bold text-[#111827] text-lg tracking-tight">Empresas cadastradas</h2>
+    <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-[var(--shadow-sm)]">
+      <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="font-bold text-foreground text-lg tracking-tight">Empresas cadastradas</h2>
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Buscar por nome, e-mail ou slug…"
-            className="pl-9 pr-3 py-2 border border-black/10 rounded-xl text-sm w-64"
+            className="pl-9 pr-3 py-2 border border-border rounded-xl text-sm w-64 bg-background text-foreground"
           />
         </div>
       </div>
@@ -137,34 +137,34 @@ export default function CompaniesTable() {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px]">
           <thead>
-            <tr className="border-b border-black/5 bg-[#FAFBFC]">
+            <tr className="border-b border-border bg-muted/40">
               {['Empresa', 'Slug / Link', 'Plano', 'Onboarding', 'Status', 'Ações'].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {items.map(c => (
-              <tr key={c.id} className="border-b border-black/5 hover:bg-[#FAFBFC] transition-colors duration-150">
+              <tr key={c.id} className="border-b border-border hover:bg-muted/40 transition-colors duration-150">
                 <td className="px-4 py-3">
-                  <div className="font-semibold text-sm text-[#111827]">{c.name}</div>
-                  {c.owner_email && <div className="text-xs text-[#6B7280] mt-0.5">{c.owner_email}</div>}
+                  <div className="font-semibold text-sm text-foreground">{c.name}</div>
+                  {c.owner_email && <div className="text-xs text-muted-foreground mt-0.5">{c.owner_email}</div>}
                 </td>
                 <td className="px-4 py-3">
                   {c.slug ? (
                     <a href={`/agendar/${c.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-[#2563EB] hover:underline font-medium">
                       <Globe className="w-3 h-3" />/agendar/{c.slug}
                     </a>
-                  ) : <span className="text-xs text-gray-400">–</span>}
+                  ) : <span className="text-xs text-muted-foreground">–</span>}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-[#EFF6FF] text-[#2563EB] rounded-full border border-[#DBEAFE]">{c.plan_name || 'Starter'}</span>
+                  <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-blue-500/15 text-blue-500 rounded-full border border-blue-500/30">{c.plan_name || 'Starter'}</span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     {c.onboarding_completed
-                      ? <><CheckCircle className="w-4 h-4 text-emerald-500" /><span className="text-xs text-emerald-600 font-medium">Completo</span></>
-                      : <><Clock className="w-4 h-4 text-amber-500" /><span className="text-xs text-amber-600 font-medium">Etapa {c.onboarding_step || 1}</span></>
+                      ? <><CheckCircle className="w-4 h-4 text-emerald-500" /><span className="text-xs text-emerald-500 font-medium">Completo</span></>
+                      : <><Clock className="w-4 h-4 text-amber-500" /><span className="text-xs text-amber-500 font-medium">Etapa {c.onboarding_step || 1}</span></>
                     }
                   </div>
                 </td>
@@ -177,7 +177,7 @@ export default function CompaniesTable() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => navigate(`/master/barbearias/${c.id}`)}
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] border border-[#DBEAFE] flex items-center gap-1 transition-colors"
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-blue-500/15 text-blue-500 hover:bg-blue-500/25 border border-blue-500/30 flex items-center gap-1 transition-colors"
                       title="Detalhes da empresa (funcionalidades, plano, etc.)"
                     >
                       <ExternalLink className="w-3 h-3" /> Detalhes
@@ -185,7 +185,7 @@ export default function CompaniesTable() {
                     <button
                       onClick={() => impersonate.mutate(c)}
                       disabled={impersonate.isPending}
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 flex items-center gap-1 disabled:opacity-50 transition-colors"
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-amber-500/15 text-amber-500 hover:bg-amber-500/25 border border-amber-500/30 flex items-center gap-1 disabled:opacity-50 transition-colors"
                       title="Visualizar como esta empresa (15min)"
                     >
                       {impersonate.isPending && impersonate.variables?.id === c.id
@@ -203,7 +203,7 @@ export default function CompaniesTable() {
                           toggleStatus.mutate({ id: c.id, nextStatus: 'active' });
                         }
                       }}
-                      className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold disabled:opacity-50 inline-flex items-center gap-1 transition-colors border ${c.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200'}`}>
+                      className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold disabled:opacity-50 inline-flex items-center gap-1 transition-colors border ${c.status === 'active' ? 'bg-red-500/15 text-red-500 hover:bg-red-500/25 border-red-500/30' : 'bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25 border-emerald-500/30'}`}>
                       {toggleStatus.isPending && toggleStatus.variables?.id === c.id && <Loader2 className="w-3 h-3 animate-spin" />}
                       {c.status === 'active' ? 'Bloquear' : 'Ativar'}
                     </button>
@@ -211,7 +211,7 @@ export default function CompaniesTable() {
                       disabled={deleteCompany.isPending}
                       onClick={() => setDeleteTarget(c)}
                       title="Excluir empresa permanentemente (irreversível)"
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 inline-flex items-center gap-1 disabled:opacity-50 transition-colors"
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/40 inline-flex items-center gap-1 disabled:opacity-50 transition-colors"
                     >
                       {deleteCompany.isPending && deleteCompany.variables?.id === c.id
                         ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -223,28 +223,28 @@ export default function CompaniesTable() {
               </tr>
             ))}
             {!isLoading && items.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-[#6B7280] text-sm">Nenhuma empresa encontrada</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">Nenhuma empresa encontrada</td></tr>
             )}
             {isLoading && (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-[#6B7280] text-sm">Carregando…</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">Carregando…</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="px-4 py-3 border-t border-black/5 flex items-center justify-between text-sm bg-[#FAFBFC]">
-        <span className="text-[#6B7280] font-medium">{total} {total === 1 ? 'empresa' : 'empresas'}</span>
+      <div className="px-4 py-3 border-t border-border flex items-center justify-between text-sm bg-muted/40">
+        <span className="text-muted-foreground font-medium">{total} {total === 1 ? 'empresa' : 'empresas'}</span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="p-1.5 rounded-lg border border-black/10 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
+            className="p-1.5 rounded-lg border border-border bg-card disabled:opacity-40 hover:bg-muted transition-colors text-foreground"
           ><ChevronLeft className="w-4 h-4" /></button>
-          <span className="text-[#6B7280] text-xs font-medium">{page} / {totalPages}</span>
+          <span className="text-muted-foreground text-xs font-medium">{page} / {totalPages}</span>
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="p-1.5 rounded-lg border border-black/10 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
+            className="p-1.5 rounded-lg border border-border bg-card disabled:opacity-40 hover:bg-muted transition-colors text-foreground"
           ><ChevronRight className="w-4 h-4" /></button>
         </div>
       </div>
