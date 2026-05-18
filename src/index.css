@@ -539,7 +539,7 @@
 .light .bg-gradient-to-r.from-white,
 .light .bg-gradient-to-l.from-white {
   --tw-gradient-from: #0F172A var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: rgba(15, 23, 42, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-to: #0F172A var(--tw-gradient-to-position) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
 }
 .light .to-white\/70,
@@ -547,12 +547,12 @@
 .light .to-white\/80,
 .light .to-white\/85,
 .light .to-white\/90 {
-  --tw-gradient-to: rgba(15, 23, 42, 0.72) var(--tw-gradient-to-position) !important;
+  --tw-gradient-to: #1E293B var(--tw-gradient-to-position) !important;
 }
 
 /* Classe utilitária usada em headlines premium — fix idem */
 .light .text-premium-gradient {
-  background: linear-gradient(180deg, #0F172A 0%, rgba(15, 23, 42, 0.72) 100%) !important;
+  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%) !important;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
