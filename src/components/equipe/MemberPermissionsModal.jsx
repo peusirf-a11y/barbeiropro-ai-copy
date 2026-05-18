@@ -59,11 +59,11 @@ export default function MemberPermissionsModal({ open, onClose, member }) {
       size="xl"
       footer={
         <>
-          <button onClick={onClose} className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50">Cancelar</button>
+          <button onClick={onClose} className="flex-1 min-h-[48px] px-4 border border-white/12 bg-white/[0.04] text-white/80 rounded-xl text-sm font-medium hover:bg-white/[0.08] transition-colors">Cancelar</button>
           <button
             onClick={handleSave}
             disabled={saveMutation.isPending}
-            className="flex-1 min-h-[48px] px-4 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 inline-flex items-center justify-center gap-2"
+            className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold ring-1 ring-white/15 hover:brightness-110 disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(37,99,235,0.4)] transition-all"
           >
             {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             Salvar
@@ -75,8 +75,8 @@ export default function MemberPermissionsModal({ open, onClose, member }) {
         {/* Unidades */}
         {units.length > 0 && (
           <section>
-            <h4 className="font-bold text-sm text-[#111827] mb-1">Acesso a unidades</h4>
-            <p className="text-xs text-[#6B7280] mb-3">
+            <h4 className="font-bold text-sm text-white mb-1">Acesso a unidades</h4>
+            <p className="text-xs text-white/55 mb-3">
               {isCrossUnit
                 ? 'Admin e Financeiro veem todas as unidades por padrão. A configuração abaixo é informativa.'
                 : 'Selecione as unidades às quais este membro tem acesso. Vazio = todas (compatibilidade).'}
@@ -88,16 +88,18 @@ export default function MemberPermissionsModal({ open, onClose, member }) {
                   <label
                     key={u.id}
                     className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                      checked ? 'bg-blue-50 border-blue-300' : 'bg-white border-black/10 hover:border-[#2563EB]/30'
+                      checked
+                        ? 'bg-blue-400/15 border-blue-400/40 ring-1 ring-blue-400/20'
+                        : 'bg-white/[0.04] border-white/10 hover:border-blue-400/30 hover:bg-white/[0.06]'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleUnit(u.id)}
-                      className="rounded"
+                      className="rounded accent-[#2563EB]"
                     />
-                    <span className="text-sm font-medium text-[#111827]">{u.name}</span>
+                    <span className="text-sm font-medium text-white">{u.name}</span>
                   </label>
                 );
               })}
@@ -107,7 +109,7 @@ export default function MemberPermissionsModal({ open, onClose, member }) {
 
         {/* Permissões do Caixa */}
         <section>
-          <h4 className="font-bold text-sm text-[#111827] mb-3">Permissões do Caixa</h4>
+          <h4 className="font-bold text-sm text-white mb-3">Permissões do Caixa</h4>
           <CashPermissionsEditor role={member.role} value={cashPerms} onChange={setCashPerms} />
         </section>
       </div>
