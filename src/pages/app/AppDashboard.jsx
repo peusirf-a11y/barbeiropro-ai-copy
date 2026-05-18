@@ -114,7 +114,8 @@ export default function AppDashboard() {
   const monthAppts = apptsScoped.filter(a => new Date(a.scheduled_at) >= monthStart);
   const completedMonth = monthAppts.filter(a => a.status === 'concluido');
   const revenue = financialScoped.filter(f => f.type === 'entrada' && new Date(f.date) >= monthStart).reduce((s, f) => s + (f.amount || 0), 0);
-  const avgTicket = completedMonth.length > 0 ? revenue / completedMonth.length : 0;
+  const apptRevenue = completedMonth.reduce((s, a) => s + (a.price || 0), 0);
+  const avgTicket = completedMonth.length > 0 ? apptRevenue / completedMonth.length : 0;
 
   // Faturamento de hoje (entradas com date = hoje)
   const todayRevenue = financialScoped
