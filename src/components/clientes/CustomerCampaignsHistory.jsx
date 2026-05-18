@@ -33,18 +33,18 @@ export default function CustomerCampaignsHistory({ customer }) {
   );
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-5">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5">
       <div className="flex items-center gap-2 mb-3">
-        <History className="w-4 h-4 text-[#2563EB]" />
-        <h3 className="font-bold text-[#111827]">Histórico de automações</h3>
+        <History className="w-4 h-4 text-[#93C5FD]" />
+        <h3 className="font-bold text-white">Histórico de automações</h3>
       </div>
 
       {isLoading ? (
-        <div className="text-xs text-gray-400">Carregando...</div>
+        <div className="text-xs text-white/45">Carregando...</div>
       ) : crmMessages.length === 0 ? (
         <div className="text-center py-4">
-          <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-          <p className="text-xs text-gray-500">Nenhuma campanha automática enviada para este cliente ainda.</p>
+          <MessageSquare className="w-8 h-8 mx-auto mb-2 text-white/20" />
+          <p className="text-xs text-white/55">Nenhuma campanha automática enviada para este cliente ainda.</p>
         </div>
       ) : (
         <div className="space-y-2 max-h-64 overflow-y-auto modal-scroll">
@@ -55,29 +55,29 @@ export default function CustomerCampaignsHistory({ customer }) {
             return (
               <div
                 key={msg.id}
-                className={`p-3 rounded-lg border text-xs ${isError ? 'bg-red-50 border-red-100' : 'bg-gray-50/60 border-black/5'}`}
+                className={`p-3 rounded-lg border text-xs ${isError ? 'bg-rose-500/10 border-rose-400/30' : 'bg-white/[0.03] border-white/8'}`}
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-sm">{meta?.icon}</span>
-                    <span className="font-semibold text-[#111827] truncate">{meta?.label || msg.type}</span>
+                    <span className="font-semibold text-white truncate">{meta?.label || msg.type}</span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {isError ? (
-                      <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded-full">ERRO</span>
+                      <span className="text-[10px] font-bold text-rose-200 bg-rose-400/20 border border-rose-400/30 px-1.5 py-0.5 rounded-full">ERRO</span>
                     ) : msg.status === 'simulado' ? (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">SIMULADO</span>
+                      <span className="text-[10px] font-bold text-amber-200 bg-amber-400/20 border border-amber-400/30 px-1.5 py-0.5 rounded-full">SIMULADO</span>
                     ) : (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">ENVIADO</span>
+                      <span className="text-[10px] font-bold text-emerald-200 bg-emerald-400/20 border border-emerald-400/30 px-1.5 py-0.5 rounded-full">ENVIADO</span>
                     )}
-                    <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                    <span className="text-[10px] text-white/50 whitespace-nowrap">
                       {msg.sent_at ? format(new Date(msg.sent_at), "d MMM 'às' HH:mm", { locale: ptBR }) : '–'}
                     </span>
                   </div>
                 </div>
-                <p className="text-[#374151] whitespace-pre-wrap leading-relaxed">{msg.message_text || '(sem conteúdo)'}</p>
+                <p className="text-white/80 whitespace-pre-wrap leading-relaxed">{msg.message_text || '(sem conteúdo)'}</p>
                 {isError && msg.error_message && (
-                  <p className="mt-1.5 text-[10px] text-red-700 italic">{msg.error_message}</p>
+                  <p className="mt-1.5 text-[10px] text-rose-200 italic">{msg.error_message}</p>
                 )}
               </div>
             );

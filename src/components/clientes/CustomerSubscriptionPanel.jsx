@@ -85,47 +85,47 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
   });
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-5">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Package className="w-4 h-4 text-[#2563EB]" />
-          <h3 className="font-bold text-[#111827]">Assinatura</h3>
+          <Package className="w-4 h-4 text-[#93C5FD]" />
+          <h3 className="font-bold text-white">Assinatura</h3>
         </div>
       </div>
 
       {!activeSub ? (
         <div>
-          <p className="text-sm text-gray-500 mb-3">Cliente não tem assinatura ativa.</p>
+          <p className="text-sm text-white/55 mb-3">Cliente não tem assinatura ativa.</p>
           {!showPicker ? (
             <button
               onClick={() => setShowPicker(true)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-[#2563EB] hover:underline"
+              className="flex items-center gap-1.5 text-sm font-semibold text-[#93C5FD] hover:text-white transition-colors"
             >
               <Plus className="w-4 h-4" /> Assinar a um plano
             </button>
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-gray-500">Escolha um plano</span>
-                <button onClick={() => setShowPicker(false)}><X className="w-4 h-4 text-gray-400" /></button>
+                <span className="text-xs font-semibold text-white/60">Escolha um plano</span>
+                <button onClick={() => setShowPicker(false)}><X className="w-4 h-4 text-white/50" /></button>
               </div>
               {plans.length === 0 ? (
-                <p className="text-xs text-gray-400">Nenhum plano disponível. Crie planos em "Planos".</p>
+                <p className="text-xs text-white/45">Nenhum plano disponível. Crie planos em "Planos".</p>
               ) : plans.map(plan => (
                 <button
                   key={plan.id}
                   onClick={() => subscribeMutation.mutate(plan)}
                   disabled={subscribeMutation.isPending}
-                  className="w-full text-left p-3 border border-black/10 rounded-lg hover:border-[#2563EB] hover:bg-blue-50/50 transition-colors disabled:opacity-50"
+                  className="w-full text-left p-3 border border-white/10 rounded-lg bg-white/[0.02] hover:border-[#60A5FA]/40 hover:bg-white/[0.05] transition-colors disabled:opacity-50"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-semibold text-sm text-[#111827]">{plan.name}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="font-semibold text-sm text-white">{plan.name}</div>
+                      <div className="text-xs text-white/55">
                         {plan.type === 'unlimited' ? 'Ilimitado' : `${plan.usage_limit} usos/mês`}
                       </div>
                     </div>
-                    <div className="font-bold text-[#2563EB]">R${plan.price_monthly}</div>
+                    <div className="font-bold text-[#93C5FD]">R${plan.price_monthly}</div>
                   </div>
                 </button>
               ))}
@@ -134,36 +134,36 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+          <div className="rounded-xl p-4 border border-blue-400/25 bg-blue-500/10">
             <div className="flex items-start justify-between mb-2">
               <div>
-                <div className="font-bold text-[#111827]">{activeSub.plan_name_snapshot}</div>
-                <div className="text-xs text-gray-500">R${activeSub.plan_price_snapshot}/mês</div>
+                <div className="font-bold text-white">{activeSub.plan_name_snapshot}</div>
+                <div className="text-xs text-white/60">R${activeSub.plan_price_snapshot}/mês</div>
               </div>
-              <span className="text-[10px] font-bold uppercase bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Ativa</span>
+              <span className="text-[10px] font-bold uppercase bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full">Ativa</span>
             </div>
-            <div className="text-sm font-semibold text-[#2563EB] mt-2">{formatUsage(activeSub)}</div>
+            <div className="text-sm font-semibold text-[#93C5FD] mt-2">{formatUsage(activeSub)}</div>
             {activeSub.current_cycle_end && (
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-white/55 mt-1">
                 Próxima cobrança: {format(new Date(activeSub.current_cycle_end), "d 'de' MMM", { locale: ptBR })}
               </div>
             )}
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-gray-500">Pagamento:</span>
+            <span className="text-white/55">Pagamento:</span>
             {activeSub.last_payment_status === 'pago' ? (
-              <span className="flex items-center gap-1 text-emerald-600 font-semibold">
+              <span className="flex items-center gap-1 text-emerald-300 font-semibold">
                 <Check className="w-3 h-3" /> Pago
               </span>
             ) : (
               <>
-                <span className="flex items-center gap-1 text-amber-600 font-semibold">
+                <span className="flex items-center gap-1 text-amber-300 font-semibold">
                   <AlertCircle className="w-3 h-3" /> {activeSub.last_payment_status === 'atrasado' ? 'Atrasado' : 'Pendente'}
                 </span>
                 <button
                   onClick={() => markPaidMutation.mutate()}
-                  className="ml-auto text-[#2563EB] font-semibold hover:underline"
+                  className="ml-auto text-[#93C5FD] font-semibold hover:text-white transition-colors"
                 >
                   Marcar como pago
                 </button>
@@ -173,7 +173,7 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
 
           <button
             onClick={() => { if (confirm('Cancelar a assinatura deste cliente?')) cancelMutation.mutate(); }}
-            className="w-full text-xs font-semibold text-gray-500 hover:text-red-600 py-2 rounded-lg border border-black/10 hover:border-red-200"
+            className="w-full text-xs font-semibold text-white/60 hover:text-rose-300 py-2 rounded-lg border border-white/10 hover:border-rose-400/30 hover:bg-rose-500/5 transition-colors"
           >
             Cancelar assinatura
           </button>

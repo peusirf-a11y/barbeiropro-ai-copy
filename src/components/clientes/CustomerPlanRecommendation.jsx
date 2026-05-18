@@ -17,7 +17,7 @@ export default function CustomerPlanRecommendation({ companyId, customerId, onOf
     retry: false,
   });
 
-  if (isLoading) return <span className="text-[10px] text-gray-300">…</span>;
+  if (isLoading) return <span className="text-[10px] text-white/30">…</span>;
   const r = data?.data;
 
   // Oculta apenas quando o servidor diz que não é elegível
@@ -36,7 +36,7 @@ export default function CustomerPlanRecommendation({ companyId, customerId, onOf
   return (
     <div className="inline-flex items-center gap-1.5 max-w-full flex-wrap">
       <span
-        className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-50 text-[#2563EB] px-2 py-1 rounded-md border border-blue-100"
+        className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-400/15 text-blue-200 px-2 py-1 rounded-md border border-blue-400/30"
         title={tooltip}
       >
         <Sparkles className="w-2.5 h-2.5 flex-shrink-0" />
@@ -45,7 +45,7 @@ export default function CustomerPlanRecommendation({ companyId, customerId, onOf
       {onOffer && (
         <button
           onClick={(e) => { e.stopPropagation(); onOffer(); }}
-          className="text-[10px] font-bold bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-2 py-1 rounded-md transition-colors"
+          className="text-[10px] font-bold bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 text-white px-2 py-1 rounded-md transition-all ring-1 ring-white/15 shadow-[0_4px_12px_rgba(37,99,235,0.4)]"
         >
           Oferecer plano
         </button>
