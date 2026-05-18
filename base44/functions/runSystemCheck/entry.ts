@@ -77,7 +77,39 @@ Deno.serve(async (req) => {
       result.companies_error = err.message;
     }
 
-    console.log('JOB END: runSystemCheck', result);
+    // --- Rate limit ativos / sessões ativas / impersonações ativas ---
+    try {
+      const now = Date.now();
+      const activeBlocks = await base44.asServiceRole.entities.SecurityRateLimit
+        .filter({ is_blocked: true }, '-created_date', 500)
+        .catch(() => []);
+      result.rate_limit_active = activeBlocks.filter(r =>
+        r.blocked_until && new Date(r.blocked_until).getTime() > now
+      ).length;
+
+      const activeSessions = await base44.asServiceRole.entities.UserSession
+        .filter({ is_active: true }, '-created_date', 1000)
+        .catch(() => []);
+      result.active_sessions = activeSessions.length;
+
+      if (base44.asServiceRole.entities.ImpersonationSession) {
+        const activeImp = await base44.asServiceRole.entities.ImpersonationSession
+          .filter({ ended_at: null }, '-created_date', 100)
+          .catch(() => []);
+        result.active_impersonations = activeImp.length;
+      }
+    } catch (err) {
+      console.error('operational counts failed:', err.message);
+      result.operational_error = err.message;
+    }
+
+    // Status global derivado
+    const checks = [result.whatsapp, result.stripe, result.email];
+    const hasError = checks.includes('error');
+    const hasDegraded = checks.includes('not_configured') || checks.includes('disconnected');
+    result.overall_status = hasError ? 'critical' : hasDegraded ? 'degraded' : 'healthy';
+
+    console.log('JOB END: runSystemCheck', { overall: result.overall_status });
     return Response.json({ success: true, ...result });
   } catch (error) {
     console.error('JOB ERROR: runSystemCheck:', error.message, error.stack);
