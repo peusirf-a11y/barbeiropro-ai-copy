@@ -44,16 +44,16 @@ export default function EmailLogsTable() {
     <div className="bg-card rounded-2xl border border-border p-5">
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <h3 className="font-bold text-foreground">Histórico de envios</h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="text-xs px-3 py-1.5 border border-border rounded-lg bg-background text-foreground">
+            className="text-xs px-3 py-1.5 border border-border rounded-lg bg-background text-foreground min-w-0 flex-1 sm:flex-none">
             <option value="all">Todos os status</option>
             <option value="sent">Enviados</option>
             <option value="failed">Falhas</option>
             <option value="pending">Pendentes</option>
           </select>
           <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="text-xs px-3 py-1.5 border border-border rounded-lg bg-background text-foreground">
+            className="text-xs px-3 py-1.5 border border-border rounded-lg bg-background text-foreground min-w-0 flex-1 sm:flex-none">
             <option value="all">Todos os tipos</option>
             {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
