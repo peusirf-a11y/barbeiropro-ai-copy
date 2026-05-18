@@ -1,72 +1,62 @@
 // Tokens centrais de status de agendamento — fonte única da verdade.
-// Usado em: Agenda (cards e colunas pro), Dashboard (lista de hoje), Relatórios.
-//
-// Padrão visual obrigatório:
-//   🟩 confirmado     → Verde
-//   🟨 agendado       → Amarelo (pendente)
-//   🟥 cancelado      → Vermelho
-//   ⬜ concluido      → Cinza (bloqueado)
-//   ⬜ faltou         → Cinza (bloqueado)
-//   🟨 em_atendimento → Amarelo (em curso)
-//   🔲 sem customer_id → borda tracejada (cliente sem preferência/novo)
+// Refatorado para tema DARK premium: cards/pills com glass + tint do tom,
+// borders translúcidas e texto claro. Mantém a mesma API (cardBg, cardBorder,
+// cardText, leftBar, pill, label, accent) para zero impacto em consumidores.
 
 export const STATUS_TOKENS = {
   agendado: {
     label: 'Agendado',
-    // Pill (badge) — usado em listas/dashboard
-    pill: 'bg-amber-50 text-amber-700 border-amber-200',
-    // Card grande — usado nas colunas da agenda pro
-    cardBg: 'bg-amber-50',
-    cardBorder: 'border-amber-300',
-    cardText: 'text-amber-800',
-    // Faixa lateral — usado no card compacto da agenda
-    leftBar: 'border-l-amber-400 bg-amber-50',
-    accent: '#F59E0B',
+    pill: 'bg-amber-400/15 text-amber-200 border-amber-400/30',
+    cardBg: 'bg-amber-400/10',
+    cardBorder: 'border-amber-400/35',
+    cardText: 'text-amber-100',
+    leftBar: 'border-l-amber-400 bg-amber-400/10',
+    accent: '#FBBF24',
   },
   confirmado: {
     label: 'Confirmado',
-    pill: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    cardBg: 'bg-emerald-50',
-    cardBorder: 'border-emerald-300',
-    cardText: 'text-emerald-800',
-    leftBar: 'border-l-emerald-500 bg-emerald-50',
-    accent: '#10B981',
+    pill: 'bg-emerald-400/15 text-emerald-200 border-emerald-400/30',
+    cardBg: 'bg-emerald-400/10',
+    cardBorder: 'border-emerald-400/35',
+    cardText: 'text-emerald-100',
+    leftBar: 'border-l-emerald-400 bg-emerald-400/10',
+    accent: '#34D399',
   },
   em_atendimento: {
     label: 'Em atendimento',
-    pill: 'bg-amber-100 text-amber-800 border-amber-300',
-    cardBg: 'bg-amber-100',
-    cardBorder: 'border-amber-400',
-    cardText: 'text-amber-900',
-    leftBar: 'border-l-amber-500 bg-amber-100',
-    accent: '#F59E0B',
+    pill: 'bg-amber-400/25 text-amber-100 border-amber-400/45',
+    cardBg: 'bg-amber-400/20',
+    cardBorder: 'border-amber-400/50',
+    cardText: 'text-amber-50',
+    leftBar: 'border-l-amber-300 bg-amber-400/20',
+    accent: '#FBBF24',
   },
   concluido: {
     label: 'Concluído',
-    pill: 'bg-gray-100 text-gray-600 border-gray-200',
-    cardBg: 'bg-gray-100',
-    cardBorder: 'border-gray-300',
-    cardText: 'text-gray-600',
-    leftBar: 'border-l-gray-400 bg-gray-100',
-    accent: '#6B7280',
+    pill: 'bg-white/8 text-white/60 border-white/15',
+    cardBg: 'bg-white/[0.04]',
+    cardBorder: 'border-white/15',
+    cardText: 'text-white/65',
+    leftBar: 'border-l-white/30 bg-white/[0.04]',
+    accent: '#94A3B8',
   },
   cancelado: {
     label: 'Cancelado',
-    pill: 'bg-red-50 text-red-700 border-red-200',
-    cardBg: 'bg-red-50',
-    cardBorder: 'border-red-300',
-    cardText: 'text-red-700',
-    leftBar: 'border-l-red-500 bg-red-50',
-    accent: '#EF4444',
+    pill: 'bg-rose-400/15 text-rose-200 border-rose-400/30',
+    cardBg: 'bg-rose-400/10',
+    cardBorder: 'border-rose-400/35',
+    cardText: 'text-rose-100',
+    leftBar: 'border-l-rose-400 bg-rose-400/10',
+    accent: '#FB7185',
   },
   faltou: {
     label: 'Faltou',
-    pill: 'bg-gray-100 text-gray-600 border-gray-200',
-    cardBg: 'bg-gray-100',
-    cardBorder: 'border-gray-300',
-    cardText: 'text-gray-600',
-    leftBar: 'border-l-gray-400 bg-gray-100',
-    accent: '#6B7280',
+    pill: 'bg-white/8 text-white/55 border-white/15',
+    cardBg: 'bg-white/[0.04]',
+    cardBorder: 'border-white/15',
+    cardText: 'text-white/60',
+    leftBar: 'border-l-white/30 bg-white/[0.04]',
+    accent: '#94A3B8',
   },
 };
 

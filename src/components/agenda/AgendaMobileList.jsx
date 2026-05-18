@@ -47,16 +47,16 @@ export default function AgendaMobileList({
 
   if (!dayAppts.length) {
     return (
-      <div className="bg-white rounded-2xl border border-black/5 p-10 text-center text-gray-500">
+      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-10 text-center text-white/55">
         <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
         <p className="text-sm font-medium">Nenhum agendamento neste dia</p>
-        <p className="text-xs mt-1 text-gray-400">Toque em "Novo" para criar</p>
+        <p className="text-xs mt-1 text-white/35">Toque em "Novo" para criar</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 shadow-[var(--shadow-sm)] overflow-hidden divide-y divide-black/5 select-none">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden divide-y divide-white/5 select-none">
       {dayAppts.map(appt => {
         const svc = safeServices.find(s => s.id === appt.service_id);
         const dur = appt.custom_duration_minutes || svc?.duration_minutes || 30;
@@ -73,33 +73,33 @@ export default function AgendaMobileList({
           <button
             key={appt.id}
             onClick={() => onCardClick?.(appt)}
-            className="w-full flex items-stretch gap-3 px-4 py-3 text-left active:bg-gray-50 transition-colors"
+            className="w-full flex items-stretch gap-3 px-4 py-3 text-left active:bg-white/[0.04] transition-colors"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {/* Coluna do horário */}
             <div className="flex flex-col items-center justify-center w-14 flex-shrink-0">
-              <div className="text-sm font-bold text-[#0F172A]">{startTime}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">{endTime}</div>
-              <div className="text-[9px] text-gray-400 mt-0.5">{dur}min</div>
+              <div className="text-sm font-bold text-white">{startTime}</div>
+              <div className="text-[10px] text-white/40 mt-0.5">{endTime}</div>
+              <div className="text-[9px] text-white/35 mt-0.5">{dur}min</div>
             </div>
 
             {/* Barra colorida de status */}
-            <div className={`w-1 rounded-full ${token.cardBorder.replace('border-', 'bg-')} ${noPreference ? 'opacity-60' : ''}`} />
+            <div className="w-1 rounded-full flex-shrink-0" style={{ background: token.accent, opacity: noPreference ? 0.6 : 1 }} />
 
             {/* Conteúdo */}
-            <div className={`flex-1 min-w-0 rounded-xl border ${token.cardBg} ${token.cardBorder} ${token.cardText} ${noPreference ? 'border-dashed' : ''} px-3 py-2`}>
+            <div className={`flex-1 min-w-0 rounded-xl border backdrop-blur-sm ${token.cardBg} ${token.cardBorder} ${token.cardText} ${noPreference ? 'border-dashed' : ''} px-3 py-2`}>
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="font-semibold text-[13px] truncate">
                   {appt.customer_name || 'Cliente'}
                 </span>
                 {isFirstVisit && <FirstVisitBadge />}
                 {appt.payment_method === 'subscription' && (
-                  <span className="text-[9px] font-bold px-1 py-px rounded bg-violet-100 text-violet-700 border border-violet-200 flex-shrink-0">
+                  <span className="text-[9px] font-bold px-1 py-px rounded bg-violet-400/20 text-violet-200 border border-violet-400/30 flex-shrink-0">
                     PLANO
                   </span>
                 )}
                 {(appt.paid || appt.paid_online) && (
-                  <span className="text-[9px] font-bold px-1 py-px rounded bg-emerald-100 text-emerald-700 border border-emerald-200 flex-shrink-0" title={appt.paid_online ? 'Pago online' : 'Pago'}>
+                  <span className="text-[9px] font-bold px-1 py-px rounded bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 flex-shrink-0" title={appt.paid_online ? 'Pago online' : 'Pago'}>
                     PAGO
                   </span>
                 )}

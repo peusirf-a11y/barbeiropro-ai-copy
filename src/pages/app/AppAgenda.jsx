@@ -421,7 +421,7 @@ export default function AppAgenda() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#60A5FA]/20 border-t-[#60A5FA] rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -434,8 +434,8 @@ export default function AppAgenda() {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">Agendamentos</h1>
-            <p className="text-gray-500 text-sm mt-1 capitalize">{format(currentDate, "EEEE, dd MMM yyyy", { locale: ptBR })}</p>
+            <h1 className="text-2xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Agendamentos</h1>
+            <p className="text-white/50 text-sm mt-1 capitalize">{format(currentDate, "EEEE, dd MMM yyyy", { locale: ptBR })}</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {!isBarbeiro && professionals.length > 0 && (
@@ -444,29 +444,29 @@ export default function AppAgenda() {
                 {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </FilterSelect>
             )}
-            <div className="hidden sm:flex items-center bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
+            <div className="hidden sm:flex items-center bg-white/[0.03] border border-white/10 rounded-xl p-1 backdrop-blur-sm">
               {[10, 15].map(v => (
                 <button
                   key={v}
                   onClick={() => setSlotInterval(v)}
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${slotInterval === v ? 'bg-[#2563EB] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all ${slotInterval === v ? 'bg-gradient-to-br from-[#2563EB] to-[#3B82F6] text-white shadow-[0_4px_12px_rgba(37,99,235,0.4)]' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
                   title={`Intervalo ${v} minutos`}
                 >
                   {v}min
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1 bg-white border border-black/10 rounded-xl p-1 shadow-[var(--shadow-xs)]">
-              <button onClick={() => setCurrentDate(d => addDays(d, -1))} aria-label="Dia anterior" className="p-1.5 hover:bg-gray-100 rounded-lg">
+            <div className="flex items-center gap-1 bg-white/[0.03] border border-white/10 rounded-xl p-1 backdrop-blur-sm">
+              <button onClick={() => setCurrentDate(d => addDays(d, -1))} aria-label="Dia anterior" className="p-1.5 hover:bg-white/5 rounded-lg text-white/70">
                 <ChevronLeft className="w-4 h-4" aria-hidden="true" />
               </button>
-              <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold px-3 py-1 rounded-lg hover:bg-gray-100">Hoje</button>
-              <button onClick={() => setCurrentDate(d => addDays(d, 1))} aria-label="Próximo dia" className="p-1.5 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold px-3 py-1 rounded-lg hover:bg-white/5 text-white/80">Hoje</button>
+              <button onClick={() => setCurrentDate(d => addDays(d, 1))} aria-label="Próximo dia" className="p-1.5 hover:bg-white/5 rounded-lg text-white/70">
                 <ChevronRight className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
             {!isBarbeiro && !isAllUnits && (
-              <button onClick={() => setShowNewForm(true)} className="bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1d4ed8] transition-all flex items-center gap-2 shadow-[0_4px_12px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.35)]">
+              <button onClick={() => setShowNewForm(true)} className="bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:brightness-110 transition-all flex items-center gap-2 shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] ring-1 ring-white/15">
                 <Plus className="w-4 h-4" />Novo
               </button>
             )}
@@ -481,10 +481,10 @@ export default function AppAgenda() {
         <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
           <button
             onClick={() => setCurrentDate(d => addDays(d, -7))}
-            className="p-2 rounded-lg hover:bg-white border border-black/5 bg-white/60 flex-shrink-0"
+            className="p-2 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex-shrink-0 backdrop-blur-sm"
             aria-label="Semana anterior"
           >
-            <ChevronLeft className="w-4 h-4 text-gray-500" />
+            <ChevronLeft className="w-4 h-4 text-white/60" />
           </button>
           {weekDays.map(day => {
             const active = isSameDay(day, currentDate);
@@ -494,20 +494,20 @@ export default function AppAgenda() {
               <button
                 key={day.toISOString()}
                 onClick={() => setCurrentDate(day)}
-                className={`flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border transition-all min-w-[64px] ${
+                className={`flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border transition-all min-w-[64px] backdrop-blur-sm ${
                   active
-                    ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-[0_4px_12px_rgba(37,99,235,0.3)]'
-                    : 'bg-white border-black/5 text-gray-600 hover:border-[#2563EB]/30'
+                    ? 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white border-white/15 shadow-[0_8px_24px_rgba(37,99,235,0.45)]'
+                    : 'bg-white/[0.03] border-white/8 text-white/70 hover:bg-white/[0.06] hover:border-[#60A5FA]/30'
                 }`}
               >
-                <span className={`text-[10px] uppercase tracking-wide font-semibold ${active ? 'text-white/80' : 'text-gray-400'}`}>
+                <span className={`text-[10px] uppercase tracking-wide font-semibold ${active ? 'text-white/85' : 'text-white/40'}`}>
                   {format(day, 'EEE', { locale: ptBR })}
                 </span>
-                <span className={`text-lg font-bold ${active ? 'text-white' : isTodayDay ? 'text-[#2563EB]' : 'text-[#0F172A]'}`}>
+                <span className={`text-lg font-bold ${active ? 'text-white' : isTodayDay ? 'text-[#93C5FD]' : 'text-white'}`}>
                   {format(day, 'd')}
                 </span>
                 {dayCount > 0 && (
-                  <span className={`text-[10px] font-semibold mt-0.5 ${active ? 'text-white/80' : 'text-[#2563EB]'}`}>
+                  <span className={`text-[10px] font-semibold mt-0.5 ${active ? 'text-white/85' : 'text-[#93C5FD]'}`}>
                     {dayCount} ag.
                   </span>
                 )}
@@ -516,10 +516,10 @@ export default function AppAgenda() {
           })}
           <button
             onClick={() => setCurrentDate(d => addDays(d, 7))}
-            className="p-2 rounded-lg hover:bg-white border border-black/5 bg-white/60 flex-shrink-0"
+            className="p-2 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex-shrink-0 backdrop-blur-sm"
             aria-label="Próxima semana"
           >
-            <ChevronRight className="w-4 h-4 text-gray-500" />
+            <ChevronRight className="w-4 h-4 text-white/60" />
           </button>
         </div>
 
@@ -547,7 +547,7 @@ export default function AppAgenda() {
             />
           )
         ) : (
-          <div className="bg-white rounded-2xl border border-black/5 p-12 text-center text-gray-500">
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-12 text-center text-white/50">
             <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm">Nenhum profissional cadastrado.</p>
           </div>
@@ -560,13 +560,13 @@ export default function AppAgenda() {
             return (
               <div key={key} className="flex items-center gap-1.5">
                 <div className={`w-3 h-3 rounded border ${t.cardBg} ${t.cardBorder}`} />
-                <span className="text-gray-500">{t.label}</span>
+                <span className="text-white/55">{t.label}</span>
               </div>
             );
           })}
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded border border-dashed border-gray-400 bg-white" />
-            <span className="text-gray-500">Cliente sem preferência</span>
+            <div className="w-3 h-3 rounded border border-dashed border-white/40 bg-white/[0.03]" />
+            <span className="text-white/55">Cliente sem preferência</span>
           </div>
         </div>
 
@@ -616,9 +616,9 @@ export default function AppAgenda() {
           size="xl"
           footer={
             <>
-              <button onClick={() => setShowNewForm(false)} className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50 active:bg-gray-100">Cancelar</button>
+              <button onClick={() => setShowNewForm(false)} className="flex-1 min-h-[48px] px-4 border border-white/10 rounded-xl text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] active:bg-white/[0.08] transition-colors">Cancelar</button>
               <button onClick={handleCreate} disabled={!form.customer_name || !form.service_id || !form.professional_id || !form.scheduled_at || createMutation.isPending}
-                className="flex-1 min-h-[48px] px-4 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] active:scale-[0.98] disabled:opacity-50 transition-all">
+                className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold hover:brightness-110 active:scale-[0.98] disabled:opacity-50 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15">
                 {createMutation.isPending ? 'Salvando...' : 'Confirmar'}
               </button>
             </>
@@ -627,7 +627,7 @@ export default function AppAgenda() {
           <div className="space-y-3">
             {/* Customer */}
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Cliente</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Cliente</label>
               <FilterSelect
                 value={form.customer_id}
                 onChange={(v) => {
@@ -642,13 +642,13 @@ export default function AppAgenda() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Nome do cliente *</label>
+                <label className="text-xs font-semibold text-white/60 block mb-1">Nome do cliente *</label>
                 <input type="text" value={form.customer_name} onChange={e => setForm(p => ({ ...p, customer_name: e.target.value }))}
                   placeholder="Ou digite o nome"
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                  className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone</label>
+                <label className="text-xs font-semibold text-white/60 block mb-1">Telefone</label>
                 <input type="text" value={form.customer_phone}
                   onChange={e => {
                     const val = e.target.value;
@@ -661,35 +661,35 @@ export default function AppAgenda() {
                   }}
                   onBlur={e => handlePhoneLookup(e.target.value)}
                   placeholder="(11) 99999-9999"
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                  className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
                 {form.customer_id && (
-                  <span className="text-[11px] text-green-600 font-medium mt-1 block">✓ Cliente identificado</span>
+                  <span className="text-[11px] text-emerald-300 font-medium mt-1 block">✓ Cliente identificado</span>
                 )}
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Serviço *</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Serviço *</label>
               <FilterSelect value={form.service_id} onChange={handleServiceChange} className="w-full">
                 <option value="">Selecionar serviço</option>
                 {services.map(s => <option key={s.id} value={s.id}>{s.name} · {s.duration_minutes}min · R${s.price}</option>)}
               </FilterSelect>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Profissional *</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Profissional *</label>
               <FilterSelect value={form.professional_id} onChange={(v) => setForm(p => ({ ...p, professional_id: v }))} className="w-full">
                 <option value="">Selecionar profissional</option>
                 {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </FilterSelect>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Data e hora *</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Data e hora *</label>
               <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm(p => ({ ...p, scheduled_at: e.target.value }))}
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Observações</label>
+              <label className="text-xs font-semibold text-white/60 block mb-1">Observações</label>
               <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
             </div>
           </div>
         </StandardModal>

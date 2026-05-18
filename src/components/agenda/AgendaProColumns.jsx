@@ -175,7 +175,7 @@ export default function AgendaProColumns({
   const totalGridWidth = TIME_AXIS_WIDTH + renderedPros.length * COL_WIDTH;
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 shadow-[var(--shadow-sm)] overflow-hidden">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
       <div
         ref={containerRef}
         className="overflow-auto max-h-[680px] select-none"
@@ -183,8 +183,8 @@ export default function AgendaProColumns({
       >
         <div style={{ minWidth: totalGridWidth }}>
           {/* Header */}
-          <div className="sticky top-0 z-20 bg-white border-b border-black/5 flex">
-            <div className="flex-shrink-0 border-r border-black/5" style={{ width: TIME_AXIS_WIDTH }} />
+          <div className="sticky top-0 z-20 bg-[#0A1124]/95 backdrop-blur-xl border-b border-white/8 flex">
+            <div className="flex-shrink-0 border-r border-white/5" style={{ width: TIME_AXIS_WIDTH }} />
             {renderedPros.map(pro => {
               const proAppts = dayAppts.filter(a => a.professional_id === pro.id);
               const nextFree = findNextFreeSlot({ proAppts, services, selectedDate, isToday });
@@ -195,13 +195,13 @@ export default function AgendaProColumns({
           {/* Grid */}
           <div className="flex relative" style={{ height: gridHeight }}>
             {/* Eixo de horários */}
-            <div className="flex-shrink-0 border-r border-black/5 relative bg-[#FAFBFC] z-10" style={{ width: TIME_AXIS_WIDTH }}>
+            <div className="flex-shrink-0 border-r border-white/5 relative bg-white/[0.015] z-10" style={{ width: TIME_AXIS_WIDTH }}>
               {slots.map((s, i) => {
                 const showLabel = slotInterval >= 15 || s.m % 30 === 0 || s.m === 10 || s.m === 20 || s.m === 40 || s.m === 50;
                 return (
                   <div
                     key={i}
-                    className={`text-[11px] text-right pr-2.5 border-b ${s.m === 0 ? 'border-black/10 text-gray-500 font-semibold' : 'border-black/5 text-gray-400'}`}
+                    className={`text-[11px] text-right pr-2.5 border-b ${s.m === 0 ? 'border-white/10 text-white/55 font-semibold' : 'border-white/[0.04] text-white/30'}`}
                     style={{ height: SLOT_HEIGHT, lineHeight: `${SLOT_HEIGHT}px` }}
                   >
                     {showLabel ? `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}` : ''}
@@ -216,8 +216,8 @@ export default function AgendaProColumns({
                 className="absolute pointer-events-none z-30 flex items-center"
                 style={{ top: `${(nowOffset / slotInterval) * SLOT_HEIGHT}px`, left: TIME_AXIS_WIDTH - 4, right: 0 }}
               >
-                <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.2)] flex-shrink-0" />
-                <div className="flex-1 h-[2px] bg-red-500" />
+                <div className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_0_3px_rgba(251,113,133,0.25),0_0_12px_rgba(251,113,133,0.6)] flex-shrink-0" />
+                <div className="flex-1 h-[1.5px] bg-gradient-to-r from-rose-400 to-rose-400/30" />
               </div>
             )}
 
@@ -259,19 +259,20 @@ export default function AgendaProColumns({
 function ProHeader({ pro, nextFree, width }) {
   return (
     <div
-      className="flex flex-col items-center justify-center px-3 py-3 border-r border-black/5 last:border-r-0 flex-shrink-0"
+      className="flex flex-col items-center justify-center px-3 py-3 border-r border-white/5 last:border-r-0 flex-shrink-0"
       style={{ width, minWidth: width }}
     >
       {pro.photo_url ? (
-        <img src={pro.photo_url} alt={pro.name} className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-md" />
+        <img src={pro.photo_url} alt={pro.name} className="w-11 h-11 rounded-full object-cover ring-2 ring-white/15 shadow-[0_4px_16px_rgba(0,0,0,0.4)]" />
       ) : (
-        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-md">
-          {pro.name?.[0]?.toUpperCase() || '?'}
+        <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm ring-1 ring-white/15 shadow-[0_4px_16px_rgba(37,99,235,0.45)]">
+          <span className="absolute inset-0 rounded-full bg-[#60A5FA]/40 blur-md opacity-50" />
+          <span className="relative">{pro.name?.[0]?.toUpperCase() || '?'}</span>
         </div>
       )}
-      <div className="text-sm font-semibold text-[#0F172A] mt-1.5 text-center truncate max-w-full">{pro.name}</div>
+      <div className="text-sm font-semibold text-white mt-1.5 text-center truncate max-w-full">{pro.name}</div>
       {nextFree && (
-        <div className="text-[10px] text-emerald-600 font-medium mt-0.5">
+        <div className="text-[10px] text-emerald-300 font-medium mt-0.5">
           Livre às {format(nextFree, 'HH:mm')}
         </div>
       )}
@@ -289,14 +290,14 @@ function ProColumn({
 }) {
   return (
     <div
-      className={`relative border-r border-black/5 last:border-r-0 transition-colors flex-shrink-0 ${isGhostTarget ? 'bg-[#EFF6FF]' : ''}`}
+      className={`relative border-r border-white/5 last:border-r-0 transition-colors flex-shrink-0 ${isGhostTarget ? 'bg-[#2563EB]/8' : ''}`}
       style={{ width, minWidth: width }}
     >
       {/* Linhas de fundo */}
       {slots.map((s, i) => (
         <div
           key={i}
-          className={`border-b ${s.m === 0 ? 'border-black/10' : 'border-black/5'}`}
+          className={`border-b ${s.m === 0 ? 'border-white/8' : 'border-white/[0.035]'}`}
           style={{ height: SLOT_HEIGHT }}
         />
       ))}
@@ -308,7 +309,7 @@ function ProColumn({
         return (
           <div
             key={b.id}
-            className="absolute left-1.5 right-1.5 rounded-xl border border-dashed border-gray-300 bg-[repeating-linear-gradient(45deg,#F3F4F6_0,#F3F4F6_8px,#E5E7EB_8px,#E5E7EB_16px)] flex flex-col items-start justify-start text-gray-500 px-2.5 py-1.5"
+            className="absolute left-1.5 right-1.5 rounded-xl border border-dashed border-white/15 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.025)_0,rgba(255,255,255,0.025)_8px,rgba(255,255,255,0.05)_8px,rgba(255,255,255,0.05)_16px)] flex flex-col items-start justify-start text-white/50 px-2.5 py-1.5"
             style={{ top, height }}
             title={b.reason}
           >
@@ -323,7 +324,7 @@ function ProColumn({
       {/* Ghost preview — destino do drag/resize */}
       {ghost && (
         <div
-          className="absolute left-1.5 right-1.5 rounded-xl border-2 border-dashed border-[#2563EB] bg-[#2563EB]/10 pointer-events-none z-20 transition-[top,height] duration-75"
+          className="absolute left-1.5 right-1.5 rounded-xl border-2 border-dashed border-[#60A5FA] bg-[#60A5FA]/15 pointer-events-none z-20 transition-[top,height] duration-75 shadow-[0_0_24px_rgba(96,165,250,0.4)]"
           style={{
             top: ghost.top != null ? ghost.top : undefined,
             height: ghost.height,
@@ -348,15 +349,6 @@ function ProColumn({
         // Cursor: grab se pode mover (livre ou restrito à mesma coluna), not-allowed se não pode mover
         const cursorClass = !movable ? 'cursor-pointer' : canChangePro ? 'cursor-grab active:cursor-grabbing' : 'cursor-ns-resize';
 
-        // Log temporário para diagnóstico (remover após validação)
-        console.log('APPOINTMENT FLEX', {
-          id: appt.id,
-          customer: appt.customer_name,
-          flexible: appt.is_flexible_assignment,
-          professional: appt.professional_name,
-          noPreference,
-        });
-
         return (
           <div
             key={appt.id}
@@ -366,7 +358,7 @@ function ProColumn({
               if (!isDragging && !isResizing) onCardClick?.(appt);
               e.stopPropagation();
             }}
-            className={`absolute left-1.5 right-1.5 rounded-xl ${token.cardBg} ${token.cardText} px-2.5 py-2 text-left overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-px hover:z-10 ${cursorClass} ${isDragging ? 'opacity-30' : 'transition-all duration-150'} ${noPreference ? 'border-2 border-dashed' : 'border border-solid'} ${token.cardBorder}`}
+            className={`absolute left-1.5 right-1.5 rounded-xl ${token.cardBg} ${token.cardText} px-2.5 py-2 text-left overflow-hidden backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:-translate-y-px hover:z-10 hover:brightness-110 ${cursorClass} ${isDragging ? 'opacity-30' : 'transition-all duration-150'} ${noPreference ? 'border-2 border-dashed' : 'border border-solid'} ${token.cardBorder}`}
             style={{ top: top + 1, height, touchAction: 'none' }}
             title={noPreference
               ? `${appt.customer_name || 'Cliente'} · Sem preferência de barbeiro · ${startTime}–${endTime}`
@@ -376,17 +368,17 @@ function ProColumn({
             <div className="font-semibold text-[12px] leading-tight truncate flex items-center gap-1">
               {appt.customer_name || 'Cliente'}
               {noPreference && (
-                <span className="text-[9px] font-medium px-1 py-px rounded bg-gray-100 text-gray-500 border border-dashed border-gray-300 flex-shrink-0" title="Cliente sem preferência de barbeiro">
+                <span className="text-[9px] font-medium px-1 py-px rounded bg-white/10 text-white/70 border border-dashed border-white/25 flex-shrink-0" title="Cliente sem preferência de barbeiro">
                   sem pref.
                 </span>
               )}
               {appt.payment_method === 'subscription' && (
-                <span className="text-[9px] font-bold px-1 py-px rounded bg-violet-100 text-violet-700 border border-violet-200" title="Pago pelo plano de assinatura">
+                <span className="text-[9px] font-bold px-1 py-px rounded bg-violet-400/20 text-violet-200 border border-violet-400/30" title="Pago pelo plano de assinatura">
                   PLANO
                 </span>
               )}
               {appt.paid_online && (
-                <span className="text-[9px] font-bold px-1 py-px rounded bg-emerald-100 text-emerald-700 border border-emerald-200" title="Pago online">
+                <span className="text-[9px] font-bold px-1 py-px rounded bg-emerald-400/20 text-emerald-200 border border-emerald-400/30" title="Pago online">
                   PAGO
                 </span>
               )}
@@ -400,7 +392,7 @@ function ProColumn({
             {resizable && (
               <div
                 onPointerDown={(e) => startResize(e, appt, dur, top + 1)}
-                className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-[#2563EB]/20 rounded-b-xl"
+                className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-[#60A5FA]/30 rounded-b-xl"
                 style={{ touchAction: 'none' }}
                 title="Arraste para alterar a duração"
               />

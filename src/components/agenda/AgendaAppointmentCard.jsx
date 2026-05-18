@@ -29,23 +29,23 @@ export default function AgendaAppointmentCard({ appt, customer, onClick }) {
   return (
     <div
       onClick={() => onClick?.(appt)}
-      className={`rounded border-l-4 p-1.5 mb-1 ${token.leftBar} ${badge?.ring || ''} ${isNew ? 'ring-1 ring-blue-200/70' : ''} ${noPreference ? 'border border-dashed border-gray-300' : ''} cursor-pointer hover:opacity-80 transition-opacity`}
+      className={`rounded border-l-4 p-1.5 mb-1 backdrop-blur-sm ${token.leftBar} ${token.cardText} ${badge?.ring || ''} ${isNew ? 'ring-1 ring-blue-400/30' : ''} ${noPreference ? 'border border-dashed border-white/15' : ''} cursor-pointer hover:brightness-110 transition-all`}
     >
       <div className="flex items-center gap-1">
-        <div className="text-xs font-semibold text-gray-800 truncate flex-1">
+        <div className="text-xs font-semibold truncate flex-1">
           {appt.customer_name || 'Cliente'}
         </div>
         <AppointmentNoteIcon note={appt.notes} />
-        <AppointmentSourceIcon source={appt.source} className="w-3 h-3 opacity-50 text-gray-500" />
+        <AppointmentSourceIcon source={appt.source} className="w-3 h-3 opacity-60" />
         {(appt.paid || appt.paid_online) && (
-          <span className="text-[9px] font-bold flex-shrink-0 bg-emerald-100 text-emerald-700 px-1 rounded" title={appt.paid_online ? 'Pago online' : 'Pago'}>PAGO</span>
+          <span className="text-[9px] font-bold flex-shrink-0 bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 px-1 rounded" title={appt.paid_online ? 'Pago online' : 'Pago'}>PAGO</span>
         )}
         {isNew && <FirstVisitBadge size="xs" />}
         {badge && (
           <span className="text-[10px] flex-shrink-0" title={badge.title}>{badge.label}</span>
         )}
       </div>
-      <div className="text-xs text-gray-500 truncate">{appt.service_name}</div>
+      <div className="text-xs opacity-70 truncate">{appt.service_name}</div>
     </div>
   );
 }
