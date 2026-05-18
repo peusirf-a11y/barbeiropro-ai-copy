@@ -24,14 +24,15 @@ export default function CRMSegmentsTab({ customers }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-[#EFF6FF] to-white border border-[#DBEAFE] rounded-2xl p-5">
+      <div className="bg-blue-400/[0.08] border border-blue-400/25 rounded-2xl p-5 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
-            <Users className="w-5 h-5 text-white" />
+          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15">
+            <span className="absolute inset-0 rounded-xl bg-[#60A5FA]/30 blur-md opacity-60" aria-hidden="true" />
+            <Users className="relative w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-bold text-[#111827]">Segmentos automáticos</h3>
-            <p className="text-xs text-[#6B7280] mt-0.5">Clique em qualquer segmento para abrir a lista filtrada.</p>
+            <h3 className="font-bold text-white">Segmentos automáticos</h3>
+            <p className="text-xs text-white/60 mt-0.5">Clique em qualquer segmento para abrir a lista filtrada.</p>
           </div>
         </div>
       </div>
@@ -43,16 +44,16 @@ export default function CRMSegmentsTab({ customers }) {
             <Link
               key={key}
               to={`/app/clientes?filter=${key}`}
-              className="bg-white border border-black/5 rounded-2xl p-5 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] transition-all duration-200 group block shadow-[var(--shadow-sm)]"
+              className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 hover:-translate-y-0.5 hover:border-blue-400/25 hover:bg-white/[0.04] transition-all duration-200 group block"
             >
               <div className="flex items-start justify-between mb-3">
                 <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${token.badge}`}>
                   <span>{token.icon}</span>{token.label}
                 </span>
-                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#2563EB] group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="w-4 h-4 text-white/25 group-hover:text-[#93C5FD] group-hover:translate-x-0.5 transition-all" />
               </div>
-              <div className="text-3xl font-black text-[#111827] tracking-tight">{count}</div>
-              <p className="text-xs text-[#6B7280] mt-1">{hint}</p>
+              <div className="text-3xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">{count}</div>
+              <p className="text-xs text-white/55 mt-1">{hint}</p>
             </Link>
           );
         })}

@@ -18,9 +18,9 @@ const TYPE_LABELS = {
 };
 
 const STATUS_BADGE = {
-  enviado: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  simulado: 'bg-blue-50 text-blue-700 border-blue-200',
-  erro: 'bg-red-50 text-red-700 border-red-200',
+  enviado: 'bg-emerald-400/[0.12] text-emerald-200 border-emerald-400/30',
+  simulado: 'bg-blue-400/[0.12] text-blue-200 border-blue-400/30',
+  erro: 'bg-rose-400/[0.12] text-rose-200 border-rose-400/30',
 };
 
 export default function CRMHistoryTab({ messages }) {
@@ -47,8 +47,8 @@ export default function CRMHistoryTab({ messages }) {
             onClick={() => setFilter(f.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
               filter === f.id
-                ? 'bg-[#2563EB] text-white border-[#2563EB]'
-                : 'bg-white text-gray-600 border-black/10 hover:border-[#2563EB] hover:text-[#2563EB]'
+                ? 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white border-transparent shadow-[0_4px_12px_rgba(37,99,235,0.35)] ring-1 ring-white/15'
+                : 'bg-white/[0.04] text-white/70 border-white/10 hover:border-blue-400/40 hover:text-[#93C5FD] hover:bg-white/[0.08]'
             }`}
           >
             {f.label}
@@ -56,36 +56,36 @@ export default function CRMHistoryTab({ messages }) {
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-[var(--shadow-sm)]">
+      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-[#FAFBFC] border-b border-black/5">
+            <thead className="bg-white/[0.02] border-b border-white/8">
               <tr>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Cliente</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Tipo</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Mensagem</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Quando</th>
+                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider">Cliente</th>
+                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider">Tipo</th>
+                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider hidden md:table-cell">Mensagem</th>
+                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider">Quando</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-12 text-center text-gray-400">Nenhuma mensagem ainda</td></tr>
+                <tr><td colSpan={5} className="px-4 py-12 text-center text-white/40">Nenhuma mensagem ainda</td></tr>
               )}
               {filtered.slice(0, 200).map(m => (
-                <tr key={m.id} className="border-b border-black/5 hover:bg-gray-50">
+                <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.04] transition-colors">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-[#1B1C1E]">{m.customer_name || '–'}</div>
-                    <div className="text-xs text-gray-400">{m.phone}</div>
+                    <div className="font-medium text-white">{m.customer_name || '–'}</div>
+                    <div className="text-xs text-white/45">{m.phone}</div>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600">{TYPE_LABELS[m.type] || m.type}</td>
+                  <td className="px-4 py-3 text-xs text-white/65">{TYPE_LABELS[m.type] || m.type}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_BADGE[m.status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_BADGE[m.status] || 'bg-white/[0.06] text-white/65 border-white/15'}`}>
                       {m.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 hidden md:table-cell max-w-md truncate">{m.message_text}</td>
-                  <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                  <td className="px-4 py-3 text-xs text-white/60 hidden md:table-cell max-w-md truncate">{m.message_text}</td>
+                  <td className="px-4 py-3 text-xs text-white/45 whitespace-nowrap">
                     {m.sent_at ? new Date(m.sent_at).toLocaleString('pt-BR') : '–'}
                   </td>
                 </tr>

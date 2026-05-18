@@ -95,7 +95,7 @@ export default function AppCRM() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-6 h-6 animate-spin text-[#2563EB]" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#60A5FA]" />
         </div>
       </AppLayout>
     );
@@ -105,10 +105,10 @@ export default function AppCRM() {
     return (
       <AppLayout>
         <div className="p-8 max-w-xl mx-auto text-center">
-          <div className="bg-white rounded-2xl border border-black/8 p-8">
-            <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-[#1B1C1E] mb-2">Nenhuma empresa configurada</h2>
-            <p className="text-sm text-gray-500">Complete o onboarding para acessar o CRM.</p>
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-8">
+            <AlertCircle className="w-10 h-10 text-amber-300 mx-auto mb-3" />
+            <h2 className="text-lg font-bold text-white mb-2">Nenhuma empresa configurada</h2>
+            <p className="text-sm text-white/60">Complete o onboarding para acessar o CRM.</p>
           </div>
         </div>
       </AppLayout>
@@ -125,7 +125,7 @@ export default function AppCRM() {
         />
 
         {/* Tabs — scroll horizontal no mobile, sem quebrar */}
-        <div className="flex gap-1 mb-6 border-b border-black/5 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+        <div className="flex gap-1 mb-6 border-b border-white/8 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
           {TABS.map(t => {
             const Icon = t.icon;
             const active = tab === t.id;
@@ -134,7 +134,7 @@ export default function AppCRM() {
                 key={t.id}
                 onClick={() => handleTabChange(t.id)}
                 className={`px-3 sm:px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 flex-shrink-0 ${
-                  active ? 'border-[#2563EB] text-[#2563EB]' : 'border-transparent text-gray-500 hover:text-gray-800'
+                  active ? 'border-[#60A5FA] text-[#93C5FD]' : 'border-transparent text-white/55 hover:text-white'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />

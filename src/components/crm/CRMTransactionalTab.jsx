@@ -48,10 +48,10 @@ export default function CRMTransactionalTab({ company }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-black/5 p-5 space-y-4 shadow-[var(--shadow-sm)]">
+      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 space-y-4">
         <div className="flex items-center gap-2 mb-2">
-          <SettingsIcon className="w-4 h-4 text-[#2563EB]" />
-          <h3 className="font-bold text-[#111827]">Geral</h3>
+          <SettingsIcon className="w-4 h-4 text-[#93C5FD]" />
+          <h3 className="font-bold text-white">Geral</h3>
         </div>
         <Toggle label="Sistema de retenção ativo" checked={settings.enabled !== false} onChange={v => upd('enabled', v)} />
         <div className="grid grid-cols-2 gap-3">
@@ -64,8 +64,8 @@ export default function CRMTransactionalTab({ company }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-black/5 p-5 space-y-4 shadow-[var(--shadow-sm)]">
-        <h3 className="font-bold text-[#111827]">Tipos de mensagem</h3>
+      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 space-y-4">
+        <h3 className="font-bold text-white">Tipos de mensagem</h3>
         <Toggle label="Confirmação ao agendar" checked={settings.send_confirmation !== false} onChange={v => upd('send_confirmation', v)} />
         <Toggle label="Lembrete 24h antes" checked={settings.send_reminder_24h !== false} onChange={v => upd('send_reminder_24h', v)} />
         <Toggle label="Lembrete 2h antes" checked={settings.send_reminder_2h !== false} onChange={v => upd('send_reminder_2h', v)} />
@@ -73,14 +73,14 @@ export default function CRMTransactionalTab({ company }) {
         <Toggle label="Reativação automática (IA)" checked={settings.send_reactivation !== false} onChange={v => upd('send_reactivation', v)} />
       </div>
 
-      <div className="bg-white rounded-2xl border border-black/5 p-5 space-y-4 shadow-[var(--shadow-sm)]">
-        <h3 className="font-bold text-[#111827]">Modelos de mensagem</h3>
-        <p className="text-xs text-gray-500">
-          Variáveis: <code className="bg-gray-100 px-1 rounded">{'{nome}'}</code>{' '}
-          <code className="bg-gray-100 px-1 rounded">{'{barbearia}'}</code>{' '}
-          <code className="bg-gray-100 px-1 rounded">{'{data}'}</code>{' '}
-          <code className="bg-gray-100 px-1 rounded">{'{hora}'}</code>{' '}
-          <code className="bg-gray-100 px-1 rounded">{'{link_avaliacao}'}</code>
+      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 space-y-4">
+        <h3 className="font-bold text-white">Modelos de mensagem</h3>
+        <p className="text-xs text-white/55">
+          Variáveis: <code className="bg-white/[0.06] text-[#93C5FD] px-1 rounded">{'{nome}'}</code>{' '}
+          <code className="bg-white/[0.06] text-[#93C5FD] px-1 rounded">{'{barbearia}'}</code>{' '}
+          <code className="bg-white/[0.06] text-[#93C5FD] px-1 rounded">{'{data}'}</code>{' '}
+          <code className="bg-white/[0.06] text-[#93C5FD] px-1 rounded">{'{hora}'}</code>{' '}
+          <code className="bg-white/[0.06] text-[#93C5FD] px-1 rounded">{'{link_avaliacao}'}</code>
         </p>
         <Area label="Confirmação" value={settings.msg_confirmation || ''} onChange={v => upd('msg_confirmation', v)} />
         <Area label="Lembrete 24h" value={settings.msg_reminder_24h || ''} onChange={v => upd('msg_reminder_24h', v)} />
@@ -88,10 +88,10 @@ export default function CRMTransactionalTab({ company }) {
         <Area label="Pós-atendimento" value={settings.msg_post_appointment || ''} onChange={v => upd('msg_post_appointment', v)} />
         <div>
           <Area label="Reativação" value={settings.msg_reactivation || ''} onChange={v => upd('msg_reactivation', v)} />
-          <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 space-y-1">
-            <div className="font-semibold flex items-center gap-1.5"><Zap className="w-3 h-3" /> IA de horário ideal</div>
-            <p>Use <code className="bg-white px-1 rounded">{'{horario_sugerido}'}</code> e <code className="bg-white px-1 rounded">{'{profissional_sugerido}'}</code> para inserir o melhor encaixe.</p>
-            <p>Texto entre <code className="bg-white px-1 rounded">[[ ]]</code> só aparece quando a IA encontra um horário.</p>
+          <div className="mt-2 bg-amber-400/[0.08] border border-amber-400/30 rounded-lg p-3 text-xs text-amber-100 space-y-1">
+            <div className="font-semibold flex items-center gap-1.5 text-amber-200"><Zap className="w-3 h-3" /> IA de horário ideal</div>
+            <p>Use <code className="bg-white/[0.08] text-amber-200 px-1 rounded">{'{horario_sugerido}'}</code> e <code className="bg-white/[0.08] text-amber-200 px-1 rounded">{'{profissional_sugerido}'}</code> para inserir o melhor encaixe.</p>
+            <p>Texto entre <code className="bg-white/[0.08] text-amber-200 px-1 rounded">[[ ]]</code> só aparece quando a IA encontra um horário.</p>
           </div>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function CRMTransactionalTab({ company }) {
         <button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-sm font-semibold px-5 py-2.5 rounded-xl flex items-center gap-2 disabled:opacity-60 shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
+          className="bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 text-white text-sm font-semibold px-5 py-2.5 rounded-xl flex items-center gap-2 disabled:opacity-60 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all"
         >
           {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Salvar mensagens
@@ -113,11 +113,11 @@ export default function CRMTransactionalTab({ company }) {
 function Toggle({ label, checked, onChange }) {
   return (
     <label className="flex items-center justify-between cursor-pointer">
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm text-white/80">{label}</span>
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={`relative w-11 h-6 rounded-full transition-colors ${checked ? 'bg-[#2563EB]' : 'bg-gray-300'}`}
+        className={`relative w-11 h-6 rounded-full transition-colors ${checked ? 'bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] shadow-[0_4px_12px_rgba(37,99,235,0.4)]' : 'bg-white/10'}`}
       >
         <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-5' : ''}`} />
       </button>
@@ -128,9 +128,9 @@ function Toggle({ label, checked, onChange }) {
 function Txt({ label, value, onChange, placeholder, type = 'text' }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-white/60 mb-1">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full px-3 py-2 text-sm border border-black/10 rounded-lg" />
+        className="w-full px-3 py-2 text-sm bg-white/[0.04] border border-white/10 rounded-lg text-white placeholder:text-white/30 [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
     </div>
   );
 }
@@ -138,9 +138,9 @@ function Txt({ label, value, onChange, placeholder, type = 'text' }) {
 function Num({ label, value, onChange, min, max }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-white/60 mb-1">{label}</label>
       <input type="number" min={min} max={max} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-sm border border-black/10 rounded-lg" />
+        className="w-full px-3 py-2 text-sm bg-white/[0.04] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
     </div>
   );
 }
@@ -148,9 +148,9 @@ function Num({ label, value, onChange, min, max }) {
 function Area({ label, value, onChange }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-white/60 mb-1">{label}</label>
       <textarea value={value} onChange={e => onChange(e.target.value)} rows={2}
-        className="w-full px-3 py-2 text-sm border border-black/10 rounded-lg resize-y" />
+        className="w-full px-3 py-2 text-sm bg-white/[0.04] border border-white/10 rounded-lg text-white placeholder:text-white/30 resize-y focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20" />
     </div>
   );
 }

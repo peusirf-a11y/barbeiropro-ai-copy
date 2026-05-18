@@ -52,17 +52,18 @@ export default function CRMWhatsAppTab() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <div className="bg-white rounded-2xl border border-black/5 shadow-[var(--shadow-md)] overflow-hidden">
+      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
 
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-black/5">
+        <div className="px-6 pt-6 pb-4 border-b border-white/8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 ring-1 ring-emerald-200 flex items-center justify-center">
-              <Smartphone className="w-5 h-5 text-emerald-600" />
+            <div className="relative w-10 h-10 rounded-xl bg-emerald-400/[0.12] ring-1 ring-emerald-400/30 flex items-center justify-center">
+              <span className="absolute inset-0 rounded-xl bg-emerald-400/20 blur-md opacity-60" aria-hidden="true" />
+              <Smartphone className="relative w-5 h-5 text-emerald-300" />
             </div>
             <div>
-              <h2 className="font-bold text-[#111827] text-base">Conexão WhatsApp</h2>
-              <p className="text-sm text-[#6B7280]">Escaneie o QR Code para conectar</p>
+              <h2 className="font-bold text-white text-base">Conexão WhatsApp</h2>
+              <p className="text-sm text-white/55">Escaneie o QR Code para conectar</p>
             </div>
           </div>
         </div>
@@ -73,20 +74,20 @@ export default function CRMWhatsAppTab() {
           {/* Loading */}
           {state === 'loading' && (
             <div className="py-12 flex flex-col items-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
-              <p className="text-sm text-[#6B7280]">Consultando status…</p>
+              <Loader2 className="w-8 h-8 animate-spin text-[#60A5FA]" />
+              <p className="text-sm text-white/55">Consultando status…</p>
             </div>
           )}
 
           {/* Conectado */}
           {state === 'connected' && (
             <div className="py-10 flex flex-col items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-emerald-50 ring-2 ring-emerald-200 flex items-center justify-center">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+              <div className="w-20 h-20 rounded-full bg-emerald-400/[0.12] ring-2 ring-emerald-400/30 flex items-center justify-center">
+                <CheckCircle2 className="w-10 h-10 text-emerald-300" />
               </div>
               <div className="text-center">
-                <p className="font-bold text-[#111827] text-lg">WhatsApp Conectado</p>
-                <p className="text-sm text-[#6B7280] mt-1">As mensagens automáticas estão ativas.</p>
+                <p className="font-bold text-white text-lg">WhatsApp Conectado</p>
+                <p className="text-sm text-white/55 mt-1">As mensagens automáticas estão ativas.</p>
               </div>
               <StatusPill connected />
             </div>
@@ -100,18 +101,18 @@ export default function CRMWhatsAppTab() {
                 <img
                   src={qrCode}
                   alt="QR Code WhatsApp"
-                  className="w-56 h-56 rounded-xl border border-black/10 shadow-sm"
+                  className="w-56 h-56 rounded-xl border border-white/15 shadow-[0_8px_24px_rgba(0,0,0,0.4)] bg-white p-2"
                 />
                 {/* badge de recarregamento automático */}
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-black/10 rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-[#6B7280] whitespace-nowrap shadow-sm">
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#0A1124] border border-white/15 rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-white/60 whitespace-nowrap shadow-sm">
                   Atualiza em 15s
                 </div>
               </div>
 
-              <ol className="text-left text-sm text-[#374151] space-y-1.5 w-full max-w-xs">
-                <li className="flex items-start gap-2"><Step n={1} />Abra o <b>WhatsApp</b> no celular</li>
-                <li className="flex items-start gap-2"><Step n={2} />Toque em <b>Menu → Aparelhos conectados</b></li>
-                <li className="flex items-start gap-2"><Step n={3} />Toque em <b>Conectar um aparelho</b></li>
+              <ol className="text-left text-sm text-white/80 space-y-1.5 w-full max-w-xs">
+                <li className="flex items-start gap-2"><Step n={1} />Abra o <b className="text-white">WhatsApp</b> no celular</li>
+                <li className="flex items-start gap-2"><Step n={2} />Toque em <b className="text-white">Menu → Aparelhos conectados</b></li>
+                <li className="flex items-start gap-2"><Step n={3} />Toque em <b className="text-white">Conectar um aparelho</b></li>
                 <li className="flex items-start gap-2"><Step n={4} />Aponte a câmera para o QR Code acima</li>
               </ol>
             </>
@@ -120,10 +121,10 @@ export default function CRMWhatsAppTab() {
           {/* Erro */}
           {state === 'error' && (
             <div className="py-8 flex flex-col items-center gap-4 text-center">
-              <WifiOff className="w-10 h-10 text-red-400" />
+              <WifiOff className="w-10 h-10 text-rose-300" />
               <div>
-                <p className="font-semibold text-[#111827]">Não foi possível obter o QR Code</p>
-                <p className="text-sm text-[#6B7280] mt-1">{error}</p>
+                <p className="font-semibold text-white">Não foi possível obter o QR Code</p>
+                <p className="text-sm text-white/55 mt-1">{error}</p>
               </div>
             </div>
           )}
@@ -133,13 +134,13 @@ export default function CRMWhatsAppTab() {
             <div className="flex flex-col items-center gap-1.5 mt-1">
               <button
                 onClick={fetchQR}
-                className="flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#1d4ed8] transition-colors"
+                className="flex items-center gap-2 text-sm font-semibold text-[#93C5FD] hover:text-white transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
                 Atualizar
               </button>
               {lastRefresh && (
-                <span className="text-[11px] text-[#9CA3AF]">
+                <span className="text-[11px] text-white/40">
                   Atualizado às {lastRefresh.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               )}
@@ -149,7 +150,7 @@ export default function CRMWhatsAppTab() {
       </div>
 
       {/* Dica */}
-      <p className="text-xs text-center text-[#9CA3AF] mt-4">
+      <p className="text-xs text-center text-white/40 mt-4">
         A conexão é mantida pelo dispositivo físico. Mantenha o celular com internet.
       </p>
     </div>
@@ -160,8 +161,8 @@ function StatusPill({ connected }) {
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${
       connected
-        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-        : 'bg-amber-50 text-amber-700 border-amber-200'
+        ? 'bg-emerald-400/[0.12] text-emerald-200 border-emerald-400/30'
+        : 'bg-amber-400/[0.12] text-amber-200 border-amber-400/30'
     }`}>
       {connected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
       {connected ? 'Conectado' : 'Desconectado'}
@@ -171,7 +172,7 @@ function StatusPill({ connected }) {
 
 function Step({ n }) {
   return (
-    <span className="w-5 h-5 rounded-full bg-[#2563EB] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+    <span className="w-5 h-5 rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5 shadow-[0_4px_12px_rgba(37,99,235,0.4)] ring-1 ring-white/15">
       {n}
     </span>
   );

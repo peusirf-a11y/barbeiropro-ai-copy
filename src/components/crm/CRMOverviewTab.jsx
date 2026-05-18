@@ -35,17 +35,17 @@ export default function CRMOverviewTab({ companyId, customers, messages }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Kpi icon={Send} label="Mensagens enviadas" value={sent + simulated} sub={simulated > 0 ? `${simulated} em modo teste` : null} color="text-[#2563EB]" />
-        <Kpi icon={CheckCircle} label="Clientes recuperados" value={recoveredCount} sub={`${recoveryRate}% taxa de retorno`} color="text-emerald-600" />
-        <Kpi icon={MessageSquare} label="Total de envios" value={messages.length} color="text-gray-700" />
-        <Kpi icon={AlertCircle} label="Falhas" value={errors} color="text-red-500" />
+        <Kpi icon={Send} label="Mensagens enviadas" value={sent + simulated} sub={simulated > 0 ? `${simulated} em modo teste` : null} color="text-[#93C5FD]" />
+        <Kpi icon={CheckCircle} label="Clientes recuperados" value={recoveredCount} sub={`${recoveryRate}% taxa de retorno`} color="text-emerald-300" />
+        <Kpi icon={MessageSquare} label="Total de envios" value={messages.length} color="text-white/70" />
+        <Kpi icon={AlertCircle} label="Falhas" value={errors} color="text-rose-300" />
       </div>
 
       <RetentionCampaignsCard companyId={companyId} customers={customers} />
 
       {/* Atalhos para segmentos críticos */}
-      <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-[var(--shadow-sm)]">
-        <h3 className="font-bold text-[#111827] mb-4">Quem precisa de atenção agora</h3>
+      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5">
+        <h3 className="font-bold text-white mb-4">Quem precisa de atenção agora</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <SegmentCard label="Em risco" count={counts.em_risco || 0} accent="amber" filter="em_risco" />
           <SegmentCard label="Inativos" count={counts.inativo || 0} accent="orange" filter="inativo" />
@@ -57,24 +57,24 @@ export default function CRMOverviewTab({ companyId, customers, messages }) {
   );
 }
 
-function Kpi({ icon: Icon, label, value, sub, color = 'text-gray-700' }) {
+function Kpi({ icon: Icon, label, value, sub, color = 'text-white/70' }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-4 sm:p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200">
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4 sm:p-5 hover:border-blue-400/25 hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center gap-2 mb-2">
         <Icon className={`w-4 h-4 ${color}`} />
-        <span className="text-[11px] text-[#6B7280] font-semibold uppercase tracking-wider">{label}</span>
+        <span className="text-[11px] text-white/55 font-semibold uppercase tracking-wider">{label}</span>
       </div>
-      <div className="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight">{value}</div>
-      {sub && <div className="text-xs text-[#6B7280] mt-1">{sub}</div>}
+      <div className="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">{value}</div>
+      {sub && <div className="text-xs text-white/55 mt-1">{sub}</div>}
     </div>
   );
 }
 
 const ACCENT = {
-  amber:  { bg: 'bg-amber-50',  ring: 'border-amber-200',  text: 'text-amber-700',  num: 'text-amber-600' },
-  orange: { bg: 'bg-orange-50', ring: 'border-orange-200', text: 'text-orange-700', num: 'text-orange-600' },
-  red:    { bg: 'bg-red-50',    ring: 'border-red-200',    text: 'text-red-700',    num: 'text-red-600' },
-  violet: { bg: 'bg-violet-50', ring: 'border-violet-200', text: 'text-violet-700', num: 'text-violet-600' },
+  amber:  { bg: 'bg-amber-400/[0.12]',  ring: 'border-amber-400/30',  text: 'text-amber-200',  num: 'text-amber-300' },
+  orange: { bg: 'bg-orange-400/[0.12]', ring: 'border-orange-400/30', text: 'text-orange-200', num: 'text-orange-300' },
+  red:    { bg: 'bg-rose-400/[0.12]',   ring: 'border-rose-400/30',   text: 'text-rose-200',   num: 'text-rose-300' },
+  violet: { bg: 'bg-violet-400/[0.12]', ring: 'border-violet-400/30', text: 'text-violet-200', num: 'text-violet-300' },
 };
 
 function SegmentCard({ label, count, accent, filter }) {
@@ -82,7 +82,7 @@ function SegmentCard({ label, count, accent, filter }) {
   return (
     <Link
       to={`/app/clientes?filter=${filter}`}
-      className={`${a.bg} border ${a.ring} rounded-xl p-4 hover:-translate-y-0.5 transition-all duration-200 block group`}
+      className={`${a.bg} border ${a.ring} rounded-xl p-4 hover:-translate-y-0.5 hover:brightness-125 transition-all duration-200 block group backdrop-blur-md`}
     >
       <div className={`text-3xl font-black ${a.num} leading-none`}>{count}</div>
       <div className="flex items-center justify-between mt-2">
