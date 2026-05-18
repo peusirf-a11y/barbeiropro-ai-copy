@@ -8,9 +8,9 @@ import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import DeleteAccountSection from '@/components/configuracoes/DeleteAccountSection';
-import { Link } from 'react-router-dom';
 import { Building2, Sparkles, Shield, ShieldAlert } from 'lucide-react';
 import { useFeatures } from '@/hooks/useFeatures';
+import SettingsShortcutCard, { ActiveBadge } from '@/components/configuracoes/SettingsShortcutCard';
 
 const DAYS = [
   { key: 'seg', label: 'Segunda' }, { key: 'ter', label: 'Terça' }, { key: 'qua', label: 'Quarta' },
@@ -104,15 +104,16 @@ export default function AppConfiguracoes() {
 
         {/* Public link */}
         {form.slug && (
-          <div className="bg-gradient-to-br from-[#EFF6FF] to-white border border-[#DBEAFE] rounded-2xl p-5 mb-6 flex items-center gap-4 shadow-[var(--shadow-sm)]">
-            <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
+          <div className="relative rounded-2xl border border-blue-400/25 bg-gradient-to-br from-blue-500/15 to-transparent backdrop-blur-xl p-5 mb-6 flex items-center gap-4 shadow-[0_8px_24px_rgba(37,99,235,0.2)] overflow-hidden">
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#60A5FA]/20 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
+            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center flex-shrink-0 ring-1 ring-white/15 shadow-[0_4px_12px_rgba(37,99,235,0.4)]">
               <Globe className="w-5 h-5 text-white" />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-semibold text-[#2563EB] uppercase tracking-wider mb-0.5">Seu link público de agendamento</div>
-              <div className="text-sm font-semibold text-[#111827] break-all">{publicLink}</div>
+            <div className="relative flex-1 min-w-0">
+              <div className="text-[11px] font-semibold text-[#93C5FD] uppercase tracking-wider mb-0.5">Seu link público de agendamento</div>
+              <div className="text-sm font-semibold text-white break-all">{publicLink}</div>
             </div>
-            <button onClick={copyLink} className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-shrink-0 ${copied ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8] shadow-[0_4px_12px_rgba(37,99,235,0.25)]'}`}>
+            <button onClick={copyLink} className={`relative flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-shrink-0 ${copied ? 'bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/30' : 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white ring-1 ring-white/15 hover:brightness-110 shadow-[0_4px_12px_rgba(37,99,235,0.4)]'}`}>
               {copied ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copiado!' : 'Copiar'}
             </button>
@@ -121,27 +122,27 @@ export default function AppConfiguracoes() {
 
         <div className="space-y-6">
           {/* Basic info */}
-          <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-            <h2 className="font-bold text-[#111827] mb-5">Informações básicas</h2>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <h2 className="font-bold text-white mb-5">Informações básicas</h2>
 
             {/* Logo upload */}
             <div className="mb-5">
-              <label className="text-xs font-semibold text-gray-500 block mb-2">Logo da barbearia</label>
+              <label className="text-xs font-semibold text-white/55 block mb-2">Logo da barbearia</label>
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl border border-black/10 overflow-hidden flex items-center justify-center bg-gray-50 flex-shrink-0">
+                <div className="w-16 h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center bg-white/[0.04] flex-shrink-0">
                   {form.logo_url ? (
                     <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-2xl font-black text-gray-300">{form.name?.[0] || '?'}</span>
+                    <span className="text-2xl font-black text-white/25">{form.name?.[0] || '?'}</span>
                   )}
                 </div>
-                <label className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-gray-50 border border-black/10 hover:bg-gray-100 transition-colors cursor-pointer">
+                <label className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/12 text-white/80 hover:bg-white/[0.08] hover:border-white/20 transition-colors cursor-pointer">
                   {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   {uploadingLogo ? 'Enviando...' : 'Enviar logo'}
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
                 </label>
                 {form.logo_url && (
-                  <button onClick={() => setForm(p => ({ ...p, logo_url: '' }))} className="text-xs text-red-500 hover:text-red-700">
+                  <button onClick={() => setForm(p => ({ ...p, logo_url: '' }))} className="text-xs text-red-300 hover:text-red-200">
                     Remover
                   </button>
                 )}
@@ -156,52 +157,52 @@ export default function AppConfiguracoes() {
                 { label: 'WhatsApp', key: 'whatsapp', placeholder: '11999999999' },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
+                  <label className="text-xs font-semibold text-white/55 block mb-1">{f.label}</label>
                   <input type="text" value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                    className="w-full px-3 py-2.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white placeholder:text-white/30" />
                 </div>
               ))}
               <div className="md:col-span-2">
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Endereço</label>
+                <label className="text-xs font-semibold text-white/55 block mb-1">Endereço</label>
                 <input type="text" value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
                   placeholder="Rua, número, bairro, cidade"
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                  className="w-full px-3 py-2.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white placeholder:text-white/30" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Cor principal</label>
+                <label className="text-xs font-semibold text-white/55 block mb-1">Cor principal</label>
                 <div className="flex items-center gap-3">
                   <input type="color" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                    className="w-10 h-10 rounded-lg border border-black/10 cursor-pointer" />
+                    className="w-10 h-10 rounded-lg border border-white/10 bg-white/[0.03] cursor-pointer" />
                   <input type="text" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                    className="flex-1 px-3 py-2.5 border border-black/10 rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                    className="flex-1 px-3 py-2.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Business hours */}
-          <div className="bg-white rounded-2xl border border-black/5 p-4 sm:p-6 shadow-[var(--shadow-sm)]">
-            <h2 className="font-bold text-[#111827] mb-4">Horários de funcionamento</h2>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-4 sm:p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <h2 className="font-bold text-white mb-4">Horários de funcionamento</h2>
             <div className="space-y-1">
               {DAYS.map(({ key, label }) => {
                 const h = form.business_hours[key] || { open: '09:00', close: '19:00', active: false };
                 return (
-                  <div key={key} className="grid grid-cols-[88px_1fr_auto_1fr] items-center gap-2 py-1.5 border-b border-black/5 last:border-b-0">
+                  <div key={key} className="grid grid-cols-[88px_1fr_auto_1fr] items-center gap-2 py-1.5 border-b border-white/6 last:border-b-0">
                     <label className="flex items-center gap-1.5 min-w-0">
-                      <input type="checkbox" checked={h.active} onChange={e => setHour(key, 'active', e.target.checked)} className="flex-shrink-0" />
-                      <span className={`text-sm font-semibold truncate ${h.active ? 'text-[#111827]' : 'text-[#6B7280]'}`}>{label}</span>
+                      <input type="checkbox" checked={h.active} onChange={e => setHour(key, 'active', e.target.checked)} className="flex-shrink-0 accent-[#2563EB]" />
+                      <span className={`text-sm font-semibold truncate ${h.active ? 'text-white' : 'text-white/40'}`}>{label}</span>
                     </label>
                     {h.active ? (
                       <>
                         <input type="time" value={h.open} onChange={e => setHour(key, 'open', e.target.value)}
-                          className="w-full min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
-                        <span className="text-gray-400 text-xs px-1">até</span>
+                          className="w-full min-w-0 px-2 py-1.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white" />
+                        <span className="text-white/40 text-xs px-1">até</span>
                         <input type="time" value={h.close} onChange={e => setHour(key, 'close', e.target.value)}
-                          className="w-full min-w-0 px-2 py-1.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                          className="w-full min-w-0 px-2 py-1.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white" />
                       </>
                     ) : (
-                      <span className="text-sm text-gray-400 col-span-3">Fechado</span>
+                      <span className="text-sm text-white/35 col-span-3">Fechado</span>
                     )}
                   </div>
                 );
@@ -212,7 +213,7 @@ export default function AppConfiguracoes() {
 
         <div className="mt-6">
           <button onClick={handleSave}
-            className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#1d4ed8] transition-all shadow-[0_4px_12px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.35)] active:scale-[0.98]">
+            className="flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white px-6 py-3 rounded-xl font-semibold ring-1 ring-white/15 hover:brightness-110 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] active:scale-[0.98]">
             <Save className="w-4 h-4" />
             Salvar configurações
           </button>
@@ -220,91 +221,49 @@ export default function AppConfiguracoes() {
 
         {/* Stripe Connect — atalho para a página dedicada */}
         {company && has('stripe_payments') && (
-          <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-            <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
-              <h2 className="font-bold text-[#111827]">Pagamentos online</h2>
-              {company?.stripe_connect_charges_enabled && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Ativo
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-[#6B7280] mb-4">
-              Conecte sua conta Stripe para receber pagamentos via Pix e cartão direto pelo seu link público.
-            </p>
-            <Link
-              to="/app/configuracoes/pagamentos"
-              className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
-            >
-              <CreditCard className="w-4 h-4" />
-              Gerenciar pagamentos
-            </Link>
-          </div>
+          <SettingsShortcutCard
+            title="Pagamentos online"
+            description="Conecte sua conta Stripe para receber pagamentos via Pix e cartão direto pelo seu link público."
+            icon={CreditCard}
+            ctaLabel="Gerenciar pagamentos"
+            to="/app/configuracoes/pagamentos"
+            statusBadge={company?.stripe_connect_charges_enabled ? <ActiveBadge /> : null}
+          />
         )}
 
         {/* Multi-unidade */}
         {has('multi_units') && (
-        <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-          <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
-            <h2 className="font-bold text-[#111827]">Unidades</h2>
-            {company?.multi_unit_enabled && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Ativo
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-[#6B7280] mb-4">
-            Gerencie filiais da sua barbearia, defina como os clientes são organizados entre unidades e ative o seletor no topo do app.
-          </p>
-          <Link
+          <SettingsShortcutCard
+            title="Unidades"
+            description="Gerencie filiais da sua barbearia, defina como os clientes são organizados entre unidades e ative o seletor no topo do app."
+            icon={Building2}
+            ctaLabel="Gerenciar unidades"
             to="/app/configuracoes/unidades"
-            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
-          >
-            <Building2 className="w-4 h-4" />
-            Gerenciar unidades
-          </Link>
-        </div>
+            statusBadge={company?.multi_unit_enabled ? <ActiveBadge /> : null}
+          />
         )}
 
         {/* CRM & Retenção — central unificada */}
         {has('crm_retention') && (
-        <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-          <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
-            <h2 className="font-bold text-[#111827]">CRM & Retenção</h2>
-          </div>
-          <p className="text-sm text-[#6B7280] mb-4">
-            Lifecycle dos clientes, sugestões de VIP, campanhas automáticas e mensagens transacionais — tudo em um só lugar.
-          </p>
-          <Link
+          <SettingsShortcutCard
+            title="CRM & Retenção"
+            description="Lifecycle dos clientes, sugestões de VIP, campanhas automáticas e mensagens transacionais — tudo em um só lugar."
+            icon={Sparkles}
+            ctaLabel="Abrir central de CRM"
             to="/app/crm"
-            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
-          >
-            <Sparkles className="w-4 h-4" />
-            Abrir central de CRM
-          </Link>
-        </div>
+          />
         )}
 
         {/* Privacidade & LGPD */}
         {company && (
-          <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-            <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
-              <h2 className="font-bold text-[#111827]">Privacidade & LGPD</h2>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                ✓ Compliance ativo
-              </span>
-            </div>
-            <p className="text-sm text-[#6B7280] mb-4">
-              Central de auditoria LGPD, exportação de dados, anonimização, gestão de consentimentos e direitos dos titulares.
-            </p>
-            <Link
-              to="/app/configuracoes/privacidade"
-              className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
-            >
-              <Shield className="w-4 h-4" />
-              Abrir central de privacidade
-            </Link>
-          </div>
+          <SettingsShortcutCard
+            title="Privacidade & LGPD"
+            description="Central de auditoria LGPD, exportação de dados, anonimização, gestão de consentimentos e direitos dos titulares."
+            icon={Shield}
+            ctaLabel="Abrir central de privacidade"
+            to="/app/configuracoes/privacidade"
+            statusBadge={<ActiveBadge>✓ Compliance ativo</ActiveBadge>}
+          />
         )}
 
         <div className="mt-8">
@@ -313,21 +272,13 @@ export default function AppConfiguracoes() {
 
         {/* Segurança & Auditoria */}
         {company && (
-          <div className="mt-6 bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
-            <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
-              <h2 className="font-bold text-[#111827]">Segurança & Auditoria</h2>
-            </div>
-            <p className="text-sm text-[#6B7280] mb-4">
-              Trilha de auditoria de ações críticas, alertas de segurança e eventos da sua conta.
-            </p>
-            <Link
-              to="/app/configuracoes/seguranca"
-              className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition-colors"
-            >
-              <ShieldAlert className="w-4 h-4" />
-              Ver auditoria e segurança
-            </Link>
-          </div>
+          <SettingsShortcutCard
+            title="Segurança & Auditoria"
+            description="Trilha de auditoria de ações críticas, alertas de segurança e eventos da sua conta."
+            icon={ShieldAlert}
+            ctaLabel="Ver auditoria e segurança"
+            to="/app/configuracoes/seguranca"
+          />
         )}
 
         {/* Zona de risco — sair / excluir conta */}
