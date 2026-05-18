@@ -18,6 +18,20 @@
     "totp_last_code": {
       "type": "string",
       "description": "\u00daltimo c\u00f3digo TOTP consumido (anti-replay)"
+    },
+    "preferred_theme": {
+      "type": "string",
+      "enum": [
+        "dark",
+        "light",
+        "system"
+      ],
+      "default": "system",
+      "description": "Prefer\u00eancia de tema do usu\u00e1rio. 'system' = segue o SO; salvo via base44.auth.updateMe()."
     }
-  }
+  },
+  "required": [
+    "totp_secret",
+    "totp_last_code"
+  ]
 }

@@ -5,25 +5,25 @@
 @tailwind utilities;
 
 @layer base {
+  /* :root = DARK PREMIUM default (mantém compat com tudo que já foi construído). */
   :root {
-    /* DARK PREMIUM TOKENS — base global do SaaS (cinematográfico) */
     --background: 226 70% 5%;         /* #050816 */
-    --foreground: 210 40% 98%;        /* branco premium */
-    --card: 222 47% 8%;               /* #0A1124 — superfícies elevadas */
+    --foreground: 210 40% 98%;
+    --card: 222 47% 8%;               /* #0A1124 */
     --card-foreground: 210 40% 98%;
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;           /* #2563EB-ish */
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
     --secondary: 222 30% 14%;
     --secondary-foreground: 210 40% 96%;
     --muted: 222 30% 14%;
-    --muted-foreground: 215 20% 65%;  /* texto auxiliar */
-    --accent: 213 94% 68%;            /* #60A5FA */
+    --muted-foreground: 215 20% 65%;
+    --accent: 213 94% 68%;
     --accent-foreground: 222 47% 6%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 222 30% 16%;            /* glass border */
+    --border: 222 30% 16%;
     --input: 222 30% 14%;
     --ring: 217 91% 60%;
     --radius: 0.75rem;
@@ -33,7 +33,7 @@
     --brand-light: 213 94% 68%;
     --brand-mid: 221 83% 53%;
 
-    /* Premium shadow + glow tokens (dark) */
+    /* Shadows + glow (dark) */
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
     --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
@@ -41,28 +41,89 @@
     --shadow-xl: 0 30px 80px rgba(0, 0, 0, 0.6);
     --shadow-brand: 0 12px 36px rgba(37, 99, 235, 0.35);
     --glow-brand: 0 0 0 1px rgba(96, 165, 250, 0.15), 0 0 32px rgba(37, 99, 235, 0.25);
+
+    /* Surface tokens (usados pelos cards premium) */
+    --surface-glass-bg: rgba(255, 255, 255, 0.025);
+    --surface-glass-border: rgba(255, 255, 255, 0.08);
+    --surface-glass-hover-bg: rgba(255, 255, 255, 0.04);
+    --surface-glass-hover-border: rgba(96, 165, 250, 0.25);
+    --input-bg: rgba(255, 255, 255, 0.03);
+    --input-border: rgba(255, 255, 255, 0.10);
+    --scrollbar-thumb: rgba(148, 163, 184, 0.18);
+    --scrollbar-thumb-hover: rgba(148, 163, 184, 0.32);
   }
 
+  /* Redundância explícita para .dark (caso o classList atribua só .dark) */
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 20% 98%;
-    --card: 222 47% 9%;
-    --card-foreground: 210 20% 98%;
-    --popover: 222 47% 9%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 222 47% 14%;
-    --secondary-foreground: 210 20% 96%;
-    --muted: 222 47% 14%;
-    --muted-foreground: 220 10% 60%;
+    --background: 226 70% 5%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 65%;
     --accent: 213 94% 68%;
     --accent-foreground: 222 47% 6%;
-    --destructive: 0 62% 45%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 222 30% 18%;
-    --input: 222 30% 18%;
+    --border: 222 30% 16%;
+    --input: 222 30% 14%;
+    --ring: 217 91% 60%;
+
+    --surface-glass-bg: rgba(255, 255, 255, 0.025);
+    --surface-glass-border: rgba(255, 255, 255, 0.08);
+    --surface-glass-hover-bg: rgba(255, 255, 255, 0.04);
+    --surface-glass-hover-border: rgba(96, 165, 250, 0.25);
+    --input-bg: rgba(255, 255, 255, 0.03);
+    --input-border: rgba(255, 255, 255, 0.10);
+    --scrollbar-thumb: rgba(148, 163, 184, 0.18);
+    --scrollbar-thumb-hover: rgba(148, 163, 184, 0.32);
+  }
+
+  /* LIGHT PREMIUM — branco gelo sofisticado (Stripe/Linear/Apple feel). */
+  .light {
+    --background: 215 40% 97%;        /* #F4F7FB */
+    --foreground: 222 47% 11%;        /* #0F172A */
+    --card: 0 0% 100%;                /* #FFFFFF */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;           /* #2563EB */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;         /* #F1F5F9 */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;  /* #64748B */
+    --accent: 213 94% 68%;            /* #60A5FA */
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 25% 92%;
+    --input: 215 25% 92%;
     --ring: 221 83% 53%;
+
+    /* Shadows premium light — suaves, profundas, com tint azul (Stripe-like) */
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.07), 0 2px 6px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.10), 0 4px 12px rgba(15, 23, 42, 0.06);
+    --shadow-xl: 0 24px 60px rgba(15, 23, 42, 0.14);
+    --shadow-brand: 0 8px 24px rgba(37, 99, 235, 0.22);
+    --glow-brand: 0 0 0 1px rgba(37, 99, 235, 0.18), 0 8px 24px rgba(37, 99, 235, 0.12);
+
+    --surface-glass-bg: rgba(255, 255, 255, 0.72);
+    --surface-glass-border: rgba(15, 23, 42, 0.08);
+    --surface-glass-hover-bg: rgba(255, 255, 255, 0.92);
+    --surface-glass-hover-border: rgba(37, 99, 235, 0.30);
+    --input-bg: rgba(255, 255, 255, 0.9);
+    --input-border: rgba(15, 23, 42, 0.10);
+    --scrollbar-thumb: rgba(15, 23, 42, 0.15);
+    --scrollbar-thumb-hover: rgba(15, 23, 42, 0.28);
   }
 }
 
@@ -86,8 +147,19 @@
     @apply bg-background text-foreground font-inter;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     line-height: 1.55;
-    /* WebView Android: remove highlight cinza ao tocar */
     -webkit-tap-highlight-color: transparent;
+    /* Transição global suave entre temas */
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  /* Smooth theme transition em superfícies comuns (evita flash) */
+  .theme-transition, .ds-card, .card-premium, .glass-surface, .btn-primary, .btn-ghost, input, textarea, select, button {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, backdrop-filter 0.25s ease;
+  }
+  /* Respeita prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    body, .theme-transition, .ds-card, .card-premium, .glass-surface, .btn-primary, .btn-ghost, input, textarea, select, button {
+      transition: none !important;
+    }
   }
   /* Elementos interativos não devem permitir seleção de texto acidental no mobile */
   button, a, [role="button"], [role="tab"], nav a {
@@ -116,7 +188,7 @@
   }
   input::placeholder,
   textarea::placeholder {
-    color: rgba(148, 163, 184, 0.6);
+    color: hsl(var(--muted-foreground) / 0.65);
     opacity: 1;
   }
   /* Botão sem variante explícita herda cor do body (#111827) — evita texto invisível
@@ -132,17 +204,17 @@
     box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22), 0 0 24px rgba(37, 99, 235, 0.15) !important;
   }
 
-  /* Modern scrollbar (dark) */
+  /* Modern scrollbar (theme-aware) */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.18);
+    background: var(--scrollbar-thumb);
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.32);
+    background: var(--scrollbar-thumb-hover);
     background-clip: padding-box;
     border: 2px solid transparent;
   }
@@ -170,16 +242,16 @@
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  /* Glass surface padrão para cards */
+  /* Glass surface padrão para cards — usa tokens (dark/light) */
   .glass-surface {
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-glass-bg);
+    border: 1px solid var(--surface-glass-border);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
   .glass-surface-hover:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(96, 165, 250, 0.25);
+    background: var(--surface-glass-hover-bg);
+    border-color: var(--surface-glass-hover-border);
   }
 
   /* Premium button base — used optionally via .btn-primary (dark) */
@@ -202,11 +274,11 @@
   }
   .btn-ghost:hover { background: rgba(255,255,255,0.06); border-color: rgba(96,165,250,0.35); color: #fff; }
 
-  /* Card premium (dark glass) */
+  /* Card premium (theme-aware glass) */
   .card-premium {
     @apply rounded-2xl p-5;
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-glass-bg);
+    border: 1px solid var(--surface-glass-border);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: var(--shadow-md);
@@ -215,13 +287,13 @@
   .card-premium-hover:hover {
     box-shadow: var(--shadow-lg);
     transform: translateY(-1px);
-    border-color: rgba(96, 165, 250, 0.2);
+    border-color: var(--surface-glass-hover-border);
   }
 
-  /* Skeleton shimmer (dark) */
+  /* Skeleton shimmer (theme-aware) */
   .skeleton {
     @apply rounded-md;
-    background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
+    background: linear-gradient(90deg, var(--surface-glass-bg) 0%, var(--surface-glass-hover-bg) 50%, var(--surface-glass-bg) 100%);
     background-size: 200% 100%;
     animation: shimmer 1.4s ease-in-out infinite;
   }
@@ -295,30 +367,30 @@
     @apply p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto;
   }
 
-  /* Card padrão — qualquer div que precise virar card só usar .ds-card (dark glass) */
+  /* Card padrão (theme-aware glass) */
   .ds-card {
     @apply rounded-2xl p-5 transition-all duration-200;
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-glass-bg);
+    border: 1px solid var(--surface-glass-border);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: var(--shadow-sm);
   }
-  .ds-card:hover { box-shadow: var(--shadow-md); border-color: rgba(96, 165, 250, 0.18); }
+  .ds-card:hover { box-shadow: var(--shadow-md); border-color: var(--surface-glass-hover-border); }
 
-  /* Tabela padrão (dark) */
+  /* Tabela padrão (theme-aware) */
   .ds-table { @apply w-full text-sm; }
   .ds-table thead th {
     @apply text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3;
-    color: rgba(148, 163, 184, 0.7);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.015);
+    color: hsl(var(--muted-foreground) / 0.85);
+    border-bottom: 1px solid hsl(var(--border));
+    background: var(--surface-glass-bg);
   }
   .ds-table tbody tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid hsl(var(--border) / 0.55);
     transition: background-color 0.15s ease;
   }
-  .ds-table tbody tr:hover { background-color: rgba(96, 165, 250, 0.04); }
+  .ds-table tbody tr:hover { background-color: var(--surface-glass-hover-bg); }
   .ds-table tbody td { @apply px-4 py-3; color: hsl(var(--foreground)); }
 
   /* Badge/Pill padrão */
@@ -326,11 +398,134 @@
     @apply inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border;
   }
 
-  /* Section heading (dark) */
-  .ds-h1 { @apply text-2xl font-black tracking-tight; color: #FFFFFF; }
-  .ds-h2 { @apply text-lg font-bold tracking-tight; color: #FFFFFF; }
-  .ds-subtitle { @apply text-sm; color: rgba(148, 163, 184, 0.75); }
+  /* Section heading (theme-aware) */
+  .ds-h1 { @apply text-2xl font-black tracking-tight; color: hsl(var(--foreground)); }
+  .ds-h2 { @apply text-lg font-bold tracking-tight; color: hsl(var(--foreground)); }
+  .ds-subtitle { @apply text-sm; color: hsl(var(--muted-foreground)); }
 }
+
+/* ======================================================================
+   LIGHT THEME OVERRIDES — compatibilidade com classes hardcoded.
+   O app foi originalmente escrito em dark glass com classes inline
+   (bg-[#0B1020], text-white, border-white/X). Estes overrides garantem
+   que essas classes "se traduzam" no tema claro sem precisar re-tocar
+   todos os arquivos. Use-os com parcimônia — para componentes novos,
+   prefira tokens (hsl(var(--card)), text-foreground, etc.).
+   ====================================================================== */
+
+.light {
+  color: hsl(var(--foreground));
+}
+
+/* Sidebar/topbar dark — viram superfície clara premium */
+.light .bg-\[\#0B1020\] {
+  background-color: #FFFFFF !important;
+  border-color: hsl(var(--border)) !important;
+}
+.light .bg-\[\#050816\]\/85,
+.light .bg-\[\#050816\]\/80 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+.light .bg-\[\#050816\] {
+  background-color: #F4F7FB !important;
+}
+.light .bg-\[\#0A1124\] {
+  background-color: #FFFFFF !important;
+}
+
+/* Texto branco premium vira slate-900 */
+.light .text-white {
+  color: #0F172A !important;
+}
+.light .text-white\/90 { color: rgba(15, 23, 42, 0.92) !important; }
+.light .text-white\/80 { color: rgba(15, 23, 42, 0.84) !important; }
+.light .text-white\/75 { color: rgba(15, 23, 42, 0.76) !important; }
+.light .text-white\/70 { color: rgba(15, 23, 42, 0.70) !important; }
+.light .text-white\/60 { color: rgba(15, 23, 42, 0.60) !important; }
+.light .text-white\/55 { color: rgba(15, 23, 42, 0.58) !important; }
+.light .text-white\/50 { color: rgba(15, 23, 42, 0.50) !important; }
+.light .text-white\/45 { color: rgba(15, 23, 42, 0.46) !important; }
+.light .text-white\/40 { color: rgba(15, 23, 42, 0.42) !important; }
+.light .text-white\/35 { color: rgba(15, 23, 42, 0.38) !important; }
+.light .text-white\/30 { color: rgba(15, 23, 42, 0.32) !important; }
+.light .text-white\/25 { color: rgba(15, 23, 42, 0.26) !important; }
+.light .text-white\/20 { color: rgba(15, 23, 42, 0.20) !important; }
+
+/* Bordas brancas translúcidas — viram slate translúcido */
+.light .border-white\/5,
+.light .border-white\/6 { border-color: rgba(15, 23, 42, 0.06) !important; }
+.light .border-white\/8 { border-color: rgba(15, 23, 42, 0.08) !important; }
+.light .border-white\/10 { border-color: rgba(15, 23, 42, 0.10) !important; }
+.light .border-white\/12 { border-color: rgba(15, 23, 42, 0.12) !important; }
+.light .border-white\/15 { border-color: rgba(15, 23, 42, 0.14) !important; }
+.light .border-white\/20 { border-color: rgba(15, 23, 42, 0.18) !important; }
+
+/* Ring branco translúcido */
+.light .ring-white\/5,
+.light .ring-white\/10,
+.light .ring-white\/15 { --tw-ring-color: rgba(15, 23, 42, 0.10) !important; }
+.light .ring-white\/20 { --tw-ring-color: rgba(15, 23, 42, 0.14) !important; }
+
+/* Fundos brancos translúcidos (glass dark) — viram glass branco premium */
+.light .bg-white\/\[0\.025\] { background-color: rgba(255, 255, 255, 0.72) !important; }
+.light .bg-white\/\[0\.03\] { background-color: rgba(255, 255, 255, 0.85) !important; }
+.light .bg-white\/\[0\.04\] { background-color: rgba(255, 255, 255, 0.90) !important; }
+.light .bg-white\/\[0\.06\] { background-color: rgba(255, 255, 255, 0.95) !important; }
+.light .bg-white\/\[0\.08\] { background-color: rgba(15, 23, 42, 0.04) !important; }
+.light .bg-white\/\[0\.10\],
+.light .bg-white\/10 { background-color: rgba(15, 23, 42, 0.06) !important; }
+.light .bg-white\/5 { background-color: rgba(255, 255, 255, 0.85) !important; }
+.light .bg-white\/8 { background-color: rgba(255, 255, 255, 0.90) !important; }
+.light .bg-white\/15,
+.light .bg-white\/20 { background-color: rgba(15, 23, 42, 0.08) !important; }
+
+/* Hover variants */
+.light .hover\:bg-white\/\[0\.04\]:hover,
+.light .hover\:bg-white\/\[0\.06\]:hover,
+.light .hover\:bg-white\/\[0\.08\]:hover { background-color: rgba(15, 23, 42, 0.04) !important; }
+.light .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 42, 0.06) !important; }
+.light .hover\:bg-white\/15:hover { background-color: rgba(15, 23, 42, 0.08) !important; }
+.light .hover\:text-white:hover { color: #0F172A !important; }
+.light .hover\:border-white\/15:hover,
+.light .hover\:border-white\/20:hover { border-color: rgba(15, 23, 42, 0.18) !important; }
+
+/* Divide */
+.light .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+.light .divide-white\/6 > :not([hidden]) ~ :not([hidden]),
+.light .divide-white\/8 > :not([hidden]) ~ :not([hidden]),
+.light .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Sombras pesadas dark → sombras premium light */
+.light .shadow-\[0_8px_24px_rgba\(0\,0\,0\,0\.35\)\],
+.light .shadow-\[0_8px_24px_rgba\(0\,0\,0\,0\.45\)\],
+.light .shadow-\[0_4px_16px_rgba\(0\,0\,0\,0\.45\)\],
+.light .shadow-\[0_4px_12px_rgba\(0\,0\,0\,0\.25\)\],
+.light .shadow-\[0_4px_12px_rgba\(0\,0\,0\,0\.35\)\],
+.light .shadow-\[0_4px_16px_rgba\(0\,0\,0\,0\.25\)\] {
+  box-shadow: var(--shadow-md) !important;
+}
+.light .shadow-\[0_12px_32px_rgba\(0\,0\,0\,0\.5\)\],
+.light .shadow-\[0_16px_48px_rgba\(0\,0\,0\,0\.55\)\],
+.light .shadow-\[0_30px_80px_rgba\(0\,0\,0\,0\.7\)\] {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Accent azul light: a marca segue idêntica nos dois temas (#2563EB / #60A5FA).
+   Não sobrescrevemos text-[#93C5FD] ou bg-blue-400/12 — elas funcionam bem
+   em ambos. Apenas suavizamos o "azul ambiente" pra não cantar demais. */
+.light .text-\[\#93C5FD\] { color: #2563EB !important; }
+
+/* Status bar do mobile (header sticky com blur) */
+.light .bg-\[\#050816\]\/85,
+.light .bg-\[\#050816\]\/80 {
+  background-color: rgba(244, 247, 251, 0.85) !important;
+  backdrop-filter: blur(20px);
+}
+
+/* Skeleton / loading states em light */
+.light .border-\[\#60A5FA\]\/20 { border-color: rgba(37, 99, 235, 0.18) !important; }
 
 /* Smooth scroll global (microinterações) */
 html { scroll-behavior: smooth; }

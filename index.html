@@ -14,6 +14,23 @@
     <meta name="twitter:title" content="O CORTE" />
     <meta name="twitter:description" content="Sistema completo para barbearias modernas: agenda online, gestão de clientes, financeiro e IA de crescimento." />
     <title>O CORTE</title>
+    <!-- Anti-FOUC: aplica tema antes do React montar para evitar flash. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('ocorte_theme');
+          var resolved = stored;
+          if (!resolved || resolved === 'system') {
+            resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          var root = document.documentElement;
+          root.classList.add(resolved);
+          root.setAttribute('data-theme', resolved);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', resolved === 'dark' ? '#050816' : '#F4F7FB');
+        } catch (e) { /* noop */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

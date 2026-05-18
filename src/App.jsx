@@ -6,7 +6,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import ThemeSync from '@/components/ThemeSync';
+import { ThemeProvider } from '@/theme/ThemeProvider';
 import CookieConsentProvider from '@/components/cookies/CookieConsentProvider';
 import RootRedirect from '@/components/RootRedirect';
 import { ActiveUnitProvider } from '@/hooks/useActiveUnit';
@@ -92,7 +92,7 @@ import { Navigate } from 'react-router-dom';
 function App() {
   return (
     <ErrorBoundary>
-    <ThemeSync />
+    <ThemeProvider>
     <CookieConsentProvider>
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
@@ -198,6 +198,7 @@ function App() {
       </QueryClientProvider>
     </AuthProvider>
     </CookieConsentProvider>
+    </ThemeProvider>
     </ErrorBoundary>
   );
 }

@@ -7,6 +7,7 @@ import NavList from '@/components/layout/NavList';
 import MobileBottomTabs from '@/components/layout/MobileBottomTabs';
 import ImpersonationBanner from '@/components/master/ImpersonationBanner';
 import BillingPastDueBanner from '@/components/billing/BillingPastDueBanner';
+import ThemeToggle from '@/components/ThemeToggle';
 import PageTransition from '@/components/layout/PageTransition';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useCompany } from '@/hooks/useCompany';
@@ -242,7 +243,7 @@ export default function AppLayout({ children }) {
             <BrandMark size={32} tone="dark" />
           </Link>
         )}
-        <div className="ml-auto"><UnitSwitcher /></div>
+        <div className="ml-auto flex items-center gap-2"><ThemeToggle /><UnitSwitcher /></div>
       </header>
 
       {/* Desktop sidebar — DARK */}
@@ -265,6 +266,7 @@ export default function AppLayout({ children }) {
 
       {/* Desktop top header — dark glass com blur premium */}
       <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-[#050816]/80 backdrop-blur-xl border-b border-white/5 h-16 items-center justify-end px-8 gap-3">
+        <ThemeToggle />
         <UnitSwitcher />
         <div className="text-right">
           <div className="text-[11px] text-white/40 leading-none">Olá,</div>
