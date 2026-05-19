@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Scissors, Check, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useNavigate } from 'react-router-dom';
 import BusinessDetailsStep, { isBusinessDetailsValid } from '@/components/onboarding/BusinessDetailsStep';
+import { useAuth } from '@/lib/AuthContext';
 
 function sanitizeSlug(s) {
   return (s || '')
@@ -32,6 +33,7 @@ const STEPS = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [company, setCompany] = useState({ name: '', phone: '', whatsapp: '', address: '', slug: '', primary_color: '#2563EB' });
   const [businessDetails, setBusinessDetails] = useState({
@@ -44,6 +46,41 @@ export default function Onboarding() {
   const [companyId, setCompanyId] = useState(null);
   const [slugError, setSlugError] = useState('');
   const [validatingSlug, setValidatingSlug] = useState(false);
+
+  // Carrega a Company existente do usuário (criada pelo webhook do Stripe quando ele
+  // pagou o checkout) para pré-preencher o onboarding. Sem isso, criamos uma Company
+  // duplicada no step 2 — e o companyId pode ficar nulo, fazendo o onboarding nunca
+  // persistir os steps seguintes (incluindo onboarding_completed=true).
+  useEffect(() => {
+    if (!user?.email || companyId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await base44.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
+        const existing = list?.[0];
+        if (!existing || cancelled) return;
+        setCompanyId(existing.id);
+        setCompany(p => ({
+          ...p,
+          name: existing.name || p.name,
+          phone: existing.phone || p.phone,
+          whatsapp: existing.whatsapp || p.whatsapp,
+          address: existing.address || p.address,
+          slug: existing.slug || p.slug,
+          primary_color: existing.primary_color || p.primary_color,
+        }));
+        if (existing.business_type || existing.address_details) {
+          setBusinessDetails(p => ({
+            ...p,
+            business_type: existing.business_type || p.business_type,
+            phone: existing.phone || p.phone,
+            address_details: existing.address_details || p.address_details,
+          }));
+        }
+      } catch (e) { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.email, companyId]);
 
   const validateSlug = async (slug) => {
     const clean = sanitizeSlug(slug);
@@ -101,7 +138,17 @@ export default function Onboarding() {
         });
         setCompanyId(result.id);
       } else {
-        await base44.entities.Company.update(companyId, { slug: cleanSlug, onboarding_step: 3 });
+        // Persiste também os dados do step 1 (nome, telefone, whatsapp, endereço, cor)
+        // que podem ter sido editados depois do load inicial.
+        await base44.entities.Company.update(companyId, {
+          name: company.name,
+          phone: company.phone,
+          whatsapp: company.whatsapp,
+          address: company.address,
+          primary_color: company.primary_color,
+          slug: cleanSlug,
+          onboarding_step: 3,
+        });
       }
     }
     // Step 3 (novo): persiste dados fiscais + endereço estruturado na Company.
