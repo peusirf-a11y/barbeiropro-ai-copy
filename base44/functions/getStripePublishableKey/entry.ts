@@ -4,27 +4,17 @@
 
 Deno.serve(async () => {
   try {
-    const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
-    const isLive = env === 'live';
-    const key = (isLive ? Deno.env.get('STRIPE_PUBLISHABLE_KEY') : Deno.env.get('STRIPE_TEST_PUBLISHABLE_KEY')) || '';
-    const expectedPrefix = isLive ? 'pk_live_' : 'pk_test_';
-
+    const key = Deno.env.get('STRIPE_PUBLISHABLE_KEY') || '';
     if (!key) {
-      console.error(`[getStripePublishableKey] missing publishable key for environment=${env}`);
-      return Response.json({ error: `Publishable key missing for environment=${env}` }, { status: 500 });
+      console.error('[getStripePublishableKey] STRIPE_PUBLISHABLE_KEY missing');
+      return Response.json({ error: 'STRIPE_PUBLISHABLE_KEY missing' }, { status: 500 });
     }
-    if (!key.startsWith(expectedPrefix)) {
-      console.error(`[getStripePublishableKey] prefix mismatch: env=${env} expected=${expectedPrefix}`);
-      return Response.json({ error: `Publishable key prefix mismatch for environment=${env}` }, { status: 500 });
-    }
-
-    console.log(`[stripe] environment=${env}`);
     // Compat: mantém chaves antigas (publishable_key, test_mode) E novas (publishableKey, environment).
     return Response.json({
       publishableKey: key,
-      environment: env,
+      environment: 'live',
       publishable_key: key,
-      test_mode: !isLive,
+      test_mode: false,
     });
   } catch (error) {
     console.error('[getStripePublishableKey] error:', error.message);

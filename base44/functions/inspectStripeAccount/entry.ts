@@ -19,39 +19,9 @@ Deno.serve(async (req) => {
 
     const result = {
       account_id,
-      test: null,
       live: null,
-      platform_test: null,
       platform_live: null,
     };
-
-    // TEST
-    const testKey = Deno.env.get('STRIPE_TEST_SECRET_KEY');
-    if (testKey) {
-      const stripeTest = new Stripe(testKey);
-      try {
-        const platform = await stripeTest.accounts.retrieve();
-        result.platform_test = { id: platform.id, country: platform.country, type: platform.type };
-      } catch (e) {
-        result.platform_test = { error: e.message };
-      }
-      try {
-        const acct = await stripeTest.accounts.retrieve(account_id);
-        result.test = {
-          id: acct.id,
-          country: acct.country,
-          type: acct.type,
-          charges_enabled: acct.charges_enabled,
-          payouts_enabled: acct.payouts_enabled,
-          details_submitted: acct.details_submitted,
-          capabilities: acct.capabilities,
-        };
-      } catch (e) {
-        result.test = { error: e.message };
-      }
-    } else {
-      result.test = { error: 'STRIPE_TEST_SECRET_KEY ausente' };
-    }
 
     // LIVE
     const liveKey = Deno.env.get('STRIPE_SECRET_KEY');

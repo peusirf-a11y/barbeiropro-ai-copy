@@ -14,10 +14,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.0.0';
 
 function getStripeSecret() {
-  const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
-  const isLive = env === 'live';
-  const key = (isLive ? Deno.env.get('STRIPE_SECRET_KEY') : Deno.env.get('STRIPE_TEST_SECRET_KEY')) || '';
-  if (!key) throw new Error(`Stripe secret missing for environment=${env}`);
+  const key = Deno.env.get('STRIPE_SECRET_KEY') || '';
+  if (!key) throw new Error('STRIPE_SECRET_KEY missing');
   return key;
 }
 

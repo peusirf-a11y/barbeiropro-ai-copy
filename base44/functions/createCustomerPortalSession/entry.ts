@@ -14,15 +14,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Super admins não podem alterar billing via portal. Use o Stripe Dashboard.' }, { status: 403 });
     }
 
-    // Seleciona chave conforme STRIPE_ENVIRONMENT ('test' | 'live').
-    const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
-    const isLive = env === 'live';
-    const stripeKey = (isLive ? Deno.env.get('STRIPE_SECRET_KEY') : Deno.env.get('STRIPE_TEST_SECRET_KEY')) || '';
-    const expectedPrefix = isLive ? 'sk_live_' : 'sk_test_';
-    if (!stripeKey || !stripeKey.startsWith(expectedPrefix)) {
-      return Response.json({ error: `Stripe key missing/invalid for environment=${env}` }, { status: 500 });
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') || '';
+    if (!stripeKey) {
+      return Response.json({ error: 'STRIPE_SECRET_KEY missing' }, { status: 500 });
     }
-    console.log(`[stripe] environment=${env}`);
     const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
     const { return_url } = await req.json().catch(() => ({}));
 
@@ -47,13 +42,12 @@ Deno.serve(async (req) => {
       const isMissing = stripeErr?.code === 'resource_missing'
         || /No such customer/i.test(stripeErr?.message || '');
       if (isMissing) {
-        console.error('[createCustomerPortalSession] customer not found in current env', {
-          env,
+        console.error('[createCustomerPortalSession] customer not found', {
           stripe_customer_id: company.stripe_customer_id,
           company_id: company.id,
         });
         return Response.json({
-          error: `Sua assinatura está vinculada a um cliente Stripe que não existe neste ambiente (${env}). Isso costuma acontecer quando a conta foi criada em modo de teste e o app está em produção (ou vice-versa). Entre em contato com o suporte para revincular sua assinatura.`,
+          error: 'Sua assinatura não foi encontrada no Stripe. Entre em contato com o suporte.',
           code: 'STRIPE_CUSTOMER_NOT_FOUND',
           needs_resync: true,
         }, { status: 409 });

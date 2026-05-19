@@ -18,15 +18,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Seleciona chave conforme STRIPE_ENVIRONMENT ('test' | 'live').
-    const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
-    const isLive = env === 'live';
-    const stripeKey = (isLive ? Deno.env.get('STRIPE_SECRET_KEY') : Deno.env.get('STRIPE_TEST_SECRET_KEY')) || '';
-    const expectedPrefix = isLive ? 'sk_live_' : 'sk_test_';
-    if (!stripeKey || !stripeKey.startsWith(expectedPrefix)) {
-      throw new Error(`Stripe key missing/invalid for environment=${env} (expected ${expectedPrefix})`);
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') || '';
+    if (!stripeKey) {
+      throw new Error('STRIPE_SECRET_KEY missing');
     }
-    console.log(`[stripe] environment=${env}`);
     const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
     const nowISO = new Date().toISOString();
 

@@ -141,18 +141,10 @@ function _reviewTokenExpiry(scheduledAtISO) {
   return new Date(new Date(scheduledAtISO).getTime() + 72 * 60 * 60 * 1000).toISOString();
 }
 
-// Resolve a chave secreta do Stripe baseado em STRIPE_ENVIRONMENT ('test' | 'live').
-// Default = 'test' por segurança. Valida o prefixo da chave para evitar mismatch.
+// Resolve a chave secreta do Stripe. Sistema opera em Live mode.
 function getStripeSecret() {
-  const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
-  const isLive = env === 'live';
-  const key = (isLive ? Deno.env.get('STRIPE_SECRET_KEY') : Deno.env.get('STRIPE_TEST_SECRET_KEY')) || '';
-  if (!key) throw new Error(`Stripe secret missing for environment=${env}`);
-  const expectedPrefix = isLive ? 'sk_live_' : 'sk_test_';
-  if (!key.startsWith(expectedPrefix)) {
-    throw new Error(`Stripe key prefix mismatch for environment=${env} (expected ${expectedPrefix})`);
-  }
-  console.log(`[stripe] environment=${env}`);
+  const key = Deno.env.get('STRIPE_SECRET_KEY') || '';
+  if (!key) throw new Error('STRIPE_SECRET_KEY missing');
   return key;
 }
 

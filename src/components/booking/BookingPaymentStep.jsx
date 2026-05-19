@@ -73,13 +73,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         <ChevronLeft className="w-4 h-4" />Voltar
       </button>
 
-      <h2 className="text-xl font-black text-[#1B1C1E] mb-2">Pagamento</h2>
-
-      {/* Banner de modo de teste — sempre visível no fluxo de pagamento público */}
-      <div className="mb-5 flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2">
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500 text-white uppercase tracking-wide">Test</span>
-        <span className="text-[11px] text-amber-900 font-medium leading-tight">Ambiente de teste — use cartão 4242 4242 4242 4242.</span>
-      </div>
+      <h2 className="text-xl font-black text-[#1B1C1E] mb-5">Pagamento</h2>
 
       {/* ─── ESCOLHA DE MÉTODO ─── */}
       {stage === 'choose' && (

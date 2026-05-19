@@ -1,25 +1,21 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.0.0';
 
-// Resolve config Stripe baseado em STRIPE_ENVIRONMENT ('test' | 'live').
-// Retorna { secretKey, webhookSecrets[], isLive }.
-// webhookSecrets é um array porque temos 2 webhooks (Sua conta + Contas conectadas).
+// Resolve config Stripe (Live mode).
+// webhookSecrets é um array porque podemos ter 2 webhooks (Sua conta + Contas conectadas).
 function getStripeConfig() {
-  const env = (Deno.env.get('STRIPE_ENVIRONMENT') || 'test').toLowerCase();
-  const isLive = env === 'live';
-  const secretKey = (isLive ? Deno.env.get('STRIPE_SECRET_KEY') : Deno.env.get('STRIPE_TEST_SECRET_KEY')) || '';
-  const wsAccount = (isLive ? Deno.env.get('STRIPE_WEBHOOK_SECRET') : Deno.env.get('STRIPE_TEST_WEBHOOK_SECRET')) || '';
-  const wsConnect = (isLive ? Deno.env.get('STRIPE_WEBHOOK_SECRET_CONNECT') : Deno.env.get('STRIPE_TEST_WEBHOOK_SECRET_CONNECT')) || '';
+  const secretKey = Deno.env.get('STRIPE_SECRET_KEY') || '';
+  const wsAccount = Deno.env.get('STRIPE_WEBHOOK_SECRET') || '';
+  const wsConnect = Deno.env.get('STRIPE_WEBHOOK_SECRET_CONNECT') || '';
   const webhookSecrets = [wsAccount, wsConnect].filter(Boolean);
-  const expectedPrefix = isLive ? 'sk_live_' : 'sk_test_';
-  if (!secretKey || !secretKey.startsWith(expectedPrefix)) {
-    throw new Error(`Stripe secret missing/invalid for environment=${env} (expected ${expectedPrefix})`);
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY missing');
   }
   if (webhookSecrets.length === 0) {
-    throw new Error(`No Stripe webhook secret configured for environment=${env}`);
+    throw new Error('No Stripe webhook secret configured');
   }
-  console.log(`[stripe] environment=${env}, webhook secrets configured=${webhookSecrets.length}`);
-  return { secretKey, webhookSecrets, isLive };
+  console.log(`[stripe] webhook secrets configured=${webhookSecrets.length}`);
+  return { secretKey, webhookSecrets, isLive: true };
 }
 
 function slugify(text) {
