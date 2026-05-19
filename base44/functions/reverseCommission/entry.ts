@@ -112,11 +112,25 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, skipped: true, reason: 'no_commission' });
     }
 
-    // Bloqueia estorno se já foi paga (evita inconsistência financeira)
+    // Comissão já paga: não estorna automaticamente (evita inconsistência financeira),
+    // mas registra alerta de auditoria e retorna sucesso para a automação não ficar
+    // tentando reverter em loop. Estorno manual deve ser feito pelo dono/financeiro.
     const paid = commissions.find(c => c.status === 'pago');
     if (paid) {
-      console.warn('[reverseCommission] commission already paid', { appointmentId, commission_id: paid.id });
-      return Response.json({ success: false, error: 'COMMISSION_ALREADY_PAID', commission_id: paid.id }, { status: 409 });
+      console.warn('[reverseCommission] commission already paid — skipping reversal', { appointmentId, commission_id: paid.id });
+      try {
+        await sdk.entities.AuditLog.create({
+          actor_email: user?.email || 'automation',
+          action: 'REVERSE_COMMISSION_BLOCKED_PAID',
+          severity: 'warning',
+          target_type: 'Appointment',
+          target_id: appointmentId,
+          metadata: { company_id: appt.company_id, commission_id: paid.id, status: appt.status },
+        });
+      } catch (auditErr) {
+        console.warn('[reverseCommission] audit log failed:', auditErr.message);
+      }
+      return Response.json({ success: true, skipped: true, reason: 'commission_already_paid', commission_id: paid.id });
     }
 
     // Defesa extra: comissões devem pertencer ao mesmo tenant
