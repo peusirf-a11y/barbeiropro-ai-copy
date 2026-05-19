@@ -73,7 +73,23 @@ Deno.serve(async (req) => {
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
-    const sub = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
+    let sub;
+    try {
+      sub = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
+    } catch (stripeErr) {
+      // Subscription foi excluída/cancelada no Stripe mas o ID continua salvo no Company.
+      // Limpa o vínculo órfão e devolve erro amigável (frontend orienta a refazer checkout).
+      if (stripeErr?.code === 'resource_missing' || /No such subscription/i.test(stripeErr?.message || '')) {
+        console.warn('[upgradePlan] subscription órfã — limpando vínculo', company.stripe_subscription_id);
+        await base44.asServiceRole.entities.Company.update(company_id, {
+          stripe_subscription_id: null,
+          stripe_price_id: null,
+          subscription_status: null,
+        });
+        return Response.json({ success: false, error: 'SUBSCRIPTION_NOT_FOUND_REFRESH_CHECKOUT' }, { status: 400 });
+      }
+      throw stripeErr;
+    }
     const itemId = sub.items?.data?.[0]?.id;
     if (!itemId) return Response.json({ success: false, error: 'STRIPE_ITEM_NOT_FOUND' }, { status: 500 });
 
