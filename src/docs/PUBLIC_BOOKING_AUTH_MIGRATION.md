@@ -167,21 +167,32 @@ const handleContinueToConfirmation = () => {
 
 ---
 
-### Fase 7 — Atualizar CustomerAuth Backend Function
+### Fase 7 — Atualizar CustomerAuth Backend Function ✅ (2026-05-20)
 
-**Arquivo:** `functions/customerAuth` (existente)
+**Arquivo:** `functions/customerAuth`
 
-**Adicionar actions:**
-- `login`: email + senha → customer_id, token
-- `register`: name, email, phone, password → customer_id, token
-- `request_password_reset`: email → envia token por email
-- `reset_password`: email, reset_token, new_password → sucesso
+**Actions implementadas:**
+- `check` — email → `{ exists, has_password, name }`. Usado pelo AuthGate pra decidir entre login/cadastro/ativação.
+- `login` — email + senha → `{ customer_id, token, customer }`. Detecta hash bcrypt legado e força fluxo de reset.
+- `signup` (alias `register`) — name + email + phone + password → cria Customer + auto-login.
+- `request_reset` (alias `request_password_reset`) — envia link por email (1h TTL) com **anti-enumeração** (sempre retorna sucesso, mesmo se email não existir).
+- `reset_password` — troca senha via `reset_token` dedicado e **invalida sessões antigas** (incrementa `token_version`).
+- `activate_account` — fluxo de migração para clientes legados (lookup por email+phone, define senha, ativa conta). Antecipa parte da Fase 10.
+- `me` — valida `auth_token` e devolve customer (sem `password_hash`/`auth_token`/`reset_token`).
 
-**Validações:**
-- Anti brute force (rate limit)
-- Email único
-- Senha hash PBKDF2
-- Token expiração 1h
+**Segurança aplicada:**
+- **Hash:** PBKDF2-SHA256, 100k iterações, salt 16 bytes por usuário.
+- **Token de sessão:** 256 bits (32 bytes hex), TTL 30 dias.
+- **Reset token:** campo dedicado (`reset_token` + `reset_token_expires_at`), separado de `auth_token` — não invalida sessões ativas ao solicitar reset.
+- **Rate limit dual (Fase 4):**
+  - Por identifier: 5/5min em login/signup, 3/15min em reset.
+  - Por IP: 5/1h soft block, 15/1h hard block 24h em login/signup/reset/activate. `check` e `me` ficam fora (read-only).
+- **Anti-enumeração:** `request_reset` sempre retorna sucesso. `login` retorna mesma mensagem para usuário inexistente vs senha errada.
+- **Constant-time compare:** `timingSafeEqual` em verificação de senha e de `reset_token`.
+- **Auditoria:** `SecurityEvent` gravado em todo IP block (visível no Master Security Center).
+- **Resposta sanitizada:** `safeCustomer()` remove `password_hash`, `auth_token`, `reset_token` antes de devolver.
+
+**Nada a fazer.** O backend está mais robusto do que o escopo original previa (camada IP da Fase 4 + activate_account adiantando Fase 10).
 
 ---
 
@@ -312,13 +323,13 @@ Deno.serve(async (req) => {
 
 **Para considerar a refatoração completa:**
 
-- [ ] AuthGateModal funcional
-- [ ] BookingSessionContext persist dados
-- [ ] customerAuth backend implementado
-- [ ] PublicBooking integrado com AuthGate
-- [ ] PhoneIdentificationStep removido
-- [ ] SlotReservation usando customer_id
-- [ ] Clientes antigos podem ativar conta
+- [x] AuthGateModal funcional (Fase 4)
+- [x] BookingSessionContext persist dados (Fase 0)
+- [x] customerAuth backend implementado (Fase 7)
+- [x] PublicBooking integrado com AuthGate (Fase 6)
+- [x] PhoneIdentificationStep removido (Fase 8)
+- [x] SlotReservation usando customer_id (Fase 9)
+- [x] Clientes antigos podem ativar conta (`activate_account` em Fase 7)
 - [ ] 40+ testes passando
 - [ ] Zero lint errors
 - [ ] Stripe + Subscription compatível
