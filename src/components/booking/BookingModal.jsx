@@ -1,9 +1,10 @@
 // Modal de agendamento deslizante — usado pela nova UI pública estilo appbarber.
 // Contém todo o fluxo: Serviço → Profissional → Data/Hora → Confirmação → Pagamento.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
+import { generateStableIdempotencyKey } from '@/lib/system/idempotency';
 import { X, ChevronLeft, Check, Clock, User, AlertCircle, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, addDays, startOfDay } from 'date-fns';
@@ -50,6 +51,8 @@ export default function BookingModal({
   const [form, setForm] = useState({ notes: '' });
   const [formError, setFormError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('avulso');
+  // Idempotency key estável — protege contra duplo-clique no "Confirmar agendamento" (fluxo grátis/assinatura).
+  const idemKeyRef = useRef(null);
 
   // Ao abrir com serviço inicial, pula para profissional
   useEffect(() => {
@@ -63,6 +66,7 @@ export default function BookingModal({
       }
       setForm({ notes: '' });
       setFormError('');
+      idemKeyRef.current = null; // nova sessão → key fresca
     }
   }, [isOpen, initialService]);
 
@@ -134,9 +138,19 @@ export default function BookingModal({
 
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
+      if (!idemKeyRef.current) {
+        idemKeyRef.current = generateStableIdempotencyKey('public_appt', {
+          company_id: data.company_id,
+          professional_id: data.professional_id,
+          service_id: data.service_id,
+          scheduled_at: data.scheduled_at,
+          customer_phone: data.customer_phone,
+        });
+      }
       const res = await base44.functions.invoke('createPublicAppointment', {
         ...data,
         scope_customer_by_unit: scopeCustomerByUnit,
+        idempotency_key: idemKeyRef.current,
       });
       if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao criar agendamento');
       if (activeSubscription && customerToken && res.data.appointment_id) {

@@ -32,6 +32,8 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
   const [cpf, setCpf] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [intentData, setIntentData] = useState(null); // { client_secret, payment_intent_id, appointment_id, expires_at, pix, stripe_account }
+  // Idempotency key estável por (payload+método+cpf) — duplo-clique/refresh devolve o MESMO PaymentIntent.
+  const idemKeyRef = useRef(null);
 
   const cpfDigits = cpf.replace(/\D/g, '');
 
@@ -43,10 +45,21 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
     }
     setStage('creating');
     try {
+      if (!idemKeyRef.current) {
+        idemKeyRef.current = generateStableIdempotencyKey('booking_pi', {
+          company_id: payload.company_id,
+          professional_id: payload.professional_id,
+          service_id: payload.service_id,
+          scheduled_at: payload.scheduled_at,
+          customer_phone: payload.customer_phone,
+          payment_method: method,
+        });
+      }
       const res = await base44.functions.invoke('createBookingPaymentIntent', {
         ...payload,
         customer_cpf: cpfDigits,
         payment_method: method,
+        idempotency_key: idemKeyRef.current,
       });
       const data = res?.data;
       if (data?.error || !data?.client_secret) {
@@ -66,6 +79,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
     setIntentData(null);
     setStage('choose');
     setErrorMsg('');
+    idemKeyRef.current = null; // libera nova tentativa real (não replay)
   };
 
   return (
