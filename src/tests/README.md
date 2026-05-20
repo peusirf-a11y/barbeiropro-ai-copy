@@ -84,14 +84,18 @@ Convenções:
 - E2E de browser (Playwright fica para depois).
 - Performance / load.
 
-## Cobertura atual (2026-05-11)
+## Cobertura atual (2026-05-20)
 
 | Módulo | Testes | Status |
 |---|---|---|
 | `lib/dates` | 9 | ✅ |
 | `lib/money` | 11 | ✅ |
 | `lib/errorCodes` | 7 | ✅ |
+| `lib/whatsappCompose` | 14 | ✅ |
 | `mockBase44` | 7 | ✅ |
-| **Total** | **34** | **34/34 pass** |
+| `publicBooking/authGate` (Fase 11b) | 28 | ✅ |
+| **Total** | **76** | **76/76 pass (21ms)** |
 
-Próximas adições candidatas: `lib/env`, `lib/csvSafe`, `lib/scheduling` (conflict checks), smoke flows (booking público, RBAC cross-tenant).
+`publicBooking/authGate` cobre: check, signup, login (incl. anti-enumeração), me/session, reset, activate legacy, magic link (Fase 12a) e cross-tenant isolation. Espelho em `tests/publicBooking/authGate.test.js`.
+
+Próximas adições candidatas: `lib/env`, `lib/csvSafe`, `lib/scheduling` (conflict checks), smoke flows (booking público completo, RBAC cross-tenant).

@@ -283,13 +283,61 @@ const handleContinueToConfirmation = () => {
 - [x] PhoneIdentificationStep removido (Fase 8)
 - [x] SlotReservation usando customer_id (Fase 9)
 - [x] Clientes antigos podem ativar conta (`activate_account` em Fase 7)
-- [ ] 40+ testes passando
+- [x] 28 testes automatizados passando (Fase 11b — `publicBooking/authGate`)
+- [x] Magic link login disponível (Fase 12a)
 - [ ] Zero lint errors
 - [ ] Stripe + Subscription compatível
 - [ ] WhatsApp compatível
 - [ ] LGPD consentimentos funcionais
 - [ ] Mobile UX perfeita
 - [ ] Zero regressões no fluxo público
+
+---
+
+### Fase 11b — Testes automatizados de fluxo público ✅ (2026-05-20)
+
+**Suite:** `tests/publicBooking/authGate.test.js` (28 casos) + espelho inline em `functions/runFoundationTests.js`.
+
+**Cobertura:**
+- `check` (4): inexistente, com senha, legado sem senha, case-insensitive
+- `signup` (4): cria + token, rejeita senha curta, rejeita duplicado, aponta para activate
+- `login` (4): válido, senha errada, **anti-enumeração** (mesma msg p/ email inexistente vs senha errada), hash bcrypt legado força reset
+- `me` (3): válido, expirado → null, inválido → null
+- `reset_password` (4): anti-enumeração, fluxo completo, token inválido, token consumido não-reutilizável
+- `activate_account` (3): cliente legado ativa, telefone errado falha, já ativada não reativa
+- `magic_link` (5): anti-enumeração, fluxo completo, token inválido, token usado não-reutilizável, expirado é limpo
+- `cross-tenant` (2): email duplicado em empresas distintas OK, login não enxerga customer de outra empresa
+
+**Run:** Dashboard → Functions → `runFoundationTests` → Test. Smoke validado em 2026-05-20: **76/76 passed em 21ms**.
+
+**Limitação conhecida:** os testes usam hash/token "fake" (não PBKDF2 real), pois o smoke runner roda fora do contexto Deno isolado. Eles cobrem **toda a lógica de fluxo, estados, expirações e proteções anti-enumeração** — o PBKDF2 em si é exercitado em produção e protegido por `node:crypto.timingSafeEqual`.
+
+---
+
+### Fase 12a — Login por link mágico (passwordless) ✅ (2026-05-20)
+
+Cliente entra com 1 clique no e-mail, sem digitar senha.
+
+**Backend (`functions/customerAuth`):**
+- `request_magic_link` — gera `magic_token` (256 bits, TTL 15min) e envia link por e-mail. Anti-enumeração (sempre retorna sucesso). Rate limit: 3/15min por email + IP-aware (Fase 4).
+- `consume_magic_link` — troca `magic_token` por sessão (`auth_token`). Constant-time compare. **Uso único** — token é limpo imediatamente após validação. Expirado é limpo proativamente.
+
+**Frontend:**
+- `entities/Customer.json`: campos `magic_token` + `magic_token_expires_at`.
+- `pages/public/CustomerLoginPage.jsx`:
+  - Novo modo `magic` com UI "Enviar link de acesso".
+  - Botão "✨ Entrar sem senha" no modo `login` (alternativa à senha).
+  - Deeplink handler detecta `?magic_token=...&email=...` na URL e consome automaticamente (espelha o padrão do `reset_token`).
+
+**Por que NÃO oferecemos magic link dentro do `AuthGateModal` (booking):** o usuário está no meio do fluxo de agendamento com intenção ativa — mandar pra e-mail interromperia a conversão. Magic link fica em `/cliente/:slug/login` (página dedicada), onde a fricção é menor.
+
+**Segurança:**
+- TTL 15min (mais curto que reset, que é 1h) — minimiza janela de risco.
+- Uso único: token zerado após primeiro `consume`.
+- Anti-enumeração no request.
+- IP rate-limit incluído no set `IP_GUARDED`.
+
+---
 
 ---
 

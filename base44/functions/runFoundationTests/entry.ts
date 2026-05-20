@@ -439,12 +439,349 @@ const whatsappTests = {
   },
 };
 
+// ── publicBooking/authGate (Fase 11b — fluxo de auth do AuthGate) ───────
+// Espelho de tests/publicBooking/authGate.test.js. Testa handlers do customerAuth
+// (signup, login, reset, activate, magic_link) usando hash/token "fake" — não
+// exercita PBKDF2 real, mas cobre toda a lógica de fluxo, estados e proteções.
+const _AG_SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
+const _AG_MAGIC_TTL = 15 * 60 * 1000;
+const _AG_RESET_TTL = 60 * 60 * 1000;
+function _agHash(p) { return `pbkdf2:${p}:${p.length}`; }
+function _agVerify(p, h) { return h === `pbkdf2:${p}:${p.length}`; }
+function _agToken() { return `tok_${Math.random().toString(36).slice(2)}_${Date.now()}`; }
+async function _agCheck(sdk, { company_id, email }) {
+  const cs = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
+  const c = cs[0];
+  if (!c) return { exists: false, has_password: false };
+  return { exists: true, has_password: !!c.password_hash, name: c.name || null };
+}
+async function _agSignup(sdk, { company_id, name, email, phone, password }) {
+  if (!email || !password || !name || !phone) throw new Error('campos obrigatórios');
+  if (password.length < 6) throw new Error('Senha deve ter no mínimo 6 caracteres');
+  const existing = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
+  if (existing.length > 0) {
+    const c = existing[0];
+    if (!c.password_hash) throw new Error('Este e-mail já está cadastrado mas sem senha. Use a opção "Tenho agendamentos antigos".');
+    throw new Error('Este e-mail já está cadastrado. Faça login ou recupere sua senha.');
+  }
+  const token = _agToken();
+  const newC = await sdk.entities.Customer.create({
+    company_id, name: name.trim(), email: email.toLowerCase(), phone: String(phone).replace(/\D/g, ''),
+    password_hash: _agHash(password), auth_token: token,
+    auth_token_expires_at: new Date(Date.now() + _AG_SESSION_TTL).toISOString(), status: 'active',
+  });
+  return { success: true, customer_id: newC.id, token };
+}
+async function _agLogin(sdk, { company_id, email, password }) {
+  const cs = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
+  const c = cs[0];
+  if (!c || !c.password_hash) throw new Error('E-mail ou senha incorretos');
+  if (c.password_hash.startsWith('$2b$') || c.password_hash.startsWith('$2a$')) {
+    throw new Error('Sua senha precisa ser redefinida. Use "Esqueceu a senha?" para criar uma nova.');
+  }
+  if (!_agVerify(password, c.password_hash)) throw new Error('E-mail ou senha incorretos');
+  const token = _agToken();
+  await sdk.entities.Customer.update(c.id, { auth_token: token, auth_token_expires_at: new Date(Date.now() + _AG_SESSION_TTL).toISOString() });
+  return { success: true, customer_id: c.id, token };
+}
+async function _agMe(sdk, { company_id, token }) {
+  if (!token) throw new Error('token obrigatório');
+  const cs = await sdk.entities.Customer.filter({ company_id, auth_token: token });
+  const c = cs[0];
+  if (!c) return { customer: null };
+  if (c.auth_token_expires_at && new Date(c.auth_token_expires_at) < new Date()) return { customer: null };
+  return { customer: { id: c.id, name: c.name, email: c.email } };
+}
+async function _agRequestReset(sdk, { company_id, email }) {
+  const cs = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
+  const c = cs[0];
+  if (!c) return { success: true };
+  const t = _agToken();
+  await sdk.entities.Customer.update(c.id, { reset_token: t, reset_token_expires_at: new Date(Date.now() + _AG_RESET_TTL).toISOString() });
+  return { success: true, __test_token: t };
+}
+async function _agResetPassword(sdk, { company_id, email, reset_token, password }) {
+  if (password.length < 6) throw new Error('Senha deve ter no mínimo 6 caracteres');
+  const cs = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
+  const c = cs[0];
+  if (!c) throw new Error('Usuário não encontrado');
+  if (!c.reset_token) throw new Error('Nenhuma solicitação de reset ativa');
+  if (new Date(c.reset_token_expires_at) < new Date()) throw new Error('Link expirou. Solicite um novo.');
+  if (c.reset_token !== reset_token) throw new Error('Token inválido ou já utilizado');
+  const newToken = _agToken();
+  await sdk.entities.Customer.update(c.id, {
+    password_hash: _agHash(password), reset_token: null, reset_token_expires_at: null,
+    auth_token: newToken, auth_token_expires_at: new Date(Date.now() + _AG_SESSION_TTL).toISOString(),
+    token_version: (c.token_version || 0) + 1,
+  });
+  return { success: true, customer_id: c.id, token: newToken };
+}
+async function _agActivate(sdk, { company_id, email, phone, password }) {
+  if (password.length < 6) throw new Error('Senha deve ter no mínimo 6 caracteres');
+  const phoneNorm = String(phone).replace(/\D/g, '');
+  const cs = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
+  const c = cs.find(x => String(x.phone).replace(/\D/g, '') === phoneNorm);
+  if (!c) throw new Error('Nenhum cadastro encontrado com este e-mail e telefone');
+  if (c.password_hash) throw new Error('Esta conta já foi ativada. Faça login normalmente.');
+  const token = _agToken();
+  await sdk.entities.Customer.update(c.id, {
+    password_hash: _agHash(password), auth_token: token,
+    auth_token_expires_at: new Date(Date.now() + _AG_SESSION_TTL).toISOString(),
+  });
+  return { success: true, customer_id: c.id, token };
+}
+async function _agRequestMagic(sdk, { company_id, email }) {
+  const cs = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
+  const c = cs[0];
+  if (!c) return { success: true };
+  const magic = _agToken();
+  await sdk.entities.Customer.update(c.id, { magic_token: magic, magic_token_expires_at: new Date(Date.now() + _AG_MAGIC_TTL).toISOString() });
+  return { success: true, __test_token: magic };
+}
+async function _agConsumeMagic(sdk, { company_id, email, magic_token }) {
+  const cs = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
+  const c = cs[0];
+  if (!c) throw new Error('Link inválido ou expirado');
+  if (!c.magic_token) throw new Error('Link inválido ou já utilizado');
+  if (!c.magic_token_expires_at || new Date(c.magic_token_expires_at) < new Date()) {
+    await sdk.entities.Customer.update(c.id, { magic_token: null, magic_token_expires_at: null });
+    throw new Error('Link expirou. Solicite um novo.');
+  }
+  if (c.magic_token !== magic_token) throw new Error('Link inválido ou já utilizado');
+  const session = _agToken();
+  await sdk.entities.Customer.update(c.id, {
+    magic_token: null, magic_token_expires_at: null,
+    auth_token: session, auth_token_expires_at: new Date(Date.now() + _AG_SESSION_TTL).toISOString(),
+  });
+  return { success: true, customer_id: c.id, token: session };
+}
+
+// Seed helper para testes com customer pré-existente
+function _agSeedMock(seed) {
+  const m = createMockBase44();
+  if (seed?.Customer) {
+    for (const c of seed.Customer) m.entities.Customer.create(c);
+  }
+  return m;
+}
+
+const authGateTests = {
+  'check: email inexistente → exists:false': async () => {
+    const m = createMockBase44();
+    const r = await _agCheck(m.asServiceRole, { company_id: 'co_1', email: 'novo@x.com' });
+    if (r.exists !== false || r.has_password !== false) throw new Error('flag errada');
+  },
+  'check: cliente com senha → has_password:true': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', email: 'a@x.com', name: 'A', password_hash: 'pbkdf2:senha:5' }] });
+    const r = await _agCheck(m.asServiceRole, { company_id: 'co_1', email: 'a@x.com' });
+    if (!r.exists || !r.has_password || r.name !== 'A') throw new Error('flag errada');
+  },
+  'check: cliente legado sem senha → has_password:false': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', email: 'old@x.com', name: 'Old' }] });
+    const r = await _agCheck(m.asServiceRole, { company_id: 'co_1', email: 'old@x.com' });
+    if (!r.exists || r.has_password) throw new Error('legado deveria ter exists:true + has_password:false');
+  },
+  'check: case-insensitive': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', email: 'a@x.com', name: 'A', password_hash: 'pbkdf2:s:1' }] });
+    const r = await _agCheck(m.asServiceRole, { company_id: 'co_1', email: 'A@X.COM' });
+    if (!r.exists) throw new Error('email case deveria ser normalizado');
+  },
+  'signup: cria customer + retorna token': async () => {
+    const m = createMockBase44();
+    const r = await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'João', email: 'j@x.com', phone: '11999999999', password: 'senha123' });
+    if (!r.success || !r.token || !r.customer_id) throw new Error('signup não retornou tudo');
+    const created = await m.asServiceRole.entities.Customer.get(r.customer_id);
+    if (!created.password_hash) throw new Error('password_hash não foi salvo');
+    if (created.email !== 'j@x.com') throw new Error('email não foi normalizado');
+  },
+  'signup: rejeita senha < 6 chars': async () => {
+    const m = createMockBase44();
+    let threw = false;
+    try { await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: '123' }); }
+    catch (e) { threw = true; if (!/mínimo 6/i.test(e.message)) throw new Error(`msg errada: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter rejeitado');
+  },
+  'signup: rejeita email duplicado com senha': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', email: 'j@x.com', name: 'J', password_hash: 'pbkdf2:x:1' }] });
+    let threw = false;
+    try { await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J2', email: 'j@x.com', phone: '11999999999', password: 'senha123' }); }
+    catch (e) { threw = true; if (!/já está cadastrado/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter rejeitado duplicado');
+  },
+  'signup: aponta para activate quando email legado sem senha': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', email: 'old@x.com', name: 'Old' }] });
+    let threw = false;
+    try { await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'Old', email: 'old@x.com', phone: '11999999999', password: 'senha123' }); }
+    catch (e) { threw = true; if (!/agendamentos antigos/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter apontado para activate');
+  },
+  'login: credenciais válidas → token novo': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'senha123' });
+    const r = await _agLogin(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', password: 'senha123' });
+    if (!r.success || !r.token) throw new Error('login falhou');
+  },
+  'login: senha errada → 401': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'senha123' });
+    let threw = false;
+    try { await _agLogin(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', password: 'errada' }); }
+    catch (e) { threw = true; if (!/E-mail ou senha/.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter rejeitado');
+  },
+  'login: email inexistente → mesma mensagem (anti-enumeração)': async () => {
+    const m = createMockBase44();
+    let msgInexistente = '';
+    try { await _agLogin(m.asServiceRole, { company_id: 'co_1', email: 'nao@x.com', password: 'qq' }); }
+    catch (e) { msgInexistente = e.message; }
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'senha123' });
+    let msgSenhaErrada = '';
+    try { await _agLogin(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', password: 'errada' }); }
+    catch (e) { msgSenhaErrada = e.message; }
+    if (msgInexistente !== msgSenhaErrada) throw new Error(`mensagens diferentes: "${msgInexistente}" vs "${msgSenhaErrada}"`);
+  },
+  'login: hash bcrypt legado força reset': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', email: 'old@x.com', name: 'O', password_hash: '$2b$10$abcd' }] });
+    let threw = false;
+    try { await _agLogin(m.asServiceRole, { company_id: 'co_1', email: 'old@x.com', password: 'x' }); }
+    catch (e) { threw = true; if (!/redefinida/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter forçado reset');
+  },
+  'me: token válido devolve customer': async () => {
+    const m = createMockBase44();
+    const s = await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'senha123' });
+    const r = await _agMe(m.asServiceRole, { company_id: 'co_1', token: s.token });
+    if (!r.customer || r.customer.id !== s.customer_id) throw new Error('me falhou');
+  },
+  'me: token expirado devolve null': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', email: 'j@x.com', auth_token: 'tok_x', auth_token_expires_at: '2020-01-01T00:00:00Z' }] });
+    const r = await _agMe(m.asServiceRole, { company_id: 'co_1', token: 'tok_x' });
+    if (r.customer !== null) throw new Error('expirado deveria devolver null');
+  },
+  'me: token inválido devolve null': async () => {
+    const m = createMockBase44();
+    const r = await _agMe(m.asServiceRole, { company_id: 'co_1', token: 'fake' });
+    if (r.customer !== null) throw new Error('inválido deveria devolver null');
+  },
+  'reset: anti-enumeração quando email não existe': async () => {
+    const m = createMockBase44();
+    const r = await _agRequestReset(m.asServiceRole, { company_id: 'co_1', email: 'nao@x.com' });
+    if (!r.success) throw new Error('deveria retornar sucesso silencioso');
+  },
+  'reset: fluxo completo email → token → nova senha → login': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'antiga123' });
+    const req = await _agRequestReset(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com' });
+    const r = await _agResetPassword(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', reset_token: req.__test_token, password: 'nova456' });
+    if (!r.success || !r.token) throw new Error('reset falhou');
+    const login = await _agLogin(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', password: 'nova456' });
+    if (!login.success) throw new Error('login com nova senha falhou');
+  },
+  'reset: token inválido falha': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'antiga123' });
+    await _agRequestReset(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com' });
+    let threw = false;
+    try { await _agResetPassword(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', reset_token: 'fake', password: 'nova456' }); }
+    catch (e) { threw = true; if (!/Token inválido/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter rejeitado');
+  },
+  'reset: token consumido não pode ser reutilizado': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'antiga' });
+    const req = await _agRequestReset(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com' });
+    await _agResetPassword(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', reset_token: req.__test_token, password: 'nova456' });
+    let threw = false;
+    try { await _agResetPassword(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', reset_token: req.__test_token, password: 'outra789' }); }
+    catch (e) { threw = true; if (!/reset ativa/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('token deveria ter sido invalidado');
+  },
+  'activate: cliente legado define senha e ganha sessão': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', name: 'Old', email: 'old@x.com', phone: '11999999999' }] });
+    const r = await _agActivate(m.asServiceRole, { company_id: 'co_1', email: 'old@x.com', phone: '11999999999', password: 'senha123' });
+    if (!r.success || !r.token) throw new Error('activate falhou');
+    const after = await m.asServiceRole.entities.Customer.get(r.customer_id);
+    if (!after.password_hash) throw new Error('hash não foi salvo');
+  },
+  'activate: telefone errado falha': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', name: 'Old', email: 'old@x.com', phone: '11999999999' }] });
+    let threw = false;
+    try { await _agActivate(m.asServiceRole, { company_id: 'co_1', email: 'old@x.com', phone: '11888888888', password: 'senha123' }); }
+    catch (e) { threw = true; if (!/Nenhum cadastro/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter rejeitado');
+  },
+  'activate: já ativada não pode reativar': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', name: 'X', email: 'x@x.com', phone: '11999999999', password_hash: 'pbkdf2:x:1' }] });
+    let threw = false;
+    try { await _agActivate(m.asServiceRole, { company_id: 'co_1', email: 'x@x.com', phone: '11999999999', password: 'senha123' }); }
+    catch (e) { threw = true; if (!/já foi ativada/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter bloqueado');
+  },
+  'magic: anti-enumeração quando email não existe': async () => {
+    const m = createMockBase44();
+    const r = await _agRequestMagic(m.asServiceRole, { company_id: 'co_1', email: 'nao@x.com' });
+    if (!r.success) throw new Error('deveria retornar sucesso silencioso');
+  },
+  'magic: fluxo request → consume → sessão ativa': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'qualquer' });
+    const req = await _agRequestMagic(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com' });
+    const r = await _agConsumeMagic(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', magic_token: req.__test_token });
+    if (!r.success || !r.token) throw new Error('consume falhou');
+    const me = await _agMe(m.asServiceRole, { company_id: 'co_1', token: r.token });
+    if (!me.customer) throw new Error('sessão não validou');
+  },
+  'magic: token inválido falha': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'qualquer' });
+    await _agRequestMagic(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com' });
+    let threw = false;
+    try { await _agConsumeMagic(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', magic_token: 'fake' }); }
+    catch (e) { threw = true; if (!/inválido|utilizado/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter rejeitado');
+  },
+  'magic: token usado não pode ser reutilizado': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'qualquer' });
+    const req = await _agRequestMagic(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com' });
+    await _agConsumeMagic(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', magic_token: req.__test_token });
+    let threw = false;
+    try { await _agConsumeMagic(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', magic_token: req.__test_token }); }
+    catch (e) { threw = true; if (!/já utilizado|inválido/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('token deveria ter sido invalidado');
+  },
+  'magic: token expirado falha e é limpo': async () => {
+    const m = _agSeedMock({ Customer: [{ company_id: 'co_1', email: 'j@x.com', name: 'J', magic_token: 'expirado', magic_token_expires_at: '2020-01-01T00:00:00Z' }] });
+    let threw = false;
+    try { await _agConsumeMagic(m.asServiceRole, { company_id: 'co_1', email: 'j@x.com', magic_token: 'expirado' }); }
+    catch (e) { threw = true; if (!/expirou/i.test(e.message)) throw new Error(`msg: ${e.message}`); }
+    if (!threw) throw new Error('deveria ter rejeitado');
+    const cs = await m.asServiceRole.entities.Customer.filter({ company_id: 'co_1', email: 'j@x.com' });
+    if (cs[0].magic_token != null) throw new Error('token expirado deveria ter sido limpo');
+  },
+  'cross-tenant: email duplicado em empresas distintas é OK': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'senha123' });
+    const r = await _agSignup(m.asServiceRole, { company_id: 'co_2', name: 'J', email: 'j@x.com', phone: '11888888888', password: 'outra456' });
+    if (!r.success) throw new Error('email mesmo em outra empresa deveria ser válido');
+  },
+  'cross-tenant: login não enxerga customer de outra empresa': async () => {
+    const m = createMockBase44();
+    await _agSignup(m.asServiceRole, { company_id: 'co_1', name: 'J', email: 'j@x.com', phone: '11999999999', password: 'senha_co1' });
+    let threw = false;
+    try { await _agLogin(m.asServiceRole, { company_id: 'co_2', email: 'j@x.com', password: 'senha_co1' }); }
+    catch (e) { threw = true; }
+    if (!threw) throw new Error('login deveria ter falhado em tenant diferente');
+  },
+};
+
 const TEST_MODULES = {
   'lib/dates': dateTests,
   'lib/money': moneyTests,
   'lib/errorCodes': errorTests,
   'lib/whatsappCompose': whatsappTests,
   'mockBase44': mockTests,
+  'publicBooking/authGate': authGateTests,
 };
 
 async function runModule(name, cases) {
