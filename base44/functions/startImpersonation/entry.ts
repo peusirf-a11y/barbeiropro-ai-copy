@@ -116,15 +116,19 @@ Deno.serve(async (req) => {
     const { company_id, reason, totp_session_token } = await req.json();
     if (!company_id) return Response.json({ success: false, error: 'company_id obrigatório', request_id: rid }, { status: 400 });
 
-    // TOTP com rastreamento de uso (máx 5 impersonações por sessão)
-    const totpCheck = await requireValidTotpSession(base44, totp_session_token, user.email);
-    if (!totpCheck.ok) {
-      await base44.asServiceRole.entities.SecurityEvent.create({
-        event_type: 'invalid_impersonation', severity: 'high',
-        actor_email: user.email, ip_address: ip, route: 'startImpersonation',
-        details: { error: totpCheck.error, request_id: rid }, blocked: true, request_id: rid,
-      }).catch(() => {});
-      return Response.json({ success: false, error: totpCheck.error, totp_required: !totpCheck.totp_exhausted, totp_exhausted: !!totpCheck.totp_exhausted }, { status: 401 });
+    // TOTP desativado no TotpGate — validação opcional. Se token vier, valida e
+    // contabiliza uso; caso contrário, segue protegido apenas por is_super_admin.
+    let totpCheck = { ok: true, session_id: null, impersonation_count: 0 };
+    if (totp_session_token) {
+      totpCheck = await requireValidTotpSession(base44, totp_session_token, user.email);
+      if (!totpCheck.ok) {
+        await base44.asServiceRole.entities.SecurityEvent.create({
+          event_type: 'invalid_impersonation', severity: 'high',
+          actor_email: user.email, ip_address: ip, route: 'startImpersonation',
+          details: { error: totpCheck.error, request_id: rid }, blocked: true, request_id: rid,
+        }).catch(() => {});
+        return Response.json({ success: false, error: totpCheck.error, totp_required: !totpCheck.totp_exhausted, totp_exhausted: !!totpCheck.totp_exhausted }, { status: 401 });
+      }
     }
 
     let company;
@@ -147,11 +151,13 @@ Deno.serve(async (req) => {
       ip,
     });
 
-    // Incrementa impersonation_count no TotpSession para limitar reutilização
-    await base44.asServiceRole.entities.TotpSession.update(totpCheck.session_id, {
-      impersonation_count: (totpCheck.impersonation_count || 0) + 1,
-      last_impersonation_at: new Date().toISOString(),
-    }).catch(() => {});
+    // Incrementa impersonation_count no TotpSession para limitar reutilização (só se TOTP ativo)
+    if (totpCheck.session_id) {
+      await base44.asServiceRole.entities.TotpSession.update(totpCheck.session_id, {
+        impersonation_count: (totpCheck.impersonation_count || 0) + 1,
+        last_impersonation_at: new Date().toISOString(),
+      }).catch(() => {});
+    }
 
     // Audit log completo (simétrico com endImpersonation)
     await base44.asServiceRole.entities.AuditLog.create({
