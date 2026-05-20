@@ -161,7 +161,7 @@ function App() {
             </Route>
 
             {/* ── PRIVATE APP ROUTES (authenticated users only) ── */}
-            <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
+            <Route path="/app" element={<Navigate to="/landing" replace />} />
             <Route path="/app/dashboard" element={<PrivateRoute><AppDashboard /></PrivateRoute>} />
             <Route path="/app/agenda" element={<PrivateRoute><AppAgenda /></PrivateRoute>} />
             <Route path="/app/clientes" element={<PrivateRoute><AppClientes /></PrivateRoute>} />
