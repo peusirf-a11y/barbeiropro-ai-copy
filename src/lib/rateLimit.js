@@ -10,9 +10,15 @@
 // Sem Redis, sem nova entidade. Janela fixa de 1h (não sliding window real).
 // Suficiente para escala atual (centenas de barbearias, dezenas de bookings/min).
 //
+// FASE 4 IMPLEMENTADO (camada IP persistente):
+//   - createBookingPaymentIntent: 5/h por IP → soft 1h, hard 24h após 15
+//   - createPublicAppointment:    5/h por IP → soft 1h, hard 24h após 15
+//   - customerAuth (login/signup/reset/activate): 5/h por IP → soft 1h, hard 24h
+//   - submitReview / confirmAppointment: já tinham IP-aware desde Fase 3
+//   - SecurityEvent é gravado em todo bloqueio (visível no Master Security Center)
+//
 // FUTURO (não implementar agora):
 //   - Sliding window real via entidade RateLimitBucket
-//   - IP-based limiting (X-Forwarded-For)
 //   - Fingerprinting (User-Agent + IP)
 //   - Captcha escalation após N tentativas
 //   - Whitelist de telefones (clientes VIP / staff)

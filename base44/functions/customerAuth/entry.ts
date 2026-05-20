@@ -68,7 +68,7 @@ function safeCustomer(c) {
   return safe;
 }
 
-async function checkRateLimit(sdk, key, maxAttempts, windowMinutes) {
+async function checkRateLimit(sdk, key, maxAttempts, windowMinutes, ip = 'unknown') {
   const now = new Date();
   const records = await sdk.entities.SecurityRateLimit.filter({ key }, '-created_date', 1).catch(() => []);
   const record = records?.[0];
@@ -96,7 +96,7 @@ async function checkRateLimit(sdk, key, maxAttempts, windowMinutes) {
     await sdk.entities.SecurityRateLimit.create({
       key,
       route: 'customerAuth',
-      ip: 'unknown',
+      ip,
       identifier: key.split(':')[1] || 'unknown',
       attempts: 1,
       window_start: windowStart,
@@ -105,6 +105,63 @@ async function checkRateLimit(sdk, key, maxAttempts, windowMinutes) {
     }).catch(() => {});
   }
   return { blocked: false, remaining: maxAttempts - 1 };
+}
+
+// Fase 4 — Camada extra IP-aware. Barra credential stuffing (atacante girando emails).
+// Limite: 5 falhas em 1h → soft block 1h; 15 falhas → hard block 24h.
+// Aplicado em login / signup / request_reset / reset_password.
+async function checkIpRateLimit(sdk, ip, action) {
+  if (!ip || ip === 'unknown') return { allowed: true };
+  const key = `customerAuth:ip:${action}:${ip}`;
+  const now = new Date();
+  const limit = 5;
+  const windowMs = 60 * 60 * 1000;
+  const softBlockMs = 60 * 60 * 1000;
+  const hardBlockMs = 24 * 60 * 60 * 1000;
+  const hardMultiplier = 3;
+
+  const existing = await sdk.entities.SecurityRateLimit.filter({ key }, '-created_date', 1).catch(() => []);
+  const record = existing?.[0];
+
+  if (record?.is_blocked && record?.blocked_until && new Date(record.blocked_until) > now) {
+    return { allowed: false, reason: 'IP_BLOCKED', attempts: record.attempts };
+  }
+
+  if (record && record.window_end && new Date(record.window_end) > now) {
+    const newAttempts = (record.attempts || 0) + 1;
+    if (newAttempts >= limit * hardMultiplier) {
+      const blocked_until = new Date(now.getTime() + hardBlockMs).toISOString();
+      await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts, is_blocked: true, blocked_until }).catch(() => {});
+      return { allowed: false, reason: 'HARD_BLOCKED', attempts: newAttempts };
+    }
+    if (newAttempts >= limit) {
+      const blocked_until = new Date(now.getTime() + softBlockMs).toISOString();
+      await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts, is_blocked: true, blocked_until }).catch(() => {});
+      return { allowed: false, reason: 'SOFT_BLOCKED', attempts: newAttempts };
+    }
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts }).catch(() => {});
+    return { allowed: true, attempts: newAttempts };
+  }
+
+  const window_start = now.toISOString();
+  const window_end = new Date(now.getTime() + windowMs).toISOString();
+  if (record) {
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: 1, window_start, window_end, is_blocked: false, blocked_until: null }).catch(() => {});
+  } else {
+    await sdk.entities.SecurityRateLimit.create({ key, route: `customerAuth:${action}`, ip, identifier: ip, attempts: 1, window_start, window_end, is_blocked: false }).catch(() => {});
+  }
+  return { allowed: true, attempts: 1 };
+}
+
+async function logCustomerAuthRlEvent(sdk, { ip, action, reason, attempts }) {
+  await sdk.entities.SecurityEvent.create({
+    event_type: reason === 'HARD_BLOCKED' ? 'brute_force_attempt' : 'rate_limit_exceeded',
+    severity: reason === 'HARD_BLOCKED' ? 'critical' : 'high',
+    ip_address: ip,
+    route: `customerAuth:${action}`,
+    details: { reason, attempts },
+    blocked: true,
+  }).catch(() => {});
 }
 
 // ──────────────────────────────────────
@@ -139,10 +196,10 @@ async function handleMe(sdk, { company_id, token }) {
 }
 
 // login: email + password
-async function handleLogin(sdk, { company_id, email, password }) {
+async function handleLogin(sdk, { company_id, email, password, ip }) {
   if (!email || !password) throw new Error('email e password obrigatórios');
   const key = `customerAuth:login:${email}:${company_id}`;
-  const { blocked } = await checkRateLimit(sdk, key, 5, 5);
+  const { blocked } = await checkRateLimit(sdk, key, 5, 5, ip);
   if (blocked) throw new Error('RATE_LIMIT — Muitas tentativas. Tente novamente em 10 minutos.');
 
   const customers = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
@@ -165,12 +222,12 @@ async function handleLogin(sdk, { company_id, email, password }) {
 }
 
 // signup (alias: register): cria novo customer
-async function handleSignup(sdk, { company_id, name, email, phone, password }) {
+async function handleSignup(sdk, { company_id, name, email, phone, password, ip }) {
   if (!email || !password || !name || !phone) throw new Error('name, email, phone e password obrigatórios');
   if (password.length < 6) throw new Error('Senha deve ter no mínimo 6 caracteres');
 
   const key = `customerAuth:signup:${email}:${company_id}`;
-  const { blocked } = await checkRateLimit(sdk, key, 5, 5);
+  const { blocked } = await checkRateLimit(sdk, key, 5, 5, ip);
   if (blocked) throw new Error('RATE_LIMIT — Muitas tentativas. Tente novamente em 10 minutos.');
 
   const existing = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
@@ -203,11 +260,11 @@ async function handleSignup(sdk, { company_id, name, email, phone, password }) {
 }
 
 // request_reset (alias: request_password_reset): envia link por email
-async function handleRequestReset(sdk, { company_id, email }) {
+async function handleRequestReset(sdk, { company_id, email, ip }) {
   if (!email) throw new Error('email obrigatório');
 
   const key = `customerAuth:reset_request:${email}:${company_id}`;
-  const { blocked } = await checkRateLimit(sdk, key, 3, 15);
+  const { blocked } = await checkRateLimit(sdk, key, 3, 15, ip);
   if (blocked) throw new Error('RATE_LIMIT — Muitas tentativas. Tente novamente em 15 minutos.');
 
   const customers = await sdk.entities.Customer.filter({ company_id, email: email.toLowerCase() });
@@ -341,6 +398,8 @@ async function handleActivateAccount(sdk, { company_id, email, phone, password }
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const sdk = base44.asServiceRole;
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const body = await req.json();
     const { action, company_id, ...payload } = body;
 
@@ -353,28 +412,44 @@ Deno.serve(async (req) => {
       : action === 'request_password_reset' ? 'request_reset'
       : action;
 
+    // ─── RATE LIMIT IP (Fase 4) ─────────────────────────────────────────
+    // Aplicado em ações de escrita / auth. `check` e `me` ficam de fora
+    // (são read-only e usados em fluxo normal de UI).
+    const IP_GUARDED = new Set(['login', 'signup', 'request_reset', 'reset_password', 'activate_account']);
+    if (IP_GUARDED.has(normalizedAction)) {
+      const ipRl = await checkIpRateLimit(sdk, ip, normalizedAction);
+      if (!ipRl.allowed) {
+        console.warn(`[customerAuth] IP_RATE_LIMITED action=${normalizedAction} ip=${ip} reason=${ipRl.reason}`);
+        await logCustomerAuthRlEvent(sdk, { ip, action: normalizedAction, reason: ipRl.reason, attempts: ipRl.attempts });
+        return Response.json({
+          success: false,
+          error: 'Muitas tentativas deste dispositivo. Tente novamente mais tarde.',
+        }, { status: 429 });
+      }
+    }
+
     let result;
     switch (normalizedAction) {
       case 'check':
-        result = await handleCheck(base44.asServiceRole, { company_id, ...payload });
+        result = await handleCheck(sdk, { company_id, ...payload });
         break;
       case 'me':
-        result = await handleMe(base44.asServiceRole, { company_id, ...payload });
+        result = await handleMe(sdk, { company_id, ...payload });
         break;
       case 'login':
-        result = await handleLogin(base44.asServiceRole, { company_id, ...payload });
+        result = await handleLogin(sdk, { company_id, ip, ...payload });
         break;
       case 'signup':
-        result = await handleSignup(base44.asServiceRole, { company_id, ...payload });
+        result = await handleSignup(sdk, { company_id, ip, ...payload });
         break;
       case 'request_reset':
-        result = await handleRequestReset(base44.asServiceRole, { company_id, ...payload });
+        result = await handleRequestReset(sdk, { company_id, ip, ...payload });
         break;
       case 'reset_password':
-        result = await handleResetPassword(base44.asServiceRole, { company_id, ...payload });
+        result = await handleResetPassword(sdk, { company_id, ...payload });
         break;
       case 'activate_account':
-        result = await handleActivateAccount(base44.asServiceRole, { company_id, ...payload });
+        result = await handleActivateAccount(sdk, { company_id, ...payload });
         break;
       default:
         return Response.json({ success: false, error: `action desconhecida: ${action}` }, { status: 400 });

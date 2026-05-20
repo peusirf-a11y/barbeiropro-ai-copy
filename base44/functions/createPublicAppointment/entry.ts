@@ -66,7 +66,10 @@ async function releaseSlotLock(sdk, reservation_id) {
   try { await sdk.entities.SlotReservation.update(reservation_id, { status: 'released' }); } catch {}
 }
 
-// ─── Rate limit (P0.2) — inline. Espelha lib/rateLimit.js ─────────────
+// ─── Rate limit (P0.2 + Fase 4 IP-aware) — inline ─────────────────────
+// Camada 1 (phone): conta Appointments criados na última hora pelo mesmo telefone.
+// Camada 2 (IP): bloqueio progressivo persistente — atacante sem telefone real
+// ainda é barrado, e abuso reincidente vira hard-block 24h.
 const BOOKING_LIMIT_DEFAULT = 5;
 function _bookingLimit() {
   const n = parseInt(Deno.env.get('BOOKING_RATE_LIMIT_PER_HOUR') || '', 10);
@@ -82,6 +85,63 @@ async function _checkBookingRateLimit(sdk, customer_phone) {
     Math.max(limit + 5, 20),
   );
   return { allowed: recent.length < limit, count: recent.length, limit };
+}
+
+// Rate limit por IP — janela 1h, soft block 1h após `limit`, hard block 24h após `limit*3`.
+// Espelha lib/security/persistentRateLimit.js.
+async function _checkIpRateLimit(sdk, ip, route) {
+  if (!ip || ip === 'unknown') return { allowed: true };
+  const key = `${route}:ip:${ip}`;
+  const now = new Date();
+  const limit = _bookingLimit();          // mesmo limite do phone (5/h por default)
+  const windowMs = 60 * 60 * 1000;        // 1h
+  const softBlockMs = 60 * 60 * 1000;     // 1h
+  const hardBlockMs = 24 * 60 * 60 * 1000; // 24h
+  const hardMultiplier = 3;
+
+  const existing = await sdk.entities.SecurityRateLimit.filter({ key }, '-created_date', 1).catch(() => []);
+  const record = existing?.[0];
+
+  if (record?.is_blocked && record?.blocked_until && new Date(record.blocked_until) > now) {
+    return { allowed: false, blocked_until: record.blocked_until, reason: 'IP_BLOCKED', attempts: record.attempts };
+  }
+
+  if (record && record.window_end && new Date(record.window_end) > now) {
+    const newAttempts = (record.attempts || 0) + 1;
+    if (newAttempts >= limit * hardMultiplier) {
+      const blocked_until = new Date(now.getTime() + hardBlockMs).toISOString();
+      await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts, is_blocked: true, blocked_until }).catch(() => {});
+      return { allowed: false, blocked_until, reason: 'HARD_BLOCKED', attempts: newAttempts };
+    }
+    if (newAttempts >= limit) {
+      const blocked_until = new Date(now.getTime() + softBlockMs).toISOString();
+      await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts, is_blocked: true, blocked_until }).catch(() => {});
+      return { allowed: false, blocked_until, reason: 'SOFT_BLOCKED', attempts: newAttempts };
+    }
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: newAttempts }).catch(() => {});
+    return { allowed: true, attempts: newAttempts };
+  }
+
+  const window_start = now.toISOString();
+  const window_end = new Date(now.getTime() + windowMs).toISOString();
+  if (record) {
+    await sdk.entities.SecurityRateLimit.update(record.id, { attempts: 1, window_start, window_end, is_blocked: false, blocked_until: null }).catch(() => {});
+  } else {
+    await sdk.entities.SecurityRateLimit.create({ key, route, ip, identifier: ip, attempts: 1, window_start, window_end, is_blocked: false }).catch(() => {});
+  }
+  return { allowed: true, attempts: 1 };
+}
+
+async function _logRateLimitEvent(sdk, { ip, route, reason, attempts, rid }) {
+  await sdk.entities.SecurityEvent.create({
+    event_type: 'rate_limit_exceeded',
+    severity: reason === 'HARD_BLOCKED' ? 'critical' : 'high',
+    ip_address: ip,
+    route,
+    details: { reason, attempts, request_id: rid },
+    blocked: true,
+    request_id: rid,
+  }).catch(() => {});
 }
 
 // ─── Validação de bloqueio (P0.2) — inline. Espelha lib/scheduling.js ─
@@ -212,10 +272,25 @@ function _reviewTokenExpiry(scheduledAtISO) {
 }
 
 Deno.serve(async (req) => {
+  const rid = crypto.randomUUID().split('-')[0];
   try {
     const base44 = createClientFromRequest(req);
     const sdk = base44.asServiceRole;
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const body = await req.json().catch(() => ({}));
+
+    // ─── RATE LIMIT IP (Fase 4) ─────────────────────────────────────────
+    // ANTES do idempotency guard — atacante reciclando keys ainda é barrado.
+    const ipRl = await _checkIpRateLimit(sdk, ip, 'createPublicAppointment');
+    if (!ipRl.allowed) {
+      console.warn(`[createPublicAppointment] rid=${rid} IP_RATE_LIMITED ip=${ip} reason=${ipRl.reason}`);
+      await _logRateLimitEvent(sdk, { ip, route: 'createPublicAppointment', reason: ipRl.reason, attempts: ipRl.attempts, rid });
+      return Response.json({
+        success: false,
+        error: 'rate_limited',
+        message: 'Muitas tentativas deste dispositivo. Tente novamente mais tarde.',
+      }, { status: 429 });
+    }
 
     const {
       company_id,
