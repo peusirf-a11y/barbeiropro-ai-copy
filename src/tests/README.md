@@ -86,6 +86,7 @@ Convenções:
 
 ## Cobertura atual (2026-05-20)
 
+### `runFoundationTests` (foundations + auth público)
 | Módulo | Testes | Status |
 |---|---|---|
 | `lib/dates` | 9 | ✅ |
@@ -94,8 +95,22 @@ Convenções:
 | `lib/whatsappCompose` | 14 | ✅ |
 | `mockBase44` | 7 | ✅ |
 | `publicBooking/authGate` (Fase 11b) | 28 | ✅ |
-| **Total** | **76** | **76/76 pass (21ms)** |
+| **Subtotal** | **76** | **76/76 pass (21ms)** |
 
-`publicBooking/authGate` cobre: check, signup, login (incl. anti-enumeração), me/session, reset, activate legacy, magic link (Fase 12a) e cross-tenant isolation. Espelho em `tests/publicBooking/authGate.test.js`.
+### `runHardeningTests` (Sprint Hardening — auditoria 2026-05-20)
+| Módulo | Testes | Status |
+|---|---|---|
+| `concurrency/slotLock` | 9 | ✅ |
+| `tenant/isolation` | 9 | ✅ |
+| `stripe/webhookIdempotency` | 7 | ✅ |
+| `lgpd/consent` | 7 | ✅ |
+| `security/inputSanitization` | 14 | ✅ |
+| `observability/auditLog` | 9 | ✅ |
+| **Subtotal** | **55** | **55/55 pass (6ms)** |
 
-Próximas adições candidatas: `lib/env`, `lib/csvSafe`, `lib/scheduling` (conflict checks), smoke flows (booking público completo, RBAC cross-tenant).
+### Total geral
+**131/131 pass · ~27ms** (rodando os dois runners em sequência)
+
+Espelhos legíveis em `tests/concurrency/`, `tests/tenant/`, `tests/stripe/`, `tests/lgpd/`, `tests/security/`, `tests/observability/`, `tests/publicBooking/`.
+
+Próximas adições candidatas: `lib/env`, `lib/csvSafe`, `lib/scheduling`, frontend cache invalidation flow, fila de WhatsApp (consent re-check).
