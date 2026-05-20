@@ -107,7 +107,9 @@ AuthGateModal → Login [Cadastro] [Esqueceu?]
 
 ## 📋 O Que Fazer Agora (Próximas Fases)
 
-### Fase 6 — Integração com PublicBooking.jsx
+### Fase 6 — Integração com PublicBooking.jsx ✅ (2026-05-20)
+
+**Status:** AuthGateModal + BookingSessionContext + useCustomerAuth integrados em `pages/PublicBooking.jsx`. Fluxo: BookingModal pede auth via `onNeedAuth` → fecha booking, persiste seleção no BookingSession, abre AuthGate → no `onSuccess`, **aguarda hidratação de `useCustomerAuth`** (await no `customerAuth.me`) antes de reabrir o BookingModal — evita loop visual onde o modal reabriria sem `loggedCustomer` e dispararia o AuthGate de novo.
 
 **Onde:** Linha ~793 (botão "Continuar" → step 3)
 

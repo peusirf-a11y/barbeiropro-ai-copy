@@ -448,16 +448,21 @@ export default function PublicBooking() {
         companyName={company?.name}
         primaryColor={primaryColor}
         onClose={() => setShowAuthGate(false)}
-        onSuccess={(customerId, token) => {
-          base44.functions.invoke('customerAuth', { action: 'me', company_id: company?.id, token })
-            .then(res => {
-              if (res?.data?.customer) {
-                login(token, res.data.customer);
-                const c = res.data.customer;
-                setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '' });
-                setIsAuthenticatedCustomer(true);
-              }
-            }).catch(() => {});
+        onSuccess={async (customerId, token) => {
+          // Fase 6: aguarda hidratar `useCustomerAuth` ANTES de reabrir o BookingModal —
+          // caso contrário o modal reabre sem loggedCustomer e o passo de confirmação
+          // dispara o AuthGate de novo, criando loop visual.
+          try {
+            const res = await base44.functions.invoke('customerAuth', {
+              action: 'me', company_id: company?.id, token,
+            });
+            if (res?.data?.customer) {
+              login(token, res.data.customer);
+              const c = res.data.customer;
+              setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '' });
+              setIsAuthenticatedCustomer(true);
+            }
+          } catch { /* segue mesmo assim — useCustomerAuth refaz o me() no próximo render */ }
           setShowAuthGate(false);
           setTimeout(() => setShowBookingModal(true), 300);
         }}
