@@ -88,6 +88,8 @@ import ReviewAppointment from './pages/public/ReviewAppointment';
 import CustomerLoginPage from './pages/public/CustomerLoginPage.jsx';
 import CustomerDashboard from './pages/public/CustomerDashboard.jsx';
 import CustomerPlans from './pages/public/CustomerPlans.jsx';
+import PlanInviteRedeem from './pages/public/PlanInviteRedeem.jsx';
+import CustomerPlanInviteRedeem from './pages/public/CustomerPlanInviteRedeem.jsx';
 import { Navigate } from 'react-router-dom';
 
 function App() {
@@ -109,8 +111,10 @@ function App() {
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
             <Route path="/cliente/:slug/login" element={<CustomerLoginPage />} />
+            <Route path="/cliente/:slug/planos/convite/:token" element={<CustomerPlanInviteRedeem />} />
             <Route path="/cliente/:slug/planos" element={<CustomerPlans />} />
             <Route path="/cliente/:slug" element={<CustomerDashboard />} />
+            <Route path="/planos/convite/:token" element={<PlanInviteRedeem />} />
             <Route path="/confirma/:token" element={<ConfirmAppointment />} />
             <Route path="/avaliar/:token" element={<ReviewAppointment />} />
             <Route path="/checkout" element={<Checkout />} />

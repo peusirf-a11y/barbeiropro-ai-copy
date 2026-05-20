@@ -1,4 +1,17 @@
-import { Edit, Users, Infinity as InfIcon, Check } from 'lucide-react';
+import { Edit, Users, Infinity as InfIcon, Check, Globe, Lock, Link2 } from 'lucide-react';
+
+function VisibilityChip({ v }) {
+  if (!v || v === 'public') return null;
+  const conf = v === 'private'
+    ? { Icon: Lock, label: 'Privado', cls: 'bg-amber-400/15 text-amber-300 border-amber-400/30' }
+    : { Icon: Link2, label: 'Convite', cls: 'bg-blue-500/15 text-[#93C5FD] border-blue-400/30' };
+  const Icon = conf.Icon;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${conf.cls}`}>
+      <Icon className="w-2.5 h-2.5" /> {conf.label}
+    </span>
+  );
+}
 
 export default function PlanCard({ plan, subscribersCount, onEdit, onToggleActive }) {
   return (
@@ -11,6 +24,7 @@ export default function PlanCard({ plan, subscribersCount, onEdit, onToggleActiv
             {!plan.active && (
               <span className="text-[10px] font-bold uppercase tracking-wide bg-white/10 text-white/60 border border-white/15 px-2 py-0.5 rounded-full">Inativo</span>
             )}
+            <VisibilityChip v={plan.visibility} />
           </div>
           {plan.description && <p className="text-xs text-white/55 line-clamp-2">{plan.description}</p>}
         </div>

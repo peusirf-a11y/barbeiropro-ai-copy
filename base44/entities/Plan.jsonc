@@ -46,6 +46,41 @@
           "description": "Storage em MB"
         }
       }
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private",
+        "invite_only"
+      ],
+      "default": "public",
+      "description": "Visibilidade do plano. public=aparece em tudo (landing, onboarding, pricing, upgrades). private=oculto, s\u00f3 Master v\u00ea + tenants em allowed_company_ids. invite_only=oculto, libera para tenant que apresentar invite_token v\u00e1lido."
+    },
+    "allowed_company_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de empresas autorizadas a ver/contratar planos private/invite_only. Master gerencia."
+    },
+    "invite_token": {
+      "type": "string",
+      "description": "Token opaco para acesso via URL privada (/planos/convite/:token). Apenas para visibility=invite_only."
+    },
+    "invite_token_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o invite_token expira. Ap\u00f3s isso, deve ser regenerado pelo Master."
+    },
+    "invite_max_uses": {
+      "type": "number",
+      "description": "Quantas vezes o invite_token pode ser consumido. 0/ausente = ilimitado."
+    },
+    "invite_uses_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantas vezes o invite_token foi consumido (contador interno)."
     }
   },
   "required": [

@@ -157,6 +157,7 @@ export default function AppPlanos() {
             services={services}
             units={units}
             isMultiUnit={isMultiUnit}
+            companySlug={company?.slug}
             onSave={(payload) => saveMutation.mutate(payload)}
             onClose={() => { setShowForm(false); setEditingPlan(null); }}
             isSaving={saveMutation.isPending}

@@ -4,16 +4,21 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, ArrowUpCircle, Check } from 'lucide-react';
+import { filterPlansVisibleToCompany } from '@/lib/planVisibility';
 
-export default function UpgradePlanCard({ currentPlanId, highlight = false }) {
+export default function UpgradePlanCard({ currentPlanId, companyId, highlight = false }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const { data: plans = [], isLoading } = useQuery({
-    queryKey: ['plans-list'],
-    queryFn: () => base44.entities.Plan.filter({ active: true }, 'sort_order', 20),
+  const { data: rawPlans = [], isLoading } = useQuery({
+    queryKey: ['plans-list', companyId || 'no-company'],
+    queryFn: () => base44.entities.Plan.filter({ active: true }, 'sort_order', 50),
     staleTime: 5 * 60_000,
   });
+
+  // Filtra: público + private onde companyId está em allowed_company_ids.
+  // invite_only nunca aparece aqui (precisa redimir via /planos/convite/:token).
+  const plans = filterPlansVisibleToCompany(rawPlans, companyId);
 
   const upgradeMutation = useMutation({
     mutationFn: (plan_id) => base44.functions.invoke('upgradePlan', { plan_id }),

@@ -81,6 +81,41 @@
     "stripe_price_id": {
       "type": "string",
       "description": "Price ID recorrente mensal na conta Stripe Connect da barbearia. Sincronizado automaticamente."
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private",
+        "invite_only"
+      ],
+      "default": "public",
+      "description": "Visibilidade do plano para os clientes da barbearia. public=aparece na p\u00e1gina /cliente/:slug/planos. private=oculto, s\u00f3 liberado para clientes em allowed_customer_ids. invite_only=oculto, libera para quem apresentar invite_token."
+    },
+    "allowed_customer_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de Customers autorizados a ver/contratar este plano (visibility=private)."
+    },
+    "invite_token": {
+      "type": "string",
+      "description": "Token opaco para acesso via URL privada (/cliente/:slug/planos/convite/:token). Apenas visibility=invite_only."
+    },
+    "invite_token_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expira\u00e7\u00e3o do invite_token."
+    },
+    "invite_max_uses": {
+      "type": "number",
+      "description": "Quantas assinaturas o invite_token aceita. 0/ausente = ilimitado."
+    },
+    "invite_uses_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantas vezes o invite_token foi consumido."
     }
   },
   "required": [

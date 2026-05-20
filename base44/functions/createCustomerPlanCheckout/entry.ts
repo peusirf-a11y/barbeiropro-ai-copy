@@ -68,6 +68,28 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Este plano ainda não está configurado para pagamento online.' }, { status: 400 });
     }
 
+    // Gate de visibilidade: customer precisa de acesso ao plano.
+    // - public: ok
+    // - private: customer.id deve estar em allowed_customer_ids
+    // - invite_only: nunca permitido aqui — cliente precisa redimir invite primeiro
+    //   (a redemção adiciona o cliente ao allowed_customer_ids E muda a UX para mostrar o plano)
+    {
+      const v = plan.visibility || 'public';
+      const allowed = Array.isArray(plan.allowed_customer_ids) ? plan.allowed_customer_ids : [];
+      const isAllowed = v === 'public' || (v === 'private' && allowed.includes(customer.id));
+      if (!isAllowed) {
+        try {
+          await base44.asServiceRole.entities.SecurityEvent.create({
+            event_type: 'unauthorized_plan_access', severity: 'high',
+            company_id, actor_email: customer.email || '',
+            route: 'createCustomerPlanCheckout',
+            details: { plan_id, plan_visibility: v }, blocked: true,
+          });
+        } catch (_e) { /* never break on log */ }
+        return Response.json({ error: 'Plano não disponível' }, { status: 403 });
+      }
+    }
+
     const company = await base44.asServiceRole.entities.Company.get(company_id);
     if (!company?.stripe_connect_account_id || !company?.stripe_connect_charges_enabled) {
       return Response.json({ error: 'A barbearia ainda não habilitou pagamentos online.' }, { status: 400 });

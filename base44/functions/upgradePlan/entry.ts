@@ -68,6 +68,26 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'PLAN_HAS_NO_STRIPE_PRICE' }, { status: 400 });
     }
 
+    // Gate de visibilidade: super_admin pode tudo; tenant precisa de acesso ao plano.
+    // - public: ok
+    // - private: company_id deve estar em allowed_company_ids
+    // - invite_only: NUNCA permitido por aqui — cliente precisa redimir invite primeiro
+    if (!caller.is_super_admin) {
+      const v = plan.visibility || 'public';
+      const allowed = Array.isArray(plan.allowed_company_ids) ? plan.allowed_company_ids : [];
+      const isAllowed = v === 'public' || (v === 'private' && allowed.includes(company_id));
+      if (!isAllowed) {
+        try {
+          await base44.asServiceRole.entities.SecurityEvent.create({
+            event_type: 'unauthorized_plan_access', severity: 'high',
+            actor_email: user.email, company_id, route: 'upgradePlan',
+            details: { plan_id, plan_visibility: v }, blocked: true,
+          });
+        } catch (_e) { /* never break on log */ }
+        return Response.json({ success: false, error: 'PLAN_NOT_AVAILABLE' }, { status: 403 });
+      }
+    }
+
     if (!company.stripe_subscription_id) {
       return Response.json({ success: false, error: 'NO_ACTIVE_SUBSCRIPTION' }, { status: 400 });
     }

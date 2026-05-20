@@ -9,6 +9,9 @@ import { useToast } from '@/components/ui/use-toast';
 import StandardModal from '@/components/ui/standard-modal';
 import FeatureToggleGrid from '@/components/master/FeatureToggleGrid';
 import { canonicalFeatureKey } from '@/lib/featureCatalog';
+import PlanVisibilityControl from '@/components/planos/PlanVisibilityControl';
+import PlanInviteGenerator from '@/components/planos/PlanInviteGenerator';
+import { Globe, Lock, Link2 } from 'lucide-react';
 
 const emptyForm = {
   name: '',
@@ -18,7 +21,25 @@ const emptyForm = {
   sort_order: 0,
   features: [],
   limits: { barbers: 0, appointments_month: 0, storage_mb: 0 },
+  visibility: 'public',
+  allowed_company_ids: [],
 };
+
+const VISIBILITY_BADGE = {
+  public:      { icon: Globe, label: 'Público',     cls: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30' },
+  private:     { icon: Lock,  label: 'Privado',     cls: 'bg-amber-500/15 text-amber-500 border-amber-500/30' },
+  invite_only: { icon: Link2, label: 'Por convite', cls: 'bg-blue-500/15 text-blue-500 border-blue-500/30' },
+};
+
+function VisibilityBadge({ v }) {
+  const conf = VISIBILITY_BADGE[v || 'public'];
+  const Icon = conf.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${conf.cls}`}>
+      <Icon className="w-2.5 h-2.5" /> {conf.label}
+    </span>
+  );
+}
 
 const fmtMoney = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -82,6 +103,8 @@ export default function PlansManager() {
         appointments_month: p.limits?.appointments_month || 0,
         storage_mb: p.limits?.storage_mb || 0,
       },
+      visibility: p.visibility || 'public',
+      allowed_company_ids: Array.isArray(p.allowed_company_ids) ? p.allowed_company_ids : [],
     });
     setShowForm(true);
   };
@@ -133,6 +156,7 @@ export default function PlansManager() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-semibold text-sm text-foreground truncate">{p.name}</div>
+                <div className="mt-1"><VisibilityBadge v={p.visibility} /></div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">Ordem: {p.sort_order || 0}</div>
               </div>
               <div className="text-right flex-shrink-0">
@@ -217,7 +241,10 @@ export default function PlansManager() {
             {plans.map(p => (
               <tr key={p.id} className="border-b border-border hover:bg-muted/40 transition-colors">
                 <td className="px-4 py-3">
-                  <div className="font-semibold text-sm text-foreground">{p.name}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="font-semibold text-sm text-foreground">{p.name}</div>
+                    <VisibilityBadge v={p.visibility} />
+                  </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">Ordem: {p.sort_order || 0}</div>
                 </td>
                 <td className="px-4 py-3 text-sm font-bold text-foreground">{fmtMoney(p.price_monthly)}</td>
@@ -342,6 +369,50 @@ export default function PlansManager() {
                   onChange={(features) => setForm(p => ({ ...p, features }))}
                 />
               </div>
+
+              <PlanVisibilityControl
+                value={form.visibility}
+                onChange={(v) => setForm(p => ({ ...p, visibility: v }))}
+                variant="light"
+              />
+
+              {form.visibility === 'private' && (
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
+                    IDs de empresas autorizadas
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={(form.allowed_company_ids || []).join('\n')}
+                    onChange={e => setForm(p => ({
+                      ...p,
+                      allowed_company_ids: e.target.value.split(/\s+/).map(s => s.trim()).filter(Boolean),
+                    }))}
+                    placeholder="Um ID por linha"
+                    className="w-full px-3 py-2.5 border border-border rounded-xl text-xs font-mono bg-background text-foreground"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Apenas estas empresas conseguirão ver/contratar este plano. Use o ID da Company (não o slug).
+                  </p>
+                </div>
+              )}
+
+              {form.visibility === 'invite_only' && editing && (
+                <div className="flex items-center justify-between gap-3 border border-blue-400/30 bg-blue-500/10 rounded-xl p-3">
+                  <div className="text-xs text-foreground">
+                    Gere um link privado de convite para liberar este plano a tenants específicos.
+                  </div>
+                  <PlanInviteGenerator
+                    planId={editing.id}
+                    entity="Plan"
+                    publicBaseUrl="/planos/convite/"
+                    variant="light"
+                  />
+                </div>
+              )}
+              {form.visibility === 'invite_only' && !editing && (
+                <p className="text-[11px] text-amber-600">Salve o plano primeiro para gerar o link de convite.</p>
+              )}
 
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />

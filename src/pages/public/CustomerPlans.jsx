@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Scissors, ArrowLeft, Check, AlertCircle, Infinity as InfinityIcon, Sun, Moon } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { filterCustomerPlansVisibleToCustomer } from '@/lib/planVisibility';
 
 export default function CustomerPlans() {
   const { slug } = useParams();
@@ -21,11 +22,16 @@ export default function CustomerPlans() {
 
   const { customer, token, loading: loadingAuth } = useCustomerAuth(company?.id);
 
-  const { data: plans = [] } = useQuery({
-    queryKey: ['public-plans', company?.id],
+  // IMPORTANTE: cache key inclui customer.id para evitar leak entre sessões
+  // (cliente A não pode ver planos privados liberados só pro cliente B).
+  const { data: rawPlans = [] } = useQuery({
+    queryKey: ['public-plans', company?.id, customer?.id || 'anon'],
     queryFn: () => base44.entities.CustomerPlan.filter({ company_id: company.id, active: true }),
     enabled: !!company?.id,
   });
+  // Filtra: público + private onde customer.id está em allowed_customer_ids.
+  // invite_only nunca aparece sem redemção prévia.
+  const plans = filterCustomerPlansVisibleToCustomer(rawPlans, customer?.id);
 
   const { data: existingSubs = [] } = useQuery({
     queryKey: ['customer-subscriptions-self', company?.id, customer?.id],

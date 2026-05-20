@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import StandardModal from '@/components/ui/standard-modal';
 import MobileSelect from '@/components/ui/mobile-select';
+import PlanVisibilityControl from './PlanVisibilityControl';
+import PlanInviteGenerator from './PlanInviteGenerator';
 
 const empty = {
   name: '',
@@ -16,6 +18,8 @@ const empty = {
   off_peak_start: '08:00',
   off_peak_end: '12:00',
   off_peak_weekdays: [1, 2, 3, 4, 5],
+  visibility: 'public',
+  allowed_customer_ids: [],
 };
 
 const WEEKDAYS = [
@@ -23,7 +27,7 @@ const WEEKDAYS = [
   { v: 4, l: 'Qui' }, { v: 5, l: 'Sex' }, { v: 6, l: 'Sáb' },
 ];
 
-export default function PlanFormModal({ plan, services, units, isMultiUnit, onSave, onClose, isSaving }) {
+export default function PlanFormModal({ plan, services, units, isMultiUnit, companySlug, onSave, onClose, isSaving }) {
   const [form, setForm] = useState(empty);
 
   useEffect(() => {
@@ -193,6 +197,47 @@ export default function PlanFormModal({ plan, services, units, isMultiUnit, onSa
             <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} className="accent-[#60A5FA]" />
             <span>Plano ativo (disponível para venda)</span>
           </label>
+
+          <PlanVisibilityControl
+            value={form.visibility}
+            onChange={(v) => setForm(p => ({ ...p, visibility: v }))}
+            variant="dark"
+          />
+
+          {form.visibility === 'private' && (
+            <div>
+              <label className="text-xs font-semibold text-white/60 block mb-1">IDs de clientes autorizados</label>
+              <textarea rows={3}
+                value={(form.allowed_customer_ids || []).join('\n')}
+                onChange={e => setForm(p => ({
+                  ...p,
+                  allowed_customer_ids: e.target.value.split(/\s+/).map(s => s.trim()).filter(Boolean),
+                }))}
+                placeholder="Um Customer.id por linha"
+                className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-xs font-mono text-white"
+              />
+              <p className="text-[11px] text-white/40 mt-1">
+                Apenas estes clientes verão e poderão assinar o plano em /cliente/&#123;slug&#125;/planos.
+              </p>
+            </div>
+          )}
+
+          {form.visibility === 'invite_only' && plan?.id && (
+            <div className="flex items-center justify-between gap-3 border border-blue-400/30 bg-blue-500/10 rounded-xl p-3">
+              <div className="text-xs text-white/80">
+                Gere um link privado para liberar este plano via URL específica.
+              </div>
+              <PlanInviteGenerator
+                planId={plan.id}
+                entity="CustomerPlan"
+                publicBaseUrl={`/cliente/${companySlug || ''}/planos/convite/`}
+                variant="dark"
+              />
+            </div>
+          )}
+          {form.visibility === 'invite_only' && !plan?.id && (
+            <p className="text-[11px] text-amber-300">Salve o plano primeiro para gerar o link de convite.</p>
+          )}
         </div>
     </StandardModal>
   );

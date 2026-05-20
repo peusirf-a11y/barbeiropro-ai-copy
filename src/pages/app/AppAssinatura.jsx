@@ -143,7 +143,7 @@ export default function AppAssinatura() {
         {/* Upgrade / outros planos */}
         {company?.id && (
           <div className="mb-4">
-            <UpgradePlanCard currentPlanId={company.plan_id} highlight={showUpgradeHighlight} />
+            <UpgradePlanCard currentPlanId={company.plan_id} companyId={company.id} highlight={showUpgradeHighlight} />
           </div>
         )}
 
