@@ -43,7 +43,6 @@ export default function PremiumCTA() {
           </div>
 
           <div className="flex items-center justify-center gap-5 text-xs text-white/40">
-            <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] animate-pulse" /> Sem cartão</span>
             <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] animate-pulse" /> Cancele quando quiser</span>
           </div>
         </motion.div>

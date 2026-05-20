@@ -11,7 +11,7 @@ export default function TermosDeUso() {
             <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center overflow-hidden">
               <Logo size={32} className="rounded-none" />
             </div>
-            <span className="font-bold text-[15px] text-[#0F172A]">BarberTrimly</span>
+            <span className="font-bold text-[15px] text-[#0F172A]">O CORTE</span>
           </Link>
           <Link to="/" className="text-xs text-gray-500 hover:text-[#2563EB] flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Voltar
@@ -24,11 +24,11 @@ export default function TermosDeUso() {
         <p className="text-xs text-gray-400 mb-8">Última atualização: 27 de abril de 2026</p>
 
         <Section title="1. Aceitação">
-          Ao criar uma conta no BarberTrimly, você concorda integralmente com estes Termos de Uso e com nossa Política de Privacidade. Se não concordar, não utilize o serviço.
+          Ao criar uma conta no O CORTE, você concorda integralmente com estes Termos de Uso e com nossa Política de Privacidade. Se não concordar, não utilize o serviço.
         </Section>
 
         <Section title="2. Descrição do serviço">
-          O BarberTrimly é uma plataforma SaaS de gestão para barbearias que oferece: agenda online, gestão de clientes, controle financeiro, link público de agendamento, envio automatizado de mensagens via WhatsApp e relatórios.
+          O CORTE é uma plataforma SaaS de gestão para barbearias que oferece: agenda online, gestão de clientes, controle financeiro, link público de agendamento, envio automatizado de mensagens via WhatsApp e relatórios.
         </Section>
 
         <Section title="3. Cadastro e responsabilidades">
@@ -36,7 +36,7 @@ export default function TermosDeUso() {
         </Section>
 
         <Section title="4. Planos e pagamentos">
-          O BarberTrimly oferece planos pagos com cobrança recorrente (mensal). O período de teste grátis é de 7 dias, após o qual a cobrança é processada automaticamente no cartão cadastrado. Você pode cancelar a qualquer momento pelo painel — o acesso continua até o fim do período pago.
+          O CORTE oferece planos pagos com cobrança recorrente (mensal). O período de teste grátis é de 7 dias, após o qual a cobrança é processada automaticamente no cartão cadastrado. Você pode cancelar a qualquer momento pelo painel — o acesso continua até o fim do período pago.
           Em caso de inadimplência (cobrança recusada), o acesso pode ser pausado até a regularização.
         </Section>
 
@@ -45,11 +45,11 @@ export default function TermosDeUso() {
         </Section>
 
         <Section title="6. Uso aceitável">
-          É proibido usar o BarberTrimly para: enviar spam, mensagens não solicitadas a contatos sem consentimento, atividades ilegais, ou tentativas de quebrar a segurança da plataforma. O descumprimento pode resultar em bloqueio imediato sem reembolso.
+          É proibido usar o O CORTE para: enviar spam, mensagens não solicitadas a contatos sem consentimento, atividades ilegais, ou tentativas de quebrar a segurança da plataforma. O descumprimento pode resultar em bloqueio imediato sem reembolso.
         </Section>
 
         <Section title="7. Mensagens automatizadas (WhatsApp)">
-          Você é responsável por garantir que possui consentimento dos seus clientes para receber comunicações via WhatsApp. O BarberTrimly atua como ferramenta facilitadora — a responsabilidade legal pelo conteúdo e envio é sua.
+          Você é responsável por garantir que possui consentimento dos seus clientes para receber comunicações via WhatsApp. O CORTE atua como ferramenta facilitadora — a responsabilidade legal pelo conteúdo e envio é sua.
         </Section>
 
         <Section title="8. Disponibilidade do serviço">
@@ -57,7 +57,7 @@ export default function TermosDeUso() {
         </Section>
 
         <Section title="9. Limitação de responsabilidade">
-          O BarberTrimly não se responsabiliza por perdas indiretas, lucros cessantes ou danos decorrentes da indisponibilidade temporária do serviço, falha de envio de mensagens por terceiros (Z-API, provedores de WhatsApp) ou uso indevido da plataforma pelo cliente.
+          O CORTE não se responsabiliza por perdas indiretas, lucros cessantes ou danos decorrentes da indisponibilidade temporária do serviço, falha de envio de mensagens por terceiros (Z-API, provedores de WhatsApp) ou uso indevido da plataforma pelo cliente.
         </Section>
 
         <Section title="10. Alterações destes termos">
@@ -77,7 +77,7 @@ export default function TermosDeUso() {
         <div className="max-w-4xl mx-auto text-center text-xs text-gray-400">
           <Link to="/politica-de-privacidade" className="hover:text-[#2563EB] mr-4">Política de Privacidade</Link>
           <Link to="/termos-de-uso" className="hover:text-[#2563EB]">Termos de Uso</Link>
-          <p className="mt-2">© {new Date().getFullYear()} BarberTrimly</p>
+          <p className="mt-2">© {new Date().getFullYear()} O CORTE</p>
         </div>
       </footer>
     </div>

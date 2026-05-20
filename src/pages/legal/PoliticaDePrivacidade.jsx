@@ -11,7 +11,7 @@ export default function PoliticaDePrivacidade() {
             <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center overflow-hidden">
               <Logo size={32} className="rounded-none" />
             </div>
-            <span className="font-bold text-[15px] text-[#0F172A]">BarberTrimly</span>
+            <span className="font-bold text-[15px] text-[#0F172A]">O CORTE</span>
           </Link>
           <Link to="/" className="text-xs text-gray-500 hover:text-[#2563EB] flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Voltar
@@ -24,7 +24,7 @@ export default function PoliticaDePrivacidade() {
         <p className="text-xs text-gray-400 mb-8">Última atualização: 27 de abril de 2026 · Em conformidade com a LGPD (Lei 13.709/2018)</p>
 
         <Section title="1. Quem somos">
-          O BarberTrimly é uma plataforma SaaS de gestão para barbearias. Somos os controladores dos dados que você nos fornece ao se cadastrar. Em relação aos dados dos clientes da sua barbearia, atuamos como operadores — você é o controlador.
+          O CORTE é uma plataforma SaaS de gestão para barbearias. Somos os controladores dos dados que você nos fornece ao se cadastrar. Em relação aos dados dos clientes da sua barbearia, atuamos como operadores — você é o controlador.
         </Section>
 
         <Section title="2. Dados que coletamos">
@@ -97,7 +97,7 @@ export default function PoliticaDePrivacidade() {
         <div className="max-w-4xl mx-auto text-center text-xs text-gray-400">
           <Link to="/politica-de-privacidade" className="hover:text-[#2563EB] mr-4">Política de Privacidade</Link>
           <Link to="/termos-de-uso" className="hover:text-[#2563EB]">Termos de Uso</Link>
-          <p className="mt-2">© {new Date().getFullYear()} BarberTrimly</p>
+          <p className="mt-2">© {new Date().getFullYear()} O CORTE</p>
         </div>
       </footer>
     </div>

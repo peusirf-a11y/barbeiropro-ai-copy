@@ -38,11 +38,11 @@ export default function ComparisonTable() {
             <div className="px-6 py-5 border-b border-white/5">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Recurso</span>
             </div>
-            <div className="px-6 py-5 border-b border-l border-white/5 text-center min-w-[120px]">
+            <div className="px-3 md:px-6 py-5 border-b border-l border-white/5 text-center min-w-[90px] md:min-w-[120px]">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Método antigo</span>
             </div>
-            <div className="px-6 py-5 border-b border-l border-white/5 text-center min-w-[120px] bg-[#2563EB]/10">
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] bg-clip-text text-transparent">O CORTE</span>
+            <div className="px-3 md:px-6 py-5 border-b border-l border-white/5 text-center min-w-[90px] md:min-w-[120px] bg-[#2563EB]/10">
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] bg-clip-text text-transparent whitespace-nowrap">O CORTE</span>
             </div>
 
             {/* Rows */}
@@ -51,14 +51,14 @@ export default function ComparisonTable() {
                 <div className={`px-6 py-4 text-sm text-white/80 ${i < ROWS.length - 1 ? 'border-b border-white/5' : ''}`}>
                   {r.feature}
                 </div>
-                <div className={`px-6 py-4 border-l border-white/5 flex items-center justify-center ${i < ROWS.length - 1 ? 'border-b' : ''}`}>
+                <div className={`px-3 md:px-6 py-4 border-l border-white/5 flex items-center justify-center ${i < ROWS.length - 1 ? 'border-b' : ''}`}>
                   {r.old ? (
                     <Check className="w-4 h-4 text-white/40" />
                   ) : (
                     <X className="w-4 h-4 text-rose-400/70" />
                   )}
                 </div>
-                <div className={`px-6 py-4 border-l border-white/5 flex items-center justify-center bg-[#2563EB]/10 ${i < ROWS.length - 1 ? 'border-b' : ''}`}>
+                <div className={`px-3 md:px-6 py-4 border-l border-white/5 flex items-center justify-center bg-[#2563EB]/10 ${i < ROWS.length - 1 ? 'border-b' : ''}`}>
                   {r.oc ? (
                     <div className="relative">
                       <div className="absolute inset-0 rounded-full bg-emerald-400/40 blur-md" />
