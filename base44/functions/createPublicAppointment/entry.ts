@@ -28,7 +28,7 @@ function _truncMin(iso) {
 function _slotKey(company_id, professional_id, scheduled_at) {
   return `${company_id}:${professional_id}:${_truncMin(scheduled_at)}`;
 }
-async function acquireSlotLock(sdk, { company_id, unit_id, professional_id, scheduled_at, owner_phone, source }) {
+async function acquireSlotLock(sdk, { company_id, unit_id, professional_id, scheduled_at, owner_phone, reservation_owner_id, source }) {
   if (!_slotEnabled()) return { success: true, reservation: null, skipped: true };
   const slot_key = _slotKey(company_id, professional_id, scheduled_at);
   const expires_at = new Date(Date.now() + _slotTtl() * 1000).toISOString();
@@ -36,7 +36,12 @@ async function acquireSlotLock(sdk, { company_id, unit_id, professional_id, sche
   const nowISO = new Date().toISOString();
   const alive = existing.filter(r => r.status === 'active' && r.expires_at > nowISO);
   if (alive.length) {
-    const mine = alive.find(r => owner_phone && r.owner_phone === owner_phone);
+    // Fase 9: match estrito por owner_id quando autenticado. Telefone só é fallback
+    // para reservations que TAMBÉM não têm owner_id — impede phone-spoofing roubar slot.
+    const mine = alive.find(r => {
+      if (reservation_owner_id) return r.reservation_owner_id === reservation_owner_id;
+      return owner_phone && r.owner_phone === owner_phone && !r.reservation_owner_id;
+    });
     if (mine) {
       try { await sdk.entities.SlotReservation.update(mine.id, { expires_at }); } catch {}
       return { success: true, reservation: { ...mine, expires_at }, reused: true };
@@ -47,7 +52,9 @@ async function acquireSlotLock(sdk, { company_id, unit_id, professional_id, sche
   const reservation = await sdk.entities.SlotReservation.create({
     company_id, unit_id: unit_id || undefined, professional_id,
     scheduled_at: _truncMin(scheduled_at), slot_key,
-    owner_phone: owner_phone || undefined, source: source || 'internal',
+    owner_phone: owner_phone || undefined,
+    reservation_owner_id: reservation_owner_id || undefined,
+    source: source || 'internal',
     expires_at, status: 'active',
   });
   console.log('[slotLock] acquired', { reservation_id: reservation.id, slot_key });
@@ -442,12 +449,15 @@ Deno.serve(async (req) => {
     // ─── LOCK ATÔMICO (P0.1) ────────────────────────────────────────────
     // WHY: este endpoint é usado pelo fluxo de plano e gratuito. Sem lock,
     // dois clientes podem reservar o mesmo slot simultaneamente.
+    // Fase 9: customer_id autenticado (já validado lá em cima como obrigatório)
+    // vira a identidade canônica do lock. Telefone fica como metadado apenas.
     const lockResult = await acquireSlotLock(sdk, {
       company_id,
       unit_id,
       professional_id,
       scheduled_at,
       owner_phone: phoneNorm,
+      reservation_owner_id: customer_id,
       source: body.subscription_id ? 'public_booking_plan' : 'public_booking_free',
     });
     if (!lockResult.success) {

@@ -110,10 +110,23 @@ export async function acquireSlotLock(sdk, params) {
 
   if (alive.length > 0) {
     // Já existe reserva viva. Pode reusar se for do MESMO owner.
-    const mine = alive.find(r =>
-      (reservation_owner_id && r.reservation_owner_id === reservation_owner_id) ||
-      (owner_phone && r.owner_phone === owner_phone)
-    );
+    //
+    // FASE 9 — Hardening: quando o requester traz `reservation_owner_id` (customer_id
+    // autenticado), exigimos match estrito por owner_id. NÃO caímos no fallback de
+    // telefone, mesmo que outro registro tenha o mesmo phone — telefone pode ser
+    // reciclado/falsificado (atacante adivinha o phone do cliente original e "rouba"
+    // o slot via reuse). O fallback por `owner_phone` continua ativo APENAS para
+    // callers que ainda não têm customer_id (callers internos legados / casos sem auth).
+    const mine = alive.find(r => {
+      if (reservation_owner_id) {
+        // Identidade autenticada: SÓ aceita match por owner_id.
+        return r.reservation_owner_id === reservation_owner_id;
+      }
+      // Caller sem owner_id: fallback histórico por telefone.
+      // Só aceita match em reservations que TAMBÉM não têm owner_id (não vaza
+      // pra reservations já vinculadas a um customer_id autenticado).
+      return owner_phone && r.owner_phone === owner_phone && !r.reservation_owner_id;
+    });
     if (mine) {
       // WHY: cenário válido — cliente trocou método de pagamento (pix↔card) ou refresh.
       // Estendemos o TTL para o cliente ter mais tempo.

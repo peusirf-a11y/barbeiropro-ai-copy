@@ -209,29 +209,18 @@ const handleContinueToConfirmation = () => {
 
 ---
 
-### Fase 9 — Slot Reservation Hardening
+### Fase 9 — Slot Reservation Hardening ✅ (2026-05-20)
 
-**Hoje:** Reserva vinculada a `owner_phone`
+**Antes:** Reuse do lock matchava por `owner_phone` indiscriminadamente — atacante adivinhando o telefone do cliente original podia "roubar" o slot via reuse.
 
-**Amanhã:** Reserva vinculada a `reservation_owner_id` (customer_id autenticado)
+**Agora:** Matching estrito por `reservation_owner_id` (customer_id autenticado) quando presente. Telefone segue como fallback APENAS para callers sem owner_id e APENAS para reservations que também não têm owner_id — impede que reservations de clientes autenticados sejam reusadas por callers só com phone.
 
-**Entity SlotReservation:**
-```javascript
-{
-  company_id,
-  unit_id,
-  professional_id,
-  service_id,
-  scheduled_at,
-  
-  // Novo:
-  reservation_owner_id,  // Customer.id (autenticado)
-  reservation_token,     // Verificar antes de consumir
-  
-  created_at,
-  expires_at,  // 5 minutos
-}
-```
+**Mudanças aplicadas:**
+- `lib/slotLock.js`: lógica de match endurecida com fallback condicional.
+- `functions/createPublicAppointment`: passa `customer_id` (já obrigatório desde Fase 8) como `reservation_owner_id`.
+- `functions/createBookingPaymentIntent`: aceita `customer_id` opcional no payload e passa como `reservation_owner_id` quando vier do fluxo autenticado.
+
+**Backward compat:** schema da entidade não mudou (`reservation_owner_id` já existia). Callers legados que só passam `owner_phone` continuam funcionando — só perdem a capacidade de reusar slots de outros donos (que era o bug).
 
 ---
 
