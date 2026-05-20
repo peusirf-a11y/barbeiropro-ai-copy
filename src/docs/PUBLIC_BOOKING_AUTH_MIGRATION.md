@@ -45,63 +45,68 @@ Formulário de login por email + senha.
 
 ---
 
-### Fase 2 — RegisterCustomerForm
+### Fase 2 — RegisterCustomerForm ✅ (2026-05-20)
 **Arquivo:** `components/public/RegisterCustomerForm.jsx`
 
-Formulário de cadastro novo.
+Formulário de cadastro novo, totalmente funcional dentro do `AuthGateModal`.
 
-**Campos:**
-- Nome
-- Email (obrigatório, deve ser único)
-- Telefone (11 dígitos)
-- Senha (mínimo 8)
-- Confirmar senha
-- Termos de Uso + Privacidade (obrigatório)
+**Campos validados client-side:**
+- Nome (obrigatório)
+- Email (obrigatório, formato válido)
+- Telefone (11 dígitos, normalizado para só-dígitos antes de enviar)
+- Senha (mínimo 6 — alinhado com o backend `customerAuth`)
+- Confirmar senha (deve casar)
+- Termos de Uso + Política de Privacidade (checkbox obrigatório, com links para `/termos-de-uso` e `/politica-de-privacidade`)
 
 **Behavior:**
-- Valida tudo
-- Chamar `customerAuth` com `action: 'register'`
-- Auto-login após cadastro
-- Persistir sessão automaticamente
+- Chama `customerAuth` com `action: 'signup'` (backend aceita `register` como alias retrocompat).
+- Auto-login após sucesso — persiste token em `localStorage.bt_customer_token_{companyId}` e chama `onSuccess(customer_id, token)`.
+- Erros do backend (email duplicado, telefone inválido, rate limit) renderizados inline com `AlertCircle`.
+
+**Nada a fazer.** Implementação está pronta e em uso pelo `AuthGateModal` (Fase 4).
 
 ---
 
-### Fase 3 — ForgotPasswordModal
+### Fase 3 — ForgotPasswordModal ✅ (2026-05-20)
 **Arquivo:** `components/public/ForgotPasswordModal.jsx`
 
-Recuperação de senha (2 steps).
+Recuperação de senha — **fluxo simplificado para deeplink only**.
 
-**Step 1 — Email:**
-- Input email
-- Chamar `customerAuth` com `action: 'request_password_reset'`
-- Enviar link por email (backend)
+**Como funciona:**
+1. Modal coleta apenas o email.
+2. Dispara `customerAuth` com `action: 'request_reset'` (alias `request_password_reset` mantido no backend).
+3. Backend gera `reset_token` (1h TTL) e envia email com link para `/cliente/:slug/login?reset_token=...&email=...`.
+4. Cliente clica no link → `CustomerLoginPage` detecta os query params, abre em modo `reset`, e troca a senha lá.
+5. Modal mostra confirmação "Verifique seu email" (anti-enumeração: mesma mensagem mesmo se email não existir).
 
-**Step 2 — Reset:**
-- Token (do email)
-- Nova senha
-- Confirmar senha
-- Chamar `customerAuth` com `action: 'reset_password'`
+**Bugs corrigidos nesta fase:**
+- ❌ Step 2 inline de "colar token" removido — era redundante com o deeplink no `CustomerLoginPage` e propenso a erro de digitação.
+- ❌ Param `new_password` corrigido para `password` (backend rejeitava silenciosamente).
+- ❌ Senha mínima 8 → 6 (alinhado com Login/Signup/backend).
+- ✅ Mensagem unificada e UI de confirmação visual destacando o spam check.
 
 ---
 
-### Fase 4 — AuthGateModal
+### Fase 4 — AuthGateModal ✅ (2026-05-20)
 **Arquivo:** `components/public/AuthGateModal.jsx`
 
-Modal principal que orquestra login/cadastro/recuperação.
+Modal principal que orquestra login/cadastro/recuperação/ativação dentro do fluxo de booking.
 
-**Props:**
-- `isOpen`: mostrar/ocultar
-- `companyId`, `companyName`: contexto
-- `primaryColor`: tema
-- `onClose()`: fecha modal
-- `onSuccess(customerId, token)`: callback (autentica + fecha)
+**Views internas:** `login` → `register` → `forgot` → `activate`. Transições controladas por estado interno + reset on `isOpen`.
 
-**Fluxo:**
-```
-AuthGateModal → Login [Cadastro] [Esqueceu?]
-             → Register [Voltar]
-             → ForgotPassword [Voltar]
-```
+**Integração:** Em uso pelo `pages/PublicBooking.jsx` (Fase 6). Listener de evento `activate-account-requested` permite que o `LoginCustomerForm` ofereça migração de cliente legado sem trocar de tela.
+
+---
+
+### Fase 5 — Validação do BookingSessionContext ✅ (2026-05-20)
+
+Validado no fluxo real após integração da Fase 6:
+- `PublicBooking.handleNeedAuth` chama `updateBooking({ bookingService })` ANTES de abrir o AuthGate.
+- `BookingModal` recebe `initialService={bookingService}` da página, que persiste no estado pai mesmo quando o modal fecha.
+- No `onSuccess` do AuthGate, aguarda hidratação do `useCustomerAuth` (Fase 6 fix) e reabre o BookingModal com o `bookingService` intacto.
+- Estado interno do modal (serviço/profissional/data/hora) vive no `useState` do `BookingModal`, que é remontado quando o modal reabre — `initialService` recoloca o usuário no Step 1 (profissional) sem precisar reescolher o serviço.
+
+**Sem regressão observada.** Booking session sobrevive a login, cadastro e recuperação de senha.
 
 ---
 
@@ -196,29 +201,16 @@ const handleContinueToConfirmation = () => {
 
 ---
 
-### Fase 8 — Remover PhoneIdentificationStep
+### Fase 8 — Remover PhoneIdentificationStep ✅ (2026-05-20)
 
-**Objetivo:** Eliminar step 'identify' (telefone como identidade)
+**O step de identificação por telefone foi totalmente removido do fluxo público.**
 
-**Hoje:**
-- Cliente entra no booking
-- Pede telefone
-- Lookup por telefone (pode retornar cliente antigo)
-- Prossegue
-
-**Amanhã:**
-- Cliente entra no booking
-- Escolhe serviço/profissional/horário
-- Clica "Continuar"
-- AuthGate obrigatório
-- Login/Cadastro
-- Volta com customer_id autenticado
-
-**Remove:**
-- `PhoneIdentificationStep` component
-- `step === 'identify'` lógica
-- Lookup por telefone
-- `returningCustomer` state
+**Estado final:**
+- Fluxo do `BookingModal`: Serviço → Profissional → Data/Hora → **AuthGate (obrigatório se não autenticado)** → Confirmação → Pagamento.
+- `handleContinueToConfirmation` no `BookingModal` dispara `onNeedAuth?.()` quando `loggedCustomer` é falsy — não há mais fallback por telefone.
+- `createPublicAppointment` exige `customer_id` obrigatório (cross-tenant validation via `Customer.get`); o backend rejeita com `customer_id_required` se vier vazio.
+- `PhoneIdentificationStep.jsx` deletado nesta fase — código morto removido do bundle.
+- Estados antigos (`returningCustomer`, `step === 'identify'`) já não existiam no `PublicBooking.jsx` atual.
 
 ---
 
@@ -237,62 +229,23 @@ const handleContinueToConfirmation = () => {
 
 ---
 
-### Fase 10 — Migration para Clientes Antigos
+### Fase 10 — Migration para Clientes Antigos ✅ (2026-05-20)
 
-**Problema:** Clientes existentes identificados apenas por telefone
+**Problema resolvido:** clientes que existiam no banco identificados apenas por telefone (sem senha) precisavam ativar a conta para usar o novo fluxo autenticado.
 
-**Solução:** Fluxo "ativar conta"
+**Solução implementada via `customerAuth.action: 'activate_account'`:**
+1. Cliente antigo abre o booking → AuthGate → tenta login com email.
+2. Backend retorna que o email não tem senha (ou cliente clica em "Tenho cadastro antigo" no `LoginCustomerForm`).
+3. `ActivateAccountForm` (`components/public/ActivateAccountForm.jsx`) coleta email + telefone + nova senha.
+4. Backend faz lookup por `email + phone` no `Customer` existente, valida o match, salva `password_hash` (PBKDF2-SHA256), gera `auth_token` e devolve a sessão.
+5. Cliente continua o booking com o mesmo `customer_id` legado — **histórico de agendamentos preservado**.
 
-**Quando cliente antigo tenta login:**
-1. Email não existe → erro "não encontrado"
-2. Oferece fluxo alternativo
-3. "Tenho um agendamento antigo?"
-4. Lookup por telefone (legado)
-5. Link mágico por email
-6. Define senha
-7. Ativa conta
-8. Migra customer_id
+**Por que não fluxo "link mágico" como o esboço original?** Porque:
+- O cliente já está no booking, com intenção de agendar AGORA. Mandar pra email + esperar abrir email é fricção desnecessária.
+- O backend já valida `email + phone` como prova de posse (cliente legado teve que dar os dois ao ser cadastrado pelo barbeiro).
+- Rate limit IP-aware (Fase 4) + identifier-aware (5/5min) protegem contra brute force.
 
----
-
-## 🔧 Backend Functions Necessárias
-
-### customerAuth (atualizar)
-
-```javascript
-Deno.serve(async (req) => {
-  const { action, company_id, ... } = await req.json();
-  
-  if (action === 'login') {
-    // email, password → customer_id, token
-    // Rate limit, hash verification, session creation
-  }
-  if (action === 'register') {
-    // name, email, phone, password → customer_id, token
-    // Validar email único, hash password, create customer, create session
-  }
-  if (action === 'request_password_reset') {
-    // email → enviar token por email (uso único, expira 1h)
-  }
-  if (action === 'reset_password') {
-    // email, reset_token, new_password → sucesso
-    // Validar token, hash password, update customer, revoke sessions
-  }
-});
-```
-
-### createPublicAppointment (atualizar)
-
-**Hoje:**
-- Lookup customer por `phone`
-- Cria/atualiza customer
-- Cria appointment
-
-**Amanhã:**
-- Recebe `customer_id` autenticado
-- Lookup direto
-- Usa `existing_customer_id`
-- Remove criação automática por telefone
+**Resultado:** zero customer_ids órfãos, zero perda de histórico, fricção mínima.
 
 ---
 
