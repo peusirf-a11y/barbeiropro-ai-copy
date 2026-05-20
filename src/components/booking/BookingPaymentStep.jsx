@@ -10,11 +10,12 @@
 //  'expired'   → tempo esgotou — permite recomeçar
 //  'error'     → erro de comunicação — permite tentar de novo
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { ChevronLeft, AlertCircle, RefreshCw, QrCode, CreditCard, Loader2 } from 'lucide-react';
 import PixPaymentBox from './PixPaymentBox';
 import CardPaymentBox from './CardPaymentBox';
+import { generateStableIdempotencyKey } from '@/lib/system/idempotency';
 
 function maskCpf(value) {
   const digits = String(value || '').replace(/\D/g, '').slice(0, 11);

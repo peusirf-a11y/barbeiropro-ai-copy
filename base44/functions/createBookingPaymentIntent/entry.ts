@@ -141,6 +141,68 @@ function _reviewTokenExpiry(scheduledAtISO) {
   return new Date(new Date(scheduledAtISO).getTime() + 72 * 60 * 60 * 1000).toISOString();
 }
 
+// ─── Idempotency (Fase 1) — inline. Espelha lib/system/idempotency.js ───
+// Quando o frontend manda `idempotency_key`, guardamos o response da PRIMEIRA
+// execução e devolvemos esse mesmo response em chamadas subsequentes (proteção
+// contra duplo-clique, refresh, retry automático).
+const IDEMPOTENCY_TTL_PAYMENT_MS = 60 * 60 * 1000; // 1h — pagamentos têm expiração própria
+async function _sha256Hex(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function _stableJSON(v) {
+  if (Array.isArray(v)) return '[' + v.map(_stableJSON).join(',') + ']';
+  if (v && typeof v === 'object') {
+    return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + _stableJSON(v[k])).join(',') + '}';
+  }
+  return JSON.stringify(v);
+}
+async function _idempotencyReserve(sdk, { key, route, payload, company_id, user_id, ttl_ms }) {
+  if (!key) return { hit: false, record: null };
+  try {
+    const request_hash = await _sha256Hex(_stableJSON(payload || {}));
+    const existing = await sdk.entities.IdempotencyKey.filter({ key, route }, '-created_date', 1);
+    const found = existing?.[0];
+    const nowISO = new Date().toISOString();
+    if (found) {
+      if (found.expires_at && found.expires_at < nowISO) {
+        // expirado — segue para criar nova
+      } else if (found.request_hash && found.request_hash !== request_hash) {
+        return { hit: true, status: 'conflict' };
+      } else if (found.status === 'completed') {
+        return { hit: true, status: 'completed', snapshot: found.response_snapshot || {}, response_status: found.response_status || 200 };
+      } else if (found.status === 'pending') {
+        return { hit: true, status: 'pending' };
+      } else if (found.status === 'failed') {
+        try { await sdk.entities.IdempotencyKey.delete(found.id); } catch {}
+      }
+    }
+    const ttl = ttl_ms || IDEMPOTENCY_TTL_PAYMENT_MS;
+    const record = await sdk.entities.IdempotencyKey.create({
+      key, route,
+      company_id: company_id || undefined,
+      user_id: user_id || undefined,
+      request_hash,
+      status: 'pending',
+      expires_at: new Date(Date.now() + ttl).toISOString(),
+    });
+    return { hit: false, record };
+  } catch (err) {
+    console.warn('[idempotency] reserve failed (proceeding without):', err.message);
+    return { hit: false, record: null };
+  }
+}
+async function _idempotencyFinalize(sdk, record, { status, snapshot, response_status }) {
+  if (!record?.id) return;
+  try {
+    await sdk.entities.IdempotencyKey.update(record.id, {
+      status: status || 'completed',
+      response_snapshot: snapshot || undefined,
+      response_status: response_status || 200,
+    });
+  } catch (err) { console.warn('[idempotency] finalize failed:', err.message); }
+}
+
 // Resolve a chave secreta do Stripe. Sistema opera em Live mode.
 function getStripeSecret() {
   const key = Deno.env.get('STRIPE_SECRET_KEY') || '';
@@ -176,6 +238,7 @@ Deno.serve(async (req) => {
       payment_method, // 'pix' ou 'card'
       scope_customer_by_unit,
       is_flexible_assignment,
+      idempotency_key,
     } = body;
     // WHY (P0.2): NÃO desestruturamos price, service_name, professional_name.
     // Esses são AUTORITATIVOS DO BANCO. Carregamos via .get() abaixo.
@@ -184,6 +247,44 @@ Deno.serve(async (req) => {
     // WHY (M5): tokens (confirm_token, review_token) também NÃO vêm do payload —
     // são gerados aqui via crypto.randomUUID().
 
+    // ─── IDEMPOTENCY GUARD (Fase 1) ─────────────────────────────────────
+    // Cliente pode mandar `idempotency_key` para proteger contra:
+    // - duplo-clique no botão "Pagar"
+    // - refresh durante criação do PaymentIntent
+    // - retry automático do React Query
+    // Já temos idempotency Stripe-side (linha mais abaixo), mas isso cobre só
+    // o Stripe. Aqui cobrimos a criação do Appointment no Base44 também.
+    const idemRoute = 'createBookingPaymentIntent';
+    const idemPayload = { company_id, professional_id, service_id, scheduled_at, payment_method, customer_phone };
+    const idem = await _idempotencyReserve(sdk, {
+      key: idempotency_key,
+      route: idemRoute,
+      payload: idemPayload,
+      company_id,
+      user_id: customer_phone || 'public',
+    });
+    if (idem.hit) {
+      if (idem.status === 'completed') {
+        console.log('[createBookingPaymentIntent] idempotency replay', { key: idempotency_key });
+        return Response.json(idem.snapshot, { status: idem.response_status || 200 });
+      }
+      if (idem.status === 'pending') {
+        return Response.json({ error: 'in_flight', message: 'Pagamento em processamento, aguarde.' }, { status: 409 });
+      }
+      if (idem.status === 'conflict') {
+        return Response.json({ error: 'idempotency_conflict', message: 'Chave já usada para outra operação.' }, { status: 409 });
+      }
+    }
+    const idemRecord = idem.record;
+    const respond = async (body, status = 200) => {
+      await _idempotencyFinalize(sdk, idemRecord, {
+        status: body?.error ? 'failed' : 'completed',
+        snapshot: body,
+        response_status: status,
+      });
+      return Response.json(body, { status });
+    };
+
     // ─── Validações ─────────────────────────────────────────────────────
     const fail = (code, status = 400, extra = {}) => {
       console.warn(`[createBookingPaymentIntent] validation failed: ${code}`, {
@@ -191,7 +292,7 @@ Deno.serve(async (req) => {
         has_name: !!customer_name, has_phone: !!customer_phone,
         payment_method, has_cpf: !!customer_cpf,
       });
-      return Response.json({ error: code, ...extra }, { status });
+      return respond({ error: code, ...extra }, status);
     };
     if (!company_id) return fail('company_id_required');
     if (!service_id) return fail('service_id_required');
@@ -217,27 +318,27 @@ Deno.serve(async (req) => {
     const rl = await _checkBookingRateLimit(sdk, phoneNorm);
     if (!rl.allowed) {
       console.warn('[createBookingPaymentIntent] RATE_LIMITED', { phone: phoneNorm, count: rl.count, limit: rl.limit });
-      return Response.json({
+      return respond({
         error: 'rate_limited',
         message: `Limite de ${rl.limit} agendamentos por hora atingido. Tente novamente mais tarde.`,
-      }, { status: 429 });
+      }, 429);
     }
 
     // ─── Carrega empresa e valida Connect ───────────────────────────────
     const companies = await sdk.entities.Company.filter({ id: company_id });
-    if (!companies.length) return Response.json({ error: 'company_not_found' }, { status: 404 });
+    if (!companies.length) return respond({ error: 'company_not_found' }, 404);
     const company = companies[0];
     if (!company.stripe_connect_account_id || !company.stripe_connect_charges_enabled) {
-      return Response.json({
+      return respond({
         error: 'connect_not_ready',
         message: 'Esta barbearia ainda não está aceitando pagamentos online.',
-      }, { status: 400 });
+      }, 400);
     }
     if (payment_method === 'pix' && !company.stripe_connect_pix_enabled) {
-      return Response.json({
+      return respond({
         error: 'pix_not_enabled',
         message: 'Pix ainda não está ativo nesta barbearia. Por favor, escolha pagar com cartão.',
-      }, { status: 400 });
+      }, 400);
     }
 
     // ─── VALIDAÇÃO AUTORITATIVA (P0.2) ─────────────────────────────────
@@ -253,10 +354,10 @@ Deno.serve(async (req) => {
     } catch { service = null; }
     if (!service || service.company_id !== company_id) {
       console.warn('[createBookingPaymentIntent] cross-tenant or missing service', { company_id, service_id });
-      return Response.json({ error: 'service_not_found' }, { status: 404 });
+      return respond({ error: 'service_not_found' }, 404);
     }
     if (service.active === false) {
-      return Response.json({ error: 'service_inactive' }, { status: 400 });
+      return respond({ error: 'service_inactive' }, 400);
     }
 
     try {
@@ -264,23 +365,23 @@ Deno.serve(async (req) => {
     } catch { professional = null; }
     if (!professional || professional.company_id !== company_id) {
       console.warn('[createBookingPaymentIntent] cross-tenant or missing professional', { company_id, professional_id });
-      return Response.json({ error: 'professional_not_found' }, { status: 404 });
+      return respond({ error: 'professional_not_found' }, 404);
     }
     if (professional.active === false) {
-      return Response.json({ error: 'professional_inactive' }, { status: 400 });
+      return respond({ error: 'professional_inactive' }, 400);
     }
     if (professional.service_ids?.length && !professional.service_ids.includes(service_id)) {
-      return Response.json({ error: 'service_not_offered_by_professional' }, { status: 400 });
+      return respond({ error: 'service_not_offered_by_professional' }, 400);
     }
     if (unit_id && professional.unit_ids?.length && !professional.unit_ids.includes(unit_id)) {
-      return Response.json({ error: 'professional_not_in_unit' }, { status: 400 });
+      return respond({ error: 'professional_not_in_unit' }, 400);
     }
 
     // Dados autoritativos — usados daqui pra frente. Payload original IGNORADO.
     const realPrice = Number(service.price) || 0;
     if (realPrice <= 0) {
       // Defesa: serviço grátis não passa por pagamento online. Frontend deve usar createPublicAppointment.
-      return Response.json({ error: 'invalid_price', message: 'Serviço sem preço definido — pague no balcão.' }, { status: 400 });
+      return respond({ error: 'invalid_price', message: 'Serviço sem preço definido — pague no balcão.' }, 400);
     }
     const realServiceName = service.name;
     const realProfessionalName = professional.name;
@@ -292,7 +393,7 @@ Deno.serve(async (req) => {
     try {
       const blocks = await sdk.entities.BlockedTime.filter({ company_id }, '-created_date', 200);
       if (_blockedConflict({ professionalId: professional_id, dateTime: scheduledAtISO, durationMin: realDuration, blocks })) {
-        return Response.json({ error: 'time_blocked', message: 'Horário indisponível.' }, { status: 409 });
+        return respond({ error: 'time_blocked', message: 'Horário indisponível.' }, 409);
       }
     } catch (err) {
       console.warn('[createBookingPaymentIntent] block validation skipped:', err.message);
@@ -311,10 +412,10 @@ Deno.serve(async (req) => {
       source: payment_method === 'pix' ? 'public_booking_pix' : 'public_booking_card',
     });
     if (!lockResult.success) {
-      return Response.json({
+      return respond({
         error: 'slot_taken',
         message: 'Este horário acabou de ser reservado por outra pessoa. Escolha outro.',
-      }, { status: 409 });
+      }, 409);
     }
     const slotReservation = lockResult.reservation;
 
@@ -347,10 +448,10 @@ Deno.serve(async (req) => {
     if (conflict) {
       // Libera o lock que acabamos de adquirir, já que não vamos seguir.
       await releaseSlotLock(sdk, slotReservation?.id);
-      return Response.json({
+      return respond({
         error: 'slot_taken',
         message: 'Este horário acabou de ser reservado por outra pessoa. Escolha outro.',
-      }, { status: 409 });
+      }, 409);
     }
     // Cancela tentativas anteriores do MESMO usuário no mesmo slot (e seus PaymentIntents)
     for (const old of ownPendingToReuse) {
@@ -456,7 +557,7 @@ Deno.serve(async (req) => {
       }).catch(() => {});
       // Libera o lock também — outro cliente pode tentar este horário.
       await releaseSlotLock(sdk, slotReservation?.id);
-      return Response.json({ error: 'stripe_error', message: err.message }, { status: 500 });
+      return respond({ error: 'stripe_error', message: err.message }, 500);
     }
 
     // Salva o payment_intent_id no appointment
@@ -498,7 +599,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({
+    return respond({
       success: true,
       appointment_id: appointment.id,
       customer_id: customer.id,
@@ -509,7 +610,7 @@ Deno.serve(async (req) => {
         qr_code_url: pixQrCode,
         copy_paste: pixCopyPaste,
       } : null,
-    });
+    }, 200);
   } catch (error) {
     console.error('[createBookingPaymentIntent] INTERNAL_ERROR:', error?.message, error?.stack);
     return Response.json({ success: false, error: 'INTERNAL_ERROR' }, { status: 500 });

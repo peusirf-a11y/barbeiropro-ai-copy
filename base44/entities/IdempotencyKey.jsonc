@@ -1,0 +1,56 @@
+{
+  "name": "IdempotencyKey",
+  "type": "object",
+  "description": "Garante que opera\u00e7\u00f5es cr\u00edticas executem apenas UMA vez mesmo com refresh, duplo-clique, retry ou webhook duplicado. A chave \u00e9 \u00fanica por (route + key). Quando a mesma chave chega novamente, o servidor retorna o response_snapshot anterior em vez de re-executar.",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Identificador \u00fanico da opera\u00e7\u00e3o. Pode ser fornecido pelo cliente (Idempotency-Key header) ou derivado server-side (hash determin\u00edstico de payload). Formato livre, m\u00e1x 200 chars."
+    },
+    "route": {
+      "type": "string",
+      "description": "Nome da function/rota que processou a requisi\u00e7\u00e3o (ex: createBookingPaymentIntent, stripeWebhook). Permite namespacing de keys e m\u00e9tricas por rota."
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Tenant ao qual a opera\u00e7\u00e3o pertence (quando aplic\u00e1vel). Webhooks de plataforma podem vir sem company_id."
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do ator (user.email, customer.id, 'public' ou 'webhook'). N\u00e3o usado para deduplica\u00e7\u00e3o \u2014 apenas auditoria."
+    },
+    "request_hash": {
+      "type": "string",
+      "description": "SHA-256 (hex) do payload normalizado. Quando duas requests chegam com a mesma key MAS payloads diferentes, \u00e9 um sinal de erro do cliente (conflict)."
+    },
+    "response_snapshot": {
+      "type": "object",
+      "description": "Snapshot do response da primeira execu\u00e7\u00e3o. Devolvido em requests subsequentes. Nunca incluir secrets/tokens sens\u00edveis."
+    },
+    "response_status": {
+      "type": "number",
+      "description": "HTTP status code do response original. Default 200.",
+      "default": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "pending = primeira execu\u00e7\u00e3o em andamento (lock); completed = sucesso, devolve snapshot; failed = primeira execu\u00e7\u00e3o falhou (n\u00e3o retorna snapshot \u2014 deixa retry tentar de novo)."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando esta chave deve ser considerada expirada. systemMaintenance limpa registros expirados. TTL t\u00edpico: 24h para mutations, 7 dias para webhooks Stripe."
+    }
+  },
+  "required": [
+    "key",
+    "route",
+    "expires_at"
+  ]
+}

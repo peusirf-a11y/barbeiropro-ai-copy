@@ -1,6 +1,50 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.0.0';
 
+// ─── Idempotency (Fase 1) ───────────────────────────────────────────
+// Stripe envia retries quando não recebe 2xx em < 30s. Sem dedup,
+// um evento `payment_intent.succeeded` processado uma vez pode ser
+// reprocessado e disparar email de confirmação 2x, criar registros
+// duplicados, etc. Usamos `event.id` (estável por evento) como key.
+const IDEMPOTENCY_TTL_WEBHOOK_MS = 7 * 24 * 60 * 60 * 1000; // 7d — mesma janela do Stripe
+async function _webhookAlreadyProcessed(sdk, eventId) {
+  if (!eventId) return false;
+  try {
+    const list = await sdk.entities.IdempotencyKey.filter(
+      { key: eventId, route: 'stripeWebhook' },
+      '-created_date',
+      1,
+    );
+    const found = list?.[0];
+    if (!found) return false;
+    const nowISO = new Date().toISOString();
+    if (found.expires_at && found.expires_at < nowISO) return false;
+    if (found.status === 'completed') return true;
+    return false;
+  } catch (err) {
+    console.warn('[stripeWebhook] idempotency check failed (proceeding):', err.message);
+    return false;
+  }
+}
+async function _markWebhookProcessed(sdk, eventId, eventType) {
+  if (!eventId) return;
+  try {
+    await sdk.entities.IdempotencyKey.create({
+      key: eventId,
+      route: 'stripeWebhook',
+      user_id: 'webhook',
+      request_hash: eventId,
+      status: 'completed',
+      response_snapshot: { event_type: eventType, processed_at: new Date().toISOString() },
+      response_status: 200,
+      expires_at: new Date(Date.now() + IDEMPOTENCY_TTL_WEBHOOK_MS).toISOString(),
+    });
+  } catch (err) {
+    // Pode falhar por race (outro container processou ao mesmo tempo). Não derruba.
+    console.warn('[stripeWebhook] idempotency mark failed:', err.message);
+  }
+}
+
 // Resolve config Stripe (Live mode).
 // webhookSecrets é um array porque podemos ter 2 webhooks (Sua conta + Contas conectadas).
 function getStripeConfig() {
@@ -96,6 +140,15 @@ Deno.serve(async (req) => {
 
     console.log(`Stripe event: ${event.type} (env=${isLive ? 'live' : 'test'})`);
 
+    // ─── DEDUP por event.id (Fase 1) ─────────────────────────────────
+    // Stripe pode reenviar o mesmo evento (timeout, retry). Se já processamos,
+    // devolvemos 200 sem reprocessar — evita emails duplicados, registros 2x.
+    const sdkForDedup = base44.asServiceRole;
+    if (await _webhookAlreadyProcessed(sdkForDedup, event.id)) {
+      console.log(`[stripeWebhook] dedup: event ${event.id} already processed`);
+      return Response.json({ received: true, deduped: true });
+    }
+
     // Helper: ativa uma CustomerSubscription a partir do Stripe (idempotente).
     // Procura por: 1) subscription_id no metadata; 2) stripe_subscription_id no DB.
     async function activateCustomerPlanSub({ metadata = {}, stripeSubId, stripeCustomerId, eventName }) {
@@ -154,12 +207,14 @@ Deno.serve(async (req) => {
           stripeCustomerId: session.customer || null,
           eventName: 'checkout.session.completed',
         });
+        await _markWebhookProcessed(sdkForDedup, event.id, event.type);
         return Response.json({ received: true });
       }
 
       const email = md.email || session.customer_email;
       if (!email) {
         console.error('No email in session');
+        await _markWebhookProcessed(sdkForDedup, event.id, event.type);
         return Response.json({ received: true });
       }
 
@@ -308,6 +363,7 @@ Deno.serve(async (req) => {
             console.error('[stripeWebhook] customer plan cancel error:', err.message);
           }
         }
+        await _markWebhookProcessed(sdkForDedup, event.id, event.type);
         return Response.json({ received: true });
       }
 
@@ -404,6 +460,7 @@ Deno.serve(async (req) => {
           stripeCustomerId: invoice.customer || null,
           eventName: event.type,
         });
+        await _markWebhookProcessed(sdkForDedup, event.id, event.type);
         return Response.json({ received: true });
       }
 
@@ -549,6 +606,10 @@ Deno.serve(async (req) => {
         }
       }
     }
+
+    // ─── DEDUP: marca evento como processado (Fase 1) ────────────────
+    // Best-effort: se falhar, próximo retry só vai reprocessar (não é crítico).
+    await _markWebhookProcessed(sdkForDedup, event.id, event.type);
 
     return Response.json({ received: true });
   } catch (error) {
