@@ -44,7 +44,6 @@ export default function PremiumHero() {
           </div>
 
           <div className="flex items-center justify-center gap-6 text-xs text-white/40">
-            <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] animate-pulse" /> Sem cartão</span>
             <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] animate-pulse" /> Setup em 5 minutos</span>
             <span className="hidden sm:flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] animate-pulse" /> Suporte 24/7</span>
           </div>
