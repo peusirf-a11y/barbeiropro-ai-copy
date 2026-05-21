@@ -578,7 +578,10 @@ Deno.serve(async (req) => {
     // ─── Idempotency key determinística ─────────────────────────────────
     // Mesmo cliente + mesmo serviço + mesmo horário + mesmo método = mesmo PaymentIntent.
     // Inclui payment_method para evitar colisão quando o cliente troca pix↔card.
-    const idempotencyKey = `bk_${company_id}_${customer.id}_${service_id}_${professional_id}_${scheduledAtISO}_${payment_method}`.slice(0, 200);
+    // Inclui janela de 10min: se o cliente reabre o checkout depois (PI anterior expirado/falho),
+    // gera nova key e não colide com a cacheada no Stripe (que guarda por 24h).
+    const idemWindow = Math.floor(Date.now() / (10 * 60 * 1000));
+    const idempotencyKey = `bk_${company_id}_${customer.id}_${service_id}_${professional_id}_${scheduledAtISO}_${payment_method}_${idemWindow}`.slice(0, 200);
 
     // ─── Cria Appointment como aguardando_pagamento ─────────────────────
     // WHY (P0.2): TODOS os campos canônicos vêm de realPrice/realServiceName/realProfessionalName.
