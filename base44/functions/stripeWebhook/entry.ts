@@ -536,6 +536,10 @@ Deno.serve(async (req) => {
     }
 
     // ─── CONNECT ACCOUNT UPDATES ─────────────────────────────────────
+    // Atualiza status da Company quando o dono altera algo na conta Connect:
+    //  - capability `pix_payments` (ativada/desativada no Stripe Express)
+    //  - charges_enabled / payouts_enabled
+    // AuditLog explícito apenas em transição PIX off↔on (ver docs/STRIPE_PIX_CONNECT.md).
     if (event.type === 'account.updated') {
       const acc = event.data.object;
       try {
@@ -543,17 +547,42 @@ Deno.serve(async (req) => {
           stripe_connect_account_id: acc.id,
         });
         if (companies.length) {
+          const company = companies[0];
           const charges = !!acc.charges_enabled;
           const payouts = !!acc.payouts_enabled;
-          const pixEnabled = acc.capabilities?.pix_payments === 'active';
+          const pixEnabledNow = acc.capabilities?.pix_payments === 'active';
+          const pixEnabledBefore = !!company.stripe_connect_pix_enabled;
           const status = charges ? 'enabled' : (acc.requirements?.disabled_reason ? 'disabled' : 'pending');
-          await base44.asServiceRole.entities.Company.update(companies[0].id, {
+          await base44.asServiceRole.entities.Company.update(company.id, {
             stripe_connect_status: status,
             stripe_connect_charges_enabled: charges,
             stripe_connect_payouts_enabled: payouts,
-            stripe_connect_pix_enabled: pixEnabled,
+            stripe_connect_pix_enabled: pixEnabledNow,
           });
-          console.log('[stripeWebhook] connect account synced:', acc.id, status, 'pix:', pixEnabled);
+          console.log('[stripeWebhook] connect account synced:', acc.id, status, 'pix:', pixEnabledNow);
+
+          // AuditLog em transição PIX off↔on (rastreabilidade do dono que ativou no Stripe Express).
+          if (pixEnabledNow !== pixEnabledBefore) {
+            try {
+              await base44.asServiceRole.entities.AuditLog.create({
+                company_id: company.id,
+                actor_email: 'stripe-webhook',
+                action: pixEnabledNow ? 'STRIPE_PIX_ENABLED' : 'STRIPE_PIX_DISABLED',
+                target_type: 'Company',
+                target_id: company.id,
+                before: { stripe_connect_pix_enabled: pixEnabledBefore },
+                after: { stripe_connect_pix_enabled: pixEnabledNow },
+                metadata: {
+                  connect_account_id: acc.id,
+                  connect_status: status,
+                  source: 'stripeWebhook:account.updated',
+                  event_id: event.id,
+                },
+              });
+            } catch (auditErr) {
+              console.warn('[stripeWebhook] PIX transition AuditLog failed:', auditErr.message);
+            }
+          }
         }
       } catch (err) {
         console.error('[stripeWebhook] account.updated error:', err.message);

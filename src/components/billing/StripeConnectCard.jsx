@@ -223,7 +223,14 @@ export default function StripeConnectCard({ company }) {
               Painel Stripe
             </a>
             <button
-              onClick={() => refetch()}
+              onClick={async () => {
+                // Sync explicito + auditável (registra AuditLog em transição PIX off↔on)
+                try {
+                  await base44.functions.invoke('syncStripePixStatus', { company_id: company.id });
+                } catch (_e) { /* fallback silencioso para refetch */ }
+                refetch();
+                queryClient.invalidateQueries({ queryKey: ['companies'] });
+              }}
               className="inline-flex items-center gap-2 bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-100 border border-black/10"
             >
               Atualizar status
