@@ -104,8 +104,16 @@ export default function AppDashboard() {
   const todayStr = now.toDateString();
   const todayKey = format(startOfDay(now), 'yyyy-MM-dd');
 
+  // Esconde cancelados por falha/expiração de pagamento online (mesma regra da Agenda).
+  // Cancelamentos manuais continuam visíveis. Aplicado antes do filtro por unidade
+  // para que KPIs, lista e insights todos usem a base limpa.
+  const apptsVisible = appointments.filter(a => {
+    if (a.status !== 'cancelado') return true;
+    return a.payment_status !== 'failed' && a.payment_status !== 'expired';
+  });
+
   // Aplica filtro por unidade ativa (registros sem unit_id continuam aparecendo)
-  const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
+  const apptsScoped = filterByUnit(apptsVisible, activeUnitId, isMultiUnit);
   const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
 
   const todayAppts = apptsScoped.filter(a => new Date(a.scheduled_at).toDateString() === todayStr);
