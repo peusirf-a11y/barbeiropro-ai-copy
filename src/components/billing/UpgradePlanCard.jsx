@@ -18,7 +18,24 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
 
   // Filtra: público + private onde companyId está em allowed_company_ids.
   // invite_only nunca aparece aqui (precisa redimir via /planos/convite/:token).
-  const plans = filterPlansVisibleToCompany(rawPlans, companyId);
+  // Também exclui planos sem stripe_price_id (não podem ser contratados via Stripe),
+  // mas mantém o plano atual mesmo sem price_id para mostrar como "ATUAL".
+  const plans = filterPlansVisibleToCompany(rawPlans, companyId)
+    .filter(p => p.stripe_price_id || p.id === currentPlanId);
+
+  // Mapeia códigos de erro do backend para mensagens amigáveis.
+  const friendlyError = (raw) => {
+    const code = String(raw || '').trim();
+    const map = {
+      PLAN_HAS_NO_STRIPE_PRICE: 'Este plano ainda não está configurado para pagamento. Fale com o suporte para ativá-lo.',
+      PLAN_NOT_FOUND: 'Plano não encontrado. Atualize a página e tente novamente.',
+      PLAN_NOT_AVAILABLE: 'Este plano não está disponível para sua conta.',
+      COMPANY_NOT_FOUND: 'Não foi possível identificar sua empresa. Recarregue a página.',
+      NO_ACTIVE_SUBSCRIPTION: 'Você ainda não tem uma assinatura ativa. Comece pelo checkout principal.',
+      FORBIDDEN: 'Você não tem permissão para alterar este plano.',
+    };
+    return map[code] || raw || 'Falha ao mudar de plano';
+  };
 
   const upgradeMutation = useMutation({
     mutationFn: (plan_id) => base44.functions.invoke('upgradePlan', { plan_id }),
@@ -28,10 +45,10 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
         setError('');
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        setError(res?.data?.error || 'Falha ao mudar de plano');
+        setError(friendlyError(res?.data?.error));
       }
     },
-    onError: (err) => setError(err?.response?.data?.error || err.message || 'Erro ao mudar de plano'),
+    onError: (err) => setError(friendlyError(err?.response?.data?.error || err.message)),
   });
 
   if (isLoading) {
