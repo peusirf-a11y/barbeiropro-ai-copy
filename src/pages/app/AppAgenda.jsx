@@ -274,11 +274,20 @@ export default function AppAgenda() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  // Esconde da agenda visual os agendamentos cancelados por falha/expiração de
+  // pagamento online. Eles continuam no banco para histórico/relatórios/auditoria,
+  // mas não poluem a visão operacional do dia. Cancelamentos manuais (sem
+  // payment_status failed/expired) seguem visíveis.
+  const apptsVisible = appointments.filter(a => {
+    if (a.status !== 'cancelado') return true;
+    return a.payment_status !== 'failed' && a.payment_status !== 'expired';
+  });
+
   // Multi-unidade: filtra agendamentos e profissionais pela unidade ativa.
   // Mono-unidade ou com unit_id ausente => mostra tudo (compatibilidade com dados legados).
   const apptsByUnit = isMultiUnit && activeUnitId
-    ? appointments.filter(a => !a.unit_id || a.unit_id === activeUnitId)
-    : appointments;
+    ? apptsVisible.filter(a => !a.unit_id || a.unit_id === activeUnitId)
+    : apptsVisible;
   const prosByUnit = isMultiUnit && activeUnitId
     ? professionals.filter(p => !p.unit_ids || p.unit_ids.length === 0 || p.unit_ids.includes(activeUnitId))
     : professionals;
