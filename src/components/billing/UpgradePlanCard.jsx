@@ -40,12 +40,19 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
   const upgradeMutation = useMutation({
     mutationFn: (plan_id) => base44.functions.invoke('upgradePlan', { plan_id }),
     onSuccess: (res) => {
-      if (res?.data?.success) {
-        setSuccess(`Plano alterado para ${res.data.plan?.name}.`);
+      const data = res?.data;
+      if (data?.success) {
+        // Caso especial: tenant sem assinatura ativa precisa passar pelo Checkout
+        // (preencher cartão no Stripe) antes do plano virar ativo.
+        if (data.requires_checkout && data.checkout_url) {
+          window.location.href = data.checkout_url;
+          return;
+        }
+        setSuccess(`Plano alterado para ${data.plan?.name}.`);
         setError('');
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        setError(friendlyError(res?.data?.error));
+        setError(friendlyError(data?.error));
       }
     },
     onError: (err) => setError(friendlyError(err?.response?.data?.error || err.message)),

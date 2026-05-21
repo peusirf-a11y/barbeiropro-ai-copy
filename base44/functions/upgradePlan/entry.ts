@@ -88,11 +88,50 @@ Deno.serve(async (req) => {
       }
     }
 
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
+
+    // Caminho A — a Company AINDA não tem subscription ativa no Stripe (trial, checkout
+    // não concluído, sub cancelada). Em vez de falhar, criamos uma Checkout Session
+    // para o novo plano: assim o cliente preenche cartão no Stripe e retorna ativo.
     if (!company.stripe_subscription_id) {
-      return Response.json({ success: false, error: 'NO_ACTIVE_SUBSCRIPTION' }, { status: 400 });
+      const appUrl = Deno.env.get('APP_URL') || '';
+      try {
+        const session = await stripe.checkout.sessions.create({
+          mode: 'subscription',
+          line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
+          customer: company.stripe_customer_id || undefined,
+          customer_email: !company.stripe_customer_id ? (company.owner_email || user.email) : undefined,
+          subscription_data: {
+            metadata: {
+              base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+              company_id,
+              plan_id: plan.id,
+            },
+          },
+          metadata: {
+            base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+            company_id,
+            plan_id: plan.id,
+            source: 'upgradePlan_no_active_sub',
+          },
+          success_url: `${appUrl}/app/configuracoes/assinatura?activated=1`,
+          cancel_url: `${appUrl}/app/configuracoes/assinatura?cancelled=1`,
+          allow_promotion_codes: true,
+        });
+        console.log('[upgradePlan] no active sub — created checkout session', session.id);
+        return Response.json({
+          success: true,
+          requires_checkout: true,
+          checkout_url: session.url,
+          plan: { id: plan.id, name: plan.name, stripe_price_id: plan.stripe_price_id },
+        });
+      } catch (checkoutErr) {
+        console.error('[upgradePlan] checkout creation failed:', checkoutErr.message);
+        return Response.json({ success: false, error: 'CHECKOUT_CREATE_FAILED' }, { status: 500 });
+      }
     }
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
+    // Caminho B — já existe subscription, atualiza item para o novo price (upgrade/downgrade).
     let sub;
     try {
       sub = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
