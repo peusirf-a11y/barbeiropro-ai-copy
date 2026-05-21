@@ -4,7 +4,7 @@
 //
 // Fluxo:
 //  1. Owner clica "Conectar Stripe" no painel.
-//  2. Se Company.stripe_connect_account_id já existe → reutiliza.
+//  2. Se Company.stripe_connect_account_id já existe → valida no Stripe; se órfão, limpa.
 //  3. Senão cria conta Express com country=BR, default_currency=brl.
 //  4. Gera AccountLink (refresh_url + return_url) e devolve URL.
 //
@@ -13,7 +13,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.0.0';
 
-// Resolve a chave secreta do Stripe. Sistema opera em Live mode.
 function getStripeSecret() {
   const key = Deno.env.get('STRIPE_SECRET_KEY') || '';
   if (!key) throw new Error('STRIPE_SECRET_KEY missing');
@@ -46,13 +45,35 @@ Deno.serve(async (req) => {
 
     let accountId = company.stripe_connect_account_id;
 
+    // 0) Se já existe accountId salvo, valida se ainda é acessível pela plataforma.
+    // Conta pode ter sido criada em outro env (test/live) ou ter access revogado.
+    // Nesse caso, limpa o vinculo órfão e cai no fluxo de criação de uma nova.
+    if (accountId) {
+      try {
+        await stripe.accounts.retrieve(accountId);
+      } catch (accErr) {
+        const msg = accErr?.message || '';
+        if (accErr?.code === 'account_invalid' || accErr?.code === 'resource_missing' ||
+            /not connected to your platform|does not exist|Application access/i.test(msg)) {
+          console.warn('[createConnectOnboardingLink] stripe_connect_account_id órfão — limpando', accountId);
+          await base44.asServiceRole.entities.Company.update(company.id, {
+            stripe_connect_account_id: null,
+            stripe_connect_status: null,
+            stripe_connect_charges_enabled: false,
+            stripe_connect_payouts_enabled: false,
+            stripe_connect_pix_enabled: false,
+          });
+          accountId = null;
+        } else {
+          throw accErr;
+        }
+      }
+    }
+
     // 1) Cria conta Connect se ainda não existe
     if (!accountId) {
-      // Mapeia business_type da Company para o aceito pelo Stripe.
-      // mei/cnpj => company; individual => individual
       const stripeBusinessType = company.business_type === 'individual' ? 'individual' : 'company';
 
-      // Monta support_address a partir do address_details estruturado (se existir).
       const ad = company.address_details || {};
       const supportAddress = (ad.line1 && ad.city && ad.state && ad.postal_code) ? {
         line1: ad.line1,
@@ -73,7 +94,7 @@ Deno.serve(async (req) => {
         business_type: stripeBusinessType,
         business_profile: {
           name: company.name,
-          mcc: '7230', // Beauty/Barber Shops
+          mcc: '7230',
           url: `https://barbertrimly.base44.app/agendar/${company.slug || ''}`,
           ...(supportPhone ? { support_phone: supportPhone } : {}),
           ...(supportAddress ? { support_address: supportAddress } : {}),
@@ -81,8 +102,6 @@ Deno.serve(async (req) => {
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
-          // Nota: pix_payments NÃO é "requestable" via API para contas BR/Express.
-          // O dono da barbearia precisa ativar Pix manualmente no Stripe Express Dashboard.
         },
         metadata: {
           base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
@@ -110,6 +129,11 @@ Deno.serve(async (req) => {
     return Response.json({ url: link.url, account_id: accountId });
   } catch (error) {
     console.error('[createConnectOnboardingLink] error:', error.message, error.stack);
-    return Response.json({ error: error.message }, { status: 500 });
+    const raw = error.message || '';
+    let friendly = raw;
+    if (/not connected to your platform|does not exist|Application access/i.test(raw)) {
+      friendly = 'A conta Stripe Connect anterior não está mais disponível. Tente novamente — vamos criar uma nova conta automaticamente.';
+    }
+    return Response.json({ error: friendly }, { status: 500 });
   }
 });
