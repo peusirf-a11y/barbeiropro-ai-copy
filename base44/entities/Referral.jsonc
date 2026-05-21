@@ -1,52 +1,91 @@
 {
   "name": "Referral",
   "type": "object",
+  "description": "Indica\u00e7\u00e3o registrada de um Partner. Vincula visitante \u2192 company quando a barbearia se cadastra. Fonte de atribui\u00e7\u00e3o para gerar comiss\u00f5es.",
   "properties": {
+    "partner_id": {
+      "type": "string",
+      "description": "Parceiro dono da indica\u00e7\u00e3o."
+    },
     "company_id": {
       "type": "string",
-      "description": "Empresa que criou (referrer)"
+      "description": "Barbearia indicada (preenchido quando o signup ocorre)."
     },
-    "code": {
-      "type": "string",
-      "description": "C\u00f3digo p\u00fablico \u00fanico do link de indica\u00e7\u00e3o"
+    "referred_company_name": {
+      "type": "string"
     },
     "referred_email": {
       "type": "string",
-      "description": "E-mail da empresa indicada quando ela se cadastra"
+      "description": "Email da barbearia indicada \u2014 preenchido no checkout/onboarding."
     },
-    "referred_company_id": {
+    "referred_phone": {
       "type": "string"
+    },
+    "attribution_type": {
+      "type": "string",
+      "enum": [
+        "link",
+        "manual"
+      ],
+      "default": "link",
+      "description": "link = veio do ?ref=CODE; manual = Master lan\u00e7ou manualmente."
     },
     "status": {
       "type": "string",
       "enum": [
         "pending",
-        "redeemed",
-        "rewarded"
+        "converted",
+        "active",
+        "cancelled",
+        "fraud"
       ],
-      "default": "pending"
+      "default": "pending",
+      "description": "pending = visitante clicou mas ainda n\u00e3o assinou; converted = se cadastrou (trial); active = assinatura paga; cancelled = churn; fraud = auto-indica\u00e7\u00e3o ou risco alto."
     },
-    "reward_type": {
-      "type": "string",
-      "enum": [
-        "extra_trial_days",
-        "feature_unlock",
-        "credit"
-      ],
-      "default": "extra_trial_days"
-    },
-    "reward_value": {
-      "type": "number",
-      "default": 7,
-      "description": "Dias extras de trial / valor de cr\u00e9dito / id da feature"
-    },
-    "redeemed_at": {
+    "converted_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "first_payment_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando a primeira invoice paga foi recebida. Inicia a contagem do hold anti-fraude."
+    },
+    "churned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "click_ip": {
+      "type": "string",
+      "description": "IP no momento do clique no link de indica\u00e7\u00e3o."
+    },
+    "click_user_agent": {
+      "type": "string"
+    },
+    "click_fingerprint": {
+      "type": "string",
+      "description": "Device fingerprint do visitante no momento do clique. Usado em anti-fraude."
+    },
+    "click_landing": {
+      "type": "string",
+      "description": "URL completa onde o ref foi clicado."
+    },
+    "fraud_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Sinais de fraude detectados (ex: same_email, same_fingerprint, same_ip)."
+    },
+    "fraud_score": {
+      "type": "number",
+      "description": "Score 0-100 calculado pelo riskEngine no momento da convers\u00e3o."
+    },
+    "notes": {
+      "type": "string"
     }
   },
   "required": [
-    "company_id",
-    "code"
+    "partner_id"
   ]
 }

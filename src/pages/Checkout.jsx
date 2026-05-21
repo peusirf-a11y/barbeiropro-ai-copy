@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 import { CheckCircle, ArrowLeft, Loader2, Shield, Star, Zap, Lock } from 'lucide-react';
+import { getReferralCode, getDeviceFingerprint } from '@/lib/referralTracking';
 
 const PLANS = [
   {
@@ -83,12 +84,18 @@ export default function Checkout() {
 
     setLoading(true);
     try {
+      // Partner MVP: anexa referral_code + fingerprint ao payload.
+      // Backend valida server-side em partnerAttribute; client apenas envia.
+      const referral_code = getReferralCode();
+      const fingerprint = getDeviceFingerprint();
       const { data } = await base44.functions.invoke('createCheckoutSession', {
         plan: selectedPlan,
         business_name: form.business_name.trim(),
         owner_name: form.owner_name.trim(),
         email: form.email.trim().toLowerCase(),
         phone: form.phone.trim(),
+        referral_code: referral_code || undefined,
+        referral_fingerprint: fingerprint || undefined,
       });
       if (data?.url) {
         window.location.href = data.url;

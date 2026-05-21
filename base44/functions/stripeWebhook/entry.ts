@@ -266,6 +266,26 @@ Deno.serve(async (req) => {
         console.log('Created company for', email);
       }
 
+      // ─── PARTNER MVP — atribuição de Referral após criar/atualizar Company ───
+      // Chama partnerAttribute só quando temos referral_code no metadata.
+      // Falha aqui não derruba o checkout — é best-effort.
+      try {
+        const refCode = md.referral_code;
+        if (refCode && refCode.trim()) {
+          const targetCompany = await base44.asServiceRole.entities.Company.filter({ owner_email: email }, '-created_date', 1);
+          const company = targetCompany?.[0];
+          if (company) {
+            await base44.asServiceRole.functions.invoke('partnerAttribute', {
+              company_id: company.id,
+              referral_code: refCode,
+              fingerprint: md.referral_fingerprint || '',
+            });
+          }
+        }
+      } catch (refErr) {
+        console.warn('[stripeWebhook] partnerAttribute failed (non-fatal):', refErr.message);
+      }
+
       // Enviar email de boas-vindas com link de acesso
       try {
         // Stripe webhook não envia header `origin`, e `host` é a URL do Deno (que retorna 400 sem Base44-App-Id).
@@ -468,12 +488,95 @@ Deno.serve(async (req) => {
       if (invoice.subscription) {
         const companies = await base44.asServiceRole.entities.Company.filter({ stripe_subscription_id: invoice.subscription });
         if (companies && companies.length > 0) {
-          await base44.asServiceRole.entities.Company.update(companies[0].id, {
+          const company = companies[0];
+          await base44.asServiceRole.entities.Company.update(company.id, {
             status: 'active',
             subscription_status: 'active',
             is_blocked_by_billing: false,
           });
-          console.log(`[stripeWebhook] ${event.type} → unblocked`, companies[0].id);
+          console.log(`[stripeWebhook] ${event.type} → unblocked`, company.id);
+
+          // ─── PARTNER MVP — gera Commission recorrente (idempotente) ──────
+          // Disparado apenas quando invoice.amount_paid > 0 (não conta trial).
+          // Cancelamento e chargeback são tratados em outros eventos.
+          try {
+            const amountPaid = (invoice.amount_paid || 0) / 100;
+            if (amountPaid > 0) {
+              const referrals = await base44.asServiceRole.entities.Referral.filter(
+                { company_id: company.id },
+                '-created_date',
+                3,
+              );
+              const ref = referrals.find(r => r.status === 'converted' || r.status === 'active');
+              if (ref) {
+                // Idempotência: 1 Commission por (partner_id, stripe_invoice_id)
+                const dup = await base44.asServiceRole.entities.Commission.filter(
+                  { partner_id: ref.partner_id, stripe_invoice_id: invoice.id },
+                  '-created_date',
+                  1,
+                );
+                if (!dup?.length) {
+                  const partner = await base44.asServiceRole.entities.Partner.get(ref.partner_id).catch(() => null);
+                  if (partner && partner.status === 'active') {
+                    const pct = Number(partner.commission_percentage) || 20;
+                    const commissionAmount = Number((amountPaid * pct / 100).toFixed(2));
+                    const existingCount = await base44.asServiceRole.entities.Commission.filter(
+                      { partner_id: ref.partner_id, referral_id: ref.id },
+                      '-created_date',
+                      200,
+                    );
+                    const billing_cycle = (existingCount?.length || 0) + 1;
+                    const hold_until = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString();
+
+                    await base44.asServiceRole.entities.Commission.create({
+                      partner_id: ref.partner_id,
+                      referral_id: ref.id,
+                      company_id: company.id,
+                      stripe_invoice_id: invoice.id,
+                      stripe_subscription_id: invoice.subscription,
+                      invoice_amount: amountPaid,
+                      amount: commissionAmount,
+                      commission_percentage: pct,
+                      currency: invoice.currency || 'brl',
+                      billing_cycle,
+                      status: 'pending',
+                      hold_until,
+                    });
+
+                    // Marca primeiro pagamento + promove para 'active' se ainda era 'converted'
+                    const refPatch = {};
+                    if (!ref.first_payment_at) refPatch.first_payment_at = new Date().toISOString();
+                    if (ref.status === 'converted') refPatch.status = 'active';
+                    if (Object.keys(refPatch).length) {
+                      await base44.asServiceRole.entities.Referral.update(ref.id, refPatch);
+                    }
+
+                    try {
+                      await base44.asServiceRole.entities.AuditLog.create({
+                        company_id: company.id,
+                        actor_email: 'stripe-webhook',
+                        actor_type: 'webhook',
+                        action: 'COMMISSION_GENERATED',
+                        target_type: 'Commission',
+                        target_id: ref.id,
+                        severity: 'info',
+                        metadata: {
+                          partner_id: ref.partner_id,
+                          referral_id: ref.id,
+                          invoice_id: invoice.id,
+                          amount: commissionAmount,
+                          billing_cycle,
+                        },
+                      });
+                    } catch (_) {}
+                    console.log(`[stripeWebhook] commission_generated partner=${ref.partner_id} amount=${commissionAmount}`);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.error('[stripeWebhook] partner commission error:', err.message);
+          }
         }
       }
     }
@@ -619,7 +722,7 @@ Deno.serve(async (req) => {
 
           try {
             await base44.asServiceRole.entities.AuditLog.create({
-              company_id: c.id, // P0.5: coluna nativa
+              company_id: c.id,
               actor_email: 'stripe-webhook',
               action: 'STRIPE_INVOICE_PAYMENT_FAILED',
               target_type: 'Company',
@@ -632,6 +735,73 @@ Deno.serve(async (req) => {
           }
 
           console.log('[stripeWebhook] invoice.payment_failed → blocked', c.id);
+        }
+      }
+    }
+
+    // ─── PARTNER MVP — churn handling ────────────────────────────
+    // Assinatura SaaS cancelada → cancela Commissions pending e marca Referral.
+    if (event.type === 'customer.subscription.deleted') {
+      const sub = event.data.object;
+      try {
+        const companies = await base44.asServiceRole.entities.Company.filter({ stripe_subscription_id: sub.id });
+        const company = companies?.[0];
+        if (company) {
+          const refs = await base44.asServiceRole.entities.Referral.filter({ company_id: company.id }, '-created_date', 5);
+          const ref = refs.find(r => r.status === 'active' || r.status === 'converted');
+          if (ref) {
+            const churnedAt = new Date();
+            const earlyChurn = ref.first_payment_at
+              ? (churnedAt.getTime() - new Date(ref.first_payment_at).getTime()) < 7 * 24 * 60 * 60 * 1000
+              : true;
+            await base44.asServiceRole.entities.Referral.update(ref.id, {
+              status: 'cancelled',
+              churned_at: churnedAt.toISOString(),
+            });
+            // Cancela Commissions pending
+            const pendingComm = await base44.asServiceRole.entities.Commission.filter(
+              { partner_id: ref.partner_id, referral_id: ref.id, status: 'pending' },
+              '-created_date',
+              50,
+            );
+            for (const c of pendingComm) {
+              await base44.asServiceRole.entities.Commission.update(c.id, {
+                status: 'cancelled',
+                cancelled_at: churnedAt.toISOString(),
+                cancellation_reason: earlyChurn ? 'churn_rapido' : 'churn',
+              });
+            }
+            console.log(`[stripeWebhook] partner churn: referral=${ref.id} cancelled_pending=${pendingComm.length}`);
+          }
+        }
+      } catch (err) {
+        console.error('[stripeWebhook] partner churn error:', err.message);
+      }
+    }
+
+    // ─── PARTNER MVP — chargeback handling ────────────────────────
+    // Cobrança estornada → anula a Commission daquela invoice.
+    if (event.type === 'charge.refunded') {
+      const charge = event.data.object;
+      const invoiceId = charge.invoice;
+      if (invoiceId) {
+        try {
+          const comms = await base44.asServiceRole.entities.Commission.filter(
+            { stripe_invoice_id: invoiceId },
+            '-created_date',
+            5,
+          );
+          for (const c of comms) {
+            if (c.status === 'paid') continue; // já pago: Master precisa decidir manualmente
+            await base44.asServiceRole.entities.Commission.update(c.id, {
+              status: 'chargeback',
+              cancelled_at: new Date().toISOString(),
+              cancellation_reason: 'chargeback',
+            });
+            console.log(`[stripeWebhook] commission_chargeback ${c.id} invoice=${invoiceId}`);
+          }
+        } catch (err) {
+          console.error('[stripeWebhook] chargeback handler error:', err.message);
         }
       }
     }

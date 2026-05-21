@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   try {
     const stripe = new Stripe(getStripeSecret(), { apiVersion: '2024-06-20' });
     const body = await req.json();
-    const { plan, business_name, owner_name, email, phone } = body;
+    const { plan, business_name, owner_name, email, phone, referral_code, referral_fingerprint } = body;
 
     if (!plan || !PLANS[plan]) {
       return Response.json({ error: 'Plano inválido' }, { status: 400 });
@@ -59,6 +59,9 @@ Deno.serve(async (req) => {
         phone: phone || '',
         plan_key: plan,
         plan_name: PLANS[plan].name,
+        // Partner MVP: propaga código+fingerprint p/ stripeWebhook chamar partnerAttribute.
+        referral_code: referral_code || '',
+        referral_fingerprint: referral_fingerprint || '',
       },
     });
 

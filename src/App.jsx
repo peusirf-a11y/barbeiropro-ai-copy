@@ -43,6 +43,17 @@ import MasterCompliance from './pages/master/MasterCompliance';
 import MasterSecurityCenter from './pages/master/MasterSecurityCenter';
 import MasterObservability from './pages/master/MasterObservability';
 import DemoDataManager from './pages/master/DemoDataManager';
+import MasterPartners from './pages/master/MasterPartners.jsx';
+
+// Partner MVP — painel público do parceiro + páginas privadas
+import PartnerLanding from './pages/partner/PartnerLanding.jsx';
+import PartnerRegister from './pages/partner/PartnerRegister.jsx';
+import PartnerLogin from './pages/partner/PartnerLogin.jsx';
+import PartnerDashboard from './pages/partner/PartnerDashboard.jsx';
+import PartnerReferrals from './pages/partner/PartnerReferrals.jsx';
+import PartnerCommissions from './pages/partner/PartnerCommissions.jsx';
+import PartnerSettings from './pages/partner/PartnerSettings.jsx';
+import PartnerGuard from './components/partner/PartnerGuard.jsx';
 
 // Demo pages (public)
 import DemoDashboard from './pages/demo/DemoDashboard.jsx';
@@ -122,6 +133,15 @@ function App() {
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/politica-de-privacidade" element={<PoliticaDePrivacidade />} />
 
+            {/* ── PARTNER MVP ── */}
+            <Route path="/parceiro" element={<PartnerLanding />} />
+            <Route path="/parceiro/cadastro" element={<PartnerRegister />} />
+            <Route path="/parceiro/login" element={<PartnerLogin />} />
+            <Route path="/parceiro/dashboard" element={<PartnerGuard><PartnerDashboard /></PartnerGuard>} />
+            <Route path="/parceiro/indicacoes" element={<PartnerGuard><PartnerReferrals /></PartnerGuard>} />
+            <Route path="/parceiro/comissoes" element={<PartnerGuard><PartnerCommissions /></PartnerGuard>} />
+            <Route path="/parceiro/configuracoes" element={<PartnerGuard><PartnerSettings /></PartnerGuard>} />
+
             {/* ── DEMO ROUTES (public, no login required) ── */}
             <Route path="/demo/dashboard" element={<DemoDashboard />} />
             <Route path="/demo/agenda" element={<DemoAgenda />} />
@@ -162,6 +182,7 @@ function App() {
               <Route path="security" element={<MasterSecurityCenter />} />
               <Route path="observability" element={<MasterObservability />} />
               <Route path="dados-demo" element={<DemoDataManager />} />
+              <Route path="partners" element={<MasterPartners />} />
             </Route>
 
             {/* ── PRIVATE APP ROUTES (authenticated users only) ── */}

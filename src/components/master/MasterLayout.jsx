@@ -2,7 +2,7 @@
 // Responsivo: no mobile, sidebar vira drawer (menu hambúrguer).
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers, Activity, Database, Lock, ShieldCheck, ShieldAlert, Gauge } from 'lucide-react';
+import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers, Activity, Database, Lock, ShieldCheck, ShieldAlert, Gauge, Handshake } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import Logo from '@/components/Logo';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -17,6 +17,7 @@ const navItems = [
   { label: 'Assinaturas',    icon: CreditCard,      path: '/master/assinaturas' },
   { label: 'Financeiro',     icon: DollarSign,      path: '/master/financeiro' },
   { label: 'Usuários',       icon: Users,           path: '/master/usuarios' },
+  { label: 'Parceiros',      icon: Handshake,       path: '/master/partners', badge: 'NEW' },
   { label: 'Auditoria',      icon: Activity,        path: '/master/auditoria' },
   { label: 'LGPD',           icon: Lock,            path: '/master/lgpd' },
   { label: 'Compliance',     icon: ShieldCheck,     path: '/master/compliance', badge: 'NEW' },

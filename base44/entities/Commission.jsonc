@@ -1,58 +1,90 @@
 {
   "name": "Commission",
   "type": "object",
+  "description": "Comiss\u00e3o recorrente gerada por uma invoice paga da assinatura SaaS. Passa por hold anti-fraude antes de ser aprovada. Master paga manualmente via PIX.",
   "properties": {
+    "partner_id": {
+      "type": "string"
+    },
+    "referral_id": {
+      "type": "string"
+    },
     "company_id": {
-      "type": "string"
-    },
-    "professional_id": {
-      "type": "string"
-    },
-    "professional_name": {
-      "type": "string"
-    },
-    "appointment_id": {
-      "type": "string"
-    },
-    "service_name": {
-      "type": "string"
-    },
-    "service_price": {
-      "type": "number"
-    },
-    "commission_type": {
       "type": "string",
-      "enum": [
-        "percent",
-        "fixed"
-      ],
-      "default": "percent"
+      "description": "Barbearia que gerou a comiss\u00e3o (cliente do SaaS)."
     },
-    "commission_value": {
+    "stripe_invoice_id": {
+      "type": "string",
+      "description": "Invoice Stripe que originou a comiss\u00e3o. Idempot\u00eancia: apenas uma Commission por (partner_id, stripe_invoice_id)."
+    },
+    "stripe_subscription_id": {
+      "type": "string"
+    },
+    "invoice_amount": {
       "type": "number",
-      "description": "Percentual (ex: 40) ou valor fixo aplicado"
+      "description": "Valor da invoice paga (R$). Base do c\u00e1lculo."
     },
     "amount": {
       "type": "number",
-      "description": "Comiss\u00e3o calculada em R$"
+      "description": "Valor da comiss\u00e3o (R$) = invoice_amount \u00d7 commission_percentage / 100."
     },
-    "earned_at": {
+    "commission_percentage": {
+      "type": "number",
+      "description": "Snapshot do percentual aplicado no momento da gera\u00e7\u00e3o."
+    },
+    "currency": {
       "type": "string",
-      "format": "date-time"
+      "default": "brl"
+    },
+    "billing_cycle": {
+      "type": "number",
+      "description": "N\u00famero do ciclo recorrente (1 = primeira fatura paga; 2 = segunda; etc)."
     },
     "status": {
       "type": "string",
       "enum": [
-        "pendente",
-        "pago"
+        "pending",
+        "approved",
+        "paid",
+        "cancelled",
+        "chargeback"
       ],
-      "default": "pendente"
+      "default": "pending",
+      "description": "pending = no hold anti-fraude (15 dias); approved = liberada para pagamento; paid = paga ao parceiro; cancelled = churn r\u00e1pido ou auto-indica\u00e7\u00e3o; chargeback = invoice estornada."
+    },
+    "hold_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data at\u00e9 quando a comiss\u00e3o fica em hold. Job aprovar\u00e1 ap\u00f3s esse prazo se n\u00e3o houver churn/chargeback."
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "paid_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "paid_by": {
+      "type": "string",
+      "description": "Email do Master que marcou como pago."
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Refer\u00eancia do pagamento manual (ex: ID da transa\u00e7\u00e3o PIX, n\u00famero do comprovante)."
+    },
+    "cancelled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cancellation_reason": {
+      "type": "string",
+      "description": "Motivo do cancelamento: churn_rapido | chargeback | auto_indicacao | manual_master."
     }
   },
   "required": [
-    "company_id",
-    "professional_id",
-    "amount",
-    "earned_at"
+    "partner_id",
+    "stripe_invoice_id",
+    "amount"
   ]
 }

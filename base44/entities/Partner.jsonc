@@ -1,0 +1,98 @@
+{
+  "name": "Partner",
+  "type": "object",
+  "description": "Parceiro/Afiliado do programa de indica\u00e7\u00f5es. Indica novas barbearias e recebe comiss\u00e3o recorrente sobre a assinatura SaaS delas. Aprova\u00e7\u00e3o manual pelo Master.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome completo do parceiro."
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email \u00fanico do parceiro. Usado como identidade no painel /parceiro."
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefone (somente d\u00edgitos) \u2014 usado para detec\u00e7\u00e3o de auto-indica\u00e7\u00e3o."
+    },
+    "cpf_cnpj": {
+      "type": "string",
+      "description": "CPF ou CNPJ (somente d\u00edgitos). Necess\u00e1rio para emiss\u00e3o de comiss\u00e3o e detec\u00e7\u00e3o de auto-indica\u00e7\u00e3o."
+    },
+    "pix_key": {
+      "type": "string",
+      "description": "Chave PIX usada para pagamento manual das comiss\u00f5es aprovadas."
+    },
+    "referral_code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico do parceiro (usado em ?ref=CODE). Gerado server-side, 8-12 chars."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "suspended"
+      ],
+      "default": "pending",
+      "description": "pending = aguardando aprova\u00e7\u00e3o do Master; active = pode receber indica\u00e7\u00f5es e gerar comiss\u00e3o; suspended = bloqueado."
+    },
+    "commission_percentage": {
+      "type": "number",
+      "default": 20,
+      "description": "Percentual de comiss\u00e3o recorrente (0-100). Default 20%. Master pode editar por parceiro."
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o Master aprovou o cadastro."
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Email do Master que aprovou."
+    },
+    "suspended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "suspended_by": {
+      "type": "string"
+    },
+    "suspension_reason": {
+      "type": "string"
+    },
+    "auth_token": {
+      "type": "string",
+      "description": "Token de sess\u00e3o (acesso ao painel /parceiro). Hash SHA-256 do token bruto."
+    },
+    "auth_token_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "magic_token": {
+      "type": "string",
+      "description": "Token passwordless enviado por email para acesso ao painel. Uso \u00fanico."
+    },
+    "magic_token_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fingerprint_seen": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Device fingerprints registrados no cadastro/login do parceiro. Usado em anti-fraude para detectar auto-indica\u00e7\u00e3o."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Anota\u00e7\u00f5es internas do Master."
+    }
+  },
+  "required": [
+    "name",
+    "email",
+    "referral_code"
+  ]
+}
