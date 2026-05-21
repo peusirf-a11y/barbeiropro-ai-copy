@@ -95,12 +95,34 @@ Deno.serve(async (req) => {
     // para o novo plano: assim o cliente preenche cartão no Stripe e retorna ativo.
     if (!company.stripe_subscription_id) {
       const appUrl = Deno.env.get('APP_URL') || '';
+
+      // Validação defensiva: stripe_customer_id pode estar órfão (cliente foi
+      // excluído no Stripe ou pertence a outro env). Se inválido, limpa o vinculo
+      // e cai para o fluxo de customer_email (Stripe cria um novo customer).
+      let validCustomerId = company.stripe_customer_id || null;
+      if (validCustomerId) {
+        try {
+          const cust = await stripe.customers.retrieve(validCustomerId);
+          if (cust?.deleted) validCustomerId = null;
+        } catch (custErr) {
+          if (custErr?.code === 'resource_missing' || /No such customer/i.test(custErr?.message || '')) {
+            console.warn('[upgradePlan] stripe_customer_id órfão — limpando', validCustomerId);
+            validCustomerId = null;
+            try {
+              await base44.asServiceRole.entities.Company.update(company_id, { stripe_customer_id: null });
+            } catch (_e) { /* segue mesmo se falhar */ }
+          } else {
+            throw custErr;
+          }
+        }
+      }
+
       try {
         const session = await stripe.checkout.sessions.create({
           mode: 'subscription',
           line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
-          customer: company.stripe_customer_id || undefined,
-          customer_email: !company.stripe_customer_id ? (company.owner_email || user.email) : undefined,
+          customer: validCustomerId || undefined,
+          customer_email: !validCustomerId ? (company.owner_email || user.email) : undefined,
           subscription_data: {
             metadata: {
               base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
