@@ -11,6 +11,7 @@ import FeatureToggleGrid from '@/components/master/FeatureToggleGrid';
 import { canonicalFeatureKey } from '@/lib/featureCatalog';
 import PlanVisibilityControl from '@/components/planos/PlanVisibilityControl';
 import PlanInviteGenerator from '@/components/planos/PlanInviteGenerator';
+import CompanyMultiSelect from '@/components/master/CompanyMultiSelect';
 import { Globe, Lock, Link2 } from 'lucide-react';
 
 const emptyForm = {
@@ -379,20 +380,16 @@ export default function PlansManager() {
               {form.visibility === 'private' && (
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
-                    IDs de empresas autorizadas
+                    Empresas autorizadas
                   </label>
-                  <textarea
-                    rows={3}
-                    value={(form.allowed_company_ids || []).join('\n')}
-                    onChange={e => setForm(p => ({
-                      ...p,
-                      allowed_company_ids: e.target.value.split(/\s+/).map(s => s.trim()).filter(Boolean),
-                    }))}
-                    placeholder="Um ID por linha"
-                    className="w-full px-3 py-2.5 border border-border rounded-xl text-xs font-mono bg-background text-foreground"
+                  <CompanyMultiSelect
+                    value={form.allowed_company_ids || []}
+                    onChange={(ids) => setForm(p => ({ ...p, allowed_company_ids: ids }))}
+                    variant="light"
+                    placeholder="Buscar empresa por nome ou slug…"
                   />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Apenas estas empresas conseguirão ver/contratar este plano. Use o ID da Company (não o slug).
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    Apenas estas empresas conseguirão ver/contratar este plano. A busca aceita nome ou slug; gravamos o ID internamente.
                   </p>
                 </div>
               )}
