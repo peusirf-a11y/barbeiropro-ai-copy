@@ -34,6 +34,9 @@ export default function ActivationHealthCard() {
   const next = data.next_recommended_action;
   const fullyActive = data.status === 'ACTIVE' && !next;
 
+  // Conta já 100% ativa — esconde o card para não poluir o dashboard.
+  if (fullyActive && data.score >= 100) return null;
+
   return (
     <div className="bg-white rounded-2xl border border-black/8 p-5">
       <div className="flex items-start justify-between gap-3 mb-3">
