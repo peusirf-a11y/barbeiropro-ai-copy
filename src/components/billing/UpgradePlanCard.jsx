@@ -33,6 +33,13 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
       COMPANY_NOT_FOUND: 'Não foi possível identificar sua empresa. Recarregue a página.',
       NO_ACTIVE_SUBSCRIPTION: 'Você ainda não tem uma assinatura ativa. Comece pelo checkout principal.',
       FORBIDDEN: 'Você não tem permissão para alterar este plano.',
+      CHECKOUT_CREATE_FAILED: 'Não foi possível iniciar o checkout agora. Tente novamente em alguns segundos.',
+      SUBSCRIPTION_NOT_FOUND_REFRESH_CHECKOUT: 'Sua assinatura anterior foi cancelada. Recarregue a página e clique em Selecionar de novo para refazer o checkout.',
+      STRIPE_ITEM_NOT_FOUND: 'Não conseguimos localizar sua assinatura no Stripe. Tente novamente em alguns minutos.',
+      INTERNAL_ERROR: 'Ocorreu um erro inesperado. Tente novamente em instantes.',
+      UNAUTHORIZED: 'Sua sessão expirou. Faça login novamente.',
+      NO_COMPANY: 'Não foi possível identificar sua empresa. Recarregue a página.',
+      NOT_FOUND: 'Empresa não encontrada. Recarregue a página.',
     };
     return map[code] || raw || 'Falha ao mudar de plano';
   };
