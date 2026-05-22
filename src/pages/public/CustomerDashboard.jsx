@@ -55,6 +55,19 @@ export default function CustomerDashboard() {
     onError: (err) => alert(err?.response?.data?.error || err?.message || 'Erro ao executar ação'),
   });
 
+  // Retoma o checkout de uma assinatura pending_payment existente (não cria nova).
+  const resumeCheckoutMutation = useMutation({
+    mutationFn: ({ plan_id, subscription_id }) => base44.functions.invoke('createCustomerPlanCheckout', {
+      company_id: company.id, token, plan_id, subscription_id,
+    }),
+    onSuccess: (res) => {
+      const url = res?.data?.url;
+      if (url) { window.location.href = url; }
+      else { alert('Não foi possível abrir o checkout.'); }
+    },
+    onError: (err) => alert(err?.response?.data?.error || err?.message || 'Erro ao abrir o checkout'),
+  });
+
   if (loadingCo || loadingAuth || !customer) {
     return (
       <div className={`min-h-screen ${tw.bg} flex items-center justify-center`}>
@@ -142,14 +155,17 @@ export default function CustomerDashboard() {
               isPending={subActionMutation.isPending}
             />
           ) : pendingSub ? (
-            <Link to={`/cliente/${slug}/planos`}
-              className="block bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 hover:bg-amber-500/15 transition-colors">
+            <button
+              type="button"
+              disabled={resumeCheckoutMutation.isPending}
+              onClick={() => resumeCheckoutMutation.mutate({ plan_id: pendingSub.plan_id, subscription_id: pendingSub.id })}
+              className="w-full text-left block bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 hover:bg-amber-500/15 transition-colors disabled:opacity-60 disabled:cursor-wait">
               <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1">
                 <AlertCircle className="w-4 h-4" />
-                Finalize o pagamento do seu plano
+                {resumeCheckoutMutation.isPending ? 'Abrindo pagamento...' : 'Finalize o pagamento do seu plano'}
               </div>
-              <p className="text-xs text-amber-400/70">{pendingSub.plan_name_snapshot} — R${pendingSub.plan_price_snapshot}/mês</p>
-            </Link>
+              <p className="text-xs text-amber-400/70">{pendingSub.plan_name_snapshot} — R${pendingSub.plan_price_snapshot}/mês · Toque para pagar agora</p>
+            </button>
           ) : pausedSub ? (
             <PausedCard sub={pausedSub} primaryColor={primaryColor} tw={tw}
               onResume={(id) => subActionMutation.mutate({ action: 'resume', subscription_id: id })}

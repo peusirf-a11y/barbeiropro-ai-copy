@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { company_id, token, plan_id, success_url, cancel_url } = body;
+    const { company_id, token, plan_id, success_url, cancel_url, subscription_id: resumeSubId } = body;
 
     if (!company_id || !plan_id) {
       return Response.json({ error: 'Parâmetros incompletos' }, { status: 400 });
@@ -50,12 +50,22 @@ Deno.serve(async (req) => {
     }
 
     // Bloqueia duplicidade: já tem assinatura ativa/pendente/pausada?
+    // Exceção: se o frontend passou `subscription_id` E ela é pending_payment do mesmo plano,
+    // reaproveitamos para retomar o checkout (cliente clicou em "Finalize o pagamento").
     const existing = await base44.asServiceRole.entities.CustomerSubscription.filter({
       company_id, customer_id: customer.id,
     });
     const blocking = existing.find(s => ['active', 'pending_payment', 'paused'].includes(s.status));
+    let resumeSub = null;
     if (blocking) {
-      return Response.json({ error: 'Você já possui uma assinatura ativa ou pendente.' }, { status: 409 });
+      const isResumable = resumeSubId
+        && blocking.id === resumeSubId
+        && blocking.status === 'pending_payment'
+        && blocking.plan_id === plan_id;
+      if (!isResumable) {
+        return Response.json({ error: 'Você já possui uma assinatura ativa ou pendente.' }, { status: 409 });
+      }
+      resumeSub = blocking;
     }
 
     // Carrega plano e empresa
@@ -100,11 +110,12 @@ Deno.serve(async (req) => {
 
     // Cria a assinatura local em pending_payment ANTES da Checkout, para podermos
     // referenciá-la no metadata e o webhook saber qual subscription ativar.
+    // Se for um "retomar pagamento", reaproveita a CustomerSubscription existente.
     const now = new Date();
     const cycleEnd = addMonths(now, 1);
     const isUnlimited = plan.type === 'unlimited';
 
-    const sub = await base44.asServiceRole.entities.CustomerSubscription.create({
+    const sub = resumeSub || await base44.asServiceRole.entities.CustomerSubscription.create({
       company_id,
       customer_id: customer.id,
       plan_id: plan.id,
