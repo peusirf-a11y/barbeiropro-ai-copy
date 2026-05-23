@@ -178,18 +178,27 @@ export default function BookingModal({
     const [h, m] = selected.time.split(':');
     const dt = new Date(selected.date);
     dt.setHours(+h, +m, 0, 0);
-    const proId = selected.professional?.id === 'any' ? professionals[0]?.id : selected.professional?.id;
+    const isAny = selected.professional?.id === 'any';
+    const dur = selected.service.duration_minutes || 30;
     const apptsWithDuration = existingAppointments.map(a => ({
       ...a,
       __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
     }));
-    const dur = selected.service.duration_minutes || 30;
-    if (appointmentConflict({ professionalId: proId, dateTime: dt, durationMin: dur, appointments: apptsWithDuration })) {
+
+    // Quando o cliente escolheu "Sem Preferência", o slot só é inválido se TODOS
+    // os profissionais estiverem ocupados ou bloqueados. A validação anterior
+    // checava apenas o primeiro profissional da lista, o que gerava falsos negativos
+    // (ex.: bloqueio no Barbeiro 1, mas o Barbeiro 2 está livre).
+    // O backend (createPublicAppointment) é a fonte da verdade e refaz a escolha.
+    const candidates = isAny ? professionals : [selected.professional];
+    const allBusy = candidates.every(p => {
+      if (!p?.id) return true;
+      const apptBusy = appointmentConflict({ professionalId: p.id, dateTime: dt, durationMin: dur, appointments: apptsWithDuration });
+      const blockBusy = blockedConflict({ professionalId: p.id, dateTime: dt, durationMin: dur, blocks: blockedTimes });
+      return apptBusy || blockBusy;
+    });
+    if (allBusy) {
       setFormError('Horário indisponível. Escolha outro.');
-      return false;
-    }
-    if (blockedConflict({ professionalId: proId, dateTime: dt, durationMin: dur, blocks: blockedTimes })) {
-      setFormError('Horário indisponível neste momento.');
       return false;
     }
     setFormError('');
