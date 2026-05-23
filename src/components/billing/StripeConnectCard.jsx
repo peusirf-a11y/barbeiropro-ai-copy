@@ -58,6 +58,11 @@ export default function StripeConnectCard({ company }) {
   const isPending = status?.connected && !status?.charges_enabled;
   const pixMissing = isConnected && status?.pix_enabled === false;
 
+  // Etapa 1 da migração Stripe → Asaas: novos onboardings Stripe estão congelados.
+  // Mantemos a leitura do status para barbearias já conectadas (read-only), mas
+  // escondemos todos os botões que iniciariam novos fluxos.
+  const stripeFrozen = true;
+
   return (
     <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
       <div className="flex items-start gap-4 mb-4">
@@ -79,12 +84,29 @@ export default function StripeConnectCard({ company }) {
                 <AlertCircle className="w-3 h-3" /> Pendente
               </span>
             )}
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+              Migração em andamento
+            </span>
           </div>
           <p className="text-sm text-[#6B7280] mt-1">
-            Seu link público <strong className="text-[#111827]">só funciona</strong> com pagamento online ativo. Conecte sua conta Stripe para receber via Pix e cartão direto na sua conta bancária.
+            Estamos migrando o sistema de pagamentos para o <strong className="text-[#111827]">Asaas</strong>. Novos cadastros Stripe estão pausados — em breve você conectará pelo novo fluxo.
           </p>
         </div>
       </div>
+
+      {stripeFrozen && (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="text-sm font-bold text-slate-900">Stripe pausado durante a migração</div>
+              <p className="text-xs text-slate-700 mt-1 leading-relaxed">
+                Pagamentos já confirmados continuam funcionando normalmente. Nenhum novo agendamento online é cobrado pelo Stripe enquanto a migração para o Asaas não for concluída. Você será avisado quando o novo fluxo estiver disponível.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
@@ -93,7 +115,7 @@ export default function StripeConnectCard({ company }) {
         </div>
       )}
 
-      {!isLoading && !status?.connected && (
+      {!isLoading && !stripeFrozen && !status?.connected && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -107,7 +129,7 @@ export default function StripeConnectCard({ company }) {
         </div>
       )}
 
-      {isPending && (
+      {!stripeFrozen && isPending && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
           <div className="text-sm font-bold text-amber-900 mb-1">Cadastro Stripe incompleto</div>
           <p className="text-xs text-amber-800 leading-relaxed">
@@ -116,7 +138,7 @@ export default function StripeConnectCard({ company }) {
         </div>
       )}
 
-      {isConnected && !pixMissing && (
+      {!stripeFrozen && isConnected && !pixMissing && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
           <div className="text-sm font-bold text-emerald-900 mb-1">Tudo pronto ✓</div>
           <p className="text-xs text-emerald-800 leading-relaxed">
@@ -125,7 +147,7 @@ export default function StripeConnectCard({ company }) {
         </div>
       )}
 
-      {pixMissing && (
+      {!stripeFrozen && pixMissing && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -154,7 +176,7 @@ export default function StripeConnectCard({ company }) {
         </div>
       )}
 
-      {connectMutation.isError && (
+      {!stripeFrozen && connectMutation.isError && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
           {isConnectNotEnabled ? (
             <>
@@ -191,7 +213,7 @@ export default function StripeConnectCard({ company }) {
       )}
 
       <div className="flex flex-wrap gap-2">
-        {!status?.connected && (
+        {!stripeFrozen && !status?.connected && (
           <button
             onClick={() => connectMutation.mutate()}
             disabled={connectMutation.isPending}
@@ -201,7 +223,7 @@ export default function StripeConnectCard({ company }) {
             Conectar Stripe
           </button>
         )}
-        {isPending && (
+        {!stripeFrozen && isPending && (
           <button
             onClick={() => connectMutation.mutate()}
             disabled={connectMutation.isPending}

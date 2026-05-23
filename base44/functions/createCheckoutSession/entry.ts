@@ -16,6 +16,16 @@ function getStripeSecret() {
 
 Deno.serve(async (req) => {
   try {
+    // ─── STRIPE FREEZE (Etapa 1) ─────────────────────────────────
+    // Migração Stripe → Asaas: novas assinaturas SaaS são bloqueadas.
+    // Reativar (emergência): setar STRIPE_FREEZE=0.
+    if ((Deno.env.get('STRIPE_FREEZE') || '1') !== '0') {
+      console.warn('[createCheckoutSession] STRIPE_FROZEN — signup rejected');
+      return Response.json({
+        error: 'stripe_freeze_active',
+        message: 'Estamos migrando o sistema de pagamentos. Novas assinaturas estão temporariamente pausadas — voltamos em breve.',
+      }, { status: 503 });
+    }
     const stripe = new Stripe(getStripeSecret(), { apiVersion: '2024-06-20' });
     const body = await req.json();
     const { plan, business_name, owner_name, email, phone, referral_code, referral_fingerprint } = body;

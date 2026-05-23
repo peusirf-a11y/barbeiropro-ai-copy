@@ -21,6 +21,16 @@ function getStripeSecret() {
 
 Deno.serve(async (req) => {
   try {
+    // ─── STRIPE FREEZE (Etapa 1) ─────────────────────────────────
+    // Migração Stripe → Asaas: nenhum novo onboarding Connect é iniciado.
+    // Reativar (emergência): setar STRIPE_FREEZE=0.
+    if ((Deno.env.get('STRIPE_FREEZE') || '1') !== '0') {
+      console.warn('[createConnectOnboardingLink] STRIPE_FROZEN — onboarding rejected');
+      return Response.json({
+        error: 'stripe_freeze_active',
+        message: 'A conexão com Stripe está pausada — estamos migrando para o Asaas. Em breve você poderá conectar pelo novo fluxo.',
+      }, { status: 503 });
+    }
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });

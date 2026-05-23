@@ -286,6 +286,17 @@ function normalizeCpf(cpf) {
 Deno.serve(async (req) => {
   const rid = crypto.randomUUID().split('-')[0];
   try {
+    // ─── STRIPE FREEZE (Etapa 1) ─────────────────────────────────
+    // Migração Stripe → Asaas: nenhum novo PaymentIntent é criado.
+    // Mantemos a função no ar para read-only / debug. Webhook legado segue ativo.
+    // Para reativar (emergência): setar STRIPE_FREEZE=0.
+    if ((Deno.env.get('STRIPE_FREEZE') || '1') !== '0') {
+      console.warn(`[createBookingPaymentIntent] rid=${rid} STRIPE_FROZEN — request rejected`);
+      return Response.json({
+        error: 'stripe_freeze_active',
+        message: 'Pagamentos via Stripe estão pausados durante a migração. Tente novamente em instantes.',
+      }, { status: 503 });
+    }
     const base44 = createClientFromRequest(req);
     const sdk = base44.asServiceRole;
     const stripe = new Stripe(getStripeSecret(), { apiVersion: '2024-06-20' });

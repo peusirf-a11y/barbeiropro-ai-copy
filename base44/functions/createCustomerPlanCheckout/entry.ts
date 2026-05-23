@@ -36,6 +36,16 @@ async function authenticateCustomer(base44, { company_id, token }) {
 
 Deno.serve(async (req) => {
   try {
+    // ─── STRIPE FREEZE (Etapa 1) ─────────────────────────────────
+    // Migração Stripe → Asaas: assinaturas de planos do cliente final pausadas.
+    // Reativar (emergência): setar STRIPE_FREEZE=0.
+    if ((Deno.env.get('STRIPE_FREEZE') || '1') !== '0') {
+      console.warn('[createCustomerPlanCheckout] STRIPE_FROZEN — plan checkout rejected');
+      return Response.json({
+        error: 'stripe_freeze_active',
+        message: 'Assinaturas via Stripe estão pausadas durante a migração. Tente novamente em breve.',
+      }, { status: 503 });
+    }
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const { company_id, token, plan_id, success_url, cancel_url, subscription_id: resumeSubId } = body;

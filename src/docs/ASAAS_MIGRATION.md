@@ -9,13 +9,11 @@
 | Sprint | Escopo | Status |
 |-------:|-------|--------|
 | 1 | Infra base (secrets, lib/asaas, schema flag, smoke test) | ✅ entregue |
-| 2 | PIX no link público de booking (piloto: Vintage) | ⏳ pendente |
-| 3 | Assinaturas de planos do cliente final (CustomerSubscription) | ⏳ pendente |
-| 4 | Billing SaaS (Starter/Pro/Enterprise) | ⏳ pendente |
-| 5 | Webhook Asaas oficial + observabilidade | ⏳ pendente |
-| 6 | Frontend (status, comprovantes, gestão de pagamentos) | ⏳ pendente |
-| 7 | Migração de dados Stripe → Asaas | ⏳ pendente |
-| 8 | Remoção do Stripe (após Sprint 7 validado) | ⏳ pendente |
+| Etapa 1 | Congelar criação Stripe (PaymentIntent, Checkout, PlanCheckout, Connect onboarding) | ✅ entregue |
+| Etapa 2 | Asaas como padrão global (bookings, PIX, cobranças, assinaturas) | ⏳ pendente |
+| Etapa 3 | Congelar Stripe na UI (somente leitura, botões ocultos) | ✅ entregue |
+| Etapa 4 | Migrar assinaturas SaaS existentes para Asaas | ⏳ pendente |
+| Etapa 5 | Desligamento final (remover env vars, libs, webhook, entidades, docs) | ⏳ pendente |
 
 ## Decisões arquiteturais
 
@@ -58,6 +56,28 @@ intocados — convivência durante a migração.
 - `asaasPing` — super admin only. Faz `GET /finance/balance` no Asaas
   configurado e retorna ok/erro + latência + correlation_id. Use para validar
   que a chave funciona antes da Sprint 2.
+
+## Etapa 1+3 — Congelamento (entregue)
+
+### Backend (guard early-return)
+As 4 funções de criação de fluxo Stripe agora retornam `503 stripe_freeze_active` antes de qualquer chamada Stripe:
+- `createBookingPaymentIntent` — PIX/cartão no link público
+- `createCheckoutSession` — assinatura SaaS (Starter/Pro/Enterprise)
+- `createCustomerPlanCheckout` — assinatura de plano do cliente final
+- `createConnectOnboardingLink` — KYC Stripe Connect
+
+Mantidas intactas (read-only / legado):
+- `stripeWebhook` — continua processando eventos de pagamentos já em andamento
+- `getCompanyConnectStatus`, `getConnectAccountStatus`, `inspectStripeAccount` — leitura de status
+- `syncStripePixStatus`, `syncCustomerPlanToStripe` — reconciliação legada
+- `createCustomerPortalSession` — cliente acessa portal do Stripe (gerenciamento)
+
+### Reversibilidade (kill-switch)
+Default: congelado. Para reativar (emergência), setar secret `STRIPE_FREEZE=0`.
+
+### Frontend (UI)
+- `StripeConnectCard` — esconde botões "Conectar Stripe", "Continuar cadastro", banners de ação. Mantém leitura de status para contas já conectadas. Mostra banner "Migração em andamento".
+- `BookingPaymentStep` e `PaymentMethodChooser` — não tocados. Quando o cliente final tentar pagar, o backend retorna `stripe_freeze_active` e a mensagem amigável já é exibida pelo handler de erro existente.
 
 ## Como testar agora
 
