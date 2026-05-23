@@ -94,21 +94,19 @@
     },
     "feature_overrides": {
       "type": "object",
-      "description": "Overrides de features por empresa. Tem prioridade sobre Plan.features. enabled[] for\u00e7a ON, disabled[] for\u00e7a OFF. Usado pelo Master para liberar/bloquear features individualmente.",
+      "description": "Overrides de features por empresa.",
       "properties": {
         "enabled": {
           "type": "array",
           "items": {
             "type": "string"
-          },
-          "description": "Keys de features for\u00e7adas ON (mesmo se o plano n\u00e3o inclui)."
+          }
         },
         "disabled": {
           "type": "array",
           "items": {
             "type": "string"
-          },
-          "description": "Keys de features for\u00e7adas OFF (mesmo se o plano inclui)."
+          }
         }
       }
     },
@@ -126,18 +124,30 @@
     "owner_name": {
       "type": "string"
     },
+    "owner_cpf_cnpj": {
+      "type": "string",
+      "description": "CPF/CNPJ do respons\u00e1vel legal da barbearia. Necess\u00e1rio para cobran\u00e7a SaaS via Asaas (campo obrigat\u00f3rio do Customer Asaas)."
+    },
     "billing_provider": {
       "type": "string",
       "enum": [
         "stripe",
         "asaas"
       ],
-      "default": "stripe",
-      "description": "Provedor de billing SaaS ativo para esta empresa. Feature flag da migra\u00e7\u00e3o Stripe\u2192Asaas. Default 'stripe' at\u00e9 a empresa ser migrada explicitamente."
+      "default": "asaas",
+      "description": "Provedor de billing SaaS ativo. Default 'asaas' a partir da Etapa 2."
     },
     "asaas_customer_id": {
       "type": "string",
-      "description": "ID do customer da empresa na conta master Asaas (cobran\u00e7a SaaS). Vazio at\u00e9 a empresa ser migrada."
+      "description": "ID do customer da empresa na conta master Asaas."
+    },
+    "asaas_subscription_id": {
+      "type": "string",
+      "description": "ID da subscription recorrente da empresa na conta master Asaas (cobran\u00e7a SaaS Starter/Pro/Enterprise)."
+    },
+    "asaas_payment_link_url": {
+      "type": "string",
+      "description": "URL da fatura/invoice mais recente do Asaas (para retomar pagamento se cliente fechar a aba)."
     },
     "asaas_account_status": {
       "type": "string",
@@ -146,12 +156,12 @@
         "active",
         "blocked"
       ],
-      "description": "Status do relacionamento da empresa com o Asaas (cobran\u00e7a SaaS)."
+      "description": "Status da assinatura SaaS via Asaas."
     },
     "asaas_pix_enabled": {
       "type": "boolean",
       "default": false,
-      "description": "Se true, a empresa aceita pagamento via PIX (link p\u00fablico de booking) usando Asaas. Substituir\u00e1 stripe_connect_pix_enabled ap\u00f3s a migra\u00e7\u00e3o."
+      "description": "Se true, aceita pagamento via PIX pelo link p\u00fablico usando Asaas."
     },
     "stripe_customer_id": {
       "type": "string"
@@ -172,7 +182,7 @@
         "incomplete",
         "unpaid"
       ],
-      "description": "Status da assinatura no Stripe"
+      "description": "Status da assinatura. Compartilhado entre Stripe (legado) e Asaas (atual)."
     },
     "trial_ends_at": {
       "type": "string",
@@ -184,8 +194,7 @@
     },
     "is_blocked_by_billing": {
       "type": "boolean",
-      "default": false,
-      "description": "Bloqueio autom\u00e1tico por inadimpl\u00eancia"
+      "default": false
     },
     "trial_email_d3_sent": {
       "type": "boolean",
@@ -197,22 +206,18 @@
     },
     "multi_unit_enabled": {
       "type": "boolean",
-      "default": false,
-      "description": "Liga o recurso de multi-unidade."
+      "default": false
     },
     "customers_shared_across_units": {
       "type": "boolean",
-      "default": true,
-      "description": "Quando true, clientes pertencem \u00e0 barbearia inteira."
+      "default": true
     },
     "units_backfilled_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Marcador idempotente do backfill da Matriz."
+      "format": "date-time"
     },
     "stripe_connect_account_id": {
-      "type": "string",
-      "description": "ID da conta Stripe Connect Express da barbearia (ex: acct_xxx). Recebe os pagamentos do link p\u00fablico."
+      "type": "string"
     },
     "stripe_connect_status": {
       "type": "string",
@@ -220,8 +225,7 @@
         "pending",
         "enabled",
         "disabled"
-      ],
-      "description": "Status do onboarding Connect: pending=criada mas precisa completar; enabled=charges_enabled; disabled=desativada."
+      ]
     },
     "stripe_connect_charges_enabled": {
       "type": "boolean",
@@ -301,37 +305,30 @@
     },
     "crm_settings": {
       "type": "object",
-      "description": "Configura\u00e7\u00f5es do CRM inteligente \u2014 janelas (em dias) usadas para classificar o ciclo de vida dos clientes com base em last_completed_at.",
       "properties": {
         "fiel_min_appointments": {
           "type": "number",
-          "default": 5,
-          "description": "M\u00ednimo de atendimentos conclu\u00eddos para virar Cliente Fiel."
+          "default": 5
         },
         "em_risco_days": {
           "type": "number",
-          "default": 30,
-          "description": "Dias sem atendimento conclu\u00eddo para entrar em 'Em risco'."
+          "default": 30
         },
         "inativo_days": {
           "type": "number",
-          "default": 60,
-          "description": "Dias sem atendimento conclu\u00eddo para virar 'Inativo'."
+          "default": 60
         },
         "perdido_days": {
           "type": "number",
-          "default": 90,
-          "description": "Dias sem atendimento conclu\u00eddo para virar 'Perdido'."
+          "default": 90
         }
       }
     },
     "lifecycle_campaigns": {
       "type": "object",
-      "description": "Campanhas autom\u00e1ticas de reten\u00e7\u00e3o baseadas em lifecycle_status. Cada campanha tem toggle, mensagem edit\u00e1vel (templates: {nome}, {barbearia}, {link_agendamento}) e cooldown configur\u00e1vel em dias. Quando enabled=true, o job runLifecycleCampaigns dispara mensagens eleg\u00edveis automaticamente.",
       "properties": {
         "primeira_visita": {
           "type": "object",
-          "description": "Mensagem de boas-vindas enviada ~2h ap\u00f3s 1\u00aa visita conclu\u00edda (delay configur\u00e1vel).",
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -339,8 +336,7 @@
             },
             "delay_hours": {
               "type": "number",
-              "default": 2,
-              "description": "Quantas horas ap\u00f3s o atendimento conclu\u00eddo disparar."
+              "default": 2
             },
             "message": {
               "type": "string",
@@ -350,7 +346,6 @@
         },
         "em_risco": {
           "type": "object",
-          "description": "Reengajamento leve para clientes em risco (sumiram h\u00e1 ~30 dias).",
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -368,7 +363,6 @@
         },
         "inativo": {
           "type": "object",
-          "description": "Tentativa de recupera\u00e7\u00e3o para clientes inativos (~60 dias).",
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -386,7 +380,6 @@
         },
         "perdido": {
           "type": "object",
-          "description": "\u00daltima cartada para clientes considerados perdidos (~90+ dias).",
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -404,7 +397,6 @@
         },
         "vip_inativo": {
           "type": "object",
-          "description": "Alerta priorit\u00e1rio quando um cliente VIP entra em risco/inativo. Pode notificar o dono e/ou enviar mensagem direta ao cliente.",
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -416,8 +408,7 @@
             },
             "alert_owner": {
               "type": "boolean",
-              "default": true,
-              "description": "Quando true, registra alerta para o dono ver no painel (n\u00e3o envia WhatsApp ao dono ainda)."
+              "default": true
             },
             "message": {
               "type": "string",
@@ -427,7 +418,6 @@
         },
         "fiel_sem_plano": {
           "type": "object",
-          "description": "Sugest\u00e3o de assinatura para clientes fi\u00e9is que ainda n\u00e3o t\u00eam plano ativo.",
           "properties": {
             "enabled": {
               "type": "boolean",

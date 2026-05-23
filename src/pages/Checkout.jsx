@@ -37,6 +37,21 @@ function getInitialPlan() {
   return ['starter', 'pro', 'enterprise'].includes(p) ? p : 'pro';
 }
 
+function maskCpfCnpj(value) {
+  const d = String(value || '').replace(/\D/g, '').slice(0, 14);
+  if (d.length <= 11) {
+    return d
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1-$2');
+  }
+  return d
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+}
+
 export default function Checkout() {
   const [selectedPlan, setSelectedPlan] = useState(getInitialPlan());
   const [form, setForm] = useState({
@@ -44,6 +59,7 @@ export default function Checkout() {
     owner_name: '',
     email: '',
     phone: '',
+    cpf_cnpj: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -67,6 +83,8 @@ export default function Checkout() {
     if (!form.owner_name.trim()) return 'Informe o nome do responsável';
     if (!form.email.trim() || !form.email.includes('@')) return 'Informe um email válido';
     if (!form.phone.trim()) return 'Informe o WhatsApp';
+    const cpfDigits = form.cpf_cnpj.replace(/\D/g, '');
+    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) return 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido';
     return null;
   };
 
@@ -88,19 +106,25 @@ export default function Checkout() {
       // Backend valida server-side em partnerAttribute; client apenas envia.
       const referral_code = getReferralCode();
       const fingerprint = getDeviceFingerprint();
-      const { data } = await base44.functions.invoke('createCheckoutSession', {
+      // Etapa 2 da migração: assinatura SaaS roda pelo Asaas (PIX/Cartão/Boleto).
+      const { data } = await base44.functions.invoke('createAsaasSaasCheckout', {
         plan: selectedPlan,
         business_name: form.business_name.trim(),
         owner_name: form.owner_name.trim(),
         email: form.email.trim().toLowerCase(),
         phone: form.phone.trim(),
+        cpf_cnpj: form.cpf_cnpj.replace(/\D/g, ''),
+        payment_method: 'UNDEFINED', // cliente escolhe PIX/Boleto/Cartão na página da fatura
         referral_code: referral_code || undefined,
         referral_fingerprint: fingerprint || undefined,
       });
       if (data?.url) {
         window.location.href = data.url;
+      } else if (data?.success) {
+        // Asaas criou a assinatura mas não devolveu invoice (caso raro — fatura sai por email).
+        window.location.href = `/checkout/sucesso?email=${encodeURIComponent(form.email.trim().toLowerCase())}`;
       } else {
-        setError(data?.error || 'Erro ao iniciar pagamento');
+        setError(data?.message || data?.error || 'Erro ao iniciar pagamento');
         setLoading(false);
       }
     } catch (err2) {
@@ -181,7 +205,7 @@ export default function Checkout() {
             </div>
 
             <p className="text-xs text-gray-400 leading-relaxed">
-              Pagamento processado de forma segura via Stripe. Você pode cancelar a qualquer momento direto no painel — sem multas, sem burocracia.
+              Pagamento processado de forma segura via Asaas — escolha PIX, boleto ou cartão de crédito na próxima tela. Cancele a qualquer momento direto no painel, sem multas, sem burocracia.
             </p>
           </div>
 
@@ -244,6 +268,12 @@ export default function Checkout() {
                   value={form.phone}
                   onChange={v => setForm(f => ({ ...f, phone: v }))}
                   placeholder="(11) 99999-9999"
+                />
+                <Field
+                  label="CPF ou CNPJ do responsável"
+                  value={form.cpf_cnpj}
+                  onChange={v => setForm(f => ({ ...f, cpf_cnpj: maskCpfCnpj(v) }))}
+                  placeholder="000.000.000-00"
                 />
 
                 {cancelled && (
