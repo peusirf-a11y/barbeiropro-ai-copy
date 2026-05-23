@@ -2,7 +2,11 @@
 // Card no painel admin (AppPagamentos) para a barbearia ativar a subaccount
 // Asaas e habilitar split automático nos recebimentos.
 //
-// Estados visíveis:
+// Modo híbrido:
+//   - CPF (PF) ou Company já marcada como manual → renderiza AsaasManualModeCard
+//   - CNPJ (PJ) → renderiza o fluxo de subaccount Asaas (este arquivo)
+//
+// Estados do fluxo PJ:
 //   - Sem subaccount → form CPF/CNPJ + endereço → botão "Ativar pagamento online"
 //   - Subaccount pending → banner âmbar + link onboarding + botão "Atualizar status"
 //   - Subaccount active → banner emerald + métricas (PIX habilitado, split %)
@@ -12,6 +16,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Banknote, CheckCircle2, AlertCircle, ExternalLink, Loader2, ShieldCheck, Zap } from 'lucide-react';
+import AsaasManualModeCard from './AsaasManualModeCard';
 
 function maskCpfCnpj(v) {
   const d = String(v || '').replace(/\D+/g, '').slice(0, 14);
@@ -24,7 +29,22 @@ function maskCEP(v) {
   return String(v || '').replace(/\D+/g, '').slice(0, 8).replace(/(\d{5})(\d)/, '$1-$2');
 }
 
+// Wrapper público: faz a decisão PF vs PJ ANTES de qualquer hook.
+// Como cada branch renderiza um componente diferente, os hooks ficam isolados
+// e a regra dos hooks é respeitada (cada componente tem sua ordem fixa).
 export default function AsaasSplitCard({ company }) {
+  const docDigits = String(company?.owner_cpf_cnpj || '').replace(/\D+/g, '');
+  const isPF = docDigits.length === 11;
+  const isManualMode = company?.asaas_split_mode === 'manual'
+    || company?.asaas_subaccount_status === 'not_available_pf';
+
+  if (isPF || isManualMode) {
+    return <AsaasManualModeCard company={company} />;
+  }
+  return <AsaasSplitFlow company={company} />;
+}
+
+function AsaasSplitFlow({ company }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     cpf_cnpj: company?.owner_cpf_cnpj || '',
@@ -130,7 +150,7 @@ export default function AsaasSplitCard({ company }) {
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
             <div className="text-sm font-bold text-blue-900 mb-2">Como funciona</div>
             <ol className="text-xs text-blue-900 space-y-1 list-decimal pl-4">
-              <li>Você preenche os dados abaixo (CPF/CNPJ + endereço)</li>
+              <li>Você preenche os dados abaixo (CNPJ + endereço)</li>
               <li>Criamos sua conta Asaas em segundos</li>
               <li>O Asaas faz uma verificação rápida (até 24h)</li>
               <li>Aprovado: cada PIX vai direto pra você. Sem repasse manual.</li>
@@ -138,11 +158,11 @@ export default function AsaasSplitCard({ company }) {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
-            <Field label="CPF ou CNPJ" required>
+            <Field label="CNPJ" required>
               <input
                 value={maskCpfCnpj(form.cpf_cnpj)}
                 onChange={e => setForm({ ...form, cpf_cnpj: e.target.value })}
-                placeholder="000.000.000-00"
+                placeholder="00.000.000/0000-00"
                 className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
               />
             </Field>
@@ -153,15 +173,6 @@ export default function AsaasSplitCard({ company }) {
                 placeholder="00000-000"
                 className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
               />
-            </Field>
-            <Field label="Data de nascimento" required className="sm:col-span-2">
-              <input
-                type="date"
-                value={form.birth_date}
-                onChange={e => setForm({ ...form, birth_date: e.target.value })}
-                className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
-              />
-              <span className="text-[11px] text-gray-500 mt-1 block">Exigido pelo Asaas para abertura de conta com CPF.</span>
             </Field>
             <Field label="Endereço" required className="sm:col-span-2">
               <input
@@ -209,6 +220,12 @@ export default function AsaasSplitCard({ company }) {
           {createMutation.isError && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800">
               {createMutation.error?.message || 'Não foi possível criar sua conta. Verifique os dados e tente novamente.'}
+              {/* Se o backend sugeriu modo manual, oferece o botão automático */}
+              {String(createMutation.error?.message || '').toLowerCase().includes('cnpj') && (
+                <p className="mt-2 text-[11px] text-red-700">
+                  Dica: você pode usar o modo de repasse manual abaixo enquanto não tem CNPJ.
+                </p>
+              )}
             </div>
           )}
 

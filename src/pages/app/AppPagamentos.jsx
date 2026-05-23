@@ -23,7 +23,7 @@ export default function AppPagamentos() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto animate-fade-in">
         <AppPageHeader
           title="Pagamentos online"
-          subtitle="Ative sua conta Asaas e receba PIX direto, com repasse automático em cada transação"
+          subtitle="Receba PIX e cartão pelo seu link de agendamento — automático com CNPJ, manual com CPF"
           icon={CreditCard}
         />
 
@@ -66,7 +66,7 @@ export default function AppPagamentos() {
               Pix cai em minutos. Cartão segue o ciclo padrão do Asaas (1–30 dias após a cobrança, conforme seu plano).
             </Faq>
             <Faq q="Preciso ter CNPJ?">
-              Não. O Asaas aceita CPF para cadastro como autônomo / MEI / pessoa física.
+              Não para começar. Com CPF, você usa o modo de repasse manual (O CORTE recebe e repassa). Para repasse automático direto na sua conta a cada transação, é necessário CNPJ ou MEI.
             </Faq>
             <Faq q="E se o cliente não pagar?">
               O horário fica reservado por 15 minutos enquanto ele paga. Se o pagamento não for concluído, o slot é liberado automaticamente.

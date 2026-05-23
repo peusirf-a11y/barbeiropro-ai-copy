@@ -127,7 +127,7 @@
         "asaas_pending"
       ],
       "default": "asaas",
-      "description": "Provider ativo. 'asaas_pending' = migra\u00e7\u00e3o soft em curso; Stripe ainda cobra; Asaas aguarda 1\u00ba pagamento."
+      "description": "Provider ativo."
     },
     "asaas_customer_id": {
       "type": "string"
@@ -156,28 +156,35 @@
     },
     "asaas_subaccount_wallet_id": {
       "type": "string",
-      "description": "walletId da subaccount Asaas, usado no payload `split` de Payment/Subscription. Necess\u00e1rio para repasse autom\u00e1tico."
+      "description": "walletId da subaccount Asaas, usado no payload `split` de Payment/Subscription."
     },
     "asaas_subaccount_status": {
       "type": "string",
       "enum": [
         "pending",
         "active",
-        "rejected"
+        "rejected",
+        "not_available_pf"
       ],
-      "description": "Status do KYC da subaccount. 'pending'=cadastro criado, aguardando aprova\u00e7\u00e3o; 'active'=pode receber split; 'rejected'=Asaas reprovou os dados."
+      "description": "Status do KYC da subaccount. 'not_available_pf' = barbearia \u00e9 Pessoa F\u00edsica (CPF); Asaas n\u00e3o permite subaccount, ent\u00e3o roda em modo manual."
     },
     "asaas_subaccount_api_key_preview": {
-      "type": "string",
-      "description": "\u00daltimos 8 chars da apiKey da subaccount (para diagn\u00f3stico). NUNCA salvar a chave completa."
+      "type": "string"
     },
     "asaas_subaccount_onboarding_url": {
-      "type": "string",
-      "description": "Link Asaas para a barbearia completar pend\u00eancias do KYC (quando emitido)."
+      "type": "string"
     },
     "asaas_split_percentage": {
       "type": "number",
       "description": "Percentual repassado \u00e0 barbearia (0-100). Default 100."
+    },
+    "asaas_split_mode": {
+      "type": "string",
+      "enum": [
+        "automatic",
+        "manual"
+      ],
+      "description": "automatic = Asaas faz split direto na subaccount da barbearia. manual = recebimento centralizado na conta master O CORTE; repasse \u00e0 barbearia \u00e9 manual (PF/CPF n\u00e3o pode ter subaccount)."
     },
     "stripe_customer_id": {
       "type": "string"
@@ -261,23 +268,19 @@
         "pending_first_payment",
         "migrated",
         "failed"
-      ],
-      "description": "Estado da migra\u00e7\u00e3o SaaS Stripe\u2192Asaas (Etapa 4). Companies novas (criadas direto no Asaas) ficam vazias \u2014 s\u00f3 companies com hist\u00f3rico Stripe usam este campo."
+      ]
     },
     "stripe_pending_cancellation_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Setado quando a migra\u00e7\u00e3o soft inicia. Stripe segue ativo at\u00e9 esta data ser consumida pelo webhook do 1\u00ba pagamento Asaas."
+      "format": "date-time"
     },
     "asaas_migration_started_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Quando o Master clicou 'Migrar agora'. Usado para SLA, observabilidade e detec\u00e7\u00e3o de migra\u00e7\u00f5es travadas (>14 dias sem pagamento)."
+      "format": "date-time"
     },
     "asaas_first_payment_confirmed_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Quando o 1\u00ba pagamento Asaas p\u00f3s-migra\u00e7\u00e3o foi confirmado pelo webhook. Gatilho do cancelamento Stripe."
+      "format": "date-time"
     },
     "whatsapp_settings": {
       "type": "object",
@@ -379,8 +382,7 @@
               "default": 2
             },
             "message": {
-              "type": "string",
-              "default": "Ea\u00ed {nome}, foi um prazer te receber na {barbearia} hoje! \ud83d\udd25 Esperamos te ver de volta em breve. Quando quiser marcar de novo, \u00e9 s\u00f3 chamar: {link_agendamento}"
+              "type": "string"
             }
           }
         },
@@ -396,8 +398,7 @@
               "default": 14
             },
             "message": {
-              "type": "string",
-              "default": "Fala {nome}! Faz um tempinho que voc\u00ea n\u00e3o passa aqui na {barbearia} \ud83d\udc40 Bora marcar aquele trato? {link_agendamento}"
+              "type": "string"
             }
           }
         },
@@ -413,8 +414,7 @@
               "default": 30
             },
             "message": {
-              "type": "string",
-              "default": "Oi {nome}! Sentimos sua falta na {barbearia} \ud83d\udc88 Que tal voltar com a gente? Marca seu hor\u00e1rio: {link_agendamento}"
+              "type": "string"
             }
           }
         },
@@ -430,8 +430,7 @@
               "default": 60
             },
             "message": {
-              "type": "string",
-              "default": "{nome}, faz tempo n\u00e9? \ud83d\ude05 Se voc\u00ea quiser dar uma chance pra gente de novo, a {barbearia} t\u00e1 te esperando. Marca a\u00ed: {link_agendamento}"
+              "type": "string"
             }
           }
         },
@@ -451,8 +450,7 @@
               "default": true
             },
             "message": {
-              "type": "string",
-              "default": "Oi {nome}! Faz um tempo que n\u00e3o te vemos por aqui e quer\u00edamos muito te receber de novo na {barbearia} \ud83d\udc51 Posso te garantir um hor\u00e1rio VIP essa semana? {link_agendamento}"
+              "type": "string"
             }
           }
         },
@@ -468,8 +466,7 @@
               "default": 45
             },
             "message": {
-              "type": "string",
-              "default": "Ea\u00ed {nome}! Como voc\u00ea \u00e9 cliente da casa aqui na {barbearia}, queria te oferecer nossos planos com desconto. Vale muito a pena, d\u00e1 uma olhada: {link_agendamento}"
+              "type": "string"
             }
           }
         }

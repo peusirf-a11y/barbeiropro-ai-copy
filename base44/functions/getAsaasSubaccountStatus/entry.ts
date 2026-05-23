@@ -74,9 +74,11 @@ Deno.serve(async (req) => {
       asaas_subaccount_id: company.asaas_subaccount_id || null,
       wallet_id: company.asaas_subaccount_wallet_id || null,
       status: currentStatus,
+      split_mode: company.asaas_split_mode || (company.asaas_subaccount_id ? 'automatic' : null),
       onboarding_url: company.asaas_subaccount_onboarding_url || null,
       split_percentage: Number.isFinite(Number(company.asaas_split_percentage)) ? company.asaas_split_percentage : 100,
       pix_enabled: !!company.asaas_pix_enabled,
+      owner_cpf_cnpj: company.owner_cpf_cnpj || null,
     });
   } catch (err) {
     console.error('[getAsaasSubaccountStatus] error', err);

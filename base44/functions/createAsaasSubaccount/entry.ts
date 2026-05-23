@@ -118,6 +118,18 @@ Deno.serve(async (req) => {
     const cpfNorm = sanitizeCpfCnpj(body.cpf_cnpj || company.owner_cpf_cnpj);
     if (!cpfNorm) return Response.json({ error: 'cpf_cnpj_required', message: 'Informe o CPF ou CNPJ do responsável.' }, { status: 400 });
 
+    // ─── BLOQUEIO PF: Asaas não permite subaccount com CPF ──────────
+    // Devolve erro amigável já traduzido — frontend usa este código pra rotear
+    // o usuário pro modo manual (enableAsaasManualMode).
+    if (cpfNorm.length === 11) {
+      console.log('[createAsaasSubaccount] cpf_blocked → suggest manual mode', { corrId, company_id });
+      return Response.json({
+        error: 'cnpj_required',
+        message: 'Para recebimento automático direto na sua conta, é necessário CNPJ ou MEI. Você pode começar agora no modo de repasse manual (a O CORTE recebe e repassa para você).',
+        suggest_manual_mode: true,
+      }, { status: 400 });
+    }
+
     const addr = body.address_details || company.address_details || {};
     const postalCode = digitsOnly(addr.postal_code);
     const province = addr.neighborhood;
@@ -198,6 +210,7 @@ Deno.serve(async (req) => {
       asaas_subaccount_api_key_preview: apiKeyPreview,
       asaas_subaccount_onboarding_url: onboardingUrl || undefined,
       asaas_split_percentage: Number.isFinite(Number(company.asaas_split_percentage)) ? company.asaas_split_percentage : 100,
+      asaas_split_mode: 'automatic',
       // Habilita PIX automaticamente (já que agora tem destino de split).
       asaas_pix_enabled: true,
     });
