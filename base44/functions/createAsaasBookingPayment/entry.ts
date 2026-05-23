@@ -296,7 +296,10 @@ Deno.serve(async (req) => {
     if (!scheduled_at) return respond({ error: 'scheduled_at_required' }, 400);
     if (!customer_name?.trim()) return respond({ error: 'customer_name_required' }, 400);
     if (!customer_phone?.trim()) return respond({ error: 'customer_phone_required' }, 400);
-    if (payment_method !== 'pix') return respond({ error: 'invalid_payment_method', message: 'Por enquanto apenas PIX está disponível.' }, 400);
+    const methodNorm = String(payment_method || 'pix').toLowerCase();
+    if (methodNorm !== 'pix' && methodNorm !== 'card') {
+      return respond({ error: 'invalid_payment_method', message: 'Apenas PIX ou Cartão estão disponíveis.' }, 400);
+    }
     const cpfNorm = sanitizeCpfCnpj(customer_cpf);
     if (!cpfNorm) return respond({ error: 'cpf_required', message: 'CPF/CNPJ é obrigatório.' }, 400);
     const phoneNorm = sanitizePhone(customer_phone);
@@ -441,7 +444,7 @@ Deno.serve(async (req) => {
       price: realPrice,
       custom_duration_minutes: realDuration,
       source: 'online',
-      payment_method: 'pix',
+      payment_method: methodNorm,
       payment_status: 'pending',
       payment_expires_at: expiresAt,
       payer_tax_id: cpfNorm,
@@ -453,15 +456,16 @@ Deno.serve(async (req) => {
       review_token_expires_at: _reviewTokenExpiry(scheduledAtISO),
     });
 
-    // ─── Cria Payment PIX no Asaas ────────────────────────────────
+    // ─── Cria Payment no Asaas (PIX ou CREDIT_CARD) ────────────────
     // Split automático (Etapa 2C+): se a barbearia tem subaccount aprovada,
     // o valor cai direto na wallet dela. Sem subaccount = recebimento na master
     // O CORTE com repasse manual (modelo Etapa 2B).
     const externalRef = `booking:${appointment.id}`;
     const todayYmd = new Date().toISOString().slice(0, 10);
+    const billingType = methodNorm === 'card' ? 'CREDIT_CARD' : 'PIX';
     const paymentBody = {
       customer: asaasCustomerId,
-      billingType: 'PIX',
+      billingType,
       value: realPrice,
       dueDate: todayYmd,
       externalReference: externalRef,
@@ -479,33 +483,37 @@ Deno.serve(async (req) => {
     let payment = null;
     try {
       payment = await asaasFetch('POST', '/payments', {
-        idempotencyKey: `bk_pay:${appointment.id}`,
+        // Idempotência por appointment + método (permite método diferente no mesmo slot ser reusado).
+        idempotencyKey: `bk_pay:${appointment.id}:${methodNorm}`,
         body: paymentBody,
       });
     } catch (err) {
       // Rollback: cancela appointment e libera lock
       await sdk.entities.Appointment.update(appointment.id, { status: 'cancelado', payment_status: 'failed' }).catch(() => {});
       await releaseSlotLock(sdk, slotReservation?.id);
-      return respond({ error: err.code || 'asaas_error', message: err.message || 'Falha ao iniciar PIX.' }, err.status || 502);
+      return respond({ error: err.code || 'asaas_error', message: err.message || 'Falha ao iniciar pagamento.' }, err.status || 502);
     }
 
     // Persiste payment_intent_id (reaproveitamos o campo — guarda o Asaas Payment ID)
     await sdk.entities.Appointment.update(appointment.id, { payment_intent_id: payment.id }).catch(() => {});
 
-    // Busca QR code PIX
+    // PIX: busca QR code; Cartão: apenas o invoiceUrl basta (hosted Asaas).
     let pixQrCode = null, pixCopyPaste = null;
-    try {
-      const qr = await asaasFetch('GET', `/payments/${payment.id}/pixQrCode`);
-      if (qr) {
-        pixCopyPaste = qr.payload || null;
-        // qr.encodedImage = base64 PNG (sem prefixo). Convertemos para data URL.
-        if (qr.encodedImage) pixQrCode = `data:image/png;base64,${qr.encodedImage}`;
+    if (methodNorm === 'pix') {
+      try {
+        const qr = await asaasFetch('GET', `/payments/${payment.id}/pixQrCode`);
+        if (qr) {
+          pixCopyPaste = qr.payload || null;
+          if (qr.encodedImage) pixQrCode = `data:image/png;base64,${qr.encodedImage}`;
+        }
+      } catch (err) {
+        console.warn('[createAsaasBookingPayment] pix QR fetch warn:', err.message);
       }
-    } catch (err) {
-      console.warn('[createAsaasBookingPayment] pix QR fetch warn:', err.message);
     }
 
     await consumeSlotLock(sdk, slotReservation?.id, appointment.id);
+
+    console.log(`[createAsaasBookingPayment] rid=${rid} ok appt=${appointment.id} method=${methodNorm} split=${!!paymentBody.split}`);
 
     return respond({
       success: true,
@@ -514,7 +522,8 @@ Deno.serve(async (req) => {
       asaas_payment_id: payment.id,
       asaas_invoice_url: payment.invoiceUrl || null,
       expires_at: expiresAt,
-      pix: (pixQrCode || pixCopyPaste) ? { qr_code_url: pixQrCode, copy_paste: pixCopyPaste } : null,
+      payment_method: methodNorm,
+      pix: methodNorm === 'pix' && (pixQrCode || pixCopyPaste) ? { qr_code_url: pixQrCode, copy_paste: pixCopyPaste } : null,
     }, 200);
   } catch (error) {
     console.error('[createAsaasBookingPayment] INTERNAL_ERROR:', error?.message, error?.stack);

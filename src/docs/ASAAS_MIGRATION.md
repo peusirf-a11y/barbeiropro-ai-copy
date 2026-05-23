@@ -12,7 +12,7 @@
 | Etapa 1 | Congelar criação Stripe (PaymentIntent, Checkout, PlanCheckout, Connect onboarding) | ✅ entregue |
 | Etapa 2A | Assinatura SaaS (Starter/Pro/Enterprise) via Asaas + webhook | ✅ entregue |
 | Etapa 2B | Bookings públicos PIX pelo Asaas (link público das barbearias) | ✅ entregue |
-| Etapa 2B+ | Cartão e boleto no link público (split por barbearia) | ⏳ pendente |
+| Etapa 2B+ | Cartão (hosted Asaas) no link público com split automático | ✅ entregue |
 | Etapa 2C | Assinatura de planos de clientes finais via Asaas (cartão recorrente) | ✅ entregue |
 | Etapa 2C+ | Split automático Asaas (subaccount por barbearia, planos + bookings PIX) | ✅ entregue |
 | Etapa 3 | Congelar Stripe na UI (somente leitura, botões ocultos) | ✅ entregue |
@@ -82,6 +82,42 @@ Default: congelado. Para reativar (emergência), setar secret `STRIPE_FREEZE=0`.
 ### Frontend (UI)
 - `StripeConnectCard` — esconde botões "Conectar Stripe", "Continuar cadastro", banners de ação. Mantém leitura de status para contas já conectadas. Mostra banner "Migração em andamento".
 - `BookingPaymentStep` e `PaymentMethodChooser` — não tocados. Quando o cliente final tentar pagar, o backend retorna `stripe_freeze_active` e a mensagem amigável já é exibida pelo handler de erro existente.
+
+## Etapa 2B+ — Cartão no booking público via hosted Asaas (entregue)
+
+### Decisões
+- **Hosted invoice** para cartão: redirecionamos o cliente para o `invoiceUrl` do Asaas. Nunca tocamos em PAN/CVV. PCI compliance fica 100% com o Asaas, 3DS automático.
+- **Boleto fora**: vencimento (1-3 dias úteis) é incompatível com a janela de 15 min do slot lock. Boleto fica disponível só em assinaturas (Etapa 2A/2C).
+- **Mesma flag**: `Company.asaas_pix_enabled=true` libera PIX **e** cartão. Sem toggle separado — quem ativou subaccount já recebe ambos.
+- **Split reusado**: payload de Payment inclui `split: [{ walletId, percentualValue }]` quando `asaas_subaccount_status='active'` (parity com Etapa 2C+). Funciona igual para PIX e CREDIT_CARD.
+
+### Backend
+- `createAsaasBookingPayment`:
+  - Aceita `payment_method: 'pix' | 'card'` (case-insensitive). Default `pix`.
+  - Para `card`, `billingType='CREDIT_CARD'`, retorna `asaas_invoice_url`.
+  - Idempotency key inclui método: `bk_pay:<appointment_id>:<method>` — permite troca de método no mesmo slot sem colidir.
+  - Rollback completo se Asaas falhar (appointment cancelado + slot liberado).
+  - Logs estruturados com `rid`, `appt`, `method`, `split`.
+- `asaasWebhook`: nenhuma mudança — branch `booking:` já trata qualquer `billingType`.
+- `getAsaasBookingStatus`: nenhuma mudança — funciona para PIX e cartão.
+
+### Frontend
+- `BookingPaymentStep`: reativa opção Cartão na escolha. Quando `method='card'`, devolve para o stage `'card'` (em vez de `'pix'`).
+- `CardPaymentBoxAsaas` (novo): card minimalista, botão "Pagar com cartão" → abre `invoiceUrl` em nova aba, polling 4s contra `getAsaasBookingStatus` para detectar confirmação. Botão "Já paguei, verificar" para reset manual.
+- Mantido fallback resiliente: webhook é fonte da verdade; popup fechado sem pagar não cancela, só para o polling visual.
+
+### Testes (conceituais)
+- `tests/asaas/bookingCardPayment.test.js` — PAN/CVV intocados, idempotência por método, rollback Asaas, tenant isolation.
+- `tests/asaas/splitIntegrity.test.js` — split só com subaccount aprovada, parity entre PIX e cartão.
+- `tests/publicBooking/paymentMethods.test.js` — métodos aceitos/recusados, default, rate limit.
+
+### Docs
+- `docs/PUBLIC_BOOKING_PAYMENTS.md` (novo): fluxo end-to-end + guarantees.
+
+### Rollback
+Remover a opção "Cartão" do `BookingPaymentStep` mantém o backend funcional (apenas oculto). Para desligar 100%: validação `methodNorm !== 'pix'` no backend devolve 400. Nenhum dado é perdido.
+
+---
 
 ## Etapa 2C+ — Split automático via subaccount Asaas (entregue)
 

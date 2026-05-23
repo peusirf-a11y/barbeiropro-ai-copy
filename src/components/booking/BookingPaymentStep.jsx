@@ -14,7 +14,7 @@ import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { ChevronLeft, AlertCircle, RefreshCw, QrCode, CreditCard, Loader2 } from 'lucide-react';
 import PixPaymentBox from './PixPaymentBox';
-import CardPaymentBox from './CardPaymentBox';
+import CardPaymentBoxAsaas from './CardPaymentBoxAsaas';
 import { generateStableIdempotencyKey } from '@/lib/system/idempotency';
 
 function maskCpf(value) {
@@ -27,8 +27,8 @@ function maskCpf(value) {
 
 export default function BookingPaymentStep({ payload, primaryColor, pixEnabled = false, onBack, onSucceeded }) {
   const [stage, setStage] = useState('choose');
-  // Etapa 2B: bookings públicos rodam via Asaas — apenas PIX por enquanto.
-  // O parâmetro `pixEnabled` reflete `company.asaas_pix_enabled`.
+  // Etapa 2B+: bookings públicos via Asaas aceitam PIX e Cartão (hosted invoice).
+  // O parâmetro `pixEnabled` reflete `company.asaas_pix_enabled` (cobre ambos métodos).
   const [method, setMethod] = useState('pix');
   const [cpf, setCpf] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -63,13 +63,23 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         idempotency_key: idemKeyRef.current,
       });
       const data = res?.data;
-      if (data?.error || !data?.pix) {
+      if (data?.error) {
         setErrorMsg(data?.message || 'Não foi possível iniciar o pagamento. Tente novamente.');
         setStage('error');
         return;
       }
+      if (method === 'pix' && !data?.pix) {
+        setErrorMsg('Não foi possível gerar o PIX. Tente novamente.');
+        setStage('error');
+        return;
+      }
+      if (method === 'card' && !data?.asaas_invoice_url) {
+        setErrorMsg('Não foi possível gerar o link de pagamento. Tente novamente.');
+        setStage('error');
+        return;
+      }
       setIntentData(data);
-      setStage('pix');
+      setStage(method === 'card' ? 'card' : 'pix');
     } catch (err) {
       setErrorMsg(err.message || 'Erro de comunicação. Tente novamente.');
       setStage('error');
@@ -96,14 +106,24 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         <div className="space-y-3">
           <div className="bg-white rounded-2xl border border-black/8 p-4">
             <div className="text-[11px] uppercase font-bold text-gray-500 tracking-wide mb-3">Como pagar</div>
-            <MethodOption
-              active
-              primaryColor={primaryColor}
-              onClick={() => setMethod('pix')}
-              icon={QrCode}
-              title="Pix"
-              subtitle="Aprovação instantânea — pague pelo seu banco"
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <MethodOption
+                active={method === 'pix'}
+                primaryColor={primaryColor}
+                onClick={() => setMethod('pix')}
+                icon={QrCode}
+                title="Pix"
+                subtitle="Aprovação na hora — pague pelo banco"
+              />
+              <MethodOption
+                active={method === 'card'}
+                primaryColor={primaryColor}
+                onClick={() => setMethod('card')}
+                icon={CreditCard}
+                title="Cartão"
+                subtitle="Ambiente seguro hospedado pelo Asaas"
+              />
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-black/8 p-4">
@@ -160,7 +180,17 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         />
       )}
 
-      {/* Cartão foi pausado durante a migração (Etapa 2B — só PIX no Asaas no momento). */}
+      {/* ─── CARTÃO (hosted Asaas) ─── */}
+      {stage === 'card' && intentData && (
+        <CardPaymentBoxAsaas
+          appointmentId={intentData.appointment_id}
+          invoiceUrl={intentData.asaas_invoice_url}
+          expiresAt={intentData.expires_at}
+          primaryColor={primaryColor}
+          onPaid={() => onSucceeded?.(intentData)}
+          onExpired={() => setStage('expired')}
+        />
+      )}
 
       {/* ─── EXPIROU ─── */}
       {stage === 'expired' && (
