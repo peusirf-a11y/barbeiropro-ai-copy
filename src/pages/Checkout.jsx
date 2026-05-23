@@ -106,7 +106,7 @@ export default function Checkout() {
       // Backend valida server-side em partnerAttribute; client apenas envia.
       const referral_code = getReferralCode();
       const fingerprint = getDeviceFingerprint();
-      // Etapa 2 da migração: assinatura SaaS roda pelo Asaas (PIX/Cartão/Boleto).
+      // Assinatura SaaS via Asaas (PIX/Cartão/Boleto). Stripe foi descomissionado na Etapa 5.
       const { data } = await base44.functions.invoke('createAsaasSaasCheckout', {
         plan: selectedPlan,
         business_name: form.business_name.trim(),

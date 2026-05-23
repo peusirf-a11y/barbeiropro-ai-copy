@@ -8,7 +8,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { CreditCard, ShieldCheck, Banknote, Zap } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
-import StripeConnectCard from '@/components/billing/StripeConnectCard';
 import AsaasSplitCard from '@/components/billing/AsaasSplitCard';
 
 export default function AppPagamentos() {
@@ -36,14 +35,13 @@ export default function AppPagamentos() {
         )}
 
         {company && <AsaasSplitCard company={company} />}
-        {company && <StripeConnectCard company={company} />}
 
         {/* Benefícios — explica por que conectar */}
         <div className="grid sm:grid-cols-3 gap-3 mt-6">
           <Benefit
             icon={Banknote}
             title="Dinheiro na sua conta"
-            description="O valor cai direto na sua conta bancária via Stripe — sem intermediários."
+            description="O valor cai direto na sua conta bancária via Asaas — com repasse automático."
           />
           <Benefit
             icon={ShieldCheck}
@@ -62,13 +60,13 @@ export default function AppPagamentos() {
           <h2 className="font-bold text-white mb-4">Perguntas frequentes</h2>
           <div className="space-y-4">
             <Faq q="Quanto custa para usar?">
-              A BarberTrimly não cobra nada extra. Apenas as taxas padrão do Stripe (~3,99% no cartão e ~0,99% no Pix) são descontadas automaticamente de cada cobrança.
+              O CORTE não cobra nada extra. Apenas as taxas padrão do Asaas são descontadas automaticamente de cada cobrança.
             </Faq>
             <Faq q="Em quanto tempo recebo o dinheiro?">
-              Pix cai em poucos minutos. Cartão segue o ciclo padrão da Stripe (geralmente 1–7 dias úteis após a cobrança).
+              Pix cai em minutos. Cartão segue o ciclo padrão do Asaas (1–30 dias após a cobrança, conforme seu plano).
             </Faq>
             <Faq q="Preciso ter CNPJ?">
-              Não. A Stripe aceita CPF para cadastro como autônomo / MEI / pessoa física.
+              Não. O Asaas aceita CPF para cadastro como autônomo / MEI / pessoa física.
             </Faq>
             <Faq q="E se o cliente não pagar?">
               O horário fica reservado por 15 minutos enquanto ele paga. Se o pagamento não for concluído, o slot é liberado automaticamente.

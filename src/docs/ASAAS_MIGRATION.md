@@ -17,7 +17,7 @@
 | Etapa 2C+ | Split automático Asaas (subaccount por barbearia, planos + bookings PIX) | ✅ entregue |
 | Etapa 3 | Congelar Stripe na UI (somente leitura, botões ocultos) | ✅ entregue |
 | Etapa 4 | Migrar assinaturas SaaS existentes para Asaas (soft migrate) | ✅ entregue |
-| Etapa 5 | Desligamento final (remover env vars, libs, webhook, entidades, docs) | ⏳ pendente |
+| Etapa 5 | Desligamento final (functions Stripe removidas, UI Stripe removida) | ✅ entregue |
 
 ## Decisões arquiteturais
 
@@ -82,6 +82,69 @@ Default: congelado. Para reativar (emergência), setar secret `STRIPE_FREEZE=0`.
 ### Frontend (UI)
 - `StripeConnectCard` — esconde botões "Conectar Stripe", "Continuar cadastro", banners de ação. Mantém leitura de status para contas já conectadas. Mostra banner "Migração em andamento".
 - `BookingPaymentStep` e `PaymentMethodChooser` — não tocados. Quando o cliente final tentar pagar, o backend retorna `stripe_freeze_active` e a mensagem amigável já é exibida pelo handler de erro existente.
+
+## Etapa 5 — Desligamento final (entregue)
+
+### O que foi removido
+
+**Backend functions arquivadas** (deletadas):
+- `createCheckoutSession` (assinatura SaaS Stripe)
+- `createBookingPaymentIntent` (PIX/cartão booking via Stripe)
+- `getBookingPaymentStatus` (polling Stripe)
+- `createCustomerPlanCheckout` (plano do cliente final via Stripe Connect)
+- `createConnectOnboardingLink` (KYC Stripe Connect)
+- `createCustomerPortalSession` (portal Billing Stripe)
+- `getConnectAccountStatus` / `getCompanyConnectStatus`
+- `inspectStripeAccount`
+- `syncStripePixStatus`
+- `syncCustomerPlanToStripe`
+- `getStripePublishableKey`
+- `stripeWebhook` (handler de eventos Stripe)
+
+**Frontend removido**:
+- `components/billing/StripeConnectCard`
+- `components/booking/CardPaymentBox` (Stripe Elements)
+- `components/master/StripeEnvMismatchBanner`
+- `pages/app/AppPagamentos` — import e uso do StripeConnectCard, textos Stripe→Asaas
+- `pages/app/AppAssinatura` — substitui Stripe Customer Portal por link da fatura Asaas
+- `pages/Checkout` — comentários atualizados
+
+**Docs arquivadas**:
+- `docs/STRIPE_PIX_CONNECT.md` (removido)
+- `docs/STRIPE_TEST_WEBHOOK_SETUP.md` (removido)
+- `docs/legacy/STRIPE_DECOMMISSION.md` (NOVO — registro histórico do desligamento)
+
+### O que foi mantido (de propósito)
+
+**Schema (campos `stripe_*` ficam como histórico read-only)**:
+- `Company.stripe_customer_id`, `stripe_subscription_id`, `stripe_price_id`, `stripe_connect_*` — preserva auditoria/contabilidade de companies que passaram pelo Stripe.
+- `CustomerSubscription.stripe_subscription_id`, `stripe_customer_id` — idem.
+- `Commission.stripe_invoice_id`, `stripe_subscription_id` — histórico de comissões Stripe pagas.
+- Constante `STRIPE_*` action no enum `AdminAuditLog.action` — histórico.
+
+**Pacotes npm** (`@stripe/react-stripe-js`, `@stripe/stripe-js`, `stripe`):
+- Não há ferramenta de remoção automática do package.json. Permanecem como peso-morto.
+- Ação manual: rodar `npm uninstall @stripe/react-stripe-js @stripe/stripe-js` quando conveniente.
+
+**Secrets** (`STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_ENVIRONMENT`, `STRIPE_FREEZE`):
+- Não há ferramenta de remoção automática. Sem código lendo, ficam inócuos.
+- Ação manual recomendada após 30 dias: deletar no dashboard.
+
+**Webhook endpoint no Stripe**:
+- Ação manual no dashboard Stripe: desativar o endpoint do `stripeWebhook` (a function não existe mais, então eventos retornariam 404 — inofensivo, mas é boa prática desligar).
+
+### Garantias do cutover
+
+- Nenhum código de produção lê/escreve no Stripe.
+- Companies migradas (`billing_provider='asaas'`) continuam funcionando normalmente.
+- Companies não migradas (se existir alguma esquecida) param de receber cobrança Stripe — webhook foi deletado. Master precisa migrar ou cancelar manualmente.
+- Histórico fiscal Stripe está 100% preservado em fields `stripe_*` da database.
+
+### Rollback (em emergência, primeiros 7 dias)
+
+Ver `docs/ASAAS_CUTOVER_CHECKLIST.md` seção "Plano de rollback do cutover".
+
+---
 
 ## Etapa 4 — Soft migrate de assinaturas SaaS Stripe → Asaas (entregue)
 

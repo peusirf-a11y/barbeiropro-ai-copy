@@ -39,24 +39,13 @@ export default function AppAssinatura() {
   const status = company?.subscription_status || 'trialing';
   const statusInfo = STATUS_LABEL[status] || STATUS_LABEL.trialing;
 
-  const handleOpenPortal = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      const { data } = await base44.functions.invoke('createCustomerPortalSession', {
-        return_url: `${window.location.origin}/app/configuracoes/assinatura`,
-      });
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        setError(data?.error || 'Erro ao abrir portal');
-        setLoading(false);
-      }
-    } catch (err) {
-      // Axios joga 4xx em catch — pega o payload do backend.
-      const payload = err?.response?.data;
-      setError(payload?.error || err.message || 'Erro ao abrir portal');
-      setLoading(false);
+  // Asaas não tem portal de auto-serviço equivalente ao Stripe Billing Portal.
+  // O owner recebe a fatura por email e gerencia via link direto do Asaas.
+  const handleOpenInvoice = () => {
+    if (company?.asaas_payment_link_url) {
+      window.open(company.asaas_payment_link_url, '_blank', 'noopener');
+    } else {
+      setError('Fatura ainda não foi gerada. Verifique seu email ou aguarde a próxima cobrança.');
     }
   };
 
@@ -113,29 +102,29 @@ export default function AppAssinatura() {
 
         {isImpersonating && (
           <div className="mb-4">
-            <ImpersonationLockNotice message="Alterações de billing (cartão, plano, cancelamento) só podem ser feitas pelo dono da empresa via portal Stripe." />
+            <ImpersonationLockNotice message="Alterações de billing só podem ser feitas pelo dono da empresa." />
           </div>
         )}
 
         {/* Action card */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-5 sm:p-6 mb-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-          <h2 className="font-bold text-white mb-2">Gerenciar assinatura</h2>
+          <h2 className="font-bold text-white mb-2">Próxima fatura</h2>
           <p className="text-sm text-white/55 mb-4 leading-relaxed">
-            Acesse o portal seguro do Stripe para atualizar seu cartão, baixar faturas, mudar de plano ou cancelar a assinatura.
+            Sua cobrança é processada pelo Asaas. Você recebe a fatura por email com opções de PIX, boleto ou cartão. Para cancelar ou trocar de plano, entre em contato com o suporte.
           </p>
 
           <button
-            onClick={handleOpenPortal}
-            disabled={loading || !company?.stripe_customer_id || isImpersonating}
+            onClick={handleOpenInvoice}
+            disabled={loading || !company?.asaas_payment_link_url || isImpersonating}
             className="inline-flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white font-bold py-3 px-5 rounded-xl text-sm ring-1 ring-white/15 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:brightness-110 hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:brightness-75"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-            {loading ? 'Abrindo...' : 'Gerenciar assinatura'}
+            <ExternalLink className="w-4 h-4" />
+            Abrir fatura Asaas
           </button>
 
-          {!company?.stripe_customer_id && (
+          {!company?.asaas_payment_link_url && (
             <p className="text-xs text-white/50 mt-3">
-              Sua conta ainda não está vinculada a um plano pago. Adquira um plano para gerenciar pelo portal.
+              Sua próxima fatura ainda não foi gerada. Você receberá por email assim que estiver disponível.
             </p>
           )}
         </div>
@@ -151,13 +140,13 @@ export default function AppAssinatura() {
         <div className="relative rounded-2xl border border-blue-400/20 bg-gradient-to-br from-blue-500/10 to-transparent backdrop-blur-xl p-5 shadow-[0_8px_24px_rgba(37,99,235,0.15)] overflow-hidden">
           <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#60A5FA]/15 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
           <div className="relative">
-            <div className="text-[11px] font-semibold text-[#93C5FD] uppercase tracking-wider mb-3">No portal você pode</div>
+            <div className="text-[11px] font-semibold text-[#93C5FD] uppercase tracking-wider mb-3">Sobre sua cobrança</div>
             <div className="space-y-2">
               {[
-                'Atualizar cartão de crédito',
-                'Ver e baixar todas as faturas',
-                'Mudar de plano (upgrade ou downgrade)',
-                'Cancelar a assinatura quando quiser',
+                'Cobrança mensal automática via Asaas',
+                'Escolha PIX, boleto ou cartão em cada fatura',
+                'Recibos e comprovantes enviados por email',
+                'Trocar de plano ou cancelar: fale com o suporte',
               ].map(t => (
                 <div key={t} className="flex items-center gap-2 text-sm text-white/80">
                   <CheckCircle className="w-4 h-4 text-[#60A5FA] flex-shrink-0" />
