@@ -32,16 +32,80 @@ function maskCEP(v) {
 // Wrapper público: faz a decisão PF vs PJ ANTES de qualquer hook.
 // Como cada branch renderiza um componente diferente, os hooks ficam isolados
 // e a regra dos hooks é respeitada (cada componente tem sua ordem fixa).
+//
+// Quando a Company ainda não tem owner_cpf_cnpj salvo (primeiro acesso),
+// mostramos um seletor PF/PJ para o usuário escolher o fluxo.
 export default function AsaasSplitCard({ company }) {
   const docDigits = String(company?.owner_cpf_cnpj || '').replace(/\D+/g, '');
   const isPF = docDigits.length === 11;
+  const isCNPJ = docDigits.length === 14;
   const isManualMode = company?.asaas_split_mode === 'manual'
     || company?.asaas_subaccount_status === 'not_available_pf';
+  const hasSubaccount = !!company?.asaas_subaccount_id;
 
-  if (isPF || isManualMode) {
+  // Seletor manual: usuário escolhe antes de começar (quando ainda não há documento salvo nem subaccount).
+  const [chosen, setChosen] = useState(null); // 'pf' | 'pj' | null
+
+  if (isPF || isManualMode || chosen === 'pf') {
     return <AsaasManualModeCard company={company} />;
   }
-  return <AsaasSplitFlow company={company} />;
+  if (isCNPJ || hasSubaccount || chosen === 'pj') {
+    return <AsaasSplitFlow company={company} />;
+  }
+  // Sem documento salvo → mostra seletor.
+  return <DocTypeChooser onChoose={setChosen} />;
+}
+
+function DocTypeChooser({ onChoose }) {
+  return (
+    <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)] mb-4">
+      <div className="flex items-start gap-4 mb-5">
+        <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <Banknote className="w-5 h-5 text-[#2563EB]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-bold text-[#111827]">Como você quer receber?</h2>
+          <p className="text-sm text-[#6B7280] mt-1">
+            Escolha o modo de recebimento de acordo com o seu tipo de documento.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-3">
+        <button
+          onClick={() => onChoose('pf')}
+          className="text-left rounded-2xl border border-black/10 bg-white p-4 hover:border-[#2563EB] hover:shadow-[0_4px_12px_rgba(37,99,235,0.15)] transition-all"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+              Mais rápido
+            </span>
+          </div>
+          <div className="text-base font-bold text-[#111827] mb-1">Tenho CPF</div>
+          <p className="text-xs text-[#6B7280] leading-relaxed mb-3">
+            Comece em 1 clique. A O CORTE recebe os pagamentos e repassa pra você semanalmente via PIX.
+          </p>
+          <div className="text-[11px] text-blue-700 font-semibold">Repasse manual →</div>
+        </button>
+
+        <button
+          onClick={() => onChoose('pj')}
+          className="text-left rounded-2xl border border-black/10 bg-white p-4 hover:border-[#2563EB] hover:shadow-[0_4px_12px_rgba(37,99,235,0.15)] transition-all"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Automático
+            </span>
+          </div>
+          <div className="text-base font-bold text-[#111827] mb-1">Tenho CNPJ ou MEI</div>
+          <p className="text-xs text-[#6B7280] leading-relaxed mb-3">
+            Cada PIX/cartão cai direto na sua conta bancária via split do Asaas. Sem intermediário.
+          </p>
+          <div className="text-[11px] text-emerald-700 font-semibold">Repasse automático →</div>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function AsaasSplitFlow({ company }) {
