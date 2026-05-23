@@ -81,7 +81,12 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
       setIntentData(data);
       setStage(method === 'card' ? 'card' : 'pix');
     } catch (err) {
-      setErrorMsg(err.message || 'Erro de comunicação. Tente novamente.');
+      // Axios encapsula 4xx em err.response.data — a função sempre devolve
+      // { error, message } amigável. Sem isto o usuário vê apenas
+      // "Request failed with status code 400" sem nenhuma pista.
+      const body = err?.response?.data;
+      const friendly = body?.message || body?.error || err.message || 'Erro de comunicação. Tente novamente.';
+      setErrorMsg(friendly);
       setStage('error');
     }
   };
