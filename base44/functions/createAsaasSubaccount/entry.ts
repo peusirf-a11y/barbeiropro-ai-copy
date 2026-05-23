@@ -141,6 +141,19 @@ Deno.serve(async (req) => {
       : company.business_type === 'cnpj' ? (cpfNorm.length === 14 ? 'LIMITED' : 'INDIVIDUAL')
       : 'INDIVIDUAL';
 
+    // Asaas exige birthDate quando é conta com CPF (INDIVIDUAL/MEI). CNPJ (LIMITED) não precisa.
+    // Formato esperado: YYYY-MM-DD.
+    const needsBirthDate = cpfNorm.length === 11;
+    const birthDate = String(body.birth_date || '').trim();
+    if (needsBirthDate) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+        return Response.json({
+          error: 'birth_date_required',
+          message: 'Informe a data de nascimento do responsável (exigência do Asaas).',
+        }, { status: 400 });
+      }
+    }
+
     // ─── Cria subaccount no Asaas ────────────────────────────────────
     let account = null;
     try {
@@ -156,8 +169,8 @@ Deno.serve(async (req) => {
           addressNumber: String(addressNumber),
           province,
           postalCode,
-          // Asaas exige somente esses campos mínimos; demais (birthDate, incomeValue) podem ser
-          // completados pela barbearia depois via onboardingUrl.
+          // birthDate obrigatório para CPF (INDIVIDUAL/MEI); ignorado para CNPJ.
+          birthDate: needsBirthDate ? birthDate : undefined,
         },
       });
     } catch (err) {

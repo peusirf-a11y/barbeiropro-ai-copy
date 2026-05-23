@@ -28,6 +28,7 @@ export default function AsaasSplitCard({ company }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     cpf_cnpj: company?.owner_cpf_cnpj || '',
+    birth_date: '',
     line1: company?.address_details?.line1 || '',
     address_number: '',
     neighborhood: company?.address_details?.neighborhood || '',
@@ -45,20 +46,28 @@ export default function AsaasSplitCard({ company }) {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const res = await base44.functions.invoke('createAsaasSubaccount', {
-        company_id: company.id,
-        cpf_cnpj: form.cpf_cnpj.replace(/\D+/g, ''),
-        address_number: form.address_number,
-        address_details: {
-          line1: form.line1,
-          neighborhood: form.neighborhood,
-          city: form.city,
-          state: form.state.toUpperCase(),
-          postal_code: form.postal_code.replace(/\D+/g, ''),
-        },
-      });
-      if (res?.data?.error) throw new Error(res.data.message || res.data.error);
-      return res.data;
+      try {
+        const res = await base44.functions.invoke('createAsaasSubaccount', {
+          company_id: company.id,
+          cpf_cnpj: form.cpf_cnpj.replace(/\D+/g, ''),
+          birth_date: form.birth_date || undefined,
+          address_number: form.address_number,
+          address_details: {
+            line1: form.line1,
+            neighborhood: form.neighborhood,
+            city: form.city,
+            state: form.state.toUpperCase(),
+            postal_code: form.postal_code.replace(/\D+/g, ''),
+          },
+        });
+        if (res?.data?.error) throw new Error(res.data.message || res.data.error);
+        return res.data;
+      } catch (err) {
+        // Axios encapsula 4xx em err.response.data — mostra a mensagem real do Asaas.
+        const payload = err?.response?.data;
+        const msg = payload?.message || payload?.error || err.message;
+        throw new Error(msg || 'Falha ao criar conta Asaas.');
+      }
     },
     onSuccess: () => {
       refetch();
@@ -144,6 +153,15 @@ export default function AsaasSplitCard({ company }) {
                 placeholder="00000-000"
                 className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
               />
+            </Field>
+            <Field label="Data de nascimento" required className="sm:col-span-2">
+              <input
+                type="date"
+                value={form.birth_date}
+                onChange={e => setForm({ ...form, birth_date: e.target.value })}
+                className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
+              />
+              <span className="text-[11px] text-gray-500 mt-1 block">Exigido pelo Asaas para abertura de conta com CPF.</span>
             </Field>
             <Field label="Endereço" required className="sm:col-span-2">
               <input
