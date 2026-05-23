@@ -126,6 +126,33 @@
     "owner_name": {
       "type": "string"
     },
+    "billing_provider": {
+      "type": "string",
+      "enum": [
+        "stripe",
+        "asaas"
+      ],
+      "default": "stripe",
+      "description": "Provedor de billing SaaS ativo para esta empresa. Feature flag da migra\u00e7\u00e3o Stripe\u2192Asaas. Default 'stripe' at\u00e9 a empresa ser migrada explicitamente."
+    },
+    "asaas_customer_id": {
+      "type": "string",
+      "description": "ID do customer da empresa na conta master Asaas (cobran\u00e7a SaaS). Vazio at\u00e9 a empresa ser migrada."
+    },
+    "asaas_account_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "blocked"
+      ],
+      "description": "Status do relacionamento da empresa com o Asaas (cobran\u00e7a SaaS)."
+    },
+    "asaas_pix_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, a empresa aceita pagamento via PIX (link p\u00fablico de booking) usando Asaas. Substituir\u00e1 stripe_connect_pix_enabled ap\u00f3s a migra\u00e7\u00e3o."
+    },
     "stripe_customer_id": {
       "type": "string"
     },
