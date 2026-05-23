@@ -30,12 +30,13 @@ export default function PublicBooking() {
   const company = companies[0];
   const primaryColor = company?.primary_color || '#2563EB';
 
-  const { data: connectStatus, isLoading: loadingConnect } = useQuery({
-    queryKey: ['public-connect-status', company?.id],
-    queryFn: () => base44.functions.invoke('getCompanyConnectStatus', { company_id: company.id }).then(r => r.data),
-    enabled: !!company?.id,
-  });
-  const canAcceptPayments = !!connectStatus?.can_accept_payments;
+  // Gate Asaas (substitui o legado Stripe Connect):
+  // qualquer um dos dois modos híbridos já libera o agendamento online.
+  //   - automatic: subaccount Asaas aprovada (split direto)
+  //   - manual:    PF/CPF — recebimento centralizado + repasse manual
+  // Ambos setam asaas_pix_enabled=true ao serem ativados.
+  const loadingConnect = false;
+  const canAcceptPayments = !!company?.asaas_pix_enabled;
 
   const { customer: loggedCustomer, token: customerToken, loading: loadingCustomerAuth, logout: logoutCustomer, login } = useCustomerAuth(company?.id);
   const [isAuthenticatedCustomer, setIsAuthenticatedCustomer] = useState(false);
