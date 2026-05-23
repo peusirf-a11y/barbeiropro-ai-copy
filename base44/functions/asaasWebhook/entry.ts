@@ -124,6 +124,30 @@ async function handlePaymentConfirmed(sdk, evt) {
   const subId = payment.subscription;
   const externalRef = payment.externalReference || '';
 
+  // Assinatura de plano do cliente final (Etapa 2C). externalReference = "customerPlan:<sub_id>".
+  if (externalRef.startsWith('customerPlan:')) {
+    const subId = externalRef.slice('customerPlan:'.length);
+    const subs = await sdk.entities.CustomerSubscription.filter({ id: subId }, '-created_date', 1).catch(() => []);
+    const sub = subs?.[0];
+    if (!sub) return { handled: false, reason: 'customer_subscription_not_found' };
+    if (sub.status === 'active' && sub.last_payment_status === 'pago') {
+      return { handled: true, type: 'customer_plan', subscription_id: sub.id, replay: true };
+    }
+    // Confirmação: ativa + reseta ciclo + reseta uses_remaining.
+    const now = new Date();
+    const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()).toISOString();
+    const isUnlimited = sub.plan_type_snapshot === 'unlimited';
+    await sdk.entities.CustomerSubscription.update(sub.id, {
+      status: 'active',
+      last_payment_status: 'pago',
+      last_payment_at: now.toISOString(),
+      current_cycle_start: now.toISOString(),
+      current_cycle_end: cycleEnd,
+      uses_remaining: isUnlimited ? 9999 : (sub.plan_usage_limit_snapshot || 0),
+    });
+    return { handled: true, type: 'customer_plan', subscription_id: sub.id };
+  }
+
   // Booking público (Etapa 2B). externalReference = "booking:<appointment_id>".
   if (externalRef.startsWith('booking:')) {
     const appointmentId = externalRef.slice('booking:'.length);

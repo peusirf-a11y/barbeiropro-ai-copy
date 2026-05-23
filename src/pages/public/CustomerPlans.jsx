@@ -43,23 +43,25 @@ export default function CustomerPlans() {
   const [submittingPlanId, setSubmittingPlanId] = useState(null);
 
   const checkoutMutation = useMutation({
-    mutationFn: ({ plan_id }) => base44.functions.invoke('createCustomerPlanCheckout', {
+    mutationFn: ({ plan_id }) => base44.functions.invoke('createAsaasCustomerPlanCheckout', {
       company_id: company.id, token, plan_id,
     }),
     onSuccess: (res) => {
-      const url = res?.data?.url;
-      if (url) { window.location.href = url; }
-      else { alert('Não foi possível abrir o checkout.'); setSubmittingPlanId(null); }
+      const data = res?.data || {};
+      const url = data.url;
+      if (url) { window.location.href = url; return; }
+      alert(data.message || 'Não foi possível abrir o checkout.');
+      setSubmittingPlanId(null);
     },
     onError: (err) => {
-      alert(err?.response?.data?.error || err?.message || 'Erro ao iniciar pagamento');
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Erro ao iniciar pagamento';
+      alert(msg);
       setSubmittingPlanId(null);
     },
   });
 
   const handleSubscribe = (plan) => {
     if (!customer) { navigate(`/cliente/${slug}/login`); return; }
-    if (!plan.stripe_price_id) { alert('Este plano ainda não está disponível para pagamento online.'); return; }
     setSubmittingPlanId(plan.id);
     checkoutMutation.mutate({ plan_id: plan.id });
   };

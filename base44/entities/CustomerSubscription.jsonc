@@ -32,11 +32,13 @@
     "status": {
       "type": "string",
       "enum": [
+        "pending_payment",
         "active",
         "paused",
         "canceled"
       ],
-      "default": "active"
+      "default": "active",
+      "description": "pending_payment = cliente assinou pelo link p\u00fablico mas barbearia ainda n\u00e3o confirmou pagamento."
     },
     "started_at": {
       "type": "string",
@@ -78,12 +80,34 @@
       "type": "string",
       "format": "date-time"
     },
+    "paused_at": {
+      "type": "string",
+      "format": "date-time"
+    },
     "stripe_subscription_id": {
       "type": "string",
-      "description": "Preparado para integra\u00e7\u00e3o Stripe Connect (Fase 2)"
+      "description": "Legado Stripe Connect (Etapa pr\u00e9-Asaas). Mantido apenas para leitura/reconcilia\u00e7\u00e3o."
     },
     "stripe_customer_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Legado Stripe Connect. Mantido apenas para leitura/reconcilia\u00e7\u00e3o."
+    },
+    "asaas_subscription_id": {
+      "type": "string",
+      "description": "ID da subscription recorrente do cliente final no Asaas (assinatura de plano da barbearia)."
+    },
+    "asaas_customer_id": {
+      "type": "string",
+      "description": "ID do Customer Asaas representando o cliente final. Idempotente por customerId Base44."
+    },
+    "asaas_invoice_url": {
+      "type": "string",
+      "description": "URL da invoice/checkout cart\u00e3o mais recente do Asaas. Usado para retomar pagamento se o cliente fechou a aba."
+    },
+    "self_service_signup": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cliente assinou sozinho pelo link p\u00fablico (vs criada pela barbearia)."
     }
   },
   "required": [

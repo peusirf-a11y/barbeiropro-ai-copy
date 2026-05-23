@@ -13,7 +13,8 @@
 | Etapa 2A | Assinatura SaaS (Starter/Pro/Enterprise) via Asaas + webhook | ✅ entregue |
 | Etapa 2B | Bookings públicos PIX pelo Asaas (link público das barbearias) | ✅ entregue |
 | Etapa 2B+ | Cartão e boleto no link público (split por barbearia) | ⏳ pendente |
-| Etapa 2C | Assinatura de planos de clientes finais via Asaas | ⏳ pendente |
+| Etapa 2C | Assinatura de planos de clientes finais via Asaas (cartão recorrente) | ✅ entregue |
+| Etapa 2C+ | Split automático Asaas (subaccount por barbearia) | ⏳ pendente |
 | Etapa 3 | Congelar Stripe na UI (somente leitura, botões ocultos) | ✅ entregue |
 | Etapa 4 | Migrar assinaturas SaaS existentes para Asaas | ⏳ pendente |
 | Etapa 5 | Desligamento final (remover env vars, libs, webhook, entidades, docs) | ⏳ pendente |
@@ -81,6 +82,47 @@ Default: congelado. Para reativar (emergência), setar secret `STRIPE_FREEZE=0`.
 ### Frontend (UI)
 - `StripeConnectCard` — esconde botões "Conectar Stripe", "Continuar cadastro", banners de ação. Mantém leitura de status para contas já conectadas. Mostra banner "Migração em andamento".
 - `BookingPaymentStep` e `PaymentMethodChooser` — não tocados. Quando o cliente final tentar pagar, o backend retorna `stripe_freeze_active` e a mensagem amigável já é exibida pelo handler de erro existente.
+
+## Etapa 2C — Assinatura de planos do cliente final via Asaas (entregue)
+
+### Backend
+- `createAsaasCustomerPlanCheckout` (NOVA) — substitui `createCustomerPlanCheckout`.
+  - Auth via `Customer.auth_token`.
+  - Anti-duplicidade (active/pending/paused) com suporte a "retomar pagamento" (resume de `pending_payment` do mesmo plano).
+  - Gate de visibilidade (public/private/invite_only) com `SecurityEvent` em tentativas não autorizadas.
+  - Cria/recupera Customer Asaas idempotente por `externalReference=cust:<company_id>:<customer_id>`.
+  - Cria `Subscription` Asaas `CREDIT_CARD` `MONTHLY` com `value=plan.price_monthly`, `externalReference=customerPlan:<sub_id>`.
+  - Busca primeira invoice (`GET /payments?subscription=...`) e devolve `invoiceUrl` para o frontend redirecionar.
+  - **Preparado para split:** se `Company.asaas_subaccount_id` estiver setado, inclui `split: [{ walletId, percentualValue }]` automaticamente. Sem subaccount = recebimento centralizado na conta master, repasse manual.
+- `asaasWebhook` (op novo) — branch `externalReference.startsWith('customerPlan:')`.
+  - `PAYMENT_CONFIRMED`/`PAYMENT_RECEIVED` → `status='active'`, `last_payment_status='pago'`, `last_payment_at=now`, reseta `current_cycle_*` e `uses_remaining` (preserva ciclo mensal).
+  - Idempotente: replay devolve `{ replay: true }`.
+  - `PAYMENT_OVERDUE` → `last_payment_status='atrasado'` (já era tratado para SaaS, agora reaproveitado).
+  - `SUBSCRIPTION_DELETED` → `status='canceled'`.
+
+### Schema
+- `CustomerSubscription.asaas_subscription_id`, `asaas_customer_id`, `asaas_invoice_url` (novos).
+- `Company.asaas_subaccount_id`, `asaas_split_percentage` (novos, opcionais — preparam Etapa 2C+).
+
+### Frontend
+- `pages/public/CustomerPlans.jsx` — invoca `createAsaasCustomerPlanCheckout`. Removido o gate `plan.stripe_price_id` (Asaas não precisa de Price pré-criado).
+
+### O que NUNCA é chamado mais (em fluxos novos)
+- `createCustomerPlanCheckout` (Stripe) — fica como legado read-only até Etapa 5.
+- `syncCustomerPlanToStripe` — automation segue ativa mas inofensiva (Plano sem `stripe_connect_account_id` da empresa é ignorado naturalmente). Não desligar ainda para não quebrar barbearias que ainda usam Stripe legado.
+
+### Como testar (sandbox)
+1. Cliente logado em `/cliente/:slug` (precisa ter `cpf_cnpj` cadastrado no Customer, ou o checkout retorna 400 `cpf_required`).
+2. Acessar `/cliente/:slug/planos`, clicar em "Assinar este plano".
+3. Backend cria Customer + Subscription no Asaas sandbox → redireciona para `invoiceUrl`.
+4. Preencher cartão de teste no painel Asaas.
+5. Webhook `PAYMENT_CONFIRMED` → `CustomerSubscription.status='active'` + `last_payment_status='pago'`.
+
+### Pré-requisito do cliente
+O `Customer` precisa ter `cpf_cnpj` preenchido. Se ausente, o checkout retorna erro amigável. A coleta desse campo no fluxo de cadastro/login do cliente fica como tarefa de UX (não bloqueia esta etapa).
+
+### Rollback
+Reverter o op do `pages/public/CustomerPlans` para chamar `createCustomerPlanCheckout` + setar `STRIPE_FREEZE=0`. A função Asaas e os campos novos permanecem sem efeito.
 
 ## Etapa 2B — Bookings públicos PIX via Asaas (entregue)
 

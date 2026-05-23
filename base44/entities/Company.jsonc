@@ -27,34 +27,28 @@
     },
     "address": {
       "type": "string",
-      "description": "Endere\u00e7o em texto livre (legacy). Mantido para compatibilidade. Para dados estruturados, ver address_details."
+      "description": "Endere\u00e7o em texto livre (legacy)."
     },
     "address_details": {
       "type": "object",
-      "description": "Endere\u00e7o estruturado coletado no onboarding e usado para pr\u00e9-preencher o KYC do Stripe Connect.",
       "properties": {
         "line1": {
-          "type": "string",
-          "description": "Rua e n\u00famero"
+          "type": "string"
         },
         "line2": {
-          "type": "string",
-          "description": "Complemento (opcional)"
+          "type": "string"
         },
         "neighborhood": {
-          "type": "string",
-          "description": "Bairro"
+          "type": "string"
         },
         "city": {
           "type": "string"
         },
         "state": {
-          "type": "string",
-          "description": "UF (sigla, ex: SP)"
+          "type": "string"
         },
         "postal_code": {
-          "type": "string",
-          "description": "CEP (somente d\u00edgitos)"
+          "type": "string"
         },
         "country": {
           "type": "string",
@@ -68,8 +62,7 @@
         "mei",
         "cnpj",
         "individual"
-      ],
-      "description": "Tipo de neg\u00f3cio para Stripe Connect: mei/cnpj=company, individual=pessoa f\u00edsica."
+      ]
     },
     "business_hours": {
       "type": "object"
@@ -89,12 +82,10 @@
       "default": "Starter"
     },
     "plan_id": {
-      "type": "string",
-      "description": "Refer\u00eancia \u00e0 entity Plan (fonte da verdade para pre\u00e7o/MRR/features)"
+      "type": "string"
     },
     "feature_overrides": {
       "type": "object",
-      "description": "Overrides de features por empresa.",
       "properties": {
         "enabled": {
           "type": "array",
@@ -126,7 +117,7 @@
     },
     "owner_cpf_cnpj": {
       "type": "string",
-      "description": "CPF/CNPJ do respons\u00e1vel legal da barbearia. Necess\u00e1rio para cobran\u00e7a SaaS via Asaas (campo obrigat\u00f3rio do Customer Asaas)."
+      "description": "CPF/CNPJ do respons\u00e1vel legal da barbearia."
     },
     "billing_provider": {
       "type": "string",
@@ -134,20 +125,16 @@
         "stripe",
         "asaas"
       ],
-      "default": "asaas",
-      "description": "Provedor de billing SaaS ativo. Default 'asaas' a partir da Etapa 2."
+      "default": "asaas"
     },
     "asaas_customer_id": {
-      "type": "string",
-      "description": "ID do customer da empresa na conta master Asaas."
+      "type": "string"
     },
     "asaas_subscription_id": {
-      "type": "string",
-      "description": "ID da subscription recorrente da empresa na conta master Asaas (cobran\u00e7a SaaS Starter/Pro/Enterprise)."
+      "type": "string"
     },
     "asaas_payment_link_url": {
-      "type": "string",
-      "description": "URL da fatura/invoice mais recente do Asaas (para retomar pagamento se cliente fechar a aba)."
+      "type": "string"
     },
     "asaas_account_status": {
       "type": "string",
@@ -155,13 +142,19 @@
         "pending",
         "active",
         "blocked"
-      ],
-      "description": "Status da assinatura SaaS via Asaas."
+      ]
     },
     "asaas_pix_enabled": {
       "type": "boolean",
-      "default": false,
-      "description": "Se true, aceita pagamento via PIX pelo link p\u00fablico usando Asaas."
+      "default": false
+    },
+    "asaas_subaccount_id": {
+      "type": "string",
+      "description": "ID da subaccount Asaas da barbearia (split autom\u00e1tico). Vazio = recebimento centralizado na conta master O CORTE com repasse manual. Prepara\u00e7\u00e3o Etapa 2C+."
+    },
+    "asaas_split_percentage": {
+      "type": "number",
+      "description": "Percentual repassado \u00e0 barbearia em assinaturas de planos do cliente final (0-100). Default 100 quando subaccount est\u00e1 habilitada."
     },
     "stripe_customer_id": {
       "type": "string"
@@ -181,8 +174,7 @@
         "canceled",
         "incomplete",
         "unpaid"
-      ],
-      "description": "Status da assinatura. Compartilhado entre Stripe (legado) e Asaas (atual)."
+      ]
     },
     "trial_ends_at": {
       "type": "string",
