@@ -24,6 +24,15 @@ import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 const CATEGORIES_IN = ['Atendimento', 'Produto', 'Outros'];
 const CATEGORIES_OUT = ['Aluguel', 'Produto/Insumos', 'Equipamento', 'Marketing', 'Folha de pagamento', 'Outros'];
 
+// Defensivo: alguns lançamentos legados podem ter date null/inválido (ex.: imports antigos).
+// new Date('invalid') retorna Invalid Date e format() lança RangeError — fallback elegante.
+function formatEntryDate(raw) {
+  if (!raw) return '–';
+  const d = new Date(String(raw).length === 10 ? raw + 'T00:00:00' : raw);
+  if (isNaN(d.getTime())) return '–';
+  return format(d, 'd MMM yyyy', { locale: ptBR });
+}
+
 export default function AppFinanceiro() {
   const { companyId, company, isLoading: loadingCompany } = useCompany();
   const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
@@ -224,7 +233,7 @@ export default function AppFinanceiro() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm text-white truncate">{entry.description || entry.category}</div>
-                    <div className="text-xs text-white/55">{entry.category} · {entry.date ? format(new Date(entry.date + 'T00:00:00'), "d MMM yyyy", { locale: ptBR }) : '–'}</div>
+                    <div className="text-xs text-white/55">{entry.category} · {formatEntryDate(entry.date)}</div>
                   </div>
                   <div className={`text-sm font-bold ${entry.type === 'entrada' ? 'text-emerald-300' : 'text-rose-300'}`}>
                     {entry.type === 'entrada' ? '+' : '-'}R${entry.amount?.toFixed(2)}
