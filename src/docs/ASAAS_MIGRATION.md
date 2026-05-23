@@ -14,7 +14,7 @@
 | Etapa 2B | Bookings públicos PIX pelo Asaas (link público das barbearias) | ✅ entregue |
 | Etapa 2B+ | Cartão e boleto no link público (split por barbearia) | ⏳ pendente |
 | Etapa 2C | Assinatura de planos de clientes finais via Asaas (cartão recorrente) | ✅ entregue |
-| Etapa 2C+ | Split automático Asaas (subaccount por barbearia) | ⏳ pendente |
+| Etapa 2C+ | Split automático Asaas (subaccount por barbearia, planos + bookings PIX) | ✅ entregue |
 | Etapa 3 | Congelar Stripe na UI (somente leitura, botões ocultos) | ✅ entregue |
 | Etapa 4 | Migrar assinaturas SaaS existentes para Asaas | ⏳ pendente |
 | Etapa 5 | Desligamento final (remover env vars, libs, webhook, entidades, docs) | ⏳ pendente |
@@ -82,6 +82,56 @@ Default: congelado. Para reativar (emergência), setar secret `STRIPE_FREEZE=0`.
 ### Frontend (UI)
 - `StripeConnectCard` — esconde botões "Conectar Stripe", "Continuar cadastro", banners de ação. Mantém leitura de status para contas já conectadas. Mostra banner "Migração em andamento".
 - `BookingPaymentStep` e `PaymentMethodChooser` — não tocados. Quando o cliente final tentar pagar, o backend retorna `stripe_freeze_active` e a mensagem amigável já é exibida pelo handler de erro existente.
+
+## Etapa 2C+ — Split automático via subaccount Asaas (entregue)
+
+### Decisões arquiteturais
+- **Subaccount com KYC**: cada barbearia ganha uma conta-filha (Account White Label) sob a master O CORTE. Asaas faz KYC e aprova antes de liberar split.
+- **Criação sob demanda**: botão explícito em `/app/configuracoes/pagamentos`. Não tocamos no onboarding.
+- **Split 100%** para a barbearia por default (campo `Company.asaas_split_percentage` configurável pelo Master). O CORTE monetiza apenas a mensalidade SaaS.
+- **Aplicado em**: planos do cliente final (Etapa 2C) **e** bookings PIX (Etapa 2B). Sem subaccount aprovada → fallback: tudo cai na master + repasse manual.
+
+### Backend (novas funções)
+- `createAsaasSubaccount` (admin/owner) — `POST /accounts` no Asaas. Persiste `asaas_subaccount_id`, `asaas_subaccount_wallet_id`, `asaas_subaccount_status='pending'`, `asaas_subaccount_onboarding_url`. **Idempotente por Company** (se já existe `asaas_subaccount_id`, devolve estado atual sem recriar). **Tenant isolation**: rejeita 403 + emite `SecurityEvent` quando user não é owner/admin. **Audit**: `AdminAuditLog action='STRIPE_CONNECTED'` (categoria genérica de billing). Também seta `asaas_pix_enabled=true` automaticamente.
+- `getAsaasSubaccountStatus` (admin/owner) — leitura do estado salvo na Company. Com `force_check=true`, consulta `GET /accounts/{id}` no Asaas e atualiza local se status mudou. Devolve `{ connected, status, wallet_id, onboarding_url, split_percentage, pix_enabled }`.
+
+### Backend (edits)
+- `asaasWebhook` — adicionado handler `ACCOUNT_STATUS_UPDATED`. Mapeia `APPROVED|ACTIVE → active`, `REJECTED|BLOCKED|DISABLED → rejected`, demais → `pending`. Idempotente (replay devolve `{ replay: true }`). Audit log automático na transição.
+- `createAsaasBookingPayment` — injeta `split: [{ walletId, percentualValue }]` no body do Payment quando `Company.asaas_subaccount_wallet_id` E `asaas_subaccount_status==='active'`. Sem isso → cobrança continua caindo na master (fallback seguro).
+- `createAsaasCustomerPlanCheckout` — já tinha o split implementado (Etapa 2C), agora ativa naturalmente quando a barbearia aprova o KYC.
+
+### Schema
+- `Company.asaas_subaccount_wallet_id` (novo) — walletId usado no payload split.
+- `Company.asaas_subaccount_status` enum `pending|active|rejected` (novo).
+- `Company.asaas_subaccount_api_key_preview` (novo) — últimos 8 chars da apiKey emitida pelo Asaas, apenas para diagnóstico. Chave completa nunca é persistida.
+- `Company.asaas_subaccount_onboarding_url` (novo) — link Asaas para completar pendências.
+
+### Frontend
+- `components/billing/AsaasSplitCard` (novo) — 4 estados visuais: sem conta (form ativação), pending (banner + link onboarding), active (banner + mini-stats), rejected (banner suporte).
+- `pages/app/AppPagamentos` — renderiza `AsaasSplitCard` antes do `StripeConnectCard` (que continua read-only durante o freeze).
+
+### Observabilidade
+- Logs estruturados com `corrId`, `latency_ms`, `company_id` em todas as funções novas.
+- `SecurityEvent` em tentativas cross-tenant (`createAsaasSubaccount`) e em erros 4xx do Asaas (`suspicious_payload`).
+- `AdminAuditLog` em criação de subaccount e transição de status via webhook.
+
+### Configuração do webhook Asaas
+No painel master Asaas, marcar também o evento:
+- `ACCOUNT_STATUS_UPDATED` (transição de KYC das subaccounts criadas pela API).
+A URL e o token são os mesmos já configurados na Etapa 2A.
+
+### Rollback seguro
+- **Para uma barbearia específica**: limpar `asaas_subaccount_wallet_id` (ou setar `asaas_subaccount_status` para qualquer valor diferente de `'active'`). O backend volta a cobrar 100% na master automaticamente. A subaccount fica preservada no Asaas para reativação futura.
+- **Plataforma inteira**: a função `createAsaasSubaccount` pode ser archivada (frontend exibe form de ativação, mas chamada retorna 404). Companies já com subaccount continuam recebendo split normalmente — nenhuma mudança destrutiva.
+
+### Testes manuais (sandbox)
+1. Logado como owner de uma Company, abrir `/app/configuracoes/pagamentos`.
+2. Preencher CPF (use um CPF de teste válido), endereço, número.
+3. Clicar em "Ativar pagamento online" → cria subaccount sandbox.
+4. `Company.asaas_subaccount_status='pending'`, banner amarelo aparece.
+5. No painel Asaas sandbox master, localizar a subaccount e aprovar manualmente.
+6. Clicar em "Atualizar status" no card → `force_check=true` busca o Asaas e move para `active`.
+7. Criar um booking PIX a partir do link público: o Payment Asaas deve ter `split` com a walletId.
 
 ## Etapa 2C — Assinatura de planos do cliente final via Asaas (entregue)
 

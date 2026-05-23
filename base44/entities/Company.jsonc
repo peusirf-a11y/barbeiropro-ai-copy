@@ -150,11 +150,32 @@
     },
     "asaas_subaccount_id": {
       "type": "string",
-      "description": "ID da subaccount Asaas da barbearia (split autom\u00e1tico). Vazio = recebimento centralizado na conta master O CORTE com repasse manual. Prepara\u00e7\u00e3o Etapa 2C+."
+      "description": "ID da subaccount Asaas da barbearia (split autom\u00e1tico). Vazio = recebimento centralizado na conta master O CORTE."
+    },
+    "asaas_subaccount_wallet_id": {
+      "type": "string",
+      "description": "walletId da subaccount Asaas, usado no payload `split` de Payment/Subscription. Necess\u00e1rio para repasse autom\u00e1tico."
+    },
+    "asaas_subaccount_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "rejected"
+      ],
+      "description": "Status do KYC da subaccount. 'pending'=cadastro criado, aguardando aprova\u00e7\u00e3o; 'active'=pode receber split; 'rejected'=Asaas reprovou os dados."
+    },
+    "asaas_subaccount_api_key_preview": {
+      "type": "string",
+      "description": "\u00daltimos 8 chars da apiKey da subaccount (para diagn\u00f3stico). NUNCA salvar a chave completa."
+    },
+    "asaas_subaccount_onboarding_url": {
+      "type": "string",
+      "description": "Link Asaas para a barbearia completar pend\u00eancias do KYC (quando emitido)."
     },
     "asaas_split_percentage": {
       "type": "number",
-      "description": "Percentual repassado \u00e0 barbearia em assinaturas de planos do cliente final (0-100). Default 100 quando subaccount est\u00e1 habilitada."
+      "description": "Percentual repassado \u00e0 barbearia (0-100). Default 100."
     },
     "stripe_customer_id": {
       "type": "string"

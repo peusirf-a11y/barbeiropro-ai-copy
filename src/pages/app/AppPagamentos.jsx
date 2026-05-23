@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { CreditCard, ShieldCheck, Banknote, Zap } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import StripeConnectCard from '@/components/billing/StripeConnectCard';
+import AsaasSplitCard from '@/components/billing/AsaasSplitCard';
 
 export default function AppPagamentos() {
   const { user } = useAuth();
@@ -23,7 +24,7 @@ export default function AppPagamentos() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto animate-fade-in">
         <AppPageHeader
           title="Pagamentos online"
-          subtitle="Conecte sua conta Stripe e receba direto pelo link público de agendamento"
+          subtitle="Ative sua conta Asaas e receba PIX direto, com repasse automático em cada transação"
           icon={CreditCard}
         />
 
@@ -34,6 +35,7 @@ export default function AppPagamentos() {
           </div>
         )}
 
+        {company && <AsaasSplitCard company={company} />}
         {company && <StripeConnectCard company={company} />}
 
         {/* Benefícios — explica por que conectar */}

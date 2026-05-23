@@ -454,21 +454,33 @@ Deno.serve(async (req) => {
     });
 
     // ─── Cria Payment PIX no Asaas ────────────────────────────────
+    // Split automático (Etapa 2C+): se a barbearia tem subaccount aprovada,
+    // o valor cai direto na wallet dela. Sem subaccount = recebimento na master
+    // O CORTE com repasse manual (modelo Etapa 2B).
     const externalRef = `booking:${appointment.id}`;
     const todayYmd = new Date().toISOString().slice(0, 10);
+    const paymentBody = {
+      customer: asaasCustomerId,
+      billingType: 'PIX',
+      value: realPrice,
+      dueDate: todayYmd,
+      externalReference: externalRef,
+      description: `Agendamento ${realServiceName} — ${company.name}`,
+      postalService: false,
+    };
+    if (company.asaas_subaccount_wallet_id && company.asaas_subaccount_status === 'active') {
+      const pct = Number.isFinite(Number(company.asaas_split_percentage))
+        ? Number(company.asaas_split_percentage) : 100;
+      paymentBody.split = [{
+        walletId: company.asaas_subaccount_wallet_id,
+        percentualValue: pct,
+      }];
+    }
     let payment = null;
     try {
       payment = await asaasFetch('POST', '/payments', {
         idempotencyKey: `bk_pay:${appointment.id}`,
-        body: {
-          customer: asaasCustomerId,
-          billingType: 'PIX',
-          value: realPrice,
-          dueDate: todayYmd,
-          externalReference: externalRef,
-          description: `Agendamento ${realServiceName} — ${company.name}`,
-          postalService: false,
-        },
+        body: paymentBody,
       });
     } catch (err) {
       // Rollback: cancela appointment e libera lock

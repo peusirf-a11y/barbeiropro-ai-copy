@@ -86,6 +86,8 @@ Deno.serve(async (req) => {
         outcome = await handlePaymentRefunded(sdk, evt);
       } else if (eventType === 'SUBSCRIPTION_DELETED') {
         outcome = await handleSubscriptionDeleted(sdk, evt);
+      } else if (eventType === 'ACCOUNT_STATUS_UPDATED' || eventType.startsWith('ACCOUNT_STATUS_')) {
+        outcome = await handleAccountStatusUpdated(sdk, evt);
       } else {
         // Aceita silenciosamente eventos não tratados (PAYMENT_CREATED, PAYMENT_UPDATED, etc.)
         outcome = { handled: false, reason: 'event_not_subscribed' };
@@ -234,6 +236,45 @@ async function handlePaymentRefunded(sdk, evt) {
   });
 
   return { handled: true, type: 'saas_refunded', company_id: company.id };
+}
+
+async function handleAccountStatusUpdated(sdk, evt) {
+  // Asaas envia o objeto da conta no evento. Aceita tanto `account` quanto `data`.
+  const acc = evt.account || evt.data || evt;
+  const accountId = acc?.id;
+  if (!accountId) return { handled: false, reason: 'no_account_id' };
+
+  const companies = await sdk.entities.Company.filter({ asaas_subaccount_id: accountId }, '-created_date', 1).catch(() => []);
+  const company = companies?.[0];
+  if (!company) return { handled: false, reason: 'company_not_found' };
+
+  const rawStatus = String(acc.status || acc.accountStatus || '').toUpperCase();
+  const mapped = (rawStatus === 'APPROVED' || rawStatus === 'ACTIVE') ? 'active'
+    : (rawStatus === 'REJECTED' || rawStatus === 'BLOCKED' || rawStatus === 'DISABLED') ? 'rejected'
+    : 'pending';
+
+  if (company.asaas_subaccount_status === mapped) {
+    return { handled: true, type: 'account_status', company_id: company.id, status: mapped, replay: true };
+  }
+
+  await sdk.entities.Company.update(company.id, {
+    asaas_subaccount_status: mapped,
+    asaas_subaccount_onboarding_url: acc.onboardingUrl || company.asaas_subaccount_onboarding_url,
+  });
+
+  // Auditoria leve da transição
+  await sdk.entities.AdminAuditLog.create({
+    actor: 'system', actor_role: 'system',
+    company_id: company.id,
+    target_entity: 'Company', target_id: company.id,
+    action: mapped === 'active' ? 'STRIPE_CONNECTED' : 'STRIPE_DISCONNECTED',
+    before: { asaas_subaccount_status: company.asaas_subaccount_status },
+    after: { asaas_subaccount_status: mapped },
+    severity: mapped === 'rejected' ? 'warning' : 'info',
+    metadata: { provider: 'asaas', subaccount: true, raw_status: rawStatus },
+  }).catch(() => {});
+
+  return { handled: true, type: 'account_status', company_id: company.id, status: mapped };
 }
 
 async function handleSubscriptionDeleted(sdk, evt) {
