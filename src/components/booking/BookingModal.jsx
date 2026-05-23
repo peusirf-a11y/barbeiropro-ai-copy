@@ -72,6 +72,9 @@ export default function BookingModal({
 
   useEffect(() => {
     if (step !== 3) return;
+    // Limpa erro residual de uma validação anterior (ex.: usuário voltou do AuthGate)
+    // — senão "Horário indisponível" fica grudado na tela mesmo sem o usuário ter clicado.
+    setFormError('');
     if (canUseSubscription && paymentMethod === 'avulso') setPaymentMethod('subscription');
     if (!canUseSubscription && paymentMethod === 'subscription') setPaymentMethod('avulso');
   }, [step, canUseSubscription]); // eslint-disable-line react-hooks/exhaustive-deps
