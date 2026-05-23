@@ -186,15 +186,34 @@ async function handlePaymentConfirmed(sdk, evt) {
       ? new Date(new Date(payment.dueDate).getTime() + 30 * 86400_000).toISOString()
       : undefined;
 
-    await sdk.entities.Company.update(company.id, {
+    // Etapa 4: se a Company está em migração soft (billing_provider='asaas_pending'),
+    // este é o 1º pagamento Asaas — cancela Stripe e finaliza migração.
+    const isMigration = company.billing_provider === 'asaas_pending'
+      && company.migration_status === 'pending_first_payment';
+
+    const updates = {
       status: 'active',
       subscription_status: 'active',
       asaas_account_status: 'active',
       is_blocked_by_billing: false,
       current_period_end: nextPeriodEnd,
-    });
+    };
 
-    return { handled: true, type: 'saas_subscription', company_id: company.id };
+    if (isMigration) {
+      updates.billing_provider = 'asaas';
+      updates.migration_status = 'migrated';
+      updates.asaas_first_payment_confirmed_at = new Date().toISOString();
+      updates.stripe_pending_cancellation_at = null;
+    }
+
+    await sdk.entities.Company.update(company.id, updates);
+
+    // Cancela Stripe APENAS se for o primeiro pagamento de migração.
+    if (isMigration && company.stripe_subscription_id) {
+      await cancelStripeAfterAsaasConfirmation(sdk, company);
+    }
+
+    return { handled: true, type: 'saas_subscription', company_id: company.id, migration_completed: isMigration };
   }
 
   return { handled: false, reason: 'no_subscription_match' };
@@ -275,6 +294,53 @@ async function handleAccountStatusUpdated(sdk, evt) {
   }).catch(() => {});
 
   return { handled: true, type: 'account_status', company_id: company.id, status: mapped };
+}
+
+// Helper Etapa 4: cancela Stripe Subscription depois da confirmação do 1º Asaas.
+// Idempotente — se Stripe já estiver cancelado, ignora o erro.
+async function cancelStripeAfterAsaasConfirmation(sdk, company) {
+  const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+  if (!stripeKey) {
+    console.warn('[asaasWebhook] STRIPE_SECRET_KEY ausente — não foi possível cancelar Stripe', { company_id: company.id });
+    return { ok: false, reason: 'no_stripe_key' };
+  }
+  const subId = company.stripe_subscription_id;
+  if (!subId) return { ok: true, reason: 'no_stripe_sub' };
+  try {
+    const res = await fetch(`https://api.stripe.com/v1/subscriptions/${subId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'User-Agent': 'OCorte-SaaS/1.0 (+migration-cancel)',
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      // 404 ou "already canceled" é OK (idempotência)
+      if (res.status === 404 || data?.error?.code === 'resource_missing') {
+        console.log('[asaasWebhook] stripe sub already gone', { company_id: company.id, subId });
+        return { ok: true, reason: 'already_gone' };
+      }
+      console.error('[asaasWebhook] stripe cancel failed', { company_id: company.id, subId, status: res.status, err: data?.error?.message });
+      // Não reverte a migração — o Asaas já cobrou. Master pode tratar manualmente.
+      return { ok: false, reason: 'stripe_cancel_error', detail: data?.error?.message };
+    }
+    await sdk.entities.AdminAuditLog.create({
+      actor: 'system', actor_role: 'system',
+      company_id: company.id,
+      target_entity: 'Company', target_id: company.id,
+      action: 'SUBSCRIPTION_CANCELLED',
+      before: { stripe_subscription_id: subId, billing_provider: 'asaas_pending' },
+      after: { billing_provider: 'asaas', migration_status: 'migrated' },
+      severity: 'info',
+      metadata: { reason: 'stripe_canceled_after_asaas_first_payment', action_subtype: 'saas_migration_completed' },
+    }).catch(() => {});
+    console.log('[asaasWebhook] stripe canceled after asaas first payment', { company_id: company.id, subId });
+    return { ok: true };
+  } catch (err) {
+    console.error('[asaasWebhook] stripe cancel exception', { company_id: company.id, subId, err: err.message });
+    return { ok: false, reason: 'exception', detail: err.message };
+  }
 }
 
 async function handleSubscriptionDeleted(sdk, evt) {

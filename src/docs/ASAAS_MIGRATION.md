@@ -16,7 +16,7 @@
 | Etapa 2C | Assinatura de planos de clientes finais via Asaas (cartão recorrente) | ✅ entregue |
 | Etapa 2C+ | Split automático Asaas (subaccount por barbearia, planos + bookings PIX) | ✅ entregue |
 | Etapa 3 | Congelar Stripe na UI (somente leitura, botões ocultos) | ✅ entregue |
-| Etapa 4 | Migrar assinaturas SaaS existentes para Asaas | ⏳ pendente |
+| Etapa 4 | Migrar assinaturas SaaS existentes para Asaas (soft migrate) | ✅ entregue |
 | Etapa 5 | Desligamento final (remover env vars, libs, webhook, entidades, docs) | ⏳ pendente |
 
 ## Decisões arquiteturais
@@ -82,6 +82,59 @@ Default: congelado. Para reativar (emergência), setar secret `STRIPE_FREEZE=0`.
 ### Frontend (UI)
 - `StripeConnectCard` — esconde botões "Conectar Stripe", "Continuar cadastro", banners de ação. Mantém leitura de status para contas já conectadas. Mostra banner "Migração em andamento".
 - `BookingPaymentStep` e `PaymentMethodChooser` — não tocados. Quando o cliente final tentar pagar, o backend retorna `stripe_freeze_active` e a mensagem amigável já é exibida pelo handler de erro existente.
+
+## Etapa 4 — Soft migrate de assinaturas SaaS Stripe → Asaas (entregue)
+
+### Estratégia
+Soft migrate — Stripe **não** é cancelado na criação. Master dispara migração por Company; backend cria Customer+Subscription Asaas em paralelo. Stripe segue cobrando até o webhook Asaas confirmar o 1º `PAYMENT_RECEIVED`/`PAYMENT_CONFIRMED`. Só ali o Stripe é cancelado.
+
+### Schema (aditivo)
+- `Company.migration_status` enum `not_migrated|pending_first_payment|migrated|failed`.
+- `Company.stripe_pending_cancellation_at` — SLA máximo de coexistência (D+14).
+- `Company.asaas_migration_started_at` — timestamp de início.
+- `Company.asaas_first_payment_confirmed_at` — gatilho do cancelamento Stripe.
+- `Company.billing_provider` ganhou enum extra `'asaas_pending'`.
+
+Campos `stripe_*` continuam intactos como histórico read-only.
+
+### Backend
+- `migrateCompanySaasToAsaas` (NOVA, master-only):
+  - Valida `billing_provider='stripe'`, plano conhecido, CPF/CNPJ do owner.
+  - Idempotente: chamadas repetidas devolvem o estado atual (`replay=true`).
+  - Cria Customer Asaas (externalReference=email) e Subscription mensal (`mig_sub:{company_id}:{plan}` como idempotency key).
+  - Persiste `asaas_*` + `migration_status='pending_first_payment'` + `billing_provider='asaas_pending'`.
+  - **NUNCA** cancela Stripe.
+  - Envia email transacional via `SendEmail` (opt-out via `send_email=false`).
+  - AuditLog `SUBSCRIPTION_CHANGED` severity=warning; SecurityEvent em tentativas não-master.
+- `asaasWebhook` (edit): no handler de `PAYMENT_CONFIRMED`/`PAYMENT_RECEIVED`, detecta se a Company está em migração (`billing_provider='asaas_pending'` + `migration_status='pending_first_payment'`). Se sim, marca como `migrated` e chama `cancelStripeAfterAsaasConfirmation`.
+- `cancelStripeAfterAsaasConfirmation` (helper interno do webhook): `DELETE /v1/subscriptions/{id}` no Stripe. Trata 404 como idempotente. Logs em audit.
+
+### Frontend (Master)
+- `pages/master/MasterAssinaturas` renderiza painel novo abaixo do `PlansManager`.
+- `components/master/MigrationStripeAsaasPanel` (NOVO): KPIs por status, busca/filtro, tabela expandível, botão "Migrar agora" com confirmação, leitura completa de campos da Company (Stripe + Asaas + timestamps).
+
+### Testes (conceituais)
+- `tests/asaas/saasMigration.test.js` — garantias do happy path.
+- `tests/asaas/doubleChargeProtection.test.js` — nunca cobra Stripe E Asaas no mesmo ciclo.
+- `tests/asaas/rollbackMigration.test.js` — falha Asaas não toca Stripe.
+- `tests/asaas/migrationIdempotency.test.js` — replay seguro em retry.
+- `tests/asaas/webhookMigrationFlow.test.js` — cancelamento Stripe após 1º pgto.
+
+### Docs
+- `docs/SAAS_MIGRATION_PLAYBOOK.md` (NOVO) — guia operacional do Master.
+- `docs/ASAAS_CUTOVER_CHECKLIST.md` (NOVO) — gates antes de executar Etapa 5.
+
+### Observabilidade
+- Logs estruturados com `corrId`, `latency_ms`, `company_id` em todas as chamadas.
+- AuditLog em início (warning), falha (critical) e conclusão (info).
+- SecurityEvent em tentativas não-master.
+
+### Reversibilidade
+- `migration_status='pending_first_payment'`: cancelar Asaas Subscription no painel Asaas + setar `Company.billing_provider='stripe'` + `migration_status=null`. Stripe segue cobrando.
+- `migration_status='failed'`: botão "Migrar agora" pode ser clicado novamente — idempotente.
+- `migration_status='migrated'`: sem rollback automático (Stripe já foi cancelado). Para reverter: criar Stripe Subscription nova manualmente.
+
+---
 
 ## Etapa 2B+ — Cartão no booking público via hosted Asaas (entregue)
 

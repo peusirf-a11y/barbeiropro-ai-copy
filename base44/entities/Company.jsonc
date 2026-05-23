@@ -123,9 +123,11 @@
       "type": "string",
       "enum": [
         "stripe",
-        "asaas"
+        "asaas",
+        "asaas_pending"
       ],
-      "default": "asaas"
+      "default": "asaas",
+      "description": "Provider ativo. 'asaas_pending' = migra\u00e7\u00e3o soft em curso; Stripe ainda cobra; Asaas aguarda 1\u00ba pagamento."
     },
     "asaas_customer_id": {
       "type": "string"
@@ -251,6 +253,31 @@
     "stripe_connect_pix_enabled": {
       "type": "boolean",
       "default": false
+    },
+    "migration_status": {
+      "type": "string",
+      "enum": [
+        "not_migrated",
+        "pending_first_payment",
+        "migrated",
+        "failed"
+      ],
+      "description": "Estado da migra\u00e7\u00e3o SaaS Stripe\u2192Asaas (Etapa 4). Companies novas (criadas direto no Asaas) ficam vazias \u2014 s\u00f3 companies com hist\u00f3rico Stripe usam este campo."
+    },
+    "stripe_pending_cancellation_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Setado quando a migra\u00e7\u00e3o soft inicia. Stripe segue ativo at\u00e9 esta data ser consumida pelo webhook do 1\u00ba pagamento Asaas."
+    },
+    "asaas_migration_started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o Master clicou 'Migrar agora'. Usado para SLA, observabilidade e detec\u00e7\u00e3o de migra\u00e7\u00f5es travadas (>14 dias sem pagamento)."
+    },
+    "asaas_first_payment_confirmed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o 1\u00ba pagamento Asaas p\u00f3s-migra\u00e7\u00e3o foi confirmado pelo webhook. Gatilho do cancelamento Stripe."
     },
     "whatsapp_settings": {
       "type": "object",
