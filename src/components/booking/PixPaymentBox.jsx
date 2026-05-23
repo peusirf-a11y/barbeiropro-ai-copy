@@ -35,7 +35,7 @@ export default function PixPaymentBox({ appointmentId, pixData, expiresAt, prima
     setChecking(true);
     if (manual) setFeedback('Aguardando confirmação do banco…');
     try {
-      const res = await base44.functions.invoke('getBookingPaymentStatus', {
+      const res = await base44.functions.invoke('getAsaasBookingStatus', {
         appointment_id: appointmentId,
         force_check: !!manual,
       });

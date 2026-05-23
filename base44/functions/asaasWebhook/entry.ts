@@ -124,6 +124,26 @@ async function handlePaymentConfirmed(sdk, evt) {
   const subId = payment.subscription;
   const externalRef = payment.externalReference || '';
 
+  // Booking público (Etapa 2B). externalReference = "booking:<appointment_id>".
+  if (externalRef.startsWith('booking:')) {
+    const appointmentId = externalRef.slice('booking:'.length);
+    const appts = await sdk.entities.Appointment.filter({ id: appointmentId }, '-created_date', 1).catch(() => []);
+    const appt = appts?.[0];
+    if (!appt) return { handled: false, reason: 'appointment_not_found' };
+    // Idempotente: se já estava pago, não reescreve.
+    if (appt.payment_status === 'succeeded') {
+      return { handled: true, type: 'booking', appointment_id: appt.id, replay: true };
+    }
+    await sdk.entities.Appointment.update(appt.id, {
+      status: 'agendado',
+      payment_status: 'succeeded',
+      paid_online: true,
+      paid: true,
+      paid_at: new Date().toISOString(),
+    });
+    return { handled: true, type: 'booking', appointment_id: appt.id };
+  }
+
   // SaaS subscription? (externalReference = "saas:email:plan")
   if (externalRef.startsWith('saas:') || subId) {
     const companies = await sdk.entities.Company.filter(

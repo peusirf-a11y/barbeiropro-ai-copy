@@ -11,7 +11,8 @@
 | 1 | Infra base (secrets, lib/asaas, schema flag, smoke test) | ✅ entregue |
 | Etapa 1 | Congelar criação Stripe (PaymentIntent, Checkout, PlanCheckout, Connect onboarding) | ✅ entregue |
 | Etapa 2A | Assinatura SaaS (Starter/Pro/Enterprise) via Asaas + webhook | ✅ entregue |
-| Etapa 2B | Bookings públicos PIX/cartão pelo Asaas (link público das barbearias) | ⏳ pendente |
+| Etapa 2B | Bookings públicos PIX pelo Asaas (link público das barbearias) | ✅ entregue |
+| Etapa 2B+ | Cartão e boleto no link público (split por barbearia) | ⏳ pendente |
 | Etapa 2C | Assinatura de planos de clientes finais via Asaas | ⏳ pendente |
 | Etapa 3 | Congelar Stripe na UI (somente leitura, botões ocultos) | ✅ entregue |
 | Etapa 4 | Migrar assinaturas SaaS existentes para Asaas | ⏳ pendente |
@@ -80,6 +81,33 @@ Default: congelado. Para reativar (emergência), setar secret `STRIPE_FREEZE=0`.
 ### Frontend (UI)
 - `StripeConnectCard` — esconde botões "Conectar Stripe", "Continuar cadastro", banners de ação. Mantém leitura de status para contas já conectadas. Mostra banner "Migração em andamento".
 - `BookingPaymentStep` e `PaymentMethodChooser` — não tocados. Quando o cliente final tentar pagar, o backend retorna `stripe_freeze_active` e a mensagem amigável já é exibida pelo handler de erro existente.
+
+## Etapa 2B — Bookings públicos PIX via Asaas (entregue)
+
+### Backend (novas funções)
+- `createAsaasBookingPayment` (PÚBLICA, sem auth) — substitui `createBookingPaymentIntent`.
+  - Espelha todos os guards do original: rate limit IP+telefone, slot lock atômico, idempotência Base44, validação autoritativa de service/professional/bloqueios, reuse de tentativa anterior do mesmo telefone.
+  - Cria Customer Asaas com `externalReference=cust:<company_id>:<customer_id>` (idempotente).
+  - Cria Payment PIX com `dueDate=hoje`, `externalReference=booking:<appointment_id>`.
+  - Busca QR via `GET /payments/{id}/pixQrCode` e devolve `qr_code_url` (data URL) + `copy_paste`.
+  - Guard: requer `Company.asaas_pix_enabled=true` (substitui o check Stripe Connect).
+- `getAsaasBookingStatus` (PÚBLICA) — substitui `getBookingPaymentStatus`.
+  - Lê Appointment local. Com `force_check=true` consulta `/payments/{id}` no Asaas e marca `paid_online` se status ∈ {CONFIRMED, RECEIVED, RECEIVED_IN_CASH}.
+
+### Backend (webhook)
+- `asaasWebhook` ganhou branch para `externalReference.startsWith('booking:')`.
+  - PAYMENT_CONFIRMED/RECEIVED → atualiza Appointment para `status='agendado'`, `payment_status='succeeded'`, `paid_online=true`, `paid=true`, `paid_at`.
+  - Idempotente: se já estava `succeeded`, retorna `replay`.
+
+### Frontend
+- `BookingPaymentStep` — invoca `createAsaasBookingPayment`; UI reduzida a PIX (cartão oculto durante a migração); lê `data.pix` em vez de `client_secret`.
+- `PixPaymentBox` — polling chama `getAsaasBookingStatus`.
+
+### Como habilitar uma barbearia para receber PIX via Asaas
+Na Company do tenant, setar `asaas_pix_enabled=true` (campo já existe no schema). Não requer onboarding/KYC adicional — todo o recebimento cai na conta master Asaas da O CORTE. **Repasse à barbearia é manual nesta fase** (split automático entra em Etapa 2B+).
+
+### Rollback
+Reverter os 2 ops de `BookingPaymentStep` e o op de `PixPaymentBox` para voltar a chamar `createBookingPaymentIntent` + `getBookingPaymentStatus`. Setar `STRIPE_FREEZE=0`. As novas funions ficam ociosas, sem impacto.
 
 ## Etapa 2A — Assinatura SaaS via Asaas (entregue)
 

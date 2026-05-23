@@ -27,8 +27,9 @@ function maskCpf(value) {
 
 export default function BookingPaymentStep({ payload, primaryColor, pixEnabled = false, onBack, onSucceeded }) {
   const [stage, setStage] = useState('choose');
-  // Se a barbearia ainda não ativou Pix na Stripe, força cartão como único método.
-  const [method, setMethod] = useState(pixEnabled ? 'pix' : 'card');
+  // Etapa 2B: bookings públicos rodam via Asaas — apenas PIX por enquanto.
+  // O parâmetro `pixEnabled` reflete `company.asaas_pix_enabled`.
+  const [method, setMethod] = useState('pix');
   const [cpf, setCpf] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [intentData, setIntentData] = useState(null); // { client_secret, payment_intent_id, appointment_id, expires_at, pix, stripe_account }
@@ -55,20 +56,20 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
           payment_method: method,
         });
       }
-      const res = await base44.functions.invoke('createBookingPaymentIntent', {
+      const res = await base44.functions.invoke('createAsaasBookingPayment', {
         ...payload,
         customer_cpf: cpfDigits,
         payment_method: method,
         idempotency_key: idemKeyRef.current,
       });
       const data = res?.data;
-      if (data?.error || !data?.client_secret) {
+      if (data?.error || !data?.pix) {
         setErrorMsg(data?.message || 'Não foi possível iniciar o pagamento. Tente novamente.');
         setStage('error');
         return;
       }
       setIntentData(data);
-      setStage(method);
+      setStage('pix');
     } catch (err) {
       setErrorMsg(err.message || 'Erro de comunicação. Tente novamente.');
       setStage('error');
@@ -95,35 +96,14 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         <div className="space-y-3">
           <div className="bg-white rounded-2xl border border-black/8 p-4">
             <div className="text-[11px] uppercase font-bold text-gray-500 tracking-wide mb-3">Como pagar</div>
-            {pixEnabled ? (
-              <div className="grid grid-cols-2 gap-2">
-                <MethodOption
-                  active={method === 'pix'}
-                  primaryColor={primaryColor}
-                  onClick={() => setMethod('pix')}
-                  icon={QrCode}
-                  title="Pix"
-                  subtitle="Aprovação na hora"
-                />
-                <MethodOption
-                  active={method === 'card'}
-                  primaryColor={primaryColor}
-                  onClick={() => setMethod('card')}
-                  icon={CreditCard}
-                  title="Cartão"
-                  subtitle="Crédito ou débito"
-                />
-              </div>
-            ) : (
-              <MethodOption
-                active
-                primaryColor={primaryColor}
-                onClick={() => setMethod('card')}
-                icon={CreditCard}
-                title="Cartão de crédito ou débito"
-                subtitle="Pagamento seguro processado pela Stripe"
-              />
-            )}
+            <MethodOption
+              active
+              primaryColor={primaryColor}
+              onClick={() => setMethod('pix')}
+              icon={QrCode}
+              title="Pix"
+              subtitle="Aprovação instantânea — pague pelo seu banco"
+            />
           </div>
 
           <div className="bg-white rounded-2xl border border-black/8 p-4">
@@ -180,15 +160,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         />
       )}
 
-      {/* ─── CARTÃO ─── */}
-      {stage === 'card' && intentData && (
-        <CardPaymentBox
-          clientSecret={intentData.client_secret}
-          stripeAccount={intentData.stripe_account}
-          primaryColor={primaryColor}
-          onSucceeded={() => onSucceeded?.(intentData)}
-        />
-      )}
+      {/* Cartão foi pausado durante a migração (Etapa 2B — só PIX no Asaas no momento). */}
 
       {/* ─── EXPIROU ─── */}
       {stage === 'expired' && (
