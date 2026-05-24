@@ -313,10 +313,11 @@ export default function Checkout() {
                     placeholder="(11) 99999-9999"
                   />
                   <Field
-                    label="CNPJ ou MEI do responsável"
+                    label="CNPJ da barbearia"
                     value={form.cpf_cnpj}
                     onChange={v => setForm(f => ({ ...f, cpf_cnpj: maskCpfCnpj(v) }))}
                     placeholder="00.000.000/0000-00"
+                    helpText="Aceitamos CNPJ ou MEI. Sem CNPJ? Veja abaixo como ativar."
                   />
 
                   {isPF && (
@@ -478,7 +479,7 @@ function MethodOption({ active, onClick, icon: Icon, title, subtitle }) {
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = 'text' }) {
+function Field({ label, value, onChange, placeholder, type = 'text', helpText }) {
   return (
     <div>
       <label className="block text-xs font-semibold text-gray-700 mb-1">{label}</label>
@@ -490,6 +491,7 @@ function Field({ label, value, onChange, placeholder, type = 'text' }) {
         style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
         className="w-full px-3.5 py-2.5 text-sm border border-black/10 rounded-lg placeholder:text-gray-400"
       />
+      {helpText && <p className="text-[11px] text-gray-400 mt-1">{helpText}</p>}
     </div>
   );
 }
