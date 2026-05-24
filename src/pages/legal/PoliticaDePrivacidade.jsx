@@ -28,7 +28,7 @@ export default function PoliticaDePrivacidade() {
         </Section>
 
         <Section title="2. Dados que coletamos">
-          <strong>Do dono da barbearia:</strong> nome, email, telefone/WhatsApp, dados da empresa (nome, endereço, slug, logo) e dados de pagamento (processados via Stripe, não armazenamos cartão).<br /><br />
+          <strong>Do dono da barbearia:</strong> nome, email, telefone/WhatsApp, dados da empresa (nome, endereço, slug, logo) e dados de pagamento (processados via Asaas, não armazenamos cartão).<br /><br />
           <strong>Dos clientes da barbearia:</strong> nome, telefone, email, histórico de agendamentos e preferências — cadastrados pela própria barbearia.<br /><br />
           <strong>Automaticamente:</strong> logs de uso, IP, navegador, e dados de telemetria para garantir o funcionamento do serviço.
         </Section>
@@ -44,7 +44,7 @@ export default function PoliticaDePrivacidade() {
         <Section title="5. Compartilhamento com terceiros">
           Compartilhamos dados estritamente com fornecedores essenciais à operação:
           <ul className="list-disc list-inside mt-2 space-y-1">
-            <li><strong>Stripe</strong> — processamento de pagamentos</li>
+            <li><strong>Asaas</strong> — processamento de pagamentos (PIX, cartão, boleto)</li>
             <li><strong>Z-API</strong> — envio de mensagens via WhatsApp</li>
             <li><strong>Base44</strong> — infraestrutura de hospedagem e banco de dados</li>
           </ul>
@@ -81,7 +81,7 @@ export default function PoliticaDePrivacidade() {
         </Section>
 
         <Section title="11. Crianças">
-          O BarberTrimly não é destinado a menores de 18 anos. Não coletamos intencionalmente dados de menores.
+          O CORTE não é destinado a menores de 18 anos. Não coletamos intencionalmente dados de menores.
         </Section>
 
         <Section title="12. Alterações desta política">
