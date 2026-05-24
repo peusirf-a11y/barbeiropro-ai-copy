@@ -229,10 +229,11 @@ Deno.serve(async (req) => {
       if (!resumeSub) {
         await sdk.entities.CustomerSubscription.update(sub.id, { status: 'canceled', canceled_at: new Date().toISOString() }).catch(() => {});
       }
-      console.warn(`[planCard ${rid}] subscription failed:`, err.message, err.details);
+      const detailMsg = extractErr(err.details);
+      console.warn(`[planCard ${rid}] subscription failed:`, err.message, JSON.stringify(err.details || {}));
       return Response.json({
         error: err.code || 'card_declined',
-        message: err.message || 'Cartão recusado. Verifique os dados ou tente outro.',
+        message: detailMsg || err.message || 'Cartão recusado. Verifique os dados ou tente outro.',
       }, { status: 402 });
     }
 

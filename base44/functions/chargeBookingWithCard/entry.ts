@@ -146,15 +146,15 @@ Deno.serve(async (req) => {
         },
       });
     } catch (err) {
-      // Cobrança falhou: marca appointment como cancelado.
       await sdk.entities.Appointment.update(appointmentId, {
         status: 'cancelado',
         payment_status: 'failed',
       }).catch(() => {});
-      console.warn(`[chargeBookingWithCard ${rid}] charge failed:`, err.message, err.details);
+      const detailMsg = extractErr(err.details);
+      console.warn(`[chargeBookingWithCard ${rid}] charge failed:`, err.message, JSON.stringify(err.details || {}));
       return Response.json({
         error: err.code || 'card_declined',
-        message: err.message || 'Cartão recusado. Verifique os dados ou tente outro cartão.',
+        message: detailMsg || err.message || 'Cartão recusado. Verifique os dados ou tente outro cartão.',
       }, { status: 402 });
     }
 

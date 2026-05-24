@@ -70,11 +70,22 @@ export default function CardPaymentFormAsaas({
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
+  const validateExpiry = () => {
+    const [mm, yy] = form.expiry.split('/');
+    if (!mm || !yy || mm.length !== 2 || yy.length !== 2) return 'Válidade incompleta. Use MM/AA.';
+    const month = parseInt(mm, 10);
+    const year = 2000 + parseInt(yy, 10);
+    if (Number.isNaN(month) || month < 1 || month > 12) return 'Mês da validade inválido (use 01-12).';
+    const now = new Date();
+    const exp = new Date(year, month, 0, 23, 59, 59); // último dia do mês
+    if (exp < now) return 'Cartão vencido.';
+    return null;
+  };
+
   const isValid = () => {
     if (!form.holderName.trim()) return false;
     if (onlyDigits(form.number).length < 13) return false;
-    const [mm, yy] = form.expiry.split('/');
-    if (!mm || !yy || mm.length !== 2 || yy.length !== 2) return false;
+    if (validateExpiry()) return false;
     if (form.cvv.length < 3) return false;
     if (showCpf && onlyDigits(form.cpf).length !== 11) return false;
     if (onlyDigits(form.postalCode).length !== 8) return false;
@@ -84,6 +95,8 @@ export default function CardPaymentFormAsaas({
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
+    const expErr = validateExpiry();
+    if (expErr) { setError(expErr); return; }
     if (!isValid()) {
       setError('Confira os dados do cartão antes de continuar.');
       return;
