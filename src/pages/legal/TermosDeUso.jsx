@@ -57,7 +57,7 @@ export default function TermosDeUso() {
         </Section>
 
         <Section title="9. Limitação de responsabilidade">
-          O CORTE não se responsabiliza por perdas indiretas, lucros cessantes ou danos decorrentes da indisponibilidade temporária do serviço, falha de envio de mensagens por terceiros (Z-API, provedores de WhatsApp) ou uso indevido da plataforma pelo cliente.
+          O CORTE não se responsabiliza por perdas indiretas, lucros cessantes ou danos decorrentes da indisponibilidade temporária do serviço, falha de envio de mensagens por terceiros (Evolution API, provedores de WhatsApp) ou uso indevido da plataforma pelo cliente.
         </Section>
 
         <Section title="10. Alterações destes termos">

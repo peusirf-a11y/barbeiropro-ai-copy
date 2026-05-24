@@ -45,7 +45,7 @@ export default function PoliticaDePrivacidade() {
           Compartilhamos dados estritamente com fornecedores essenciais à operação:
           <ul className="list-disc list-inside mt-2 space-y-1">
             <li><strong>Asaas</strong> — processamento de pagamentos (PIX, cartão, boleto)</li>
-            <li><strong>Z-API</strong> — envio de mensagens via WhatsApp</li>
+            <li><strong>Evolution API</strong> — envio de mensagens via WhatsApp</li>
             <li><strong>Base44</strong> — infraestrutura de hospedagem e banco de dados</li>
           </ul>
           <span className="block mt-3">Não vendemos seus dados para terceiros, jamais.</span>
