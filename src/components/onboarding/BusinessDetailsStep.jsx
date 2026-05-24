@@ -5,10 +5,11 @@
 
 import { AlertCircle } from 'lucide-react';
 
+// PJ-first policy (docs/PJ_ONLY_POLICY.md): cadastro automatizado disponvel
+// apenas para MEI ou CNPJ. Atendimento PF é manual via equipe comercial.
 const BUSINESS_TYPES = [
   { value: 'mei', label: 'MEI', sub: 'Microempreendedor Individual' },
   { value: 'cnpj', label: 'CNPJ', sub: 'Empresa registrada' },
-  { value: 'individual', label: 'Pessoa Física', sub: 'Autônomo sem CNPJ' },
 ];
 
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
@@ -27,7 +28,7 @@ export default function BusinessDetailsStep({ value, onChange }) {
       {/* Tipo de negócio */}
       <div>
         <label className="text-xs font-semibold text-gray-500 block mb-2">Tipo de negócio *</label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {BUSINESS_TYPES.map(t => {
             const active = value.business_type === t.value;
             return (

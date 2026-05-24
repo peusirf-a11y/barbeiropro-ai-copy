@@ -119,7 +119,15 @@ Deno.serve(async (req) => {
     const phoneNorm = sanitizePhone(phone);
     if (!phoneNorm) return Response.json({ error: 'invalid_phone', message: 'Telefone inválido' }, { status: 400 });
     const cpfNorm = sanitizeCpfCnpj(cpf_cnpj);
-    if (!cpfNorm) return Response.json({ error: 'invalid_cpf_cnpj', message: 'CPF ou CNPJ inválido' }, { status: 400 });
+    if (!cpfNorm) return Response.json({ error: 'invalid_cpf_cnpj', message: 'CNPJ inválido' }, { status: 400 });
+    // PJ-first policy (docs/PJ_ONLY_POLICY.md): cadastro automatizado bloqueado para CPF.
+    if (cpfNorm.length === 11) {
+      console.warn(`[saasCard ${rid}] blocked_pf_attempt`, { email: email?.slice(0, 3) + '***' });
+      return Response.json({
+        error: 'pf_not_allowed',
+        message: 'No momento, o cadastro automático está disponível apenas para empresas com CNPJ ou MEI. Fale com nossa equipe para avaliarmos sua ativação.',
+      }, { status: 403 });
+    }
 
     if (!card?.number || !card?.holderName || !card?.expiryMonth || !card?.expiryYear || !card?.ccv) {
       return Response.json({ error: 'invalid_card', message: 'Dados do cartão incompletos.' }, { status: 400 });

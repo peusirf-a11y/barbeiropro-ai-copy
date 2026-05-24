@@ -32,6 +32,10 @@ const FRONTEND_ALLOWED = new Set([
   'onboarding_completed',
   'upsell_shown',
   'upsell_clicked',
+  // PJ-first policy (docs/PJ_ONLY_POLICY.md)
+  'blocked_pf_attempt',
+  'cpf_contact_click_whatsapp',
+  'cpf_contact_click_email',
 ]);
 
 Deno.serve(async (req) => {

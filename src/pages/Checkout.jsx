@@ -5,6 +5,7 @@ import Logo from '@/components/Logo';
 import { CheckCircle, ArrowLeft, Loader2, Shield, Star, Zap, Lock, CreditCard, QrCode } from 'lucide-react';
 import { getReferralCode, getDeviceFingerprint } from '@/lib/referralTracking';
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
+import CpfRestrictionCard, { isPersonaFisica } from '@/components/onboarding/CpfRestrictionCard';
 
 const PLANS = [
   {
@@ -82,15 +83,26 @@ export default function Checkout() {
 
   const plan = PLANS.find(p => p.key === selectedPlan);
 
+  const cpfDigits = form.cpf_cnpj.replace(/\D/g, '');
+  const isPF = cpfDigits.length === 11;
+
   const validate = () => {
     if (!form.business_name.trim()) return 'Informe o nome da barbearia';
     if (!form.owner_name.trim()) return 'Informe o nome do responsável';
     if (!form.email.trim() || !form.email.includes('@')) return 'Informe um email válido';
     if (!form.phone.trim()) return 'Informe o WhatsApp';
-    const cpfDigits = form.cpf_cnpj.replace(/\D/g, '');
-    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) return 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido';
+    if (cpfDigits.length !== 14) return 'Informe um CNPJ válido (14 dígitos)';
     return null;
   };
+
+  // Observabilidade local: registra tentativa bloqueada (PJ-first policy).
+  // No /checkout (rota pública), trackEvent retorna 401 — ignoramos silenciosamente.
+  useEffect(() => {
+    if (isPF) {
+      // eslint-disable-next-line no-console
+      console.info('[pj-first] blocked_pf_attempt', { stage });
+    }
+  }, [isPF, stage]);
 
   // Avança do form de dados → escolha de método.
   const handleContinue = (e) => {
@@ -301,13 +313,26 @@ export default function Checkout() {
                     placeholder="(11) 99999-9999"
                   />
                   <Field
-                    label="CPF ou CNPJ do responsável"
+                    label="CNPJ ou MEI do responsável"
                     value={form.cpf_cnpj}
                     onChange={v => setForm(f => ({ ...f, cpf_cnpj: maskCpfCnpj(v) }))}
-                    placeholder="000.000.000-00"
+                    placeholder="00.000.000/0000-00"
                   />
 
-                  {cancelled && (
+                  {isPF && (
+                    <div className="pt-2">
+                      <CpfRestrictionCard
+                        origin="checkout"
+                        formData={{
+                          name: form.owner_name,
+                          email: form.email,
+                          phone: form.phone,
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {cancelled && !isPF && (
                     <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg">
                       Pagamento cancelado. Tente novamente quando quiser.
                     </div>
@@ -325,7 +350,8 @@ export default function Checkout() {
 
                   <button
                     type="submit"
-                    className="hidden lg:flex w-full items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand active:scale-[0.99]"
+                    disabled={isPF}
+                    className="hidden lg:flex w-full items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Lock className="w-4 h-4" />
                     Continuar para o pagamento
@@ -420,8 +446,9 @@ export default function Checkout() {
       </div>
 
       {/* Mobile sticky CTA — visible only on the data step. On the method step,
-          each method already has its own primary action button. */}
-      {stage === 'form' && (
+          each method already has its own primary action button.
+          Hidden when CPF is detected (PJ-first policy). */}
+      {stage === 'form' && !isPF && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/8 p-3 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
           <button
             onClick={handleContinue}
