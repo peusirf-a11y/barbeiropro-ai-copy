@@ -56,10 +56,18 @@ export default function CustomerDashboard() {
   });
 
   // Retoma o checkout de uma assinatura pending_payment existente (não cria nova).
+  // Asaas exige CPF/CNPJ — pedimos via prompt antes de chamar a função.
   const resumeCheckoutMutation = useMutation({
-    mutationFn: ({ plan_id, subscription_id }) => base44.functions.invoke('createAsaasCustomerPlanCheckout', {
-      company_id: company.id, token, plan_id, subscription_id,
-    }),
+    mutationFn: ({ plan_id, subscription_id }) => {
+      const raw = window.prompt('Para finalizar o pagamento, informe seu CPF (apenas números):');
+      const cpf = String(raw || '').replace(/\D+/g, '');
+      if (cpf.length !== 11 && cpf.length !== 14) {
+        return Promise.reject(new Error('CPF inválido. Tente novamente.'));
+      }
+      return base44.functions.invoke('createAsaasCustomerPlanCheckout', {
+        company_id: company.id, token, plan_id, subscription_id, customer_cpf: cpf,
+      });
+    },
     onSuccess: (res) => {
       const url = res?.data?.invoice_url || res?.data?.url;
       if (url) { window.location.href = url; }
