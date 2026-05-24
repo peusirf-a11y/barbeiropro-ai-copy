@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
-import { CheckCircle, ArrowLeft, Loader2, Shield, Star, Zap, Lock } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Loader2, Shield, Star, Zap, Lock, CreditCard, QrCode } from 'lucide-react';
 import { getReferralCode, getDeviceFingerprint } from '@/lib/referralTracking';
+import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
 
 const PLANS = [
   {
@@ -65,6 +66,9 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [iframeBlocked, setIframeBlocked] = useState(false);
   const [cancelled, setCancelled] = useState(false);
+  // 'form' = preenchendo dados | 'method' = escolhendo método | 'card' = formulário cartão inline
+  const [stage, setStage] = useState('form');
+  const [paymentMethod, setPaymentMethod] = useState('card');
 
   useEffect(() => {
     try {
@@ -88,25 +92,27 @@ export default function Checkout() {
     return null;
   };
 
-  const handleSubmit = async (e) => {
+  // Avança do form de dados → escolha de método.
+  const handleContinue = (e) => {
     e?.preventDefault();
     setError('');
-
     if (iframeBlocked) {
       alert('O checkout só funciona no app publicado. Abra esta página em uma nova aba.');
       return;
     }
-
     const err = validate();
     if (err) { setError(err); return; }
+    setStage('method');
+  };
 
+  // PIX / Boleto: continua usando checkout hospedado do Asaas (não tem como
+  // tokenizar PIX inline). Cartão tem fluxo próprio em handleCardSubmit.
+  const handleHostedCheckout = async (billingType) => {
+    setError('');
     setLoading(true);
     try {
-      // Partner MVP: anexa referral_code + fingerprint ao payload.
-      // Backend valida server-side em partnerAttribute; client apenas envia.
       const referral_code = getReferralCode();
       const fingerprint = getDeviceFingerprint();
-      // Assinatura SaaS via Asaas (PIX/Cartão/Boleto). Stripe foi descomissionado na Etapa 5.
       const { data } = await base44.functions.invoke('createAsaasSaasCheckout', {
         plan: selectedPlan,
         business_name: form.business_name.trim(),
@@ -114,24 +120,48 @@ export default function Checkout() {
         email: form.email.trim().toLowerCase(),
         phone: form.phone.trim(),
         cpf_cnpj: form.cpf_cnpj.replace(/\D/g, ''),
-        payment_method: 'UNDEFINED', // cliente escolhe PIX/Boleto/Cartão na página da fatura
+        payment_method: billingType, // 'PIX' | 'BOLETO'
         referral_code: referral_code || undefined,
         referral_fingerprint: fingerprint || undefined,
       });
       if (data?.url) {
         window.location.href = data.url;
       } else if (data?.success) {
-        // Asaas criou a assinatura mas não devolveu invoice (caso raro — fatura sai por email).
         window.location.href = `/checkout/sucesso?email=${encodeURIComponent(form.email.trim().toLowerCase())}`;
       } else {
         setError(data?.message || data?.error || 'Erro ao iniciar pagamento');
         setLoading(false);
       }
     } catch (err2) {
-      setError(err2?.response?.data?.error || err2.message || 'Erro ao processar checkout');
+      setError(err2?.response?.data?.message || err2?.response?.data?.error || err2.message || 'Erro ao processar checkout');
       setLoading(false);
     }
   };
+
+  // Cartão nativo: tokeniza pelo backend e cria a Subscription com o token.
+  const handleCardSubmit = async (card) => {
+    const referral_code = getReferralCode();
+    const fingerprint = getDeviceFingerprint();
+    const res = await base44.functions.invoke('chargeAsaasSaasWithCard', {
+      plan: selectedPlan,
+      business_name: form.business_name.trim(),
+      owner_name: form.owner_name.trim(),
+      email: form.email.trim().toLowerCase(),
+      phone: form.phone.trim(),
+      cpf_cnpj: form.cpf_cnpj.replace(/\D/g, ''),
+      card,
+      referral_code: referral_code || undefined,
+      referral_fingerprint: fingerprint || undefined,
+    });
+    const data = res?.data;
+    if (!data?.success) {
+      throw new Error(data?.message || data?.error || 'Não foi possível processar o pagamento.');
+    }
+    window.location.href = `/checkout/sucesso?email=${encodeURIComponent(form.email.trim().toLowerCase())}`;
+  };
+
+  // Mantido para o submit do form principal (etapa de dados).
+  const handleSubmit = handleContinue;
 
   return (
     <div className="min-h-screen bg-[#F8F7F3] font-inter">
@@ -240,94 +270,184 @@ export default function Checkout() {
                 </div>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-3.5">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Seus dados</div>
+              {/* Etapa 1: dados */}
+              {stage === 'form' && (
+                <form onSubmit={handleContinue} className="space-y-3.5">
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Seus dados</div>
 
-                <Field
-                  label="Nome da barbearia"
-                  value={form.business_name}
-                  onChange={v => setForm(f => ({ ...f, business_name: v }))}
-                  placeholder="Ex: Barbearia do João"
-                />
-                <Field
-                  label="Nome do responsável"
-                  value={form.owner_name}
-                  onChange={v => setForm(f => ({ ...f, owner_name: v }))}
-                  placeholder="Seu nome completo"
-                />
-                <Field
-                  label="Email"
-                  type="email"
-                  value={form.email}
-                  onChange={v => setForm(f => ({ ...f, email: v }))}
-                  placeholder="voce@exemplo.com"
-                />
-                <Field
-                  label="WhatsApp"
-                  value={form.phone}
-                  onChange={v => setForm(f => ({ ...f, phone: v }))}
-                  placeholder="(11) 99999-9999"
-                />
-                <Field
-                  label="CPF ou CNPJ do responsável"
-                  value={form.cpf_cnpj}
-                  onChange={v => setForm(f => ({ ...f, cpf_cnpj: maskCpfCnpj(v) }))}
-                  placeholder="000.000.000-00"
-                />
+                  <Field
+                    label="Nome da barbearia"
+                    value={form.business_name}
+                    onChange={v => setForm(f => ({ ...f, business_name: v }))}
+                    placeholder="Ex: Barbearia do João"
+                  />
+                  <Field
+                    label="Nome do responsável"
+                    value={form.owner_name}
+                    onChange={v => setForm(f => ({ ...f, owner_name: v }))}
+                    placeholder="Seu nome completo"
+                  />
+                  <Field
+                    label="Email"
+                    type="email"
+                    value={form.email}
+                    onChange={v => setForm(f => ({ ...f, email: v }))}
+                    placeholder="voce@exemplo.com"
+                  />
+                  <Field
+                    label="WhatsApp"
+                    value={form.phone}
+                    onChange={v => setForm(f => ({ ...f, phone: v }))}
+                    placeholder="(11) 99999-9999"
+                  />
+                  <Field
+                    label="CPF ou CNPJ do responsável"
+                    value={form.cpf_cnpj}
+                    onChange={v => setForm(f => ({ ...f, cpf_cnpj: maskCpfCnpj(v) }))}
+                    placeholder="000.000.000-00"
+                  />
 
-                {cancelled && (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg">
-                    Pagamento cancelado. Tente novamente quando quiser.
+                  {cancelled && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg">
+                      Pagamento cancelado. Tente novamente quando quiser.
+                    </div>
+                  )}
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">
+                      {error}
+                    </div>
+                  )}
+                  {iframeBlocked && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg">
+                      Para finalizar o pagamento, abra esta página em uma nova aba.
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="hidden lg:flex w-full items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand active:scale-[0.99]"
+                  >
+                    <Lock className="w-4 h-4" />
+                    Continuar para o pagamento
+                  </button>
+
+                  <p className="hidden lg:block text-[11px] text-gray-400 text-center leading-relaxed">
+                    Você não será cobrado nos primeiros 7 dias. Cancele a qualquer momento.<br />
+                    Ao continuar, você concorda com os{' '}
+                    <Link to="/termos-de-uso" className="underline hover:text-[#2563EB]">Termos de Uso</Link>
+                    {' '}e a{' '}
+                    <Link to="/politica-de-privacidade" className="underline hover:text-[#2563EB]">Política de Privacidade</Link>.
+                  </p>
+                </form>
+              )}
+
+              {/* Etapa 2: escolha do método */}
+              {stage === 'method' && (
+                <div className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => { setStage('form'); setError(''); }}
+                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#2563EB]"
+                  >
+                    <ArrowLeft className="w-3 h-3" /> Editar dados
+                  </button>
+                  <div>
+                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Como deseja pagar?</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <MethodOption
+                        active={paymentMethod === 'card'}
+                        onClick={() => setPaymentMethod('card')}
+                        icon={CreditCard}
+                        title="Cartão de crédito"
+                        subtitle="Cobrança automática todo mês"
+                      />
+                      <MethodOption
+                        active={paymentMethod === 'pix'}
+                        onClick={() => setPaymentMethod('pix')}
+                        icon={QrCode}
+                        title="PIX"
+                        subtitle="Pague na fatura mensal"
+                      />
+                    </div>
                   </div>
-                )}
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">
-                    {error}
-                  </div>
-                )}
-                {iframeBlocked && (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg">
-                    Para finalizar o pagamento, abra esta página em uma nova aba.
-                  </div>
-                )}
 
-                {/* Desktop submit */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="hidden lg:flex w-full items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                  {loading ? 'Processando...' : `Assinar ${plan.name} — R$${plan.price}/mês`}
-                </button>
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">
+                      {error}
+                    </div>
+                  )}
 
-                <p className="hidden lg:block text-[11px] text-gray-400 text-center leading-relaxed">
-                  Você não será cobrado nos primeiros 7 dias. Cancele a qualquer momento.<br />
-                  Ao continuar, você concorda com os{' '}
-                  <Link to="/termos-de-uso" className="underline hover:text-[#2563EB]">Termos de Uso</Link>
-                  {' '}e a{' '}
-                  <Link to="/politica-de-privacidade" className="underline hover:text-[#2563EB]">Política de Privacidade</Link>.
-                </p>
-              </form>
+                  {paymentMethod === 'card' && (
+                    <CardPaymentFormAsaas
+                      primaryColor="#2563EB"
+                      amountLabel={`Iniciar 7 dias grátis — depois R$${plan.price}/mês`}
+                      defaultName={form.owner_name}
+                      defaultEmail={form.email}
+                      defaultPhone={form.phone}
+                      defaultCpf={form.cpf_cnpj}
+                      onSubmit={handleCardSubmit}
+                    />
+                  )}
+
+                  {paymentMethod === 'pix' && (
+                    <div className="space-y-3">
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-[12px] text-blue-900 leading-relaxed">
+                        Você será redirecionado para a fatura segura do Asaas para gerar o QR Code PIX. A primeira fatura sai em 7 dias.
+                      </div>
+                      <button
+                        onClick={() => handleHostedCheckout('PIX')}
+                        disabled={loading}
+                        className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand active:scale-[0.99] disabled:opacity-60"
+                      >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                        {loading ? 'Processando…' : 'Continuar com PIX'}
+                      </button>
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+                    Você não será cobrado nos primeiros 7 dias. Cancele a qualquer momento.<br />
+                    Ao continuar, você concorda com os{' '}
+                    <Link to="/termos-de-uso" className="underline hover:text-[#2563EB]">Termos de Uso</Link>
+                    {' '}e a{' '}
+                    <Link to="/politica-de-privacidade" className="underline hover:text-[#2563EB]">Política de Privacidade</Link>.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile sticky CTA */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/8 p-3 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all active:scale-[0.99] disabled:opacity-60"
-        >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-          {loading ? 'Processando...' : `Assinar — R$${plan.price}/mês`}
-        </button>
-        <p className="text-[10px] text-gray-400 text-center mt-1.5">7 dias grátis · Cancele quando quiser</p>
-      </div>
+      {/* Mobile sticky CTA — visible only on the data step. On the method step,
+          each method already has its own primary action button. */}
+      {stage === 'form' && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/8 p-3 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          <button
+            onClick={handleContinue}
+            className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all active:scale-[0.99]"
+          >
+            <Lock className="w-4 h-4" />
+            Continuar
+          </button>
+          <p className="text-[10px] text-gray-400 text-center mt-1.5">7 dias grátis · Cancele quando quiser</p>
+        </div>
+      )}
     </div>
+  );
+}
+
+function MethodOption({ active, onClick, icon: Icon, title, subtitle }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left px-4 py-3 rounded-xl border transition-all ${active ? 'border-2 border-[#2563EB] bg-[#2563EB]/5 shadow-sm' : 'border-black/10 hover:border-gray-300'}`}
+    >
+      <Icon className={`w-5 h-5 mb-1.5 ${active ? 'text-[#2563EB]' : 'text-gray-500'}`} />
+      <div className="font-bold text-sm text-[#0F172A]">{title}</div>
+      <div className="text-[11px] text-gray-500 mt-0.5">{subtitle}</div>
+    </button>
   );
 }
 
