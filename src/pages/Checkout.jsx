@@ -127,7 +127,7 @@ export default function Checkout() {
       if (data?.url) {
         window.location.href = data.url;
       } else if (data?.success) {
-        window.location.href = `/checkout/sucesso?email=${encodeURIComponent(form.email.trim().toLowerCase())}`;
+        window.location.href = `/checkout/sucesso?email=${encodeURIComponent(form.email.trim().toLowerCase())}&plano=${encodeURIComponent(selectedPlan)}`;
       } else {
         setError(data?.message || data?.error || 'Erro ao iniciar pagamento');
         setLoading(false);
@@ -157,7 +157,7 @@ export default function Checkout() {
     if (!data?.success) {
       throw new Error(data?.message || data?.error || 'Não foi possível processar o pagamento.');
     }
-    window.location.href = `/checkout/sucesso?email=${encodeURIComponent(form.email.trim().toLowerCase())}`;
+    window.location.href = `/checkout/sucesso?email=${encodeURIComponent(form.email.trim().toLowerCase())}&plano=${encodeURIComponent(selectedPlan)}`;
   };
 
   // Mantido para o submit do form principal (etapa de dados).
