@@ -12,9 +12,9 @@
 
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, AlertCircle, RefreshCw, QrCode, CreditCard, Loader2 } from 'lucide-react';
+import { ChevronLeft, AlertCircle, RefreshCw, QrCode, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
 import PixPaymentBox from './PixPaymentBox';
-import CardPaymentBoxAsaas from './CardPaymentBoxAsaas';
+import CardPaymentFormAsaas from './CardPaymentFormAsaas';
 import { generateStableIdempotencyKey } from '@/lib/system/idempotency';
 
 function maskCpf(value) {
@@ -27,19 +27,22 @@ function maskCpf(value) {
 
 export default function BookingPaymentStep({ payload, primaryColor, pixEnabled = false, onBack, onSucceeded }) {
   const [stage, setStage] = useState('choose');
-  // Etapa 2B+: bookings públicos via Asaas aceitam PIX e Cartão (hosted invoice).
-  // O parâmetro `pixEnabled` reflete `company.asaas_pix_enabled` (cobre ambos métodos).
+  // Cartão agora usa formulário nativo (tokenização no app). PIX continua com fluxo de intent + polling.
   const [method, setMethod] = useState('pix');
   const [cpf, setCpf] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [intentData, setIntentData] = useState(null); // { client_secret, payment_intent_id, appointment_id, expires_at, pix, stripe_account }
-  // Idempotency key estável por (payload+método+cpf) — duplo-clique/refresh devolve o MESMO PaymentIntent.
+  const [intentData, setIntentData] = useState(null);
   const idemKeyRef = useRef(null);
 
   const cpfDigits = cpf.replace(/\D/g, '');
 
+  // PIX usa fluxo de intent + polling. Cartão pula direto para o formulário inline.
   const handleStart = async () => {
     setErrorMsg('');
+    if (method === 'card') {
+      setStage('card');
+      return;
+    }
     if (cpfDigits.length !== 11) {
       setErrorMsg('Informe um CPF válido (11 dígitos).');
       return;
@@ -68,18 +71,13 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         setStage('error');
         return;
       }
-      if (method === 'pix' && !data?.pix) {
+      if (!data?.pix) {
         setErrorMsg('Não foi possível gerar o PIX. Tente novamente.');
         setStage('error');
         return;
       }
-      if (method === 'card' && !data?.asaas_invoice_url) {
-        setErrorMsg('Não foi possível gerar o link de pagamento. Tente novamente.');
-        setStage('error');
-        return;
-      }
       setIntentData(data);
-      setStage(method === 'card' ? 'card' : 'pix');
+      setStage('pix');
     } catch (err) {
       // Axios encapsula 4xx em err.response.data — a função sempre devolve
       // { error, message } amigável. Sem isto o usuário vê apenas
@@ -153,7 +151,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
 
           <button
             onClick={handleStart}
-            disabled={cpfDigits.length !== 11}
+            disabled={method === 'pix' && cpfDigits.length !== 11}
             className="w-full text-white font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
             style={{ backgroundColor: primaryColor }}
           >
@@ -185,16 +183,31 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         />
       )}
 
-      {/* ─── CARTÃO (hosted Asaas) ─── */}
-      {stage === 'card' && intentData && (
-        <CardPaymentBoxAsaas
-          appointmentId={intentData.appointment_id}
-          invoiceUrl={intentData.asaas_invoice_url}
-          expiresAt={intentData.expires_at}
-          primaryColor={primaryColor}
-          onPaid={() => onSucceeded?.(intentData)}
-          onExpired={() => setStage('expired')}
-        />
+      {/* ─── CARTÃO (formulário inline com tokenização nativa Asaas) ─── */}
+      {stage === 'card' && (
+        <div className="bg-white rounded-2xl border border-black/8 p-5">
+          <CardPaymentFormAsaas
+            primaryColor={primaryColor}
+            amountLabel={payload.price ? `Pagar R$ ${Number(payload.price).toFixed(2).replace('.', ',')}` : 'Pagar agora'}
+            defaultName={payload.customer_name}
+            defaultEmail={payload.customer_email}
+            defaultPhone={payload.customer_phone}
+            onSubmit={async (card) => {
+              const res = await base44.functions.invoke('chargeBookingWithCard', {
+                booking: payload,
+                card,
+              });
+              const data = res?.data;
+              if (!data?.success) {
+                throw new Error(data?.message || data?.error || 'Falha no pagamento.');
+              }
+              if (data.status !== 'paid') {
+                throw new Error('Pagamento em análise. Tente novamente em instantes.');
+              }
+              onSucceeded?.({ appointment_id: data.appointment_id });
+            }}
+          />
+        </div>
       )}
 
       {/* ─── EXPIROU ─── */}

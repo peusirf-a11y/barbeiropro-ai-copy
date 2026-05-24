@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import CustomerConsentSection from '@/components/public/CustomerConsentSection';
+import CustomerPlanPayModal from '@/components/public/CustomerPlanPayModal';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
 
 export default function CustomerDashboard() {
@@ -55,26 +56,8 @@ export default function CustomerDashboard() {
     onError: (err) => alert(err?.response?.data?.error || err?.message || 'Erro ao executar ação'),
   });
 
-  // Retoma o checkout de uma assinatura pending_payment existente (não cria nova).
-  // Asaas exige CPF/CNPJ — pedimos via prompt antes de chamar a função.
-  const resumeCheckoutMutation = useMutation({
-    mutationFn: ({ plan_id, subscription_id }) => {
-      const raw = window.prompt('Para finalizar o pagamento, informe seu CPF (apenas números):');
-      const cpf = String(raw || '').replace(/\D+/g, '');
-      if (cpf.length !== 11 && cpf.length !== 14) {
-        return Promise.reject(new Error('CPF inválido. Tente novamente.'));
-      }
-      return base44.functions.invoke('createAsaasCustomerPlanCheckout', {
-        company_id: company.id, token, plan_id, subscription_id, customer_cpf: cpf,
-      });
-    },
-    onSuccess: (res) => {
-      const url = res?.data?.invoice_url || res?.data?.url;
-      if (url) { window.location.href = url; }
-      else { alert('Não foi possível abrir o checkout.'); }
-    },
-    onError: (err) => alert(err?.response?.data?.error || err?.message || 'Erro ao abrir o checkout'),
-  });
+  // Modal de pagamento inline (cartão tokenizado direto no app, sem redirect).
+  const [payModalOpen, setPayModalOpen] = useState(false);
 
   if (loadingCo || loadingAuth || !customer) {
     return (
@@ -165,12 +148,11 @@ export default function CustomerDashboard() {
           ) : pendingSub ? (
             <button
               type="button"
-              disabled={resumeCheckoutMutation.isPending}
-              onClick={() => resumeCheckoutMutation.mutate({ plan_id: pendingSub.plan_id, subscription_id: pendingSub.id })}
-              className="w-full text-left block bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 hover:bg-amber-500/15 transition-colors disabled:opacity-60 disabled:cursor-wait">
+              onClick={() => setPayModalOpen(true)}
+              className="w-full text-left block bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 hover:bg-amber-500/15 transition-colors">
               <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1">
                 <AlertCircle className="w-4 h-4" />
-                {resumeCheckoutMutation.isPending ? 'Abrindo pagamento...' : 'Finalize o pagamento do seu plano'}
+                Finalize o pagamento do seu plano
               </div>
               <p className="text-xs text-amber-400/70">{pendingSub.plan_name_snapshot} — R${pendingSub.plan_price_snapshot}/mês · Toque para pagar agora</p>
             </button>
@@ -233,6 +215,20 @@ export default function CustomerDashboard() {
 
         <div className="pb-4" />
       </div>
+
+      <CustomerPlanPayModal
+        isOpen={payModalOpen}
+        onClose={() => setPayModalOpen(false)}
+        onPaid={() => {
+          setPayModalOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-self'] });
+        }}
+        companyId={company.id}
+        token={token}
+        subscription={pendingSub}
+        primaryColor={primaryColor}
+        customer={customer}
+      />
     </div>
   );
 }
