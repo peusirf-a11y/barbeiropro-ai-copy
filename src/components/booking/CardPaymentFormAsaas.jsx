@@ -147,7 +147,8 @@ export default function CardPaymentFormAsaas({
           onChange={e => set('holderName', e.target.value.toUpperCase())}
           autoComplete="cc-name"
           placeholder="COMO ESTÁ NO CARTÃO"
-          className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white"
+          style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+          className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm placeholder:text-gray-400"
         />
       </Field>
 
@@ -159,7 +160,8 @@ export default function CardPaymentFormAsaas({
           onChange={e => set('number', maskCard(e.target.value))}
           autoComplete="cc-number"
           placeholder="0000 0000 0000 0000"
-          className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white font-mono tracking-wider"
+          style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+          className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm font-mono tracking-wider placeholder:text-gray-400"
         />
       </Field>
 
@@ -173,7 +175,8 @@ export default function CardPaymentFormAsaas({
             autoComplete="cc-exp"
             placeholder="MM/AA"
             maxLength={5}
-            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white font-mono tracking-wider"
+            style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm font-mono tracking-wider placeholder:text-gray-400"
           />
         </Field>
         <Field label="CVV" required>
@@ -184,7 +187,8 @@ export default function CardPaymentFormAsaas({
             onChange={e => set('cvv', onlyDigits(e.target.value).slice(0, 4))}
             autoComplete="cc-csc"
             placeholder="000"
-            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white font-mono tracking-wider"
+            style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm font-mono tracking-wider placeholder:text-gray-400"
           />
         </Field>
       </div>
@@ -197,7 +201,8 @@ export default function CardPaymentFormAsaas({
             value={form.cpf}
             onChange={e => set('cpf', maskCpf(e.target.value))}
             placeholder="000.000.000-00"
-            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white"
+            style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm placeholder:text-gray-400"
           />
         </Field>
       )}
@@ -210,7 +215,8 @@ export default function CardPaymentFormAsaas({
             value={form.postalCode}
             onChange={e => set('postalCode', maskCep(e.target.value))}
             placeholder="00000-000"
-            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white"
+            style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm placeholder:text-gray-400"
           />
         </Field>
         <Field label="Número" required>
@@ -219,7 +225,8 @@ export default function CardPaymentFormAsaas({
             value={form.addressNumber}
             onChange={e => set('addressNumber', e.target.value.slice(0, 10))}
             placeholder="123"
-            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white"
+            style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm placeholder:text-gray-400"
           />
         </Field>
       </div>
@@ -231,7 +238,8 @@ export default function CardPaymentFormAsaas({
           value={form.phone}
           onChange={e => set('phone', maskPhone(e.target.value))}
           placeholder="(11) 90000-0000"
-          className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white"
+          style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+          className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm placeholder:text-gray-400"
         />
       </Field>
 
