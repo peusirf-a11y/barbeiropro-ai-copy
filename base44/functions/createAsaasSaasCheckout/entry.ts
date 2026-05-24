@@ -157,9 +157,10 @@ Deno.serve(async (req) => {
     if (!phoneNorm) return Response.json({ error: 'invalid_phone', message: 'Telefone inválido' }, { status: 400 });
     const cpfNorm = sanitizeCpfCnpj(cpf_cnpj);
     if (!cpfNorm) return Response.json({ error: 'invalid_cpf_cnpj', message: 'CNPJ inválido' }, { status: 400 });
+    const emailLcEarly = (email || '').trim().toLowerCase();
     // PJ-first policy (docs/PJ_ONLY_POLICY.md): cadastro automatizado bloqueado para CPF.
     if (cpfNorm.length === 11) {
-      console.warn('[createAsaasSaasCheckout] blocked_pf_attempt', { email: emailLc });
+      console.warn('[createAsaasSaasCheckout] blocked_pf_attempt', { email: emailLcEarly });
       return Response.json({
         error: 'pf_not_allowed',
         message: 'No momento, o cadastro automático está disponível apenas para empresas com CNPJ ou MEI. Fale com nossa equipe para avaliarmos sua ativação.',
@@ -319,6 +320,14 @@ Deno.serve(async (req) => {
       } catch (err) {
         console.warn('[createAsaasSaasCheckout] partnerAttribute non-fatal:', err.message);
       }
+    }
+
+    // ─── Step 6: Email transacional de boas-vindas (fire-and-forget) ────
+    // Não bloqueia a resposta do checkout. Idempotência, retry e EmailLog ficam
+    // dentro de sendOnboardingWelcomeEmail.
+    if (company?.id) {
+      base44.asServiceRole.functions.invoke('sendOnboardingWelcomeEmail', { company_id: company.id })
+        .catch(err => console.warn('[createAsaasSaasCheckout] welcome email dispatch failed:', err.message));
     }
 
     return Response.json({

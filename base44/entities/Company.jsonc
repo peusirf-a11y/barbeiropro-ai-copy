@@ -109,6 +109,11 @@
       "type": "boolean",
       "default": false
     },
+    "onboarding_email_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO do envio do email transacional de boas-vindas p\u00f3s-checkout. Vazio = nunca enviado. Idempot\u00eancia: presen\u00e7a do campo bloqueia novos envios."
+    },
     "owner_email": {
       "type": "string"
     },

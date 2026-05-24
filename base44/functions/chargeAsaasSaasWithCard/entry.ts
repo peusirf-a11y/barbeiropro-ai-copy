@@ -288,6 +288,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── 5. Email transacional de boas-vindas (fire-and-forget) ──────────
+    // Não bloqueia a resposta. Idempotência + retry + EmailLog ficam dentro da função.
+    if (company?.id) {
+      sdk.functions.invoke('sendOnboardingWelcomeEmail', { company_id: company.id })
+        .catch(err => console.warn(`[saasCard ${rid}] welcome email dispatch failed:`, err.message));
+    }
+
     return Response.json({
       success: true,
       asaas_customer_id: asaasCustomerId,
