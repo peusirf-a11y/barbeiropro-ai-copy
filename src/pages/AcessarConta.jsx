@@ -50,14 +50,25 @@ export default function AcessarConta() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const email = (params.get('email') || '').trim().toLowerCase();
   const planKey = (params.get('plan') || '').toLowerCase();
+  const action = (params.get('action') || '').toLowerCase();
   const planName = PLAN_LABEL[planKey] || 'O CORTE';
   const gmail = isGmail(email);
 
   useEffect(() => {
-    recordAccessEvent('first_access_started', { has_email: !!email, gmail });
+    recordAccessEvent('first_access_started', { has_email: !!email, gmail, action: action || null });
     // Se o usuário já está logado, pula direto para o dashboard.
     base44.auth.isAuthenticated().then((auth) => {
-      if (auth) navigate('/app/dashboard', { replace: true });
+      if (auth) {
+        navigate('/app/dashboard', { replace: true });
+        return;
+      }
+      // Vindo do email transacional (?action=reset) — dispara automaticamente
+      // o fluxo de definir senha (a plataforma reenvia o link real de criação).
+      if (action === 'reset') {
+        recordAccessEvent('first_access_reset', { email, auto: true });
+        setBusy('reset');
+        setTimeout(() => base44.auth.redirectToLogin('/app/dashboard'), 600);
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
