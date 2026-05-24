@@ -390,9 +390,20 @@ Deno.serve(async (req) => {
     }
 
     // Customer Base44
-    const lookupFilter = scope_customer_by_unit && unit_id ? { company_id, phone: phoneNorm, unit_id } : { company_id, phone: phoneNorm };
-    const matches = await sdk.entities.Customer.filter(lookupFilter, '-created_date', 1);
-    let customer = matches?.[0] || null;
+    // Quando o cliente está autenticado, usa o customer_id da sessão (evita
+    // pegar duplicata legada criada antes do cadastro/login).
+    let customer = null;
+    if (authenticatedCustomerId) {
+      try {
+        const auth = await sdk.entities.Customer.get(authenticatedCustomerId);
+        if (auth && auth.company_id === company_id) customer = auth;
+      } catch {}
+    }
+    if (!customer) {
+      const lookupFilter = scope_customer_by_unit && unit_id ? { company_id, phone: phoneNorm, unit_id } : { company_id, phone: phoneNorm };
+      const matches = await sdk.entities.Customer.filter(lookupFilter, '-created_date', 1);
+      customer = matches?.[0] || null;
+    }
     if (!customer) {
       customer = await sdk.entities.Customer.create({
         company_id, unit_id: scope_customer_by_unit ? unit_id : undefined,
