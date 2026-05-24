@@ -57,11 +57,11 @@ export default function CustomerDashboard() {
 
   // Retoma o checkout de uma assinatura pending_payment existente (não cria nova).
   const resumeCheckoutMutation = useMutation({
-    mutationFn: ({ plan_id, subscription_id }) => base44.functions.invoke('createCustomerPlanCheckout', {
+    mutationFn: ({ plan_id, subscription_id }) => base44.functions.invoke('createAsaasCustomerPlanCheckout', {
       company_id: company.id, token, plan_id, subscription_id,
     }),
     onSuccess: (res) => {
-      const url = res?.data?.url;
+      const url = res?.data?.invoice_url || res?.data?.url;
       if (url) { window.location.href = url; }
       else { alert('Não foi possível abrir o checkout.'); }
     },
@@ -216,7 +216,7 @@ export default function CustomerDashboard() {
         {/* Privacidade */}
         <section>
           <h2 className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-3 flex items-center gap-1.5`}>
-            <Shield className="w-3 h-3" /> Privacidade & Comunicações
+            <Shield className="w-3 h-3" /> Privacidade {'&'} Comunicações
           </h2>
           <div className={`${tw.card} rounded-2xl p-4`}>
             <CustomerConsentSection companyId={company.id} customerId={customer.id} token={token} isDark={isDark} tw={tw} />
