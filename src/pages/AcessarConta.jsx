@@ -46,6 +46,8 @@ function isGmail(email) {
 export default function AcessarConta() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(null); // 'google' | 'password' | 'reset' | null
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState('');
 
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const email = (params.get('email') || '').trim().toLowerCase();
@@ -54,20 +56,36 @@ export default function AcessarConta() {
   const planName = PLAN_LABEL[planKey] || 'O CORTE';
   const gmail = isGmail(email);
 
+  // Dispara o reset de senha de verdade (envia link para o email).
+  const triggerReset = async ({ auto = false } = {}) => {
+    if (!email) {
+      setResetError('Email não informado. Volte para o checkout e tente novamente.');
+      return;
+    }
+    recordAccessEvent('first_access_reset', { email, auto });
+    setBusy('reset');
+    setResetError('');
+    try {
+      // Método oficial Base44 — envia email com link para criar/redefinir senha.
+      await base44.auth.resetPasswordRequest(email);
+      setResetSent(true);
+    } catch (err) {
+      console.warn('[acessar-conta] resetPasswordRequest failed:', err?.message);
+      setResetError('Não consegui enviar o link agora. Tente novamente em instantes.');
+      setBusy(null);
+    }
+  };
+
   useEffect(() => {
     recordAccessEvent('first_access_started', { has_email: !!email, gmail, action: action || null });
-    // Se o usuário já está logado, pula direto para o dashboard.
     base44.auth.isAuthenticated().then((auth) => {
       if (auth) {
         navigate('/app/dashboard', { replace: true });
         return;
       }
-      // Vindo do email transacional (?action=reset) — dispara automaticamente
-      // o fluxo de definir senha (a plataforma reenvia o link real de criação).
-      if (action === 'reset') {
-        recordAccessEvent('first_access_reset', { email, auto: true });
-        setBusy('reset');
-        setTimeout(() => base44.auth.redirectToLogin('/app/dashboard'), 600);
+      // Vindo do email transacional (?action=reset) — já dispara o envio do link.
+      if (action === 'reset' && email) {
+        triggerReset({ auto: true });
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,7 +95,6 @@ export default function AcessarConta() {
     if (busy) return;
     setBusy('google');
     recordAccessEvent('first_access_google', { email });
-    // O fluxo Base44 abre o login; o usuário escolhe "Continue with Google".
     base44.auth.redirectToLogin('/app/dashboard');
   };
 
@@ -89,10 +106,8 @@ export default function AcessarConta() {
   };
 
   const handleReset = () => {
-    if (busy) return;
-    setBusy('reset');
-    recordAccessEvent('first_access_reset', { email });
-    base44.auth.redirectToLogin('/app/dashboard');
+    if (busy === 'reset') return;
+    triggerReset({ auto: false });
   };
 
   return (
@@ -154,34 +169,58 @@ export default function AcessarConta() {
           </div>
         )}
 
+        {/* Sucesso do reset — prioridade no topo */}
+        {resetSent && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-4 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-[#0F172A] text-sm">Link enviado!</div>
+                <p className="text-[13px] text-emerald-900/80 mt-1 leading-relaxed">
+                  Enviamos um email para <strong className="break-all">{email}</strong> com o link para criar sua senha. Abra o email e clique no botão "Definir senha".
+                </p>
+                <p className="text-[11px] text-emerald-900/60 mt-2">Não chegou em 1 minuto? Verifique a caixa de spam ou clique abaixo para reenviar.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {resetError && (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-4 text-sm text-rose-700">
+            {resetError}
+          </div>
+        )}
+
         {/* Action buttons */}
         <div className="space-y-2.5">
           <PrimaryAction
             onClick={handleGoogle}
             busy={busy === 'google'}
             disabled={!!busy && busy !== 'google'}
-            highlight={gmail}
+            highlight={gmail && !resetSent}
             icon={<GoogleIcon />}
             label="Continuar com Google"
             sublabel={gmail ? 'Use sua conta Gmail — sem senha' : 'Se você usa Google no email cadastrado'}
           />
           <PrimaryAction
+            onClick={handleReset}
+            busy={busy === 'reset' && !resetSent}
+            disabled={busy === 'reset' && !resetSent}
+            highlight={!gmail && !resetSent}
+            icon={<KeyRound className="w-5 h-5" />}
+            label={resetSent ? 'Reenviar link de senha' : 'Receber link para criar senha'}
+            sublabel={resetSent ? `Reenviar para ${email}` : 'Enviamos um link de criação de senha para o seu email'}
+          />
+          <PrimaryAction
             onClick={handlePassword}
             busy={busy === 'password'}
             disabled={!!busy && busy !== 'password'}
-            highlight={!gmail}
-            icon={<Lock className="w-5 h-5" />}
-            label="Criar acesso com senha"
-            sublabel="Cadastre uma senha para o seu email"
-          />
-          <PrimaryAction
-            onClick={handleReset}
-            busy={busy === 'reset'}
-            disabled={!!busy && busy !== 'reset'}
             variant="ghost"
-            icon={<KeyRound className="w-5 h-5" />}
-            label="Definir senha por email"
-            sublabel="Receba um link para criar/redefinir a senha"
+            icon={<Lock className="w-5 h-5" />}
+            label="Já tenho senha — entrar"
+            sublabel="Abrir tela de acesso"
           />
         </div>
 

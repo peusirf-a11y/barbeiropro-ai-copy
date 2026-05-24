@@ -128,17 +128,24 @@ function buildEmailText({ ownerName, planName, accessUrl, email }) {
   ].join('\n');
 }
 
-async function attemptSend(base44, { to, ownerName, company_id, planName, accessUrl }) {
+async function attemptSend(base44, { to, company_id, planName }) {
+  // IMPORTANTE: Core.SendEmail bloqueia destinatários fora do app
+  // ("Cannot send emails to users outside the app"). Como o dono ainda não
+  // é membro até aceitar o convite, não dá para mandar email customizado.
+  //
+  // O caminho oficial é base44.users.inviteUser: a plataforma envia o email
+  // de boas-vindas nativo, que já contém o link de definição de senha.
+  // Auditamos via EmailLog para manter o padrão transacional.
   const sdk = base44.asServiceRole;
   let log = null;
   try {
     log = await sdk.entities.EmailLog.create({
       company_id: company_id || null,
       recipient: to,
-      subject: 'Sua conta O CORTE está pronta — defina sua senha',
+      subject: 'Convite de acesso O CORTE',
       type: 'welcome',
       status: 'pending',
-      provider: 'base44_core',
+      provider: 'base44_invite',
       metadata: { plan_name: planName, source: 'onboarding_welcome' },
     });
   } catch (logErr) {
@@ -146,37 +153,10 @@ async function attemptSend(base44, { to, ownerName, company_id, planName, access
   }
 
   try {
-    // 1) Garante que o usuário exista na plataforma (idempotente).
-    //    Sem isso, o fluxo de "definir senha" depois não tem alvo.
-    try {
-      await base44.users.inviteUser(to, 'user');
-    } catch (inviteErr) {
-      const msg = inviteErr?.message || '';
-      // "already exists" não é erro — apenas reaproveita o usuário.
-      if (!/already|exists|duplicate/i.test(msg)) {
-        console.warn('[sendOnboardingWelcomeEmail] inviteUser warn:', msg);
-      }
-    }
-
-    // 2) Envia o email transacional premium com o CTA "Definir minha senha".
-    const html = buildEmailHtml({ ownerName, planName, accessUrl, email: to });
-    const text = buildEmailText({ ownerName, planName, accessUrl, email: to });
-    await sdk.integrations.Core.SendEmail({
-      from_name: 'O CORTE',
-      to,
-      subject: 'Sua conta O CORTE está pronta — defina sua senha',
-      body: html,
-    }).catch(async (err) => {
-      // Fallback: alguns ambientes Core.SendEmail só aceitam texto puro.
-      console.warn('[sendOnboardingWelcomeEmail] HTML send failed, retrying text:', err?.message);
-      await sdk.integrations.Core.SendEmail({
-        from_name: 'O CORTE',
-        to,
-        subject: 'Sua conta O CORTE está pronta — defina sua senha',
-        body: text,
-      });
-    });
-
+    // Idempotente do lado da plataforma. Se o usuário já existir, retornamos
+    // "already_member" e marcamos como enviado — ele pode usar "esqueci a senha"
+    // na própria tela /acessar-conta.
+    await base44.users.inviteUser(to, 'user');
     if (log) {
       await sdk.entities.EmailLog.update(log.id, {
         status: 'sent',
@@ -186,6 +166,17 @@ async function attemptSend(base44, { to, ownerName, company_id, planName, access
     return { ok: true, log_id: log?.id || null };
   } catch (sendErr) {
     const errMsg = (sendErr?.message || String(sendErr)).slice(0, 500);
+    const alreadyExists = /already|exists|duplicate/i.test(errMsg);
+    if (alreadyExists) {
+      if (log) {
+        await sdk.entities.EmailLog.update(log.id, {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          error_message: 'already_member',
+        }).catch(() => {});
+      }
+      return { ok: true, log_id: log?.id || null, already_member: true };
+    }
     if (log) {
       await sdk.entities.EmailLog.update(log.id, {
         status: 'failed',
@@ -249,9 +240,6 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: 'invalid_owner_email' }, { status: 400 });
     }
     const planName = isValidPlanName(company.plan_name) ? company.plan_name : 'Starter';
-    const ownerName = (company.owner_name || '').trim();
-    const appUrl = Deno.env.get('APP_URL') || 'https://ocorte.app';
-    const accessUrl = buildAccessUrl(appUrl, email);
 
     // 4) Envio + retry (0s, 1s, 3s)
     const delays = [0, 1000, 3000];
@@ -262,10 +250,8 @@ Deno.serve(async (req) => {
       try {
         const res = await attemptSend(base44, {
           to: email,
-          ownerName,
           company_id,
           planName,
-          accessUrl,
         });
         logId = res?.log_id || logId;
         const sentAt = new Date().toISOString();
