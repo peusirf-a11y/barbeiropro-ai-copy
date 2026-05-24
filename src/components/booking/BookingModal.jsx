@@ -118,7 +118,13 @@ export default function BookingModal({
     const dt = new Date(selected.date);
     dt.setHours(+h, +m, 0, 0);
     const isAny = selected.professional?.id === 'any';
-    const proId = isAny ? professionals[0]?.id : selected.professional?.id;
+    // Em "Sem Preferência", pega o primeiro profissional que atende ESTE serviço.
+    // Antes pegava professionals[0] cego — se o serviço não estivesse vinculado
+    // a esse barbeiro, o backend rejeitava com service_not_offered_by_professional.
+    const eligible = isAny
+      ? professionals.find(p => !p.service_ids?.length || p.service_ids.includes(selected.service.id))
+      : null;
+    const proId = isAny ? (eligible?.id || professionals[0]?.id) : selected.professional?.id;
     return {
       company_id: company.id,
       unit_id: unitId || undefined,
