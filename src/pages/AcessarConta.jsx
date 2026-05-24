@@ -56,7 +56,10 @@ export default function AcessarConta() {
   const planName = PLAN_LABEL[planKey] || 'O CORTE';
   const gmail = isGmail(email);
 
-  // Dispara o reset de senha de verdade (envia link para o email).
+  // Dispara o envio do link de definir/redefinir senha.
+  // Usa endpoint backend (requestPasswordSetup) porque o usuário pode ainda
+  // não ser membro do app — nesse caso precisamos chamar inviteUser primeiro,
+  // o que só pode ser feito no backend com asServiceRole.
   const triggerReset = async ({ auto = false } = {}) => {
     if (!email) {
       setResetError('Email não informado. Volte para o checkout e tente novamente.');
@@ -66,11 +69,20 @@ export default function AcessarConta() {
     setBusy('reset');
     setResetError('');
     try {
-      // Método oficial Base44 — envia email com link para criar/redefinir senha.
-      await base44.auth.resetPasswordRequest(email);
-      setResetSent(true);
+      const res = await base44.functions.invoke('requestPasswordSetup', { email });
+      const data = res?.data || {};
+      if (data.ok) {
+        setResetSent(true);
+        if (data.cooldown) {
+          // Sinaliza ao usuário que já mandamos há pouco — link ainda é válido.
+          console.info('[acessar-conta] cooldown — link recente ainda válido');
+        }
+      } else {
+        setResetError('Não consegui enviar o link agora. Tente novamente em instantes.');
+        setBusy(null);
+      }
     } catch (err) {
-      console.warn('[acessar-conta] resetPasswordRequest failed:', err?.message);
+      console.warn('[acessar-conta] requestPasswordSetup failed:', err?.message);
       setResetError('Não consegui enviar o link agora. Tente novamente em instantes.');
       setBusy(null);
     }
