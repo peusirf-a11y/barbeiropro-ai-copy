@@ -199,12 +199,34 @@ Deno.serve(async (req) => {
         body: subscriptionPayload,
       });
     } catch (err) {
-      const detailMsg = extractErr(err.details);
-      console.warn(`[saasCard ${rid}] subscription failed:`, err.message, JSON.stringify(err.details || {}));
-      return Response.json({
-        error: err.code || 'card_declined',
-        message: detailMsg || err.message || 'Cartão recusado. Verifique os dados ou tente outro.',
-      }, { status: 402 });
+      // 409 = já existe subscription com mesma externalReference (cliente já iniciou
+      // checkout antes, p.ex. tentou PIX e agora está tentando cartão). Recuperamos
+      // a assinatura existente em vez de falhar.
+      if (err.status === 409) {
+        try {
+          const existingSub = await asaasFetch('GET', '/subscriptions', {
+            query: { customer: asaasCustomerId, limit: 10 },
+          });
+          const match = existingSub?.data?.find(s => s.externalReference === `saas:${emailLc}:${plan}`)
+            || existingSub?.data?.[0];
+          if (match?.id) {
+            console.log(`[saasCard ${rid}] recovered existing subscription:`, match.id);
+            subscription = match;
+          } else {
+            throw err;
+          }
+        } catch (lookupErr) {
+          console.error(`[saasCard ${rid}] lookup after 409 failed:`, lookupErr.message);
+          throw err;
+        }
+      } else {
+        const detailMsg = extractErr(err.details);
+        console.warn(`[saasCard ${rid}] subscription failed:`, err.message, JSON.stringify(err.details || {}));
+        return Response.json({
+          error: err.code || 'card_declined',
+          message: detailMsg || err.message || 'Cartão recusado. Verifique os dados ou tente outro.',
+        }, { status: 402 });
+      }
     }
 
     if (!subscription?.id) {

@@ -201,18 +201,45 @@ Deno.serve(async (req) => {
     // nessa data, então o cliente NÃO paga hoje. O Customer entra em trial localmente
     // até a primeira invoice ser paga (webhook PAYMENT_CONFIRMED → status=active).
     const nextDue = nextBillingDate(TRIAL_DAYS);
-    const subscription = await asaasFetch('POST', '/subscriptions', {
-      idempotencyKey: `sub:${emailLc}:${plan}`,
-      body: {
-        customer: asaasCustomerId,
-        billingType,
-        cycle: 'MONTHLY',
-        value: planMeta.price,
-        nextDueDate: nextDue,
-        description: `O CORTE — ${planMeta.name} (assinatura mensal)`,
-        externalReference: `saas:${emailLc}:${plan}`,
-      },
-    });
+    let subscription;
+    try {
+      subscription = await asaasFetch('POST', '/subscriptions', {
+        idempotencyKey: `sub:${emailLc}:${plan}`,
+        body: {
+          customer: asaasCustomerId,
+          billingType,
+          cycle: 'MONTHLY',
+          value: planMeta.price,
+          nextDueDate: nextDue,
+          description: `O CORTE — ${planMeta.name} (assinatura mensal)`,
+          externalReference: `saas:${emailLc}:${plan}`,
+        },
+      });
+    } catch (err) {
+      // Asaas devolve 409 quando já existe subscription com a mesma externalReference
+      // (ou mesma Idempotency-Key). Nesse caso, recuperamos a subscription existente
+      // em vez de falhar — o cliente está apenas retomando um checkout iniciado antes.
+      if (err.status === 409 || err.code === 'asaas_bad_request') {
+        try {
+          const existingSub = await asaasFetch('GET', '/subscriptions', {
+            query: { customer: asaasCustomerId, limit: 10 },
+          });
+          const match = existingSub?.data?.find(s => s.externalReference === `saas:${emailLc}:${plan}`)
+            || existingSub?.data?.[0];
+          if (match?.id) {
+            console.log('[createAsaasSaasCheckout] recovered existing subscription:', match.id);
+            subscription = match;
+          } else {
+            throw err;
+          }
+        } catch (lookupErr) {
+          console.error('[createAsaasSaasCheckout] lookup after 409 failed:', lookupErr.message);
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
 
     if (!subscription?.id) {
       return Response.json({ error: 'asaas_subscription_error', message: 'Falha ao criar assinatura no Asaas' }, { status: 502 });
