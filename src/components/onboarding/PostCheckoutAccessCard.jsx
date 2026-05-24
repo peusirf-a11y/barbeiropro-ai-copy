@@ -18,11 +18,14 @@ export default function PostCheckoutAccessCard({ email, planName }) {
       const authed = await base44.auth.isAuthenticated();
       if (authed) {
         window.location.href = '/app/dashboard';
-      } else {
-        // Após login, plataforma redireciona para o dashboard; OnboardingGuard
-        // intercepta e leva para /onboarding se ainda não estiver completo.
-        base44.auth.redirectToLogin(`${window.location.origin}/app/dashboard`);
+        return;
       }
+      // Leva para a tela intermediária guiada (/acessar-conta) com contexto
+      // do email e do plano. Lá o usuário escolhe Google / criar senha / link.
+      const params = new URLSearchParams();
+      if (email) params.set('email', email);
+      if (planName) params.set('plan', String(planName).toLowerCase());
+      window.location.href = `/acessar-conta?${params.toString()}`;
     } catch {
       setLoading(false);
     }

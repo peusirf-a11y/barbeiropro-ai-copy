@@ -36,6 +36,11 @@ const FRONTEND_ALLOWED = new Set([
   'blocked_pf_attempt',
   'cpf_contact_click_whatsapp',
   'cpf_contact_click_email',
+  // First access (pós-checkout)
+  'first_access_started',
+  'first_access_google',
+  'first_access_password',
+  'first_access_reset',
 ]);
 
 Deno.serve(async (req) => {
