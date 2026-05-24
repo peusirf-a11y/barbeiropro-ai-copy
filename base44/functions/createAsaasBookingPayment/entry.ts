@@ -286,6 +286,10 @@ Deno.serve(async (req) => {
           response_snapshot: data, response_status: status,
         }).catch(() => {});
       }
+      // Log de 4xx para diagnosticar erros do cliente final na próxima tentativa.
+      if (status >= 400) {
+        console.warn(`[createAsaasBookingPayment] rid=${rid} ${status} error=${data?.error} msg=${data?.message || ''}`);
+      }
       return Response.json(data, { status });
     };
 
