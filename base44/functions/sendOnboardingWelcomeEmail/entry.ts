@@ -45,16 +45,17 @@ function escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
-function buildAccessUrl(appUrl, email) {
+function buildAccessUrl(appUrl, email, planKey) {
   const base = (appUrl || 'https://ocorte.app').replace(/\/+$/, '');
-  const params = new URLSearchParams({ action: 'reset' });
+  const params = new URLSearchParams();
   if (email) params.set('email', email);
-  return `${base}/acessar-conta?${params.toString()}`;
+  if (planKey) params.set('plan', planKey);
+  return `${base}/ativar-acesso?${params.toString()}`;
 }
 
 function buildEmailHtml({ ownerName, planName, accessUrl, email }) {
   const greet = ownerName ? `Olá, ${escapeHtml(ownerName.split(' ')[0])}!` : 'Olá!';
-  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sua conta O CORTE está pronta</title></head>
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sua barbearia já está pronta</title></head>
 <body style="margin:0;padding:0;background:#F4F7FB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,Arial,sans-serif;color:#0F172A;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FB;padding:32px 16px;">
     <tr><td align="center">
@@ -63,11 +64,11 @@ function buildEmailHtml({ ownerName, planName, accessUrl, email }) {
           <div style="display:inline-block;font-weight:900;font-size:18px;letter-spacing:-0.02em;color:#0F172A;">O CORTE</div>
         </td></tr>
         <tr><td style="padding:8px 32px 0;text-align:center;">
-          <div style="display:inline-block;width:56px;height:56px;border-radius:16px;background:#ECFDF5;line-height:56px;text-align:center;font-size:28px;">✓</div>
+          <div style="display:inline-block;padding:6px 14px;border-radius:999px;background:#ECFDF5;color:#047857;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;">✓ Plano ativado</div>
         </td></tr>
         <tr><td style="padding:16px 32px 8px;text-align:center;">
-          <h1 style="margin:0;font-size:24px;font-weight:900;letter-spacing:-0.02em;color:#0F172A;">Sua conta está pronta</h1>
-          <p style="margin:8px 0 0;font-size:14px;color:#64748B;line-height:1.6;">${greet} Falta só um passo para começar: <strong style="color:#0F172A;">criar sua senha de acesso</strong>.</p>
+          <h1 style="margin:0;font-size:26px;font-weight:900;letter-spacing:-0.02em;color:#0F172A;">Sua barbearia já está pronta 🚀</h1>
+          <p style="margin:10px 0 0;font-size:14px;color:#64748B;line-height:1.6;">${greet} Seu plano foi ativado com sucesso. Agora falta apenas <strong style="color:#0F172A;">acessar sua conta e definir como você quer entrar na plataforma</strong>.</p>
         </td></tr>
         <tr><td style="padding:24px 32px 8px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;">
@@ -76,27 +77,32 @@ function buildEmailHtml({ ownerName, planName, accessUrl, email }) {
               <div style="font-size:14px;font-weight:700;color:#0F172A;word-break:break-all;">${escapeHtml(email)}</div>
             </td></tr>
             <tr><td style="padding:0 16px 14px;">
-              <div style="border-top:1px solid #E2E8F0;padding-top:10px;display:flex;justify-content:space-between;">
-                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94A3B8;">Plano</span>
-                <span style="font-size:13px;font-weight:700;color:#0F172A;">O CORTE · ${escapeHtml(planName)}</span>
+              <div style="border-top:1px solid #E2E8F0;padding-top:10px;">
+                <table width="100%"><tr>
+                  <td style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94A3B8;">Plano contratado</td>
+                  <td align="right" style="font-size:13px;font-weight:700;color:#0F172A;">O CORTE · ${escapeHtml(planName)}</td>
+                </tr></table>
               </div>
-              <div style="margin-top:8px;display:flex;justify-content:space-between;">
-                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94A3B8;">Período de teste</span>
-                <span style="font-size:13px;font-weight:700;color:#059669;">7 dias grátis</span>
+              <div style="margin-top:8px;">
+                <table width="100%"><tr>
+                  <td style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94A3B8;">Trial</td>
+                  <td align="right" style="font-size:13px;font-weight:700;color:#059669;">7 dias grátis</td>
+                </tr></table>
               </div>
             </td></tr>
           </table>
         </td></tr>
-        <tr><td style="padding:20px 32px 8px;text-align:center;">
-          <a href="${accessUrl}" style="display:inline-block;background:#0F172A;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:14px 32px;border-radius:12px;box-shadow:0 4px 12px rgba(15,23,42,0.18);">Definir minha senha</a>
+        <tr><td style="padding:24px 32px 8px;text-align:center;">
+          <a href="${accessUrl}" style="display:inline-block;background:#0F172A;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:16px 36px;border-radius:12px;box-shadow:0 4px 12px rgba(15,23,42,0.18);">Ativar meu acesso</a>
         </td></tr>
-        <tr><td style="padding:8px 32px 24px;text-align:center;">
-          <p style="margin:0;font-size:12px;color:#94A3B8;line-height:1.6;">Use sempre <strong style="color:#0F172A;">${escapeHtml(email)}</strong> para entrar.<br>O link é válido por 24 horas.</p>
+        <tr><td style="padding:12px 32px 24px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:12px;color:#64748B;line-height:1.6;">Na próxima tela você poderá:</p>
+          <p style="margin:0;font-size:12px;color:#64748B;line-height:1.8;">• entrar com Google<br>• criar sua senha<br>• ou acessar uma conta já existente</p>
         </td></tr>
         <tr><td style="padding:0 32px 32px;">
           <div style="border-top:1px solid #F1F5F9;padding-top:16px;font-size:11px;color:#94A3B8;line-height:1.6;text-align:center;">
-            Se você não criou esta conta, ignore este email.<br>
-            Dúvidas? Responda este email — a gente te ajuda.
+            Use sempre <strong style="color:#0F172A;">${escapeHtml(email)}</strong> para entrar.<br>
+            Se você não criou esta conta, ignore este email.
           </div>
         </td></tr>
       </table>
@@ -109,54 +115,82 @@ function buildEmailHtml({ ownerName, planName, accessUrl, email }) {
 function buildEmailText({ ownerName, planName, accessUrl, email }) {
   const greet = ownerName ? `Olá, ${ownerName.split(' ')[0]}!` : 'Olá!';
   return [
-    'O CORTE — Sua conta está pronta',
+    'O CORTE — Sua barbearia já está pronta',
     '',
     greet,
     '',
-    'Falta só um passo para começar: criar sua senha de acesso.',
+    'Seu plano foi ativado com sucesso. Agora falta apenas acessar sua conta',
+    'e definir como você quer entrar na plataforma.',
     '',
     `Email de acesso: ${email}`,
-    `Plano: O CORTE · ${planName}`,
-    `Período de teste: 7 dias grátis`,
+    `Plano contratado: O CORTE · ${planName}`,
+    `Trial: 7 dias grátis`,
     '',
-    `Definir minha senha: ${accessUrl}`,
+    `Ativar meu acesso: ${accessUrl}`,
     '',
-    `Use sempre ${email} para entrar. O link é válido por 24 horas.`,
+    'Na próxima tela você poderá:',
+    '  • entrar com Google',
+    '  • criar sua senha',
+    '  • ou acessar uma conta já existente',
     '',
+    `Use sempre ${email} para entrar.`,
     'Se você não criou esta conta, ignore este email.',
-    'Dúvidas? Responda este email — a gente te ajuda.',
   ].join('\n');
 }
 
-async function attemptSend(base44, { to, company_id, planName }) {
-  // IMPORTANTE: Core.SendEmail bloqueia destinatários fora do app
-  // ("Cannot send emails to users outside the app"). Como o dono ainda não
-  // é membro até aceitar o convite, não dá para mandar email customizado.
-  //
-  // O caminho oficial é base44.users.inviteUser: a plataforma envia o email
-  // de boas-vindas nativo, que já contém o link de definição de senha.
-  // Auditamos via EmailLog para manter o padrão transacional.
+async function attemptSend(base44, { to, company_id, planName, ownerName, accessUrl }) {
+  // Estratégia em 2 passos:
+  //   1) inviteUser — garante que o destinatário seja membro do app.
+  //      Sem isso, Core.SendEmail rejeita com "Cannot send emails to users
+  //      outside the app". inviteUser é idempotente: se já for membro,
+  //      lança erro com "already/exists/duplicate" e a gente segue em frente.
+  //   2) Core.SendEmail — envia o email customizado O CORTE com CTA
+  //      apontando para /ativar-acesso (não para a tela genérica Base44).
   const sdk = base44.asServiceRole;
   let log = null;
   try {
     log = await sdk.entities.EmailLog.create({
       company_id: company_id || null,
       recipient: to,
-      subject: 'Convite de acesso O CORTE',
+      subject: 'Sua barbearia já está pronta — O CORTE',
       type: 'welcome',
       status: 'pending',
-      provider: 'base44_invite',
-      metadata: { plan_name: planName, source: 'onboarding_welcome' },
+      provider: 'base44_core',
+      metadata: { plan_name: planName, source: 'onboarding_welcome', cta_url: accessUrl },
     });
   } catch (logErr) {
     console.warn('[sendOnboardingWelcomeEmail] EmailLog create failed:', logErr.message);
   }
 
+  // Passo 1: garante membership (idempotente)
   try {
-    // Idempotente do lado da plataforma. Se o usuário já existir, retornamos
-    // "already_member" e marcamos como enviado — ele pode usar "esqueci a senha"
-    // na própria tela /acessar-conta.
     await base44.users.inviteUser(to, 'user');
+  } catch (inviteErr) {
+    const msg = (inviteErr?.message || String(inviteErr)).slice(0, 500);
+    const alreadyMember = /already|exists|duplicate/i.test(msg);
+    if (!alreadyMember) {
+      if (log) {
+        await sdk.entities.EmailLog.update(log.id, {
+          status: 'failed',
+          error_message: `invite_failed: ${msg}`,
+          sent_at: new Date().toISOString(),
+        }).catch(() => {});
+      }
+      const err = new Error(`invite_failed: ${msg}`);
+      err.log_id = log?.id || null;
+      throw err;
+    }
+    // Se já é membro, ok — segue para o envio customizado.
+  }
+
+  // Passo 2: envia o email customizado O CORTE com CTA /ativar-acesso
+  try {
+    await sdk.integrations.Core.SendEmail({
+      from_name: 'O CORTE',
+      to,
+      subject: 'Sua barbearia já está pronta — ative seu acesso',
+      body: buildEmailHtml({ ownerName, planName, accessUrl, email: to }),
+    });
     if (log) {
       await sdk.entities.EmailLog.update(log.id, {
         status: 'sent',
@@ -166,17 +200,6 @@ async function attemptSend(base44, { to, company_id, planName }) {
     return { ok: true, log_id: log?.id || null };
   } catch (sendErr) {
     const errMsg = (sendErr?.message || String(sendErr)).slice(0, 500);
-    const alreadyExists = /already|exists|duplicate/i.test(errMsg);
-    if (alreadyExists) {
-      if (log) {
-        await sdk.entities.EmailLog.update(log.id, {
-          status: 'sent',
-          sent_at: new Date().toISOString(),
-          error_message: 'already_member',
-        }).catch(() => {});
-      }
-      return { ok: true, log_id: log?.id || null, already_member: true };
-    }
     if (log) {
       await sdk.entities.EmailLog.update(log.id, {
         status: 'failed',
@@ -240,6 +263,10 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: 'invalid_owner_email' }, { status: 400 });
     }
     const planName = isValidPlanName(company.plan_name) ? company.plan_name : 'Starter';
+    const planKey = String(planName).toLowerCase();
+    const ownerName = company.owner_name || '';
+    const appUrl = Deno.env.get('APP_URL') || 'https://ocorte.app';
+    const accessUrl = buildAccessUrl(appUrl, email, planKey);
 
     // 4) Envio + retry (0s, 1s, 3s)
     const delays = [0, 1000, 3000];
@@ -252,6 +279,8 @@ Deno.serve(async (req) => {
           to: email,
           company_id,
           planName,
+          ownerName,
+          accessUrl,
         });
         logId = res?.log_id || logId;
         const sentAt = new Date().toISOString();
