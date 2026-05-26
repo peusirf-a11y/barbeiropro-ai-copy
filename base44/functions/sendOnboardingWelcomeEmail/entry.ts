@@ -138,14 +138,24 @@ function buildEmailText({ ownerName, planName, accessUrl, email }) {
   ].join('\n');
 }
 
+async function ensureMembership(base44, to) {
+  // inviteUser é idempotente: se já for membro, lança erro com
+  // "already/exists/duplicate" e a gente trata como sucesso.
+  try {
+    await base44.users.inviteUser(to, 'user');
+    return { ok: true, newly_invited: true };
+  } catch (inviteErr) {
+    const msg = (inviteErr?.message || String(inviteErr)).slice(0, 500);
+    if (/already|exists|duplicate/i.test(msg)) {
+      return { ok: true, newly_invited: false };
+    }
+    return { ok: false, error: msg };
+  }
+}
+
 async function attemptSend(base44, { to, company_id, planName, ownerName, accessUrl }) {
-  // Estratégia em 2 passos:
-  //   1) inviteUser — garante que o destinatário seja membro do app.
-  //      Sem isso, Core.SendEmail rejeita com "Cannot send emails to users
-  //      outside the app". inviteUser é idempotente: se já for membro,
-  //      lança erro com "already/exists/duplicate" e a gente segue em frente.
-  //   2) Core.SendEmail — envia o email customizado O CORTE com CTA
-  //      apontando para /ativar-acesso (não para a tela genérica Base44).
+  // Só envia o email customizado O CORTE com CTA /ativar-acesso.
+  // O membership já foi garantido por ensureMembership() antes do loop.
   const sdk = base44.asServiceRole;
   let log = null;
   try {
@@ -162,28 +172,6 @@ async function attemptSend(base44, { to, company_id, planName, ownerName, access
     console.warn('[sendOnboardingWelcomeEmail] EmailLog create failed:', logErr.message);
   }
 
-  // Passo 1: garante membership (idempotente)
-  try {
-    await base44.users.inviteUser(to, 'user');
-  } catch (inviteErr) {
-    const msg = (inviteErr?.message || String(inviteErr)).slice(0, 500);
-    const alreadyMember = /already|exists|duplicate/i.test(msg);
-    if (!alreadyMember) {
-      if (log) {
-        await sdk.entities.EmailLog.update(log.id, {
-          status: 'failed',
-          error_message: `invite_failed: ${msg}`,
-          sent_at: new Date().toISOString(),
-        }).catch(() => {});
-      }
-      const err = new Error(`invite_failed: ${msg}`);
-      err.log_id = log?.id || null;
-      throw err;
-    }
-    // Se já é membro, ok — segue para o envio customizado.
-  }
-
-  // Passo 2: envia o email customizado O CORTE com CTA /ativar-acesso
   try {
     await sdk.integrations.Core.SendEmail({
       from_name: 'O CORTE',
@@ -268,7 +256,24 @@ Deno.serve(async (req) => {
     const appUrl = Deno.env.get('APP_URL') || 'https://ocorte.app';
     const accessUrl = buildAccessUrl(appUrl, email, planKey);
 
-    // 4) Envio + retry (0s, 1s, 3s)
+    // 4) Garante membership ANTES do loop de envio. Core.SendEmail rejeita
+    //    com 404 "Cannot send emails to users outside the app" se o user
+    //    não for membro. inviteUser é idempotente.
+    const membership = await ensureMembership(base44, email);
+    if (!membership.ok) {
+      console.error(`[onboardingEmail ${rid}] invite_failed`, { company_id, error: membership.error });
+      await recordEvent(base44, 'onboarding_email_failed', {
+        company_id,
+        reason: `invite_failed: ${membership.error}`.slice(0, 200),
+      });
+      return Response.json({ ok: false, error: 'invite_failed' }, { status: 502 });
+    }
+    // Se acabou de ser convidado, aguarda propagação do membership na plataforma.
+    if (membership.newly_invited) {
+      await sleep(2500);
+    }
+
+    // 5) Envio + retry (0s, 1s, 3s)
     const delays = [0, 1000, 3000];
     let lastErr = null;
     let logId = null;
