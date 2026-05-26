@@ -81,48 +81,27 @@ Deno.serve(async (req) => {
       console.warn(`[requestPasswordSetup ${rid}] log_create_failed`, logErr.message);
     }
 
-    // 4) Estratégia:
-    //   a) inviteUser primeiro — se o usuário ainda não é membro, isso o cria
-    //      e a Base44 envia o email de boas-vindas com link de senha.
-    //   b) Se já existe, dispara resetPasswordRequest.
-    let mode = null;
+    // 4) Estratégia: usa resetPasswordRequest da Base44 SDK direto.
+    //    - Funciona em rotas públicas (sem caller autenticado).
+    //    - Se o User já existe, dispara email de reset.
+    //    - Se não existe, a Base44 cria o User automaticamente e envia o link
+    //      de definição de senha (comportamento padrão do platform).
+    //    `users.inviteUser` exigiria caller logado, então ficou descartado.
+    let mode = 'reset';
     try {
-      await base44.users.inviteUser(email, 'user');
-      mode = 'invite';
-      console.log(`[requestPasswordSetup ${rid}] invited`, { email });
-    } catch (inviteErr) {
-      const msg = inviteErr?.message || '';
-      const alreadyMember = /already|exists|duplicate/i.test(msg);
-      if (alreadyMember) {
-        // Usuário já existe — pedimos reset oficial.
-        try {
-          await base44.auth.resetPasswordRequest(email);
-          mode = 'reset';
-          console.log(`[requestPasswordSetup ${rid}] reset_sent`, { email });
-        } catch (resetErr) {
-          const rmsg = (resetErr?.message || String(resetErr)).slice(0, 400);
-          console.error(`[requestPasswordSetup ${rid}] reset_failed`, rmsg);
-          if (log) {
-            await sdk.entities.EmailLog.update(log.id, {
-              status: 'failed',
-              error_message: rmsg,
-              sent_at: new Date().toISOString(),
-            }).catch(() => {});
-          }
-          return Response.json({ ok: false, error: 'reset_failed' }, { status: 502 });
-        }
-      } else {
-        const errMsg = msg.slice(0, 400);
-        console.error(`[requestPasswordSetup ${rid}] invite_failed`, errMsg);
-        if (log) {
-          await sdk.entities.EmailLog.update(log.id, {
-            status: 'failed',
-            error_message: errMsg,
-            sent_at: new Date().toISOString(),
-          }).catch(() => {});
-        }
-        return Response.json({ ok: false, error: 'invite_failed' }, { status: 502 });
+      await base44.auth.resetPasswordRequest(email);
+      console.log(`[requestPasswordSetup ${rid}] reset_sent`, { email });
+    } catch (resetErr) {
+      const rmsg = (resetErr?.message || String(resetErr)).slice(0, 400);
+      console.error(`[requestPasswordSetup ${rid}] reset_failed`, rmsg);
+      if (log) {
+        await sdk.entities.EmailLog.update(log.id, {
+          status: 'failed',
+          error_message: rmsg,
+          sent_at: new Date().toISOString(),
+        }).catch(() => {});
       }
+      return Response.json({ ok: false, error: 'reset_failed' }, { status: 502 });
     }
 
     if (log) {
