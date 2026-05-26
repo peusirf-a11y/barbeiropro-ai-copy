@@ -12,9 +12,11 @@ import RootRedirect from '@/components/RootRedirect';
 import { ActiveUnitProvider } from '@/hooks/useActiveUnit';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
 import { BookingSessionProvider } from '@/contexts/BookingSessionContext';
+import { BarberAuthProvider } from '@/lib/BarberAuthContext';
 
 // Guards
 import PrivateRoute from '@/components/guards/PrivateRoute';
+import PrivateBarberRoute from '@/components/guards/PrivateBarberRoute';
 import SuperAdminRoute from '@/components/guards/SuperAdminRoute';
 import OnboardingGuard from '@/components/guards/OnboardingGuard';
 import TotpGate from '@/components/guards/TotpGate';
@@ -28,6 +30,9 @@ import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import AcessarConta from './pages/AcessarConta';
 import AtivarAcesso from './pages/AtivarAcesso';
+import Entrar from './pages/Entrar';
+import EsqueciSenha from './pages/EsqueciSenha';
+import RedefinirSenha from './pages/RedefinirSenha';
 
 // Master pages (super admin)
 import MasterLayout from './components/master/MasterLayout';
@@ -113,6 +118,7 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
        <ImpersonationProvider>
        <BookingSessionProvider>
+       <BarberAuthProvider>
        <ActiveUnitProvider>
          <Router>
           <Routes>
@@ -133,6 +139,9 @@ function App() {
             <Route path="/checkout/sucesso" element={<CheckoutSuccess />} />
             <Route path="/acessar-conta" element={<AcessarConta />} />
             <Route path="/ativar-acesso" element={<AtivarAcesso />} />
+            <Route path="/entrar" element={<Entrar />} />
+            <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/politica-de-privacidade" element={<PoliticaDePrivacidade />} />
 
@@ -189,11 +198,11 @@ function App() {
 
             {/* ── PRIVATE APP ROUTES (authenticated users only) ── */}
             <Route path="/app" element={<Navigate to="/landing" replace />} />
-            <Route path="/app/dashboard" element={<PrivateRoute><AppDashboard /></PrivateRoute>} />
-            <Route path="/app/agenda" element={<PrivateRoute><AppAgenda /></PrivateRoute>} />
-            <Route path="/app/clientes" element={<PrivateRoute><AppClientes /></PrivateRoute>} />
-            <Route path="/app/servicos" element={<PrivateRoute><AppServicos /></PrivateRoute>} />
-            <Route path="/app/profissionais" element={<PrivateRoute><AppProfissionais /></PrivateRoute>} />
+            <Route path="/app/dashboard" element={<PrivateBarberRoute><AppDashboard /></PrivateBarberRoute>} />
+            <Route path="/app/agenda" element={<PrivateBarberRoute><AppAgenda /></PrivateBarberRoute>} />
+            <Route path="/app/clientes" element={<PrivateBarberRoute><AppClientes /></PrivateBarberRoute>} />
+            <Route path="/app/servicos" element={<PrivateBarberRoute><AppServicos /></PrivateBarberRoute>} />
+            <Route path="/app/profissionais" element={<PrivateBarberRoute><AppProfissionais /></PrivateBarberRoute>} />
             <Route path="/app/financeiro" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppFinanceiro /></RoleRoute></PrivateRoute>} />
             <Route path="/app/bloqueios" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppBloqueios /></RoleRoute></PrivateRoute>} />
             <Route path="/app/caixa" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppCaixa /></RoleRoute></PrivateRoute>} />
@@ -223,6 +232,7 @@ function App() {
         </Router>
         <Toaster />
        </ActiveUnitProvider>
+       </BarberAuthProvider>
        </BookingSessionProvider>
        </ImpersonationProvider>
       </QueryClientProvider>
