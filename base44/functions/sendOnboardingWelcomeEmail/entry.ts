@@ -1,16 +1,14 @@
-// sendOnboardingWelcomeEmail — Email transacional pós-checkout (Opção A).
+// sendOnboardingWelcomeEmail — Email transacional pós-checkout via Resend.
 //
-// Envia um email premium com a identidade O CORTE e um botão CTA que leva
-// o usuário direto para /acessar-conta?action=reset, onde a tela aciona
-// automaticamente o fluxo de "definir senha" da plataforma (envia link
-// real de criação de senha para o mesmo email).
+// Envia um email premium 100% customizado com a identidade O CORTE.
+// O botão CTA leva o usuário direto para /ativar-acesso?email=...&plan=...,
+// onde ele escolhe Google, criar senha, ou login existente.
+//
+// Provedor: Resend (https://resend.com) — domínio verificado contato.ocorte.app.
+// API HTTP via fetch nativo do Deno (sem SDK).
 //
 // Disparado em fire-and-forget por createAsaasSaasCheckout e
 // chargeAsaasSaasWithCard após a Company ser criada com sucesso.
-//
-// IMPORTANTE: O usuário também é convidado via base44.users.inviteUser para
-// garantir que a conta exista na plataforma. Sem isso o fluxo de reset
-// não tem um usuário-alvo. A inviteUser é idempotente.
 //
 // Características:
 //   • Idempotente: usa Company.onboarding_email_sent_at como flag.
@@ -24,6 +22,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RESEND_API_URL = 'https://api.resend.com/emails';
 
 function isValidEmail(s) {
   if (!s || typeof s !== 'string') return false;
@@ -139,28 +138,27 @@ function buildEmailText({ ownerName, planName, accessUrl, email }) {
 }
 
 async function attemptSend(base44, { to, company_id, planName, ownerName, accessUrl }) {
-  // LIMITAÇÃO DA PLATAFORMA Base44:
-  //   Core.SendEmail rejeita destinatários que ainda não aceitaram o convite
-  //   ("Cannot send emails to users outside the app"). Não conseguimos enviar
-  //   um email customizado O CORTE para um dono recém-cadastrado.
-  //
-  //   Solução atual: usar inviteUser, que dispara o email nativo da Base44
-  //   com link de definição de senha. O usuário aceita o convite, define a
-  //   senha, e a partir da próxima sessão cai no nosso fluxo /ativar-acesso
-  //   através do RootRedirect.
-  //
-  //   Para um email 100% customizado precisaríamos de um provedor externo
-  //   (Resend, SendGrid, etc.) configurado via secret.
   const sdk = base44.asServiceRole;
+  const apiKey = Deno.env.get('RESEND_API_KEY');
+  const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'O CORTE <acesso@contato.ocorte.app>';
+
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY not configured');
+  }
+
+  const html = buildEmailHtml({ ownerName, planName, accessUrl, email: to });
+  const text = buildEmailText({ ownerName, planName, accessUrl, email: to });
+  const subject = 'Sua barbearia já está pronta — ative seu acesso O CORTE';
+
   let log = null;
   try {
     log = await sdk.entities.EmailLog.create({
       company_id: company_id || null,
       recipient: to,
-      subject: 'Convite de acesso O CORTE',
+      subject,
       type: 'welcome',
       status: 'pending',
-      provider: 'base44_invite',
+      provider: 'resend',
       metadata: { plan_name: planName, source: 'onboarding_welcome', cta_url: accessUrl, owner_name: ownerName },
     });
   } catch (logErr) {
@@ -168,27 +166,54 @@ async function attemptSend(base44, { to, company_id, planName, ownerName, access
   }
 
   try {
-    await base44.users.inviteUser(to, 'user');
+    const response = await fetch(RESEND_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [to],
+        subject,
+        html,
+        text,
+      }),
+    });
+
+    const responseBody = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const errMsg = `Resend ${response.status}: ${responseBody?.message || responseBody?.error || 'unknown'}`;
+      if (log) {
+        await sdk.entities.EmailLog.update(log.id, {
+          status: 'failed',
+          error_message: errMsg.slice(0, 500),
+          sent_at: new Date().toISOString(),
+        }).catch(() => {});
+      }
+      const err = new Error(errMsg);
+      err.log_id = log?.id || null;
+      throw err;
+    }
+
     if (log) {
       await sdk.entities.EmailLog.update(log.id, {
         status: 'sent',
         sent_at: new Date().toISOString(),
+        metadata: {
+          plan_name: planName,
+          source: 'onboarding_welcome',
+          cta_url: accessUrl,
+          owner_name: ownerName,
+          resend_id: responseBody?.id,
+        },
       }).catch(() => {});
     }
-    return { ok: true, log_id: log?.id || null };
+    return { ok: true, log_id: log?.id || null, resend_id: responseBody?.id };
   } catch (sendErr) {
+    if (sendErr.log_id !== undefined) throw sendErr;
     const errMsg = (sendErr?.message || String(sendErr)).slice(0, 500);
-    const alreadyExists = /already|exists|duplicate/i.test(errMsg);
-    if (alreadyExists) {
-      if (log) {
-        await sdk.entities.EmailLog.update(log.id, {
-          status: 'sent',
-          sent_at: new Date().toISOString(),
-          error_message: 'already_member',
-        }).catch(() => {});
-      }
-      return { ok: true, log_id: log?.id || null, already_member: true };
-    }
     if (log) {
       await sdk.entities.EmailLog.update(log.id, {
         status: 'failed',
@@ -275,9 +300,9 @@ Deno.serve(async (req) => {
         const sentAt = new Date().toISOString();
         await sdk.entities.Company.update(company_id, { onboarding_email_sent_at: sentAt })
           .catch(err => console.error(`[onboardingEmail ${rid}] flag_update_failed`, err.message));
-        await recordEvent(base44, 'onboarding_email_sent', { company_id, attempt: i + 1, log_id: logId });
-        console.log(`[onboardingEmail ${rid}] sent`, { company_id, attempt: i + 1 });
-        return Response.json({ ok: true, log_id: logId, sent_at: sentAt });
+        await recordEvent(base44, 'onboarding_email_sent', { company_id, attempt: i + 1, log_id: logId, provider: 'resend' });
+        console.log(`[onboardingEmail ${rid}] sent`, { company_id, attempt: i + 1, resend_id: res?.resend_id });
+        return Response.json({ ok: true, log_id: logId, sent_at: sentAt, resend_id: res?.resend_id });
       } catch (err) {
         lastErr = err;
         logId = err?.log_id || logId;
@@ -290,6 +315,7 @@ Deno.serve(async (req) => {
       attempts: delays.length,
       reason: (lastErr?.message || 'unknown').slice(0, 200),
       log_id: logId,
+      provider: 'resend',
     });
     console.error(`[onboardingEmail ${rid}] all_attempts_failed`, { company_id, error: lastErr?.message });
     return Response.json({
