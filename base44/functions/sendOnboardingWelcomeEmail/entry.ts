@@ -138,47 +138,37 @@ function buildEmailText({ ownerName, planName, accessUrl, email }) {
   ].join('\n');
 }
 
-async function ensureMembership(base44, to) {
-  // inviteUser é idempotente: se já for membro, lança erro com
-  // "already/exists/duplicate" e a gente trata como sucesso.
-  try {
-    await base44.users.inviteUser(to, 'user');
-    return { ok: true, newly_invited: true };
-  } catch (inviteErr) {
-    const msg = (inviteErr?.message || String(inviteErr)).slice(0, 500);
-    if (/already|exists|duplicate/i.test(msg)) {
-      return { ok: true, newly_invited: false };
-    }
-    return { ok: false, error: msg };
-  }
-}
-
 async function attemptSend(base44, { to, company_id, planName, ownerName, accessUrl }) {
-  // Só envia o email customizado O CORTE com CTA /ativar-acesso.
-  // O membership já foi garantido por ensureMembership() antes do loop.
+  // LIMITAÇÃO DA PLATAFORMA Base44:
+  //   Core.SendEmail rejeita destinatários que ainda não aceitaram o convite
+  //   ("Cannot send emails to users outside the app"). Não conseguimos enviar
+  //   um email customizado O CORTE para um dono recém-cadastrado.
+  //
+  //   Solução atual: usar inviteUser, que dispara o email nativo da Base44
+  //   com link de definição de senha. O usuário aceita o convite, define a
+  //   senha, e a partir da próxima sessão cai no nosso fluxo /ativar-acesso
+  //   através do RootRedirect.
+  //
+  //   Para um email 100% customizado precisaríamos de um provedor externo
+  //   (Resend, SendGrid, etc.) configurado via secret.
   const sdk = base44.asServiceRole;
   let log = null;
   try {
     log = await sdk.entities.EmailLog.create({
       company_id: company_id || null,
       recipient: to,
-      subject: 'Sua barbearia já está pronta — O CORTE',
+      subject: 'Convite de acesso O CORTE',
       type: 'welcome',
       status: 'pending',
-      provider: 'base44_core',
-      metadata: { plan_name: planName, source: 'onboarding_welcome', cta_url: accessUrl },
+      provider: 'base44_invite',
+      metadata: { plan_name: planName, source: 'onboarding_welcome', cta_url: accessUrl, owner_name: ownerName },
     });
   } catch (logErr) {
     console.warn('[sendOnboardingWelcomeEmail] EmailLog create failed:', logErr.message);
   }
 
   try {
-    await sdk.integrations.Core.SendEmail({
-      from_name: 'O CORTE',
-      to,
-      subject: 'Sua barbearia já está pronta — ative seu acesso',
-      body: buildEmailHtml({ ownerName, planName, accessUrl, email: to }),
-    });
+    await base44.users.inviteUser(to, 'user');
     if (log) {
       await sdk.entities.EmailLog.update(log.id, {
         status: 'sent',
@@ -188,6 +178,17 @@ async function attemptSend(base44, { to, company_id, planName, ownerName, access
     return { ok: true, log_id: log?.id || null };
   } catch (sendErr) {
     const errMsg = (sendErr?.message || String(sendErr)).slice(0, 500);
+    const alreadyExists = /already|exists|duplicate/i.test(errMsg);
+    if (alreadyExists) {
+      if (log) {
+        await sdk.entities.EmailLog.update(log.id, {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          error_message: 'already_member',
+        }).catch(() => {});
+      }
+      return { ok: true, log_id: log?.id || null, already_member: true };
+    }
     if (log) {
       await sdk.entities.EmailLog.update(log.id, {
         status: 'failed',
@@ -256,24 +257,7 @@ Deno.serve(async (req) => {
     const appUrl = Deno.env.get('APP_URL') || 'https://ocorte.app';
     const accessUrl = buildAccessUrl(appUrl, email, planKey);
 
-    // 4) Garante membership ANTES do loop de envio. Core.SendEmail rejeita
-    //    com 404 "Cannot send emails to users outside the app" se o user
-    //    não for membro. inviteUser é idempotente.
-    const membership = await ensureMembership(base44, email);
-    if (!membership.ok) {
-      console.error(`[onboardingEmail ${rid}] invite_failed`, { company_id, error: membership.error });
-      await recordEvent(base44, 'onboarding_email_failed', {
-        company_id,
-        reason: `invite_failed: ${membership.error}`.slice(0, 200),
-      });
-      return Response.json({ ok: false, error: 'invite_failed' }, { status: 502 });
-    }
-    // Se acabou de ser convidado, aguarda propagação do membership na plataforma.
-    if (membership.newly_invited) {
-      await sleep(2500);
-    }
-
-    // 5) Envio + retry (0s, 1s, 3s)
+    // 4) Envio + retry (0s, 1s, 3s)
     const delays = [0, 1000, 3000];
     let lastErr = null;
     let logId = null;
