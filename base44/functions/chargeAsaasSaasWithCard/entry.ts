@@ -288,16 +288,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── 5. Cria BarberAccount (auth própria) + email de ativação ──
-    // BarberAccount = identidade de login do dono no sistema próprio O CORTE.
+    // ─── 5. Email transacional de boas-vindas (fire-and-forget) ──────────
+    // Não bloqueia a resposta. Idempotência + retry + EmailLog ficam dentro da função.
     if (company?.id) {
-      sdk.functions.invoke('barberAuth', {
-        action: 'create_account',
-        company_id: company.id,
-        email: emailLc,
-        name: owner_name.trim(),
-        role: 'owner',
-      }).catch(err => console.warn(`[saasCard ${rid}] barber account dispatch failed:`, err.message));
+      sdk.functions.invoke('sendOnboardingWelcomeEmail', { company_id: company.id })
+        .catch(err => console.warn(`[saasCard ${rid}] welcome email dispatch failed:`, err.message));
     }
 
     return Response.json({

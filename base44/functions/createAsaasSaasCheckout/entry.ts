@@ -322,17 +322,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── Step 6: Cria BarberAccount (auth própria) + email de ativação ────
-    // BarberAccount = identidade de login do dono no sistema próprio O CORTE.
-    // Fire-and-forget: idempotente (não recria se já existe).
+    // ─── Step 6: Email transacional de boas-vindas (fire-and-forget) ────
+    // Não bloqueia a resposta do checkout. Idempotência, retry e EmailLog ficam
+    // dentro de sendOnboardingWelcomeEmail.
     if (company?.id) {
-      base44.asServiceRole.functions.invoke('barberAuth', {
-        action: 'create_account',
-        company_id: company.id,
-        email: emailLc,
-        name: owner_name.trim(),
-        role: 'owner',
-      }).catch(err => console.warn('[createAsaasSaasCheckout] barber account dispatch failed:', err.message));
+      base44.asServiceRole.functions.invoke('sendOnboardingWelcomeEmail', { company_id: company.id })
+        .catch(err => console.warn('[createAsaasSaasCheckout] welcome email dispatch failed:', err.message));
     }
 
     return Response.json({
