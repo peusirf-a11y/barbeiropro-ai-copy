@@ -109,6 +109,11 @@
       "type": "boolean",
       "default": false
     },
+    "onboarding_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO de quando o onboarding foi conclu\u00eddo. Vazio = nunca conclu\u00eddo. Setado uma vez no clique final do step 7."
+    },
     "onboarding_email_sent_at": {
       "type": "string",
       "format": "date-time",
