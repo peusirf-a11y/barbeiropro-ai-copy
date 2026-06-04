@@ -16,14 +16,14 @@ import { BookingSessionProvider } from '@/contexts/BookingSessionContext';
 // Guards
 import PrivateRoute from '@/components/guards/PrivateRoute';
 import SuperAdminRoute from '@/components/guards/SuperAdminRoute';
-import OnboardingGuard from '@/components/guards/OnboardingGuard.jsx';
+import OnboardingGuard from '@/components/guards/OnboardingGuard';
 import TotpGate from '@/components/guards/TotpGate';
 import RoleRoute from '@/components/guards/RoleRoute';
 
 // Public pages
 import LandingPage from './pages/LandingPage';
 import PublicBooking from './pages/PublicBooking';
-import Onboarding from './pages/Onboarding.jsx';
+import Onboarding from './pages/Onboarding';
 import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import AcessarConta from './pages/AcessarConta';
