@@ -26,8 +26,7 @@
     "rating": {
       "type": "number",
       "minimum": 1,
-      "maximum": 5,
-      "description": "Nota legada de 1 a 5 estrelas (campo existente desde a v1). Continua sendo a fonte prim\u00e1ria para AppAvaliacoes, m\u00e9dias e modera\u00e7\u00e3o. Quando review nova (NPS) \u00e9 submetida, \u00e9 derivada automaticamente do nps_score (>=9 -> 5, 7-8 -> 4, 5-6 -> 3, 3-4 -> 2, <=2 -> 1) para retrocompat."
+      "maximum": 5
     },
     "comment": {
       "type": "string"
@@ -43,69 +42,10 @@
     },
     "moderated_by": {
       "type": "string"
-    },
-    "nps_score": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "description": "Net Promoter Score (0-10). M\u00e9trica estrat\u00e9gica adicionada na expans\u00e3o de 2026-05-11. Reviews antigas n\u00e3o t\u00eam; novas via /avaliar/:token sempre t\u00eam."
-    },
-    "service_rating": {
-      "type": "number",
-      "minimum": 1,
-      "maximum": 5,
-      "description": "Qualidade do servi\u00e7o/corte (1-5 estrelas). Operacional."
-    },
-    "punctuality_rating": {
-      "type": "number",
-      "minimum": 1,
-      "maximum": 5,
-      "description": "Pontualidade do atendimento (1-5 estrelas). Operacional."
-    },
-    "environment_rating": {
-      "type": "number",
-      "minimum": 1,
-      "maximum": 5,
-      "description": "Ambiente da barbearia (1-5 estrelas). Operacional."
-    },
-    "source": {
-      "type": "string",
-      "enum": [
-        "whatsapp",
-        "manual",
-        "qrcode",
-        "other"
-      ],
-      "default": "whatsapp",
-      "description": "Canal de origem da avalia\u00e7\u00e3o. Default 'whatsapp' porque \u00e9 o fluxo principal hoje (link enviado p\u00f3s-atendimento)."
-    },
-    "google_redirected": {
-      "type": "boolean",
-      "default": false,
-      "description": "Marcado como true quando o cliente foi redirecionado para o Google Review (acontece quando NPS>=9 e a barbearia tem whatsapp_settings.review_link configurado)."
-    },
-    "submitted_at": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Quando o cliente efetivamente enviou a avalia\u00e7\u00e3o. Para reviews antigas, fica em branco (created_date faz o papel)."
-    },
-    "status": {
-      "type": "string",
-      "enum": [
-        "pending",
-        "submitted",
-        "expired"
-      ],
-      "default": "submitted",
-      "description": "Ciclo de vida da review. 'submitted' = cliente respondeu. 'pending' reservado para futuro (review pr\u00e9-criada antes do envio). 'expired' reservado para limpeza autom\u00e1tica. Reviews antigas ficam 'submitted' por default."
-    },
-    "nps_alert_created": {
-      "type": "boolean",
-      "default": false,
-      "description": "Marcador idempotente: true quando o SystemAlert de NPS detrator (<=6) foi criado. Evita duplicar alerta em re-submits ou races."
     }
   },
   "required": [
-    "company_id"
+    "company_id",
+    "rating"
   ]
 }

@@ -3,25 +3,6 @@ import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
-/**
- * Resolve qual Company pertence ao usuário logado.
- * Estratégia de matching (em ordem de prioridade):
- *   1. owner_email === user.email  (caminho ideal — vem do checkout)
- *   2. created_by === user.email   (fallback p/ Companies criadas manualmente
- *                                    ou via login antes do checkout fechar)
- * Aplicar fallback evita o loop reportado: a Company existe e está com
- * onboarding_completed=true, mas owner_email está vazio → o guard achava
- * que o usuário não tinha Company e jogava ele de volta no onboarding.
- */
-function findMyCompany(companies, email) {
-  if (!email || !Array.isArray(companies) || companies.length === 0) return null;
-  return (
-    companies.find(c => c.owner_email === email) ||
-    companies.find(c => c.created_by === email) ||
-    null
-  );
-}
-
 export default function OnboardingGuard({ children }) {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user, navigateToLogin } = useAuth();
 
@@ -49,11 +30,9 @@ export default function OnboardingGuard({ children }) {
     return <Navigate to="/master" replace />;
   }
 
-  const myCompany = findMyCompany(companies, user?.email);
+  const myCompany = companies.find(c => c.owner_email === user?.email);
 
-  // Already completed onboarding → go to dashboard.
-  // Hard-stop: nenhum usuário com onboarding_completed=true deve conseguir
-  // renderizar o wizard, em hipótese alguma (evita loop infinito).
+  // Already completed onboarding → go to dashboard
   if (myCompany?.onboarding_completed) {
     return <Navigate to="/app/dashboard" replace />;
   }

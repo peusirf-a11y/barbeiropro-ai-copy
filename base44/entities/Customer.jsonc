@@ -79,7 +79,7 @@
     },
     "lifecycle_campaigns_log": {
       "type": "object",
-      "description": "Marcadores idempotentes das campanhas de lifecycle j\u00e1 enviadas para este cliente. Cada chave guarda o ISO datetime do \u00faltimo envio bem-sucedido.",
+      "description": "Marcadores idempotentes das campanhas de lifecycle j\u00e1 enviadas para este cliente. Cada chave guarda o ISO datetime do \u00faltimo envio bem-sucedido. Usado pelo job runLifecycleCampaigns para respeitar o cooldown configurado em Company.lifecycle_campaigns.",
       "properties": {
         "primeira_visita_sent_at": {
           "type": "string",
@@ -114,11 +114,11 @@
     },
     "password_hash": {
       "type": "string",
-      "description": "Hash PBKDF2 da senha do cliente (\u00e1rea p\u00fablica). Vazio = cliente nunca criou conta."
+      "description": "Hash bcrypt da senha do cliente (\u00e1rea p\u00fablica). Vazio = cliente nunca criou conta."
     },
     "auth_token": {
       "type": "string",
-      "description": "Token de sess\u00e3o atual do cliente (\u00fanico por dispositivo). Renovado a cada login."
+      "description": "Token de sess\u00e3o atual do cliente (\u00fanico por dispositivo). Renovado a cada login. N\u00c3O \u00e9 mais usado para reset (A6 \u2014 Sprint A): reset agora usa reset_token dedicado."
     },
     "auth_token_expires_at": {
       "type": "string",
@@ -126,21 +126,12 @@
     },
     "reset_token": {
       "type": "string",
-      "description": "Token dedicado de redefini\u00e7\u00e3o de senha. Separado de auth_token para n\u00e3o invalidar sess\u00f5es ativas. Limpo ap\u00f3s uso ou expira\u00e7\u00e3o."
+      "description": "Token dedicado de redefini\u00e7\u00e3o de senha (A6 \u2014 Sprint A). Separado de auth_token para evitar invalidar sess\u00f5es ativas e remover namespace collision. Limpo ap\u00f3s uso ou expira\u00e7\u00e3o."
     },
     "reset_token_expires_at": {
       "type": "string",
       "format": "date-time",
       "description": "Expira\u00e7\u00e3o do reset_token (1 hora ap\u00f3s gera\u00e7\u00e3o)."
-    },
-    "magic_token": {
-      "type": "string",
-      "description": "Token passwordless (Fase 12a). Cliente recebe link no email e troca por sess\u00e3o sem digitar senha. Uso \u00fanico \u2014 limpo ap\u00f3s consumo."
-    },
-    "magic_token_expires_at": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Expira\u00e7\u00e3o do magic_token (15 minutos ap\u00f3s gera\u00e7\u00e3o)."
     },
     "token_version": {
       "type": "number",

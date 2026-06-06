@@ -120,10 +120,6 @@ function App() {
             {/* "/" = login automático (app/APK abre direto no login).
                 Landing pública continua acessível em /landing. */}
             <Route path="/" element={<RootRedirect />} />
-            {/* /login — rota legada/usada pelo APK. Reaproveita o RootRedirect:
-                se não estiver autenticado, dispara base44.auth.redirectToLogin();
-                se estiver, manda para /app/dashboard ou /master conforme o role. */}
-            <Route path="/login" element={<RootRedirect />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
             <Route path="/cliente/:slug/login" element={<CustomerLoginPage />} />

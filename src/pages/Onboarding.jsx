@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, ArrowRight, ArrowLeft, AlertCircle, Sparkles } from 'lucide-react';
+import { Scissors, Check, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useNavigate } from 'react-router-dom';
 import BusinessDetailsStep, { isBusinessDetailsValid } from '@/components/onboarding/BusinessDetailsStep';
@@ -30,18 +30,11 @@ const STEPS = [
   { id: 7, title: 'Conclusão', sub: 'Sua barbearia está pronta!' },
 ];
 
-const TOTAL_STEPS = STEPS.length;
-
-function trackOnboarding(event_type, metadata = {}) {
-  base44.functions.invoke('trackEvent', { event_type, metadata }).catch(() => {});
-}
-
 export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [hydrated, setHydrated] = useState(false);
   const [company, setCompany] = useState({ name: '', phone: '', whatsapp: '', address: '', slug: '', primary_color: '#2563EB' });
   const [businessDetails, setBusinessDetails] = useState({
     business_type: '',
@@ -53,72 +46,41 @@ export default function Onboarding() {
   const [companyId, setCompanyId] = useState(null);
   const [slugError, setSlugError] = useState('');
   const [validatingSlug, setValidatingSlug] = useState(false);
-  const [finishing, setFinishing] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const startedRef = useRef(false);
 
-  // Carrega a Company existente do usuário (criada pelo webhook do Asaas quando ele
-  // pagou o checkout). Faz match por owner_email OU created_by — porque em alguns
-  // fluxos o owner_email fica vazio e a única referência fica em created_by.
-  // Também RETOMA da última etapa salva (onboarding_step) — nunca volta pra etapa 1
-  // se o usuário já tinha avançado.
+  // Carrega a Company existente do usuário (criada pelo webhook do Stripe quando ele
+  // pagou o checkout) para pré-preencher o onboarding. Sem isso, criamos uma Company
+  // duplicada no step 2 — e o companyId pode ficar nulo, fazendo o onboarding nunca
+  // persistir os steps seguintes (incluindo onboarding_completed=true).
   useEffect(() => {
-    if (!user?.email || hydrated) return;
+    if (!user?.email || companyId) return;
     let cancelled = false;
     (async () => {
       try {
-        const all = await base44.entities.Company.list();
-        const existing =
-          all.find(c => c.owner_email === user.email) ||
-          all.find(c => c.created_by === user.email) ||
-          null;
-
-        if (cancelled) return;
-
-        // Guard de segurança: se já concluiu, sai daqui imediatamente.
-        if (existing?.onboarding_completed) {
-          navigate('/app/dashboard', { replace: true });
-          return;
-        }
-
-        if (existing) {
-          setCompanyId(existing.id);
-          setCompany(p => ({
+        const list = await base44.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
+        const existing = list?.[0];
+        if (!existing || cancelled) return;
+        setCompanyId(existing.id);
+        setCompany(p => ({
+          ...p,
+          name: existing.name || p.name,
+          phone: existing.phone || p.phone,
+          whatsapp: existing.whatsapp || p.whatsapp,
+          address: existing.address || p.address,
+          slug: existing.slug || p.slug,
+          primary_color: existing.primary_color || p.primary_color,
+        }));
+        if (existing.business_type || existing.address_details) {
+          setBusinessDetails(p => ({
             ...p,
-            name: existing.name || p.name,
+            business_type: existing.business_type || p.business_type,
             phone: existing.phone || p.phone,
-            whatsapp: existing.whatsapp || p.whatsapp,
-            address: existing.address || p.address,
-            slug: existing.slug || p.slug,
-            primary_color: existing.primary_color || p.primary_color,
+            address_details: existing.address_details || p.address_details,
           }));
-          if (existing.business_type || existing.address_details) {
-            setBusinessDetails(p => ({
-              ...p,
-              business_type: existing.business_type || p.business_type,
-              phone: existing.phone || p.phone,
-              address_details: existing.address_details || p.address_details,
-            }));
-          }
-          // Retoma da última etapa salva (clamp 1..7)
-          const savedStep = Number(existing.onboarding_step) || 1;
-          const resumeAt = Math.min(Math.max(savedStep, 1), TOTAL_STEPS);
-          setStep(resumeAt);
         }
       } catch (e) { /* ignore */ }
-      finally {
-        if (!cancelled) setHydrated(true);
-      }
     })();
     return () => { cancelled = true; };
-  }, [user?.email, hydrated, navigate]);
-
-  // Audit log: onboarding_started — uma única vez por sessão.
-  useEffect(() => {
-    if (!hydrated || startedRef.current) return;
-    startedRef.current = true;
-    trackOnboarding('onboarding_started', { resume_step: step, company_id: companyId });
-  }, [hydrated, step, companyId]);
+  }, [user?.email, companyId]);
 
   const validateSlug = async (slug) => {
     const clean = sanitizeSlug(slug);
@@ -161,54 +123,85 @@ export default function Onboarding() {
     mutationFn: (data) => base44.entities.Professional.create(data),
   });
 
-  /**
-   * Garante que existe uma Company para este usuário antes de finalizar.
-   * Usado no step 7 — se por algum motivo (ex.: usuário pulou etapas) o
-   * companyId estiver vazio, criamos antes de marcar como concluído.
-   * Sem isso, o onboarding_completed nunca era persistido e o guard
-   * jogava o usuário de volta pra etapa 1.
-   */
-  const ensureCompanyId = async () => {
-    if (companyId) return companyId;
-    const cleanSlug = sanitizeSlug(company.slug || (company.name || 'minha-barbearia'));
-    const created = await createCompanyMutation.mutateAsync({
-      name: company.name || 'Minha Barbearia',
-      phone: company.phone || '',
-      whatsapp: company.whatsapp || '',
-      address: company.address || '',
-      slug: cleanSlug,
-      primary_color: company.primary_color || '#2563EB',
-      owner_email: user?.email || null,
-      status: 'active',
-      onboarding_step: step,
-      onboarding_completed: false,
-    });
-    setCompanyId(created.id);
-    return created.id;
-  };
-
-  const persistStep = async (id, nextStep) => {
-    if (!id) return;
-    try {
-      await base44.entities.Company.update(id, { onboarding_step: nextStep });
-      trackOnboarding('onboarding_step_changed', { from: step, to: nextStep, company_id: id });
-    } catch (e) { /* não bloqueia a navegação */ }
-  };
-
-  const finishOnboarding = async () => {
-    if (submitting || finishing) return;
-    setSubmitting(true);
-    try {
-      const id = await ensureCompanyId();
-      await base44.entities.Company.update(id, {
-        onboarding_completed: true,
-        onboarding_completed_at: new Date().toISOString(),
-        onboarding_step: TOTAL_STEPS,
-        // Preenche owner_email se ainda estava vazio — corrige Companies legadas
-        // que vieram sem owner_email do checkout.
-        ...(user?.email ? { owner_email: user.email } : {}),
+  const handleNext = async () => {
+    if (step === 2) {
+      const ok = await validateSlug(company.slug);
+      if (!ok) return;
+      const cleanSlug = sanitizeSlug(company.slug);
+      if (!companyId) {
+        const result = await createCompanyMutation.mutateAsync({
+          ...company,
+          slug: cleanSlug,
+          status: 'active',
+          onboarding_step: 2,
+          onboarding_completed: false,
+        });
+        setCompanyId(result.id);
+      } else {
+        // Persiste também os dados do step 1 (nome, telefone, whatsapp, endereço, cor)
+        // que podem ter sido editados depois do load inicial.
+        await base44.entities.Company.update(companyId, {
+          name: company.name,
+          phone: company.phone,
+          whatsapp: company.whatsapp,
+          address: company.address,
+          primary_color: company.primary_color,
+          slug: cleanSlug,
+          onboarding_step: 3,
+        });
+      }
+    }
+    // Step 3 (novo): persiste dados fiscais + endereço estruturado na Company.
+    // Também copia phone para Company.phone se ainda estiver vazio, e monta
+    // address (string legacy) a partir do endereço estruturado.
+    if (step === 3 && companyId) {
+      const a = businessDetails.address_details || {};
+      const legacyAddress = [
+        [a.line1, a.line2].filter(Boolean).join(', '),
+        a.neighborhood,
+        a.city && a.state ? `${a.city}/${a.state}` : (a.city || a.state),
+        a.postal_code,
+      ].filter(Boolean).join(' · ');
+      await base44.entities.Company.update(companyId, {
+        business_type: businessDetails.business_type,
+        phone: businessDetails.phone || company.phone || '',
+        address_details: businessDetails.address_details,
+        address: legacyAddress,
+        onboarding_step: 4,
       });
-      trackOnboarding('onboarding_completed', { company_id: id });
+    }
+    if (step === 4 && companyId) {
+      // Paralelizado: todas as criações ao mesmo tempo
+      await Promise.all(
+        services.filter(s => s.name).map(s =>
+          createServiceMutation.mutateAsync({ ...s, company_id: companyId, active: true })
+        )
+      );
+    }
+    if (step === 5 && companyId) {
+      // Paralelizado
+      await Promise.all(
+        professionals.filter(p => p.name).map(p =>
+          createProMutation.mutateAsync({ ...p, company_id: companyId, active: true })
+        )
+      );
+    }
+
+    // Tracking fire-and-forget — não trava a navegação
+    base44.functions.invoke('trackEvent', {
+      event_type: 'onboarding_step_completed',
+      metadata: { step },
+    }).catch(() => {});
+
+    if (step === 7) {
+      // Marca como concluído SOMENTE no clique final, e invalida cache antes de navegar
+      if (companyId) {
+        await base44.entities.Company.update(companyId, {
+          onboarding_completed: true,
+          onboarding_step: 7,
+        });
+      }
+      base44.functions.invoke('trackEvent', { event_type: 'onboarding_completed' }).catch(() => {});
 
       // Invalida todos os caches que decidem onboarding/redirect
       await Promise.all([
@@ -218,132 +211,11 @@ export default function Onboarding() {
         queryClient.invalidateQueries({ queryKey: ['my-company'] }),
       ]);
 
-      // Mostra tela de sucesso por ~1.5s antes de redirecionar
-      setFinishing(true);
-      setTimeout(() => {
-        navigate('/app/dashboard', { replace: true });
-      }, 1500);
-    } catch (err) {
-      console.error('[Onboarding] finishOnboarding failed', err);
-      setSubmitting(false);
-    }
-  };
-
-  const handleNext = async () => {
-    if (submitting || finishing) return;
-
-    if (step === 7) {
-      await finishOnboarding();
+      navigate('/app/dashboard');
       return;
     }
-
-    setSubmitting(true);
-    try {
-      if (step === 2) {
-        const ok = await validateSlug(company.slug);
-        if (!ok) { setSubmitting(false); return; }
-        const cleanSlug = sanitizeSlug(company.slug);
-        if (!companyId) {
-          const result = await createCompanyMutation.mutateAsync({
-            ...company,
-            slug: cleanSlug,
-            owner_email: user?.email || null,
-            status: 'active',
-            onboarding_step: 3,
-            onboarding_completed: false,
-          });
-          setCompanyId(result.id);
-        } else {
-          await base44.entities.Company.update(companyId, {
-            name: company.name,
-            phone: company.phone,
-            whatsapp: company.whatsapp,
-            address: company.address,
-            primary_color: company.primary_color,
-            slug: cleanSlug,
-            onboarding_step: 3,
-            ...(user?.email ? { owner_email: user.email } : {}),
-          });
-        }
-      }
-      if (step === 3 && companyId) {
-        const a = businessDetails.address_details || {};
-        const legacyAddress = [
-          [a.line1, a.line2].filter(Boolean).join(', '),
-          a.neighborhood,
-          a.city && a.state ? `${a.city}/${a.state}` : (a.city || a.state),
-          a.postal_code,
-        ].filter(Boolean).join(' · ');
-        await base44.entities.Company.update(companyId, {
-          business_type: businessDetails.business_type,
-          phone: businessDetails.phone || company.phone || '',
-          address_details: businessDetails.address_details,
-          address: legacyAddress,
-          onboarding_step: 4,
-        });
-      }
-      if (step === 4 && companyId) {
-        await Promise.all(
-          services.filter(s => s.name).map(s =>
-            createServiceMutation.mutateAsync({ ...s, company_id: companyId, active: true })
-          )
-        );
-        await persistStep(companyId, 5);
-      }
-      if (step === 5 && companyId) {
-        await Promise.all(
-          professionals.filter(p => p.name).map(p =>
-            createProMutation.mutateAsync({ ...p, company_id: companyId, active: true })
-          )
-        );
-        await persistStep(companyId, 6);
-      }
-      if (step === 1 && companyId) {
-        await persistStep(companyId, 2);
-      }
-      if (step === 6 && companyId) {
-        await persistStep(companyId, 7);
-      }
-
-      trackOnboarding('onboarding_step_completed', { step });
-      setStep(s => s + 1);
-    } catch (e) {
-      console.error('[Onboarding] handleNext failed', e);
-    } finally {
-      setSubmitting(false);
-    }
+    setStep(s => s + 1);
   };
-
-  const canContinue =
-    !submitting &&
-    !finishing &&
-    !((step === 1 && !company.name) ||
-      (step === 2 && (!company.slug || !!slugError || validatingSlug)) ||
-      (step === 3 && !isBusinessDetailsValid(businessDetails)));
-
-  // Tela de sucesso (entre marcar completed e o redirect)
-  if (finishing) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#F8F7F3] via-white to-[#EFF6FF] flex items-center justify-center p-6 font-inter">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-black/5 p-10 text-center animate-fade-in-up">
-          <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <Check className="w-10 h-10 text-white" strokeWidth={3} />
-          </div>
-          <h2 className="text-2xl font-black text-[#0F172A] mb-3 flex items-center justify-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#2563EB]" />
-            Configuração concluída
-          </h2>
-          <p className="text-gray-600 mb-6 leading-relaxed">
-            Bem-vindo ao <strong className="text-[#0F172A]">O CORTE</strong>. Estamos abrindo seu painel...
-          </p>
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
-            <div className="w-4 h-4 border-2 border-[#2563EB]/30 border-t-[#2563EB] rounded-full animate-spin" />
-            Redirecionando
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#F8F7F3] flex flex-col lg:flex-row font-inter">
@@ -371,7 +243,7 @@ export default function Onboarding() {
       <div className="flex-1 p-6 sm:p-8 lg:p-12 flex flex-col">
         <div className="max-w-lg flex-1 w-full">
           <div className="mb-8">
-            <div className="text-xs font-semibold text-[#2563EB] uppercase tracking-widest mb-2">Etapa {step} de {TOTAL_STEPS}</div>
+            <div className="text-xs font-semibold text-[#2563EB] uppercase tracking-widest mb-2">Etapa {step} de {STEPS.length}</div>
             <h1 className="text-3xl font-black text-[#1B1C1E]">{STEPS[step - 1].title}</h1>
             <p className="text-gray-500 mt-1">{STEPS[step - 1].sub}</p>
           </div>
@@ -494,7 +366,7 @@ export default function Onboarding() {
               <h2 className="text-2xl font-black text-[#1B1C1E] mb-3">Tudo pronto!</h2>
               <p className="text-gray-500 mb-6">Sua barbearia está configurada e o link público de agendamento está ativo.</p>
               {company.slug && (
-                <div className="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-xl p-4 text-sm text-[#2563EB] font-medium mb-6 break-all">
+                <div className="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-xl p-4 text-sm text-[#2563EB] font-medium mb-6">
                   {window.location.origin}/agendar/{company.slug}
                 </div>
               )}
@@ -503,28 +375,20 @@ export default function Onboarding() {
         </div>
 
         <div className="flex items-center justify-between mt-8 max-w-lg w-full">
-          {step > 1 && !finishing ? (
-            <button
-              onClick={() => setStep(s => Math.max(1, s - 1))}
-              disabled={submitting}
-              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#1B1C1E] disabled:opacity-50">
+          {step > 1 ? (
+            <button onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#1B1C1E]">
               <ArrowLeft className="w-4 h-4" />Voltar
             </button>
           ) : <div />}
           <button onClick={handleNext}
-            disabled={!canContinue}
+            disabled={
+              (step === 1 && !company.name) ||
+              (step === 2 && (!company.slug || !!slugError || validatingSlug)) ||
+              (step === 3 && !isBusinessDetailsValid(businessDetails))
+            }
             className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#2563EB]/90 disabled:opacity-50 transition-colors">
-            {submitting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                {step === 7 ? 'Finalizando...' : 'Salvando...'}
-              </>
-            ) : (
-              <>
-                {step === 7 ? 'Finalizar e acessar o painel' : 'Continuar'}
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
+            {step === 7 ? 'Acessar o painel' : 'Continuar'}
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>
