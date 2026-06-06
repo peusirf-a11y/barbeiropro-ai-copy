@@ -1,27 +1,25 @@
 // RootRedirect — define o destino da rota "/".
-// Comportamento (app/APK abre direto no login):
-//   - Carregando auth → spinner.
-//   - Autenticado → vai para /app/dashboard.
-//   - Não autenticado → dispara o login oficial da plataforma Base44.
-// A landing pública continua acessível em /landing para visitantes via web.
+//
+// Comportamento:
+//   - Carregando auth → spinner curto.
+//   - Autenticado (admin) → vai para /master/dashboard.
+//   - Autenticado (user)  → vai para /app/dashboard.
+//   - NÃO autenticado     → renderiza a Landing pública (não redireciona pra login).
+//
+// IMPORTANTE: a Landing é 100% pública. Nunca disparamos redirectToLogin aqui.
+// Quem precisa entrar usa o botão "Entrar" da própria Landing, que leva ao
+// fluxo de login oficial. Isso evita o loop de visitantes anônimos serem
+// arremessados pra tela de login ao abrir o domínio.
 
-import { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { base44 } from '@/api/base44Client';
+import LandingPage from '@/pages/LandingPage';
 
 export default function RootRedirect() {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user } = useAuth();
   const stillLoading = isLoadingAuth || isLoadingPublicSettings;
 
-  useEffect(() => {
-    if (stillLoading) return;
-    if (!isAuthenticated) {
-      base44.auth.redirectToLogin(`${window.location.origin}/`);
-    }
-  }, [stillLoading, isAuthenticated]);
-
-  if (stillLoading || !isAuthenticated) {
+  if (stillLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#F7F8FB]">
         <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
@@ -29,10 +27,13 @@ export default function RootRedirect() {
     );
   }
 
-  // Super admin vai direto para o painel master
-  if (user?.role === 'admin') {
-    return <Navigate to="/master/dashboard" replace />;
+  if (isAuthenticated) {
+    if (user?.role === 'admin') {
+      return <Navigate to="/master/dashboard" replace />;
+    }
+    return <Navigate to="/app/dashboard" replace />;
   }
 
-  return <Navigate to="/app/dashboard" replace />;
+  // Visitante anônimo → Landing pública.
+  return <LandingPage />;
 }
