@@ -1,14 +1,12 @@
 // RootRedirect — define o destino da rota "/".
 // Comportamento:
-//   - Carregando auth → spinner.
+//   - Carregando auth → spinner curto.
 //   - Autenticado super admin → /master/dashboard.
 //   - Autenticado comum → /app/dashboard.
-//   - Não autenticado → /landing (landing premium com CTAs de login/cadastro).
+//   - Não autenticado → /landing (pública, sem forçar login).
 //
-// Obs.: este app NÃO usa as páginas boilerplate /login, /register. O fluxo de
-// auth roda via plataforma Base44 (popup nativo disparado pelos CTAs da landing
-// e da tela de ativação). Chamar base44.auth.redirectToLogin() leva a /login,
-// que não existe no router → 404. Por isso usamos /landing como porta de entrada.
+// IMPORTANTE: este componente NÃO força login automático. Quem visita "/"
+// sem estar logado vai para a landing pública e decide se clica em "Entrar".
 
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
@@ -29,7 +27,6 @@ export default function RootRedirect() {
     return <Navigate to="/landing" replace />;
   }
 
-  // Super admin vai direto para o painel master
   if (user?.role === 'admin' || user?.is_super_admin) {
     return <Navigate to="/master/dashboard" replace />;
   }
