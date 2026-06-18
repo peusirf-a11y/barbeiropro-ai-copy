@@ -80,8 +80,8 @@ export default function PrivateRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    // App não tem rota /login boilerplate — usa landing como porta de auth.
-    return <Navigate to="/landing" replace />;
+    navigateToLogin();
+    return null;
   }
 
   // Super admin: skip company checks

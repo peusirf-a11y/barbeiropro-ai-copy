@@ -28,7 +28,6 @@ import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import AcessarConta from './pages/AcessarConta';
 import AtivarAcesso from './pages/AtivarAcesso';
-import Entrar from './pages/Entrar';
 
 // Master pages (super admin)
 import MasterLayout from './components/master/MasterLayout';
@@ -134,7 +133,6 @@ function App() {
             <Route path="/checkout/sucesso" element={<CheckoutSuccess />} />
             <Route path="/acessar-conta" element={<AcessarConta />} />
             <Route path="/ativar-acesso" element={<AtivarAcesso />} />
-            <Route path="/entrar" element={<Entrar />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/politica-de-privacidade" element={<PoliticaDePrivacidade />} />
 

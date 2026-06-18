@@ -37,11 +37,6 @@ export default function PremiumNav() {
               Demo
             </button>
           </Link>
-          <Link to="/entrar">
-            <button className="h-10 px-4 rounded-lg text-sm font-semibold text-white/90 hover:text-white border border-white/15 hover:border-white/30 hover:bg-white/5 transition-colors">
-              Entrar
-            </button>
-          </Link>
           <Link to="/checkout">
             <GlowButton className="h-10 px-5 text-[13px]">Começar agora</GlowButton>
           </Link>
