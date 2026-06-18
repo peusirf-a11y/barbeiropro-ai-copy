@@ -17,6 +17,8 @@ export default function RootRedirect() {
   useEffect(() => {
     if (stillLoading) return;
     if (!isAuthenticated) {
+      // Sempre passar a raiz como destino pós-login para evitar loops caso
+      // o usuário tenha chegado via /login, /signin etc.
       base44.auth.redirectToLogin(`${window.location.origin}/`);
     }
   }, [stillLoading, isAuthenticated]);
