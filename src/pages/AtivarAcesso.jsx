@@ -1,10 +1,10 @@
-// AtivarAcesso — Nova UX premium de ativação de acesso pós-checkout.
+// AtivarAcesso — UX premium de ativação de acesso pós-checkout.
 //
 // Rota: /ativar-acesso?email=...&plan=...
 //
-// Substitui a antiga /acessar-conta (que continua existindo como alias).
-// O objetivo é esconder a complexidade da tela genérica de login da Base44
-// e guiar o dono da barbearia em 3 opções claras: Google, Criar senha, Já tenho senha.
+// Política atual: cadastro/ativação da barbearia é EXCLUSIVAMENTE via Google.
+// Não há mais opção de "criar senha" nem "já tenho senha" — simplifica o onboarding
+// e garante identidade verificada (email Google = email do checkout).
 //
 // Princípios:
 //   - NÃO recriar auth — só camada UX em cima da Base44.
@@ -16,8 +16,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 import GoogleAccessCard from '@/components/ativar/GoogleAccessCard';
-import CreatePasswordCard from '@/components/ativar/CreatePasswordCard';
-import ExistingLoginCard from '@/components/ativar/ExistingLoginCard';
 import {
   CheckCircle2,
   Mail,
@@ -43,51 +41,20 @@ function isGmail(email) {
 
 export default function AtivarAcesso() {
   const navigate = useNavigate();
-  const [busy, setBusy] = useState(null); // 'google' | 'password' | 'login' | null
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error] = useState('');
 
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const email = (params.get('email') || '').trim().toLowerCase();
   const planKey = (params.get('plan') || '').toLowerCase();
-  const action = (params.get('action') || '').toLowerCase();
   const planName = PLAN_LABEL[planKey] || 'O CORTE';
   const gmail = isGmail(email);
 
-  const triggerReset = async ({ auto = false } = {}) => {
-    if (!email) {
-      setError('Email não informado. Volte para o checkout e tente novamente.');
-      return;
-    }
-    recordEvent('first_access_reset', { email, auto });
-    setBusy('password');
-    setError('');
-    try {
-      const res = await base44.functions.invoke('requestPasswordSetup', { email });
-      const data = res?.data || {};
-      if (data.ok) {
-        setSent(true);
-      } else {
-        setError('Não consegui enviar o link agora. Tente novamente em instantes.');
-      }
-    } catch (err) {
-      console.warn('[ativar-acesso] requestPasswordSetup failed:', err?.message);
-      setError('Não consegui enviar o link agora. Tente novamente em instantes.');
-    } finally {
-      setBusy(null);
-    }
-  };
-
   useEffect(() => {
-    recordEvent('first_access_started', { has_email: !!email, gmail, action: action || null });
+    recordEvent('first_access_started', { has_email: !!email, gmail });
     base44.auth.isAuthenticated().then((auth) => {
       if (auth) {
         navigate('/app/dashboard', { replace: true });
-        return;
-      }
-      // Vindo do email transacional (?action=reset) — já dispara o envio.
-      if (action === 'reset' && email) {
-        triggerReset({ auto: true });
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,15 +62,8 @@ export default function AtivarAcesso() {
 
   const handleGoogle = () => {
     if (busy) return;
-    setBusy('google');
+    setBusy(true);
     recordEvent('first_access_google', { email });
-    base44.auth.redirectToLogin('/app/dashboard');
-  };
-
-  const handleExistingLogin = () => {
-    if (busy) return;
-    setBusy('login');
-    recordEvent('first_access_password', { email });
     base44.auth.redirectToLogin('/app/dashboard');
   };
 
@@ -128,7 +88,7 @@ export default function AtivarAcesso() {
             Seu acesso está pronto
           </h1>
           <p className="text-sm sm:text-base text-gray-500 max-w-md mx-auto">
-            Escolha como entrar na plataforma. Em segundos você cai direto no painel da sua barbearia.
+            Entre com sua conta Google para acessar o painel da sua barbearia em segundos.
           </p>
         </div>
 
@@ -163,42 +123,32 @@ export default function AtivarAcesso() {
           </div>
         )}
 
-        {/* Action cards */}
-        <div className="space-y-3">
-          <GoogleAccessCard
-            onClick={handleGoogle}
-            busy={busy === 'google'}
-            disabled={!!busy && busy !== 'google'}
-            recommended={gmail && !sent}
-          />
+        {/* Google access — única opção */}
+        <GoogleAccessCard
+          onClick={handleGoogle}
+          busy={busy}
+          disabled={busy}
+          recommended
+        />
 
-          <div className="flex items-center gap-3 my-1">
-            <div className="flex-1 h-px bg-black/8" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">ou</span>
-            <div className="flex-1 h-px bg-black/8" />
+        {/* Aviso sobre email */}
+        {email && !gmail && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3 text-sm text-amber-900">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <div>
+              <strong className="font-bold">Atenção:</strong> use a conta Google vinculada ao email <strong>{email}</strong> para entrar. Se você não tem conta Google nesse endereço, crie uma gratuitamente em{' '}
+              <a href="https://accounts.google.com/signup" target="_blank" rel="noopener noreferrer" className="underline font-semibold">
+                accounts.google.com
+              </a>.
+            </div>
           </div>
-
-          <CreatePasswordCard
-            onClick={() => triggerReset({ auto: false })}
-            busy={busy === 'password'}
-            disabled={!!busy && busy !== 'password'}
-            sent={sent}
-            email={email}
-            recommended={!gmail && !sent}
-          />
-
-          <ExistingLoginCard
-            onClick={handleExistingLogin}
-            busy={busy === 'login'}
-            disabled={!!busy && busy !== 'login'}
-          />
-        </div>
+        )}
 
         {/* Trust line */}
         <div className="flex items-center justify-center gap-2 mt-8 text-[11px] text-gray-400 text-center">
           <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
           <span>
-            Acesso seguro e criptografado · Dúvidas?{' '}
+            Acesso seguro via Google · Dúvidas?{' '}
             <Link to="/landing" className="underline hover:text-[#2563EB]">central de ajuda</Link>
           </span>
         </div>
