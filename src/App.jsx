@@ -121,8 +121,6 @@ function App() {
                 Landing pública continua acessível em /landing.
                 /login e /signin = aliases para o RootRedirect (dispara o login oficial Base44). */}
             <Route path="/" element={<RootRedirect />} />
-            <Route path="/login" element={<RootRedirect />} />
-            <Route path="/signin" element={<RootRedirect />} />
             <Route path="/entrar" element={<RootRedirect />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
