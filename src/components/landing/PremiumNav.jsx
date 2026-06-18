@@ -39,10 +39,7 @@ export default function PremiumNav() {
             </button>
           </Link>
           <button
-            onClick={() => {
-              const from = encodeURIComponent(`${window.location.origin}/app/dashboard`);
-              window.location.href = `/login?from_url=${from}`;
-            }}
+            onClick={() => base44.auth.redirectToLogin('/app/dashboard')}
             className="h-10 px-4 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition-colors"
           >
             Entrar
