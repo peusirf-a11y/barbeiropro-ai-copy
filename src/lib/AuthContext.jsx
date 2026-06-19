@@ -121,13 +121,18 @@ export const AuthProvider = ({ children }) => {
     // sem redirect (shouldRedirect=false) não fique cache tenant-aware vivo.
     flushTenantCache(queryClientInstance);
 
-    if (shouldRedirect) {
-      // Após logout, vai pro login do app (não pra URL atual que pode ser uma rota
-      // protegida — isso causa loop ou volta o usuário pra conta antiga).
-      base44.auth.logout(`${window.location.origin}/login`);
-    } else {
-      // Just remove the token without redirect
+    // Limpa o token Base44 SEM acionar o redirect interno da plataforma
+    // (que força a tela nativa de login da Base44, ignorando o redirectUrl).
+    try {
       base44.auth.logout();
+    } catch {
+      /* ignore */
+    }
+
+    if (shouldRedirect) {
+      // Hard reload pra /login do app — garante que o iframe da plataforma
+      // não intercepte a navegação pra forçar a tela nativa.
+      window.location.replace(`${window.location.origin}/login`);
     }
   };
 
