@@ -22,8 +22,9 @@ export default function PrivateRoute({ children }) {
     staleTime: 30_000,
   });
 
-  // Owner direto da empresa
-  const ownerCompany = user?.role === 'admin'
+  // Owner direto da empresa.
+  // Super-admin da plataforma (Master) não tem empresa vinculada — pula a busca.
+  const ownerCompany = user?.is_super_admin
     ? null
     : companies.find(c => c.owner_email === user?.email);
 
@@ -34,7 +35,7 @@ export default function PrivateRoute({ children }) {
       const tm = await base44.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
       return tm?.[0] || null;
     },
-    enabled: !!isAuthenticated && !!user && user?.role !== 'admin' && !ownerCompany,
+    enabled: !!isAuthenticated && !!user && !user?.is_super_admin && !ownerCompany,
     staleTime: 60_000,
   });
 
@@ -84,8 +85,8 @@ export default function PrivateRoute({ children }) {
     return null;
   }
 
-  // Super admin: skip company checks
-  if (user?.role === 'admin') {
+  // Super admin da plataforma (Master): pula todas as checagens de empresa.
+  if (user?.is_super_admin) {
     return children;
   }
 

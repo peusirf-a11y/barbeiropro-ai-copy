@@ -59,11 +59,12 @@ export default function BarberLogin() {
         return;
       }
 
-      // Sucesso: seta token Base44 e redireciona.
+      // Sucesso: seta token Base44 e redireciona pra "/" — o RootRedirect decide
+      // se manda pra /master/dashboard (super-admin) ou /app/dashboard (dono/equipe).
       if (data.access_token && typeof base44.auth.setToken === 'function') {
         base44.auth.setToken(data.access_token);
       }
-      window.location.href = '/app/dashboard';
+      window.location.href = '/';
     } catch (err) {
       console.error('[BarberLogin] submit_failed', err);
       setError('Não conseguimos entrar agora. Tente novamente em instantes.');
@@ -163,6 +164,16 @@ export default function BarberLogin() {
             )}
           </button>
         </form>
+
+        <div className="text-center mt-6">
+          <button
+            type="button"
+            onClick={() => base44.auth.redirectToLogin('/')}
+            className="text-xs font-semibold text-gray-500 hover:text-[#2563EB] underline"
+          >
+            Sou administrador da plataforma — entrar via Base44
+          </button>
+        </div>
 
         <div className="flex items-center justify-center gap-2 mt-8 text-[11px] text-gray-400">
           <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />

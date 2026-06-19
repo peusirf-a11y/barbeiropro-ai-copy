@@ -25,8 +25,10 @@ export default function OnboardingGuard({ children }) {
     return null;
   }
 
-  // Super admin: skip onboarding flow
-  if (user?.role === 'admin') {
+  // Super admin (Master da plataforma O CORTE): pula onboarding e vai pro painel Master.
+  // NÃO usar user.role === 'admin' aqui — esse é o role default de qualquer dono de app
+  // da Base44, então faria todo dono de barbearia cair no Master.
+  if (user?.is_super_admin) {
     return <Navigate to="/master" replace />;
   }
 
