@@ -30,6 +30,8 @@ import AcessarConta from './pages/AcessarConta';
 import AtivarAcesso from './pages/AtivarAcesso';
 import LoginRedirect from './pages/LoginRedirect';
 import BarberLogin from './pages/BarberLogin';
+import EsqueciSenha from './pages/EsqueciSenha';
+import ResetarSenha from './pages/ResetarSenha';
 
 // Master pages (super admin)
 import MasterLayout from './components/master/MasterLayout';
@@ -125,6 +127,8 @@ function App() {
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<BarberLogin />} />
             <Route path="/signin" element={<BarberLogin />} />
+            <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+            <Route path="/resetar-senha" element={<ResetarSenha />} />
             {/* Mantemos /login-base44 como fallback emergencial pro OTP da Base44. */}
             <Route path="/login-base44" element={<LoginRedirect />} />
             <Route path="/landing" element={<LandingPage />} />
