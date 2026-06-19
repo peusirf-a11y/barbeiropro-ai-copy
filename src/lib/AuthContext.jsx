@@ -122,8 +122,9 @@ export const AuthProvider = ({ children }) => {
     flushTenantCache(queryClientInstance);
 
     if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
+      // Após logout, vai pro login do app (não pra URL atual que pode ser uma rota
+      // protegida — isso causa loop ou volta o usuário pra conta antiga).
+      base44.auth.logout(`${window.location.origin}/login`);
     } else {
       // Just remove the token without redirect
       base44.auth.logout();
@@ -131,8 +132,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+    // Manda pro login DO APP (email + senha + link "Sou administrador").
+    // O login nativo da Base44 (OTP) fica como fallback acionável dentro da tela /login.
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
   };
 
   return (
