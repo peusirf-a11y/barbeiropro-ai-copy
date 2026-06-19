@@ -33,10 +33,11 @@ function escapeHtml(s) {
 
 function buildLoginUrl(appUrl, email) {
   const base = (appUrl || 'https://ocorte.app').replace(/\/+$/, '');
-  // Rota oficial Base44 para CRIAR CONTA com email + senha (apps públicos).
-  // Após cadastro + verificação OTP, o usuário cai em /app/dashboard.
-  // `from_url` faz Base44 redirecionar de volta após registro.
-  return `${base}/Register?email=${encodeURIComponent(email)}&from_url=${encodeURIComponent('/app/dashboard')}`;
+  // /login é interceptada pelo LoginRedirect que chama base44.auth.redirectToLogin()
+  // → leva o usuário à tela oficial Base44 (email + senha) onde ele pode CRIAR conta
+  // se ainda não existir (clicando em "Cadastre-se") ou entrar se já existir.
+  // Passamos o email apenas como contexto (não é consumido pela Base44 hoje).
+  return `${base}/login?email=${encodeURIComponent(email)}&from_url=${encodeURIComponent('/app/dashboard')}`;
 }
 
 function buildEmailHtml({ ownerName, email, loginUrl }) {
