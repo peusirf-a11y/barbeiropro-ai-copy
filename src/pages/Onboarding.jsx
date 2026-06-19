@@ -260,7 +260,7 @@ export default function Onboarding() {
                   <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
                   <input type="text" value={company[f.key]} onChange={e => setCompany(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 bg-white" />
+                    className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 bg-white" />
                 </div>
               ))}
             </div>
@@ -276,7 +276,7 @@ export default function Onboarding() {
                     onChange={e => { setCompany(p => ({ ...p, slug: sanitizeSlug(e.target.value) })); setSlugError(''); }}
                     onBlur={e => validateSlug(e.target.value)}
                     placeholder="studio47"
-                    className="flex-1 px-4 py-3 text-sm focus:outline-none" />
+                    className="flex-1 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
                 </div>
                 {company.slug && !slugError && <p className="text-xs text-[#2563EB] mt-1">Link: {window.location.origin}/agendar/{company.slug}</p>}
                 {slugError && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{slugError}</p>}
@@ -307,18 +307,18 @@ export default function Onboarding() {
                     <div>
                       <label className="text-xs font-semibold text-gray-500 block mb-1">Nome</label>
                       <input type="text" value={s.name} onChange={e => setServices(arr => arr.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                        className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm focus:outline-none" />
+                        className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 block mb-1">Preço (R$)</label>
                       <input type="number" value={s.price} onChange={e => setServices(arr => arr.map((x, j) => j === i ? { ...x, price: +e.target.value } : x))}
-                        className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm focus:outline-none" />
+                        className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Duração (min)</label>
                     <input type="number" value={s.duration_minutes} onChange={e => setServices(arr => arr.map((x, j) => j === i ? { ...x, duration_minutes: +e.target.value } : x))}
-                      className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm focus:outline-none" />
+                      className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
                   </div>
                 </div>
               ))}
@@ -336,12 +336,12 @@ export default function Onboarding() {
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Nome</label>
                     <input type="text" value={p.name} onChange={e => setProfessionals(arr => arr.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                      className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm focus:outline-none" />
+                      className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Especialidade</label>
                     <input type="text" value={p.specialty} onChange={e => setProfessionals(arr => arr.map((x, j) => j === i ? { ...x, specialty: e.target.value } : x))}
-                      className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm focus:outline-none" />
+                      className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
                   </div>
                 </div>
               ))}
