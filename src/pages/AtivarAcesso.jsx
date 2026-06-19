@@ -108,7 +108,7 @@ export default function AtivarAcesso() {
             Seu acesso está pronto
           </h1>
           <p className="text-sm sm:text-base text-gray-500 max-w-md mx-auto">
-            Enviamos um email com o link de acesso ao seu painel. Você vai informar seu email e receber um código seguro de 6 dígitos.
+            Enviamos um email com o link de acesso ao seu painel. No primeiro acesso, clique em <strong className="text-[#0F172A]">"Cadastre-se"</strong> e crie sua senha.
           </p>
         </div>
 
