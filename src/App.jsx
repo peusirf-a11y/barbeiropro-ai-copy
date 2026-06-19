@@ -29,6 +29,7 @@ import CheckoutSuccess from './pages/CheckoutSuccess';
 import AcessarConta from './pages/AcessarConta';
 import AtivarAcesso from './pages/AtivarAcesso';
 import LoginRedirect from './pages/LoginRedirect';
+import BarberLogin from './pages/BarberLogin';
 
 // Master pages (super admin)
 import MasterLayout from './components/master/MasterLayout';
@@ -122,8 +123,10 @@ function App() {
                 Landing pública continua acessível em /landing.
                 /login e /signin = aliases para o RootRedirect (dispara o login oficial Base44). */}
             <Route path="/" element={<RootRedirect />} />
-            <Route path="/login" element={<LoginRedirect />} />
-            <Route path="/signin" element={<LoginRedirect />} />
+            <Route path="/login" element={<BarberLogin />} />
+            <Route path="/signin" element={<BarberLogin />} />
+            {/* Mantemos /login-base44 como fallback emergencial pro OTP da Base44. */}
+            <Route path="/login-base44" element={<LoginRedirect />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
             <Route path="/cliente/:slug/login" element={<CustomerLoginPage />} />
