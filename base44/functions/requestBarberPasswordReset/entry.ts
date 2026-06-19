@@ -103,12 +103,42 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: 'invalid_email' }, { status: 400 });
     }
 
-    // 1) Busca credencial. Resposta neutra se não existir.
-    const creds = await sdk.entities.BarberCredential.filter({ email }, '-created_date', 1).catch(() => []);
-    const credential = creds?.[0];
+    // 1) Busca credencial.
+    let creds = await sdk.entities.BarberCredential.filter({ email }, '-created_date', 1).catch(() => []);
+    let credential = creds?.[0];
+
+    // Fase 4 — Migração de donos antigos:
+    // Se não existe BarberCredential mas existe Company.owner_email == email,
+    // cria credencial placeholder marcada como is_legacy=true. O reset por
+    // email funciona normalmente, e no primeiro login o sistema reconhece o
+    // legacy e cai no fallback OTP Base44 se necessário.
     if (!credential) {
-      console.log(`[requestBarberPasswordReset ${rid}] no_credential_neutral`, { email });
-      return Response.json({ ok: true }); // neutro
+      const companies = await sdk.entities.Company.filter({ owner_email: email }, '-created_date', 1).catch(() => []);
+      if (!companies?.length) {
+        console.log(`[requestBarberPasswordReset ${rid}] no_credential_no_company_neutral`, { email });
+        return Response.json({ ok: true }); // neutro
+      }
+      const company = companies[0];
+      // Hash placeholder impossível: salt aleatório + hash de string aleatória.
+      // Ninguém consegue acertar essa senha — só via reset (que sobrescreve).
+      const placeholderSalt = toBase64Url(crypto.getRandomValues(new Uint8Array(16))).slice(0, 22);
+      const placeholderHash = toBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+      try {
+        credential = await sdk.entities.BarberCredential.create({
+          email,
+          company_id: company.id,
+          password_hash: placeholderHash,
+          password_salt: placeholderSalt,
+          password_algo: 'pbkdf2-sha256-placeholder',
+          base44_password_hint: '',
+          is_legacy: true,
+          failed_attempts: 0,
+        });
+        console.log(`[requestBarberPasswordReset ${rid}] legacy_credential_created`, { email, company_id: company.id });
+      } catch (createErr) {
+        console.error(`[requestBarberPasswordReset ${rid}] legacy_create_failed`, createErr?.message);
+        return Response.json({ ok: true }); // neutro mesmo se falhar
+      }
     }
 
     // 2) Rate-limit por cooldown.

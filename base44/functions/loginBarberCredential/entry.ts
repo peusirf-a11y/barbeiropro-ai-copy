@@ -13,6 +13,9 @@
 //   - invalid_credentials  → email não encontrado OU senha errada
 //   - account_locked       → bloqueado até X
 //   - base44_login_failed  → senha técnica inválida (User da Base44 foi alterado fora do nosso fluxo)
+//   - legacy_account       → credencial marcada como is_legacy: hash da senha bate, mas
+//                            não temos senha técnica conhecida pra User antigo da Base44.
+//                            Frontend deve cair no redirectToLogin (OTP nativo Base44) só dessa vez.
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
@@ -107,25 +110,36 @@ Deno.serve(async (req) => {
 
     // 4) Login na Base44 com a senha técnica → emite access_token.
     let loginRes;
+    let loginErrMsg = '';
     try {
-      loginRes = await base44.auth.loginViaEmailPassword(email, credential.base44_password_hint);
+      loginRes = await base44.auth.loginViaEmailPassword(email, credential.base44_password_hint || '');
     } catch (err) {
-      console.error(`[loginBarberCredential ${rid}] base44_login_failed`, err?.message);
-      return Response.json({ ok: false, error: 'base44_login_failed' }, { status: 502 });
+      loginErrMsg = err?.message || '';
+      console.warn(`[loginBarberCredential ${rid}] base44_login_attempt_failed`, loginErrMsg);
     }
 
     const accessToken = loginRes?.access_token;
     const user = loginRes?.user;
+
     if (!accessToken) {
+      // Fase 4 — Fallback de migração:
+      // Credencial legacy (sem base44_password_hint conhecido) OU senha técnica
+      // rejeitada. Devolvemos legacy_account pro frontend disparar redirectToLogin
+      // (OTP nativo Base44) e o dono entrar dessa vez por OTP.
+      if (credential.is_legacy || !credential.base44_password_hint) {
+        console.log(`[loginBarberCredential ${rid}] legacy_fallback`, { email });
+        return Response.json({ ok: false, error: 'legacy_account' }, { status: 200 });
+      }
       return Response.json({ ok: false, error: 'base44_login_failed' }, { status: 502 });
     }
 
-    // 5) Sucesso — atualiza credencial.
+    // 5) Sucesso — atualiza credencial. Se era legacy, desmarcamos.
     await sdk.entities.BarberCredential.update(credential.id, {
       failed_attempts: 0,
       locked_until: null,
       last_login_at: new Date().toISOString(),
       last_login_ip: ip,
+      is_legacy: false,
     }).catch(() => {});
 
     console.log(`[loginBarberCredential ${rid}] login_ok`, { email });

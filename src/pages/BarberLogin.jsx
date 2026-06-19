@@ -6,7 +6,7 @@
 //   - Mostra erros estáveis (invalid_credentials, account_locked).
 //   - Em sucesso, seta o token Base44 e redireciona para /app/dashboard.
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
@@ -14,7 +14,8 @@ import { AlertCircle, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
 
 export default function BarberLogin() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  const [email, setEmail] = useState((params.get('email') || '').trim().toLowerCase());
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -42,6 +43,11 @@ export default function BarberLogin() {
         if (data.error === 'account_locked') {
           const until = data.locked_until ? new Date(data.locked_until).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
           setError(`Conta bloqueada por excesso de tentativas. Tente novamente após ${until}.`);
+        } else if (data.error === 'legacy_account') {
+          // Fase 4: dono antigo. Senha local validada, mas não temos hint Base44.
+          // Único login dessa vez é via OTP nativo da plataforma.
+          base44.auth.redirectToLogin('/app/dashboard');
+          return;
         } else if (data.error === 'invalid_credentials') {
           setError('Email ou senha incorretos.');
         } else if (data.error === 'base44_login_failed') {
