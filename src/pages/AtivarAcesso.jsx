@@ -62,7 +62,11 @@ export default function AtivarAcesso() {
       }
       if (!email) return;
       try {
-        await base44.functions.invoke('requestPasswordSetup', { email });
+        const res = await base44.functions.invoke('requestPasswordSetup', { email });
+        if (res?.data?.already_verified) {
+          // Conta já ativada — joga para o login oficial Base44 (envia OTP de login).
+          base44.auth.redirectToLogin('/app/dashboard');
+        }
       } catch (e) {
         console.warn('[ativar-acesso] dispatch failed:', e?.message);
       }
@@ -112,6 +116,10 @@ export default function AtivarAcesso() {
     try {
       const res = await base44.functions.invoke('requestPasswordSetup', { email });
       const data = res?.data || {};
+      if (data.already_verified) {
+        base44.auth.redirectToLogin('/app/dashboard');
+        return;
+      }
       if (data.ok) {
         setResent(true);
         setCooldown(data.wait_seconds || 60);

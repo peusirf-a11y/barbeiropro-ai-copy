@@ -86,9 +86,14 @@ Deno.serve(async (req) => {
     }
 
     // 4) Tenta registrar o User na plataforma Base44.
-    //    Se já existe, capturamos e chamamos resendOtp.
+    //    Casos possíveis:
+    //      a) Novo: register() dispara OTP de ativação automaticamente.
+    //      b) Já existe mas não verificado: resendOtp() reenvia o OTP de ativação.
+    //      c) Já existe e verificado: avisa o frontend para usar login normal
+    //         (Base44 envia OTP de login automaticamente no redirectToLogin).
     let dispatched = false;
     let already = false;
+    let alreadyVerified = false;
     try {
       const fullName = company.owner_name || (email.split('@')[0] || 'Dono');
       await base44.auth.register({
@@ -104,11 +109,18 @@ Deno.serve(async (req) => {
       if (looksAlreadyExists) {
         already = true;
         try {
-          await base44.auth.resendOtp({ email });
+          await base44.auth.resendOtp(email);
           dispatched = true;
           console.log(`[requestPasswordSetup ${rid}] resent_otp`, { email });
         } catch (resendErr) {
-          console.error(`[requestPasswordSetup ${rid}] resend_otp_failed`, resendErr?.message);
+          const rMsg = (resendErr?.message || JSON.stringify(resendErr) || '').toLowerCase();
+          if (/already verified|already_verified/.test(rMsg)) {
+            alreadyVerified = true;
+            dispatched = true; // sinaliza ao frontend que deve usar login normal
+            console.log(`[requestPasswordSetup ${rid}] already_verified`, { email });
+          } else {
+            console.error(`[requestPasswordSetup ${rid}] resend_otp_failed`, resendErr?.message || JSON.stringify(resendErr));
+          }
         }
       } else {
         console.error(`[requestPasswordSetup ${rid}] register_failed`, regErr?.message);
@@ -120,7 +132,7 @@ Deno.serve(async (req) => {
       await sdk.entities.EmailLog.update(log.id, {
         status: dispatched ? 'sent' : 'failed',
         sent_at: new Date().toISOString(),
-        metadata: { ...(log.metadata || {}), already_registered: already },
+        metadata: { ...(log.metadata || {}), already_registered: already, already_verified: alreadyVerified },
       }).catch(() => {});
     }
 
@@ -128,7 +140,7 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: 'send_failed' }, { status: 502 });
     }
 
-    return Response.json({ ok: true, dispatched: true, already });
+    return Response.json({ ok: true, dispatched: true, already, already_verified: alreadyVerified });
   } catch (err) {
     console.error(`[requestPasswordSetup ${rid}] INTERNAL`, err?.message, err?.stack);
     return Response.json({ ok: false, error: 'internal_error' }, { status: 500 });
