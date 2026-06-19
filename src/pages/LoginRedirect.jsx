@@ -1,6 +1,7 @@
 // LoginRedirect — captura /login (e /signin) em app público.
 // Base44 não hospeda mais essa rota quando o app é público, então respondemos
-// no client: lemos ?from_url=... e disparamos loginWithProvider('google').
+// no client: lemos ?from_url=... e disparamos a tela oficial de login Base44
+// (que hoje aceita apenas email + senha — Google/Microsoft/Facebook desativados).
 import { useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 
@@ -8,7 +9,7 @@ export default function LoginRedirect() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = params.get('from_url') || '/app/dashboard';
-    base44.auth.loginWithProvider('google', fromUrl);
+    base44.auth.redirectToLogin(fromUrl);
   }, []);
 
   return (

@@ -64,7 +64,7 @@ function buildEmailHtml({ ownerName, email, loginUrl }) {
           <a href="${loginUrl}" style="display:inline-block;background:#0F172A;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:16px 36px;border-radius:12px;box-shadow:0 4px 12px rgba(15,23,42,0.18);">Criar minha senha</a>
         </td></tr>
         <tr><td style="padding:12px 32px 24px;text-align:center;">
-          <p style="margin:0;font-size:12px;color:#64748B;line-height:1.6;">Na próxima tela, basta usar <strong style="color:#0F172A;">${escapeHtml(email)}</strong> e criar sua senha.<br>Você também pode entrar com sua conta Google.</p>
+          <p style="margin:0;font-size:12px;color:#64748B;line-height:1.6;">Na próxima tela, basta usar <strong style="color:#0F172A;">${escapeHtml(email)}</strong> e criar sua senha de acesso.</p>
         </td></tr>
         <tr><td style="padding:0 32px 32px;">
           <div style="border-top:1px solid #F1F5F9;padding-top:16px;font-size:11px;color:#94A3B8;line-height:1.6;text-align:center;">

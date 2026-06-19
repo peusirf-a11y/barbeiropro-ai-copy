@@ -42,7 +42,7 @@ export default function PostCheckoutAccessCard({ email, planName }) {
           Seu acesso já está pronto
         </h1>
         <p className="text-gray-500 text-sm leading-relaxed">
-          Entre com sua conta Google usando o email abaixo.
+          Enviamos um email para você criar sua senha e acessar o painel.
         </p>
       </div>
 
@@ -83,7 +83,7 @@ export default function PostCheckoutAccessCard({ email, planName }) {
         className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-70"
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-        {loading ? 'Abrindo sua conta…' : 'Entrar com Google'}
+        {loading ? 'Abrindo sua conta…' : 'Criar minha senha'}
         {!loading && <ArrowRight className="w-4 h-4" />}
       </button>
 
@@ -96,7 +96,7 @@ export default function PostCheckoutAccessCard({ email, planName }) {
       </Link>
 
       <p className="text-[11px] text-gray-400 text-center mt-6 leading-relaxed">
-        Use sempre sua conta Google vinculada a este email para acessar.
+        Verifique sua caixa de entrada — o link de criação de senha foi enviado para o email acima.
       </p>
     </div>
   );

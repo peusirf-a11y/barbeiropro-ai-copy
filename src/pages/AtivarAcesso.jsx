@@ -2,20 +2,15 @@
 //
 // Rota: /ativar-acesso?email=...&plan=...
 //
-// Política atual: cadastro/ativação da barbearia é EXCLUSIVAMENTE via Google.
-// Não há mais opção de "criar senha" nem "já tenho senha" — simplifica o onboarding
-// e garante identidade verificada (email Google = email do checkout).
-//
-// Princípios:
-//   - NÃO recriar auth — só camada UX em cima da Base44.
-//   - Mobile-first, premium (estilo Stripe/Notion/Shopify onboarding).
-//   - Toda comunicação PT-BR, identidade O CORTE.
+// Política atual: acesso da barbearia é EXCLUSIVAMENTE via email + senha.
+// Após o pagamento confirmado (webhook do Asaas), enviamos automaticamente
+// um email com link para criar senha. Esta tela confirma o status e permite
+// reenviar o link se necessário.
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
-import GoogleAccessCard from '@/components/ativar/GoogleAccessCard';
 import {
   CheckCircle2,
   Mail,
@@ -23,6 +18,10 @@ import {
   Clock,
   ShieldCheck,
   AlertCircle,
+  KeyRound,
+  Lock,
+  Loader2,
+  ArrowRight,
 } from 'lucide-react';
 
 const PLAN_LABEL = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
@@ -35,23 +34,19 @@ function recordEvent(eventType, metadata = {}) {
   } catch { /* no-op */ }
 }
 
-function isGmail(email) {
-  return /@(gmail|googlemail)\.com$/i.test(String(email || '').trim());
-}
-
 export default function AtivarAcesso() {
   const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
-  const [error] = useState('');
+  const [busy, setBusy] = useState(null); // 'reset' | 'login' | null
+  const [resetSent, setResetSent] = useState(false);
+  const [error, setError] = useState('');
 
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const email = (params.get('email') || '').trim().toLowerCase();
   const planKey = (params.get('plan') || '').toLowerCase();
   const planName = PLAN_LABEL[planKey] || 'O CORTE';
-  const gmail = isGmail(email);
 
   useEffect(() => {
-    recordEvent('first_access_started', { has_email: !!email, gmail });
+    recordEvent('first_access_started', { has_email: !!email });
     base44.auth.isAuthenticated().then((auth) => {
       if (auth) {
         navigate('/app/dashboard', { replace: true });
@@ -60,10 +55,35 @@ export default function AtivarAcesso() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleGoogle = () => {
+  const handleSendLink = async () => {
     if (busy) return;
-    setBusy(true);
-    recordEvent('first_access_google', { email });
+    if (!email) {
+      setError('Email não informado. Volte para o checkout e tente novamente.');
+      return;
+    }
+    setBusy('reset');
+    setError('');
+    recordEvent('first_access_reset', { email });
+    try {
+      const res = await base44.functions.invoke('requestPasswordSetup', { email });
+      const data = res?.data || {};
+      if (data.ok) {
+        setResetSent(true);
+      } else {
+        setError('Não consegui enviar o link agora. Tente novamente em instantes.');
+        setBusy(null);
+      }
+    } catch (err) {
+      console.warn('[ativar-acesso] requestPasswordSetup failed:', err?.message);
+      setError('Não consegui enviar o link agora. Tente novamente em instantes.');
+      setBusy(null);
+    }
+  };
+
+  const handleLogin = () => {
+    if (busy) return;
+    setBusy('login');
+    recordEvent('first_access_login', { email });
     base44.auth.redirectToLogin('/app/dashboard');
   };
 
@@ -88,7 +108,7 @@ export default function AtivarAcesso() {
             Seu acesso está pronto
           </h1>
           <p className="text-sm sm:text-base text-gray-500 max-w-md mx-auto">
-            Entre com sua conta Google para acessar o painel da sua barbearia em segundos.
+            Enviamos um email para você criar sua senha. Verifique sua caixa de entrada para acessar o painel.
           </p>
         </div>
 
@@ -115,6 +135,24 @@ export default function AtivarAcesso() {
           </div>
         </div>
 
+        {/* Sucesso do reset */}
+        {resetSent && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-4 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-[#0F172A] text-sm">Link enviado!</div>
+                <p className="text-[13px] text-emerald-900/80 mt-1 leading-relaxed">
+                  Enviamos um email para <strong className="break-all">{email}</strong>. Abra o email e clique no botão "Criar minha senha".
+                </p>
+                <p className="text-[11px] text-emerald-900/60 mt-2">Não chegou em 1 minuto? Verifique a caixa de spam.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 flex items-start gap-3 text-sm text-rose-800">
@@ -123,32 +161,33 @@ export default function AtivarAcesso() {
           </div>
         )}
 
-        {/* Google access — única opção */}
-        <GoogleAccessCard
-          onClick={handleGoogle}
-          busy={busy}
-          disabled={busy}
-          recommended
-        />
-
-        {/* Aviso sobre email */}
-        {email && !gmail && (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3 text-sm text-amber-900">
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <div>
-              <strong className="font-bold">Atenção:</strong> use a conta Google vinculada ao email <strong>{email}</strong> para entrar. Se você não tem conta Google nesse endereço, crie uma gratuitamente em{' '}
-              <a href="https://accounts.google.com/signup" target="_blank" rel="noopener noreferrer" className="underline font-semibold">
-                accounts.google.com
-              </a>.
-            </div>
-          </div>
-        )}
+        {/* Actions */}
+        <div className="space-y-2.5">
+          <ActionButton
+            onClick={handleSendLink}
+            busy={busy === 'reset' && !resetSent}
+            disabled={busy === 'reset' && !resetSent}
+            highlight={!resetSent}
+            icon={<KeyRound className="w-5 h-5" />}
+            label={resetSent ? 'Reenviar link de senha' : 'Receber link para criar senha'}
+            sublabel={resetSent ? `Reenviar para ${email}` : 'Enviaremos um link para seu email'}
+          />
+          <ActionButton
+            onClick={handleLogin}
+            busy={busy === 'login'}
+            disabled={!!busy && busy !== 'login'}
+            variant="ghost"
+            icon={<Lock className="w-5 h-5" />}
+            label="Já tenho senha — entrar"
+            sublabel="Abrir tela de acesso"
+          />
+        </div>
 
         {/* Trust line */}
         <div className="flex items-center justify-center gap-2 mt-8 text-[11px] text-gray-400 text-center">
           <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
           <span>
-            Acesso seguro via Google · Dúvidas?{' '}
+            Acesso seguro e criptografado · Dúvidas?{' '}
             <Link to="/landing" className="underline hover:text-[#2563EB]">central de ajuda</Link>
           </span>
         </div>
@@ -168,5 +207,30 @@ function SummaryItem({ icon: Icon, label, value, valueClass = '' }) {
         <div className={`text-sm font-semibold text-[#0F172A] ${valueClass}`}>{value}</div>
       </div>
     </div>
+  );
+}
+
+function ActionButton({ onClick, busy, disabled, highlight, icon, label, sublabel, variant = 'solid' }) {
+  const base = 'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all text-left active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed';
+  const isHighlight = highlight && variant !== 'ghost';
+  const styles = variant === 'ghost'
+    ? 'bg-white border-black/8 hover:border-black/20 hover:bg-gray-50'
+    : isHighlight
+      ? 'bg-[#0F172A] border-[#0F172A] text-white hover:bg-[#1E293B] shadow-md'
+      : 'bg-white border-black/10 hover:border-[#2563EB]/40 hover:bg-[#2563EB]/[0.02]';
+
+  return (
+    <button onClick={onClick} disabled={disabled} className={`${base} ${styles}`}>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+        isHighlight ? 'bg-white/10 text-white' : 'bg-gray-50 text-[#0F172A]'
+      }`}>
+        {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className={`text-sm font-bold ${isHighlight ? 'text-white' : 'text-[#0F172A]'}`}>{label}</div>
+        <div className={`text-[12px] mt-0.5 truncate ${isHighlight ? 'text-white/70' : 'text-gray-500'}`}>{sublabel}</div>
+      </div>
+      <ArrowRight className={`w-4 h-4 flex-shrink-0 ${isHighlight ? 'text-white/70' : 'text-gray-400'}`} />
+    </button>
   );
 }

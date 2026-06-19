@@ -213,6 +213,10 @@ async function handlePaymentConfirmed(sdk, evt) {
       await cancelStripeAfterAsaasConfirmation(sdk, company);
     }
 
+    // Dispara email automático "crie sua senha" no primeiro pagamento confirmado.
+    // Idempotente: requestPasswordSetup tem cooldown de 60s e só envia se há Company.
+    await triggerPasswordSetupEmail(sdk, company);
+
     return { handled: true, type: 'saas_subscription', company_id: company.id, migration_completed: isMigration };
   }
 
@@ -340,6 +344,36 @@ async function cancelStripeAfterAsaasConfirmation(sdk, company) {
   } catch (err) {
     console.error('[asaasWebhook] stripe cancel exception', { company_id: company.id, subId, err: err.message });
     return { ok: false, reason: 'exception', detail: err.message };
+  }
+}
+
+// Helper: dispara o email "criar senha" automaticamente após pagamento confirmado.
+// Chamado em handlePaymentConfirmed para fluxo SaaS. Tolerante a falhas — se o
+// email falhar, NÃO reverte o pagamento; o usuário pode disparar manualmente
+// pela tela /acessar-conta.
+async function triggerPasswordSetupEmail(sdk, company) {
+  try {
+    if (!company?.owner_email) {
+      console.warn('[asaasWebhook] triggerPasswordSetupEmail: no owner_email', { company_id: company?.id });
+      return;
+    }
+    // Evita reenvio se já enviamos email de boas-vindas (idempotência soft).
+    if (company.onboarding_email_sent_at) {
+      console.log('[asaasWebhook] password setup email already sent', { company_id: company.id });
+      return;
+    }
+    const res = await sdk.functions.invoke('requestPasswordSetup', { email: company.owner_email });
+    const data = res?.data || {};
+    if (data?.ok) {
+      await sdk.entities.Company.update(company.id, {
+        onboarding_email_sent_at: new Date().toISOString(),
+      }).catch(() => {});
+      console.log('[asaasWebhook] password setup email dispatched', { company_id: company.id });
+    } else {
+      console.warn('[asaasWebhook] password setup email failed', { company_id: company.id, error: data?.error });
+    }
+  } catch (err) {
+    console.error('[asaasWebhook] triggerPasswordSetupEmail exception', { company_id: company?.id, err: err.message });
   }
 }
 
