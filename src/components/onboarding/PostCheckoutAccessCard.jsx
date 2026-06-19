@@ -20,12 +20,11 @@ export default function PostCheckoutAccessCard({ email, planName }) {
         window.location.href = '/app/dashboard';
         return;
       }
-      // Leva para /ativar-acesso — tela com OTP nativo da plataforma Base44.
-      // O backend dispara o envio do código de 6 dígitos automaticamente.
+      // Fase 3: leva para /criar-senha — dono define a senha do painel (auth própria O CORTE).
       const params = new URLSearchParams();
       if (email) params.set('email', email);
       if (planName) params.set('plan', String(planName).toLowerCase());
-      window.location.href = `/ativar-acesso?${params.toString()}`;
+      window.location.href = `/criar-senha?${params.toString()}`;
     } catch {
       setLoading(false);
     }
@@ -42,7 +41,7 @@ export default function PostCheckoutAccessCard({ email, planName }) {
           Seu acesso já está pronto
         </h1>
         <p className="text-gray-500 text-sm leading-relaxed">
-          Enviamos um código de 6 dígitos para o seu email. Use-o para entrar no painel.
+          Pagamento confirmado. Crie a senha do seu painel pra começar a usar.
         </p>
       </div>
 
@@ -83,7 +82,7 @@ export default function PostCheckoutAccessCard({ email, planName }) {
         className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-70"
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-        {loading ? 'Abrindo sua conta…' : 'Digitar código de acesso'}
+        {loading ? 'Abrindo sua conta…' : 'Criar minha senha'}
         {!loading && <ArrowRight className="w-4 h-4" />}
       </button>
 
@@ -96,7 +95,7 @@ export default function PostCheckoutAccessCard({ email, planName }) {
       </Link>
 
       <p className="text-[11px] text-gray-400 text-center mt-6 leading-relaxed">
-        Verifique sua caixa de entrada — enviamos um código de 6 dígitos para o email acima.
+        Você vai escolher sua senha na próxima tela e entrar direto no painel.
       </p>
     </div>
   );

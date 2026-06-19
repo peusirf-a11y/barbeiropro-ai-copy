@@ -28,6 +28,7 @@ import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import AcessarConta from './pages/AcessarConta';
 import AtivarAcesso from './pages/AtivarAcesso';
+import CriarSenha from './pages/CriarSenha';
 import LoginRedirect from './pages/LoginRedirect';
 import BarberLogin from './pages/BarberLogin';
 import EsqueciSenha from './pages/EsqueciSenha';
@@ -144,6 +145,7 @@ function App() {
             <Route path="/checkout/sucesso" element={<CheckoutSuccess />} />
             <Route path="/acessar-conta" element={<AcessarConta />} />
             <Route path="/ativar-acesso" element={<AtivarAcesso />} />
+            <Route path="/criar-senha" element={<CriarSenha />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/politica-de-privacidade" element={<PoliticaDePrivacidade />} />
 
