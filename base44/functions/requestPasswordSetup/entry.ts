@@ -1,97 +1,31 @@
-// requestPasswordSetup — Endpoint público chamado pela tela /ativar-acesso.
+// requestPasswordSetup — Endpoint público chamado pelas telas /checkout/sucesso
+// e /ativar-acesso para registrar o dono da barbearia como User no Base44.
 //
-// Objetivo: enviar ao usuário pós-checkout um email com link para criar conta
-// e definir senha. Como o usuário ainda não existe como User no Base44 (apenas
-// como Company), o caminho oficial `inviteUser`/`resetPasswordRequest` da
-// plataforma não funciona (exige caller autenticado ou User pré-existente).
-//
-// Estratégia: enviamos via Resend (mesmo provedor do email de boas-vindas)
-// um email com link para /acesso-rapido?email=...&plan=... — que é a tela
-// pública do Base44 onde, ao informar o email, a plataforma cria o User
-// automaticamente e permite definir senha.
-//
-// Fluxo:
+// Estratégia (Opção A — OTP nativo da plataforma):
 //   1) Verifica se existe Company com owner_email == email.
-//   2) Aplica cooldown de 60s por email (rate-limit).
-//   3) Envia email Resend com CTA "Criar minha senha".
-//   4) Registra EmailLog para auditoria.
+//   2) Aplica cooldown de 60s por email (rate-limit anti-spam).
+//   3) Chama base44.auth.register({ email, full_name, password }) — a plataforma
+//      cria o User e envia automaticamente um OTP de 6 dígitos por email.
+//      O dono recebe o email do Base44 e cola o código em /ativar-acesso.
+//   4) Em caso de "já registrado", chamamos base44.auth.resendOtp para reenviar
+//      o código (idempotente para reenvios solicitados pelo dono).
+//   5) Registra EmailLog para auditoria.
+//
+// O envio do email é feito pela plataforma Base44 — não usamos mais Resend aqui.
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const COOLDOWN_SECONDS = 60;
-const RESEND_API_URL = 'https://api.resend.com/emails';
 
 function isValidEmail(e) {
   return typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 }
 
-function escapeHtml(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function buildLoginUrl(appUrl, email) {
-  const base = (appUrl || 'https://ocorte.app').replace(/\/+$/, '');
-  // Apps públicos do Base44 não têm "criar senha" — auth é via código mágico
-  // enviado para o email. Mandamos o dono para /login com from_url pré-definido.
-  return `${base}/login?from_url=${encodeURIComponent('/app/dashboard')}`;
-}
-
-function buildEmailHtml({ ownerName, email, loginUrl }) {
-  const greet = ownerName ? `Olá, ${escapeHtml(ownerName.split(' ')[0])}!` : 'Olá!';
-  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Crie sua senha — O CORTE</title></head>
-<body style="margin:0;padding:0;background:#F4F7FB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,Arial,sans-serif;color:#0F172A;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7FB;padding:32px 16px;">
-    <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#FFFFFF;border-radius:20px;box-shadow:0 4px 24px rgba(15,23,42,0.06);overflow:hidden;">
-        <tr><td style="padding:32px 32px 8px;text-align:center;">
-          <div style="display:inline-block;font-weight:900;font-size:18px;letter-spacing:-0.02em;color:#0F172A;">O CORTE</div>
-        </td></tr>
-        <tr><td style="padding:16px 32px 8px;text-align:center;">
-          <h1 style="margin:0;font-size:26px;font-weight:900;letter-spacing:-0.02em;color:#0F172A;">Acesse seu painel 🚀</h1>
-          <p style="margin:10px 0 0;font-size:14px;color:#64748B;line-height:1.6;">${greet} Clique no botão abaixo para acessar o painel da sua barbearia. Na tela de login, informe seu email e crie sua senha clicando em <strong style="color:#0F172A;">"Cadastre-se"</strong> (primeiro acesso) ou <strong style="color:#0F172A;">"Esqueceu sua senha?"</strong> para receber um link.</p>
-        </td></tr>
-        <tr><td style="padding:24px 32px 8px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;">
-            <tr><td style="padding:14px 16px;">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94A3B8;margin-bottom:4px;">Email de acesso</div>
-              <div style="font-size:14px;font-weight:700;color:#0F172A;word-break:break-all;">${escapeHtml(email)}</div>
-            </td></tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:24px 32px 8px;text-align:center;">
-          <a href="${loginUrl}" style="display:inline-block;background:#0F172A;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:16px 36px;border-radius:12px;box-shadow:0 4px 12px rgba(15,23,42,0.18);">Acessar meu painel</a>
-        </td></tr>
-        <tr><td style="padding:12px 32px 24px;text-align:center;">
-          <p style="margin:0;font-size:12px;color:#64748B;line-height:1.6;">Use o email <strong style="color:#0F172A;">${escapeHtml(email)}</strong> para entrar. Primeiro acesso? Clique em "Cadastre-se" na tela de login.</p>
-        </td></tr>
-        <tr><td style="padding:0 32px 32px;">
-          <div style="border-top:1px solid #F1F5F9;padding-top:16px;font-size:11px;color:#94A3B8;line-height:1.6;text-align:center;">
-            Se você não solicitou este email, ignore-o com segurança.
-          </div>
-        </td></tr>
-      </table>
-      <p style="margin:16px 0 0;font-size:11px;color:#94A3B8;">© O CORTE · Plataforma de gestão para barbearias</p>
-    </td></tr>
-  </table>
-</body></html>`;
-}
-
-function buildEmailText({ ownerName, email, loginUrl }) {
-  const greet = ownerName ? `Olá, ${ownerName.split(' ')[0]}!` : 'Olá!';
-  return [
-    'O CORTE — Acesse seu painel',
-    '',
-    greet,
-    '',
-    'Clique no link abaixo para acessar o painel. No primeiro acesso, clique em "Cadastre-se" e crie sua senha:',
-    loginUrl,
-    '',
-    `Email de acesso: ${email}`,
-    '',
-    'Se você não solicitou este email, ignore-o.',
-  ].join('\n');
+function randomPassword() {
+  // Senha aleatória forte. O dono nunca a verá nem precisará dela —
+  // o acesso é via OTP (e depois ele pode usar "Esqueci minha senha" se quiser).
+  const bytes = crypto.getRandomValues(new Uint8Array(18));
+  return Array.from(bytes).map((b) => b.toString(36)).join('') + 'Aa1!';
 }
 
 Deno.serve(async (req) => {
@@ -110,7 +44,7 @@ Deno.serve(async (req) => {
     const companies = await sdk.entities.Company.filter({ owner_email: email }, '-created_date', 1).catch(() => []);
     if (!companies?.length) {
       console.warn(`[requestPasswordSetup ${rid}] no_company_for_email`, { email });
-      // Resposta neutra (não vazamos se o email existe).
+      // Resposta neutra (não vazamos se o email existe no sistema).
       return Response.json({ ok: true, dispatched: false });
     }
     const company = companies[0];
@@ -135,88 +69,66 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3) Valida configuração Resend.
-    const apiKey = Deno.env.get('RESEND_API_KEY');
-    const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'O CORTE <acesso@contato.ocorte.app>';
-    if (!apiKey) {
-      console.error(`[requestPasswordSetup ${rid}] resend_api_key_missing`);
-      return Response.json({ ok: false, error: 'email_provider_not_configured' }, { status: 500 });
-    }
-
-    // 4) Cria log pendente.
+    // 3) Cria log pendente (auditoria).
     let log = null;
     try {
       log = await sdk.entities.EmailLog.create({
         company_id: company.id,
         recipient: email,
-        subject: 'Crie sua senha — O CORTE',
+        subject: 'Código de acesso — O CORTE',
         type: 'password_reset',
         status: 'pending',
-        provider: 'resend',
-        metadata: { source: 'acessar_conta', rid },
+        provider: 'base44_core',
+        metadata: { source: 'ativar_acesso', rid },
       });
     } catch (logErr) {
       console.warn(`[requestPasswordSetup ${rid}] log_create_failed`, logErr.message);
     }
 
-    // 5) Envia email via Resend.
-    const appUrl = Deno.env.get('APP_URL') || 'https://ocorte.app';
-    const loginUrl = buildLoginUrl(appUrl, email);
-    const html = buildEmailHtml({ ownerName: company.owner_name, email, loginUrl });
-    const text = buildEmailText({ ownerName: company.owner_name, email, loginUrl });
-    const subject = 'Acesse seu painel O CORTE';
-
+    // 4) Tenta registrar o User na plataforma Base44.
+    //    Se já existe, capturamos e chamamos resendOtp.
+    let dispatched = false;
+    let already = false;
     try {
-      const response = await fetch(RESEND_API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [email],
-          subject,
-          html,
-          text,
-        }),
+      const fullName = company.owner_name || (email.split('@')[0] || 'Dono');
+      await base44.auth.register({
+        email,
+        full_name: fullName,
+        password: randomPassword(),
       });
-      const body = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        const errMsg = `Resend ${response.status}: ${body?.message || body?.error || 'unknown'}`;
-        console.error(`[requestPasswordSetup ${rid}] resend_failed`, errMsg);
-        if (log) {
-          await sdk.entities.EmailLog.update(log.id, {
-            status: 'failed',
-            error_message: errMsg.slice(0, 500),
-            sent_at: new Date().toISOString(),
-          }).catch(() => {});
+      dispatched = true;
+      console.log(`[requestPasswordSetup ${rid}] registered`, { email });
+    } catch (regErr) {
+      const msg = (regErr?.message || JSON.stringify(regErr) || '').toLowerCase();
+      const looksAlreadyExists = /already|exists|registered|duplicate/.test(msg);
+      if (looksAlreadyExists) {
+        already = true;
+        try {
+          await base44.auth.resendOtp({ email });
+          dispatched = true;
+          console.log(`[requestPasswordSetup ${rid}] resent_otp`, { email });
+        } catch (resendErr) {
+          console.error(`[requestPasswordSetup ${rid}] resend_otp_failed`, resendErr?.message);
         }
-        return Response.json({ ok: false, error: 'send_failed' }, { status: 502 });
+      } else {
+        console.error(`[requestPasswordSetup ${rid}] register_failed`, regErr?.message);
       }
+    }
 
-      if (log) {
-        await sdk.entities.EmailLog.update(log.id, {
-          status: 'sent',
-          sent_at: new Date().toISOString(),
-          metadata: { ...(log.metadata || {}), resend_id: body?.id },
-        }).catch(() => {});
-      }
-      console.log(`[requestPasswordSetup ${rid}] sent`, { email, resend_id: body?.id });
-      return Response.json({ ok: true, dispatched: true, resend_id: body?.id });
-    } catch (sendErr) {
-      const errMsg = (sendErr?.message || String(sendErr)).slice(0, 400);
-      console.error(`[requestPasswordSetup ${rid}] send_exception`, errMsg);
-      if (log) {
-        await sdk.entities.EmailLog.update(log.id, {
-          status: 'failed',
-          error_message: errMsg,
-          sent_at: new Date().toISOString(),
-        }).catch(() => {});
-      }
+    // 5) Atualiza log.
+    if (log) {
+      await sdk.entities.EmailLog.update(log.id, {
+        status: dispatched ? 'sent' : 'failed',
+        sent_at: new Date().toISOString(),
+        metadata: { ...(log.metadata || {}), already_registered: already },
+      }).catch(() => {});
+    }
+
+    if (!dispatched) {
       return Response.json({ ok: false, error: 'send_failed' }, { status: 502 });
     }
+
+    return Response.json({ ok: true, dispatched: true, already });
   } catch (err) {
     console.error(`[requestPasswordSetup ${rid}] INTERNAL`, err?.message, err?.stack);
     return Response.json({ ok: false, error: 'internal_error' }, { status: 500 });

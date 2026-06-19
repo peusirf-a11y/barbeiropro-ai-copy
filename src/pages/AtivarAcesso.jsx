@@ -1,16 +1,17 @@
-// AtivarAcesso — UX premium de ativação de acesso pós-checkout.
+// AtivarAcesso — Tela de ativação pós-checkout via OTP nativo do Base44.
 //
-// Rota: /ativar-acesso?email=...&plan=...
-//
-// Política atual: acesso da barbearia é EXCLUSIVAMENTE via email + senha.
-// Após o pagamento confirmado (webhook do Asaas), enviamos automaticamente
-// um email com link para criar senha. Esta tela confirma o status e permite
-// reenviar o link se necessário.
+// Fluxo:
+//   1) Página carrega com ?email=... do checkout.
+//   2) Se ainda não disparamos, chama requestPasswordSetup → plataforma Base44
+//      envia um código de 6 dígitos para o email.
+//   3) Dono digita o código → base44.auth.verifyOtp → sessão ativa.
+//   4) Redireciona para /app/dashboard.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import {
   CheckCircle2,
   Mail,
@@ -19,9 +20,7 @@ import {
   ShieldCheck,
   AlertCircle,
   KeyRound,
-  Lock,
   Loader2,
-  ArrowRight,
 } from 'lucide-react';
 
 const PLAN_LABEL = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
@@ -36,55 +35,96 @@ function recordEvent(eventType, metadata = {}) {
 
 export default function AtivarAcesso() {
   const navigate = useNavigate();
-  const [busy, setBusy] = useState(null); // 'reset' | 'login' | null
-  const [resetSent, setResetSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
   const [error, setError] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const didDispatch = useRef(false);
 
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const email = (params.get('email') || '').trim().toLowerCase();
   const planKey = (params.get('plan') || '').toLowerCase();
   const planName = PLAN_LABEL[planKey] || 'O CORTE';
 
+  // 1) Dispara envio do OTP no primeiro carregamento.
   useEffect(() => {
+    if (didDispatch.current) return;
+    didDispatch.current = true;
     recordEvent('first_access_started', { has_email: !!email });
-    base44.auth.isAuthenticated().then((auth) => {
-      if (auth) {
+
+    (async () => {
+      const authed = await base44.auth.isAuthenticated().catch(() => false);
+      if (authed) {
         navigate('/app/dashboard', { replace: true });
+        return;
       }
-    });
+      if (!email) return;
+      try {
+        await base44.functions.invoke('requestPasswordSetup', { email });
+      } catch (e) {
+        console.warn('[ativar-acesso] dispatch failed:', e?.message);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSendLink = async () => {
-    if (busy) return;
-    if (!email) {
-      setError('Email não informado. Volte para o checkout e tente novamente.');
-      return;
-    }
-    setBusy('reset');
+  // Cooldown visual para botão "Reenviar".
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const handleVerify = async (otp) => {
+    if (verifying) return;
+    setVerifying(true);
     setError('');
-    recordEvent('first_access_reset', { email });
+    recordEvent('first_access_otp_verify', { email });
+    try {
+      await base44.auth.verifyOtp({ email, otp });
+      recordEvent('first_access_otp_success', { email });
+      window.location.href = '/app/dashboard';
+    } catch (e) {
+      const msg = (e?.message || '').toLowerCase();
+      if (/invalid|incorrect|wrong/.test(msg)) {
+        setError('Código incorreto. Verifique e tente novamente.');
+      } else if (/expired/.test(msg)) {
+        setError('Código expirado. Clique em "Reenviar código" para receber outro.');
+      } else {
+        setError('Não foi possível verificar o código. Tente novamente.');
+      }
+      setCode('');
+      setVerifying(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resending || cooldown > 0) return;
+    setResending(true);
+    setError('');
+    recordEvent('first_access_resend', { email });
     try {
       const res = await base44.functions.invoke('requestPasswordSetup', { email });
       const data = res?.data || {};
       if (data.ok) {
-        setResetSent(true);
+        setResent(true);
+        setCooldown(data.wait_seconds || 60);
       } else {
-        setError('Não consegui enviar o link agora. Tente novamente em instantes.');
-        setBusy(null);
+        setError('Não consegui reenviar agora. Tente novamente em instantes.');
       }
-    } catch (err) {
-      console.warn('[ativar-acesso] requestPasswordSetup failed:', err?.message);
-      setError('Não consegui enviar o link agora. Tente novamente em instantes.');
-      setBusy(null);
+    } catch {
+      setError('Não consegui reenviar agora. Tente novamente em instantes.');
     }
+    setResending(false);
   };
 
-  const handleLogin = () => {
-    if (busy) return;
-    setBusy('login');
-    recordEvent('first_access_login', { email });
-    base44.auth.redirectToLogin('/app/dashboard');
+  const handleCodeChange = (v) => {
+    setCode(v);
+    if (v.length === 6 && !verifying) {
+      handleVerify(v);
+    }
   };
 
   return (
@@ -101,14 +141,14 @@ export default function AtivarAcesso() {
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-8 sm:py-14 animate-fade-in-up">
         {/* Hero */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 mb-4 shadow-sm">
-            <CheckCircle2 className="w-8 h-8" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2563EB]/10 text-[#2563EB] mb-4 shadow-sm">
+            <KeyRound className="w-8 h-8" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight mb-2">
-            Seu acesso está pronto
+            Digite o código de acesso
           </h1>
           <p className="text-sm sm:text-base text-gray-500 max-w-md mx-auto">
-            Enviamos um email com o link de acesso ao seu painel. No primeiro acesso, clique em <strong className="text-[#0F172A]">"Cadastre-se"</strong> e crie sua senha.
+            Enviamos um código de 6 dígitos para o seu email. Cole o código abaixo para entrar no seu painel.
           </p>
         </div>
 
@@ -117,7 +157,7 @@ export default function AtivarAcesso() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-3">
             <SummaryItem
               icon={Mail}
-              label="Email de acesso"
+              label="Email"
               value={email || '—'}
               valueClass="break-all"
             />
@@ -135,52 +175,66 @@ export default function AtivarAcesso() {
           </div>
         </div>
 
-        {/* Sucesso do reset */}
-        {resetSent && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-4 animate-fade-in">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="font-bold text-[#0F172A] text-sm">Link enviado!</div>
-                <p className="text-[13px] text-emerald-900/80 mt-1 leading-relaxed">
-                  Enviamos um email para <strong className="break-all">{email}</strong>. Abra o email e clique em "Acessar meu painel".
-                </p>
-                <p className="text-[11px] text-emerald-900/60 mt-2">Não chegou em 1 minuto? Verifique a caixa de spam.</p>
-              </div>
+        {/* OTP input */}
+        <div className="bg-white rounded-2xl border border-black/8 shadow-sm p-6 mb-4">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3 text-center">
+            Código recebido por email
+          </div>
+          <div className="flex justify-center mb-4">
+            <InputOTP
+              maxLength={6}
+              value={code}
+              onChange={handleCodeChange}
+              disabled={verifying}
+              autoFocus
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+
+          {verifying && (
+            <div className="flex items-center justify-center gap-2 text-sm text-[#2563EB] mb-3">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Verificando código…
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Error */}
-        {error && (
-          <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 flex items-start gap-3 text-sm text-rose-800">
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <div>{error}</div>
-          </div>
-        )}
+          {error && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 flex items-start gap-2 text-sm text-rose-800 mb-3">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <div>{error}</div>
+            </div>
+          )}
 
-        {/* Actions */}
-        <div className="space-y-2.5">
-          <ActionButton
-            onClick={handleSendLink}
-            busy={busy === 'reset' && !resetSent}
-            disabled={busy === 'reset' && !resetSent}
-            highlight={!resetSent}
-            icon={<KeyRound className="w-5 h-5" />}
-            label={resetSent ? 'Reenviar link de acesso' : 'Receber link de acesso por email'}
-            sublabel={resetSent ? `Reenviar para ${email}` : 'Enviaremos um link para seu email'}
-          />
-          <ActionButton
-            onClick={handleLogin}
-            busy={busy === 'login'}
-            disabled={!!busy && busy !== 'login'}
-            variant="ghost"
-            icon={<Lock className="w-5 h-5" />}
-            label="Acessar agora pelo navegador"
-            sublabel="Abrir tela de acesso"
-          />
+          {resent && !error && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 flex items-start gap-2 text-sm text-emerald-800 mb-3">
+              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <div>Código reenviado! Verifique sua caixa de entrada.</div>
+            </div>
+          )}
+
+          <button
+            onClick={handleResend}
+            disabled={resending || cooldown > 0 || verifying}
+            className="w-full text-center text-sm font-semibold text-gray-600 hover:text-[#2563EB] transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2"
+          >
+            {resending ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Reenviando…
+              </span>
+            ) : cooldown > 0 ? (
+              `Reenviar código em ${cooldown}s`
+            ) : (
+              'Não recebi o código — reenviar'
+            )}
+          </button>
         </div>
 
         {/* Trust line */}
@@ -207,30 +261,5 @@ function SummaryItem({ icon: Icon, label, value, valueClass = '' }) {
         <div className={`text-sm font-semibold text-[#0F172A] ${valueClass}`}>{value}</div>
       </div>
     </div>
-  );
-}
-
-function ActionButton({ onClick, busy, disabled, highlight, icon, label, sublabel, variant = 'solid' }) {
-  const base = 'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all text-left active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed';
-  const isHighlight = highlight && variant !== 'ghost';
-  const styles = variant === 'ghost'
-    ? 'bg-white border-black/8 hover:border-black/20 hover:bg-gray-50'
-    : isHighlight
-      ? 'bg-[#0F172A] border-[#0F172A] text-white hover:bg-[#1E293B] shadow-md'
-      : 'bg-white border-black/10 hover:border-[#2563EB]/40 hover:bg-[#2563EB]/[0.02]';
-
-  return (
-    <button onClick={onClick} disabled={disabled} className={`${base} ${styles}`}>
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        isHighlight ? 'bg-white/10 text-white' : 'bg-gray-50 text-[#0F172A]'
-      }`}>
-        {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className={`text-sm font-bold ${isHighlight ? 'text-white' : 'text-[#0F172A]'}`}>{label}</div>
-        <div className={`text-[12px] mt-0.5 truncate ${isHighlight ? 'text-white/70' : 'text-gray-500'}`}>{sublabel}</div>
-      </div>
-      <ArrowRight className={`w-4 h-4 flex-shrink-0 ${isHighlight ? 'text-white/70' : 'text-gray-400'}`} />
-    </button>
   );
 }
