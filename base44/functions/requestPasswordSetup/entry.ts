@@ -33,9 +33,9 @@ function escapeHtml(s) {
 
 function buildLoginUrl(appUrl, email) {
   const base = (appUrl || 'https://ocorte.app').replace(/\/+$/, '');
-  // /Register é a página customizada de cadastro pós-checkout.
-  // Mostra o email pré-preenchido e dispara a tela oficial Base44 para criar senha.
-  return `${base}/Register?email=${encodeURIComponent(email)}&from_url=${encodeURIComponent('/app/dashboard')}`;
+  // Apps públicos do Base44 não têm "criar senha" — auth é via código mágico
+  // enviado para o email. Mandamos o dono para /login com from_url pré-definido.
+  return `${base}/login?from_url=${encodeURIComponent('/app/dashboard')}`;
 }
 
 function buildEmailHtml({ ownerName, email, loginUrl }) {
@@ -49,8 +49,8 @@ function buildEmailHtml({ ownerName, email, loginUrl }) {
           <div style="display:inline-block;font-weight:900;font-size:18px;letter-spacing:-0.02em;color:#0F172A;">O CORTE</div>
         </td></tr>
         <tr><td style="padding:16px 32px 8px;text-align:center;">
-          <h1 style="margin:0;font-size:26px;font-weight:900;letter-spacing:-0.02em;color:#0F172A;">Crie sua senha de acesso 🔐</h1>
-          <p style="margin:10px 0 0;font-size:14px;color:#64748B;line-height:1.6;">${greet} Clique no botão abaixo para abrir a página de acesso O CORTE. Lá você define sua senha e entra direto no painel da sua barbearia.</p>
+          <h1 style="margin:0;font-size:26px;font-weight:900;letter-spacing:-0.02em;color:#0F172A;">Acesse seu painel 🚀</h1>
+          <p style="margin:10px 0 0;font-size:14px;color:#64748B;line-height:1.6;">${greet} Clique no botão abaixo para acessar o painel da sua barbearia. Você vai informar seu email e receber um código de acesso seguro de 6 dígitos.</p>
         </td></tr>
         <tr><td style="padding:24px 32px 8px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;">
@@ -61,10 +61,10 @@ function buildEmailHtml({ ownerName, email, loginUrl }) {
           </table>
         </td></tr>
         <tr><td style="padding:24px 32px 8px;text-align:center;">
-          <a href="${loginUrl}" style="display:inline-block;background:#0F172A;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:16px 36px;border-radius:12px;box-shadow:0 4px 12px rgba(15,23,42,0.18);">Criar minha senha</a>
+          <a href="${loginUrl}" style="display:inline-block;background:#0F172A;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;padding:16px 36px;border-radius:12px;box-shadow:0 4px 12px rgba(15,23,42,0.18);">Acessar meu painel</a>
         </td></tr>
         <tr><td style="padding:12px 32px 24px;text-align:center;">
-          <p style="margin:0;font-size:12px;color:#64748B;line-height:1.6;">Na próxima tela, basta usar <strong style="color:#0F172A;">${escapeHtml(email)}</strong> e criar sua senha de acesso.</p>
+          <p style="margin:0;font-size:12px;color:#64748B;line-height:1.6;">Use o email <strong style="color:#0F172A;">${escapeHtml(email)}</strong> e receba um código de acesso. Simples, seguro e sem precisar lembrar de senha.</p>
         </td></tr>
         <tr><td style="padding:0 32px 32px;">
           <div style="border-top:1px solid #F1F5F9;padding-top:16px;font-size:11px;color:#94A3B8;line-height:1.6;text-align:center;">
@@ -81,11 +81,11 @@ function buildEmailHtml({ ownerName, email, loginUrl }) {
 function buildEmailText({ ownerName, email, loginUrl }) {
   const greet = ownerName ? `Olá, ${ownerName.split(' ')[0]}!` : 'Olá!';
   return [
-    'O CORTE — Crie sua senha de acesso',
+    'O CORTE — Acesse seu painel',
     '',
     greet,
     '',
-    'Clique no link abaixo para definir sua senha e entrar no painel:',
+    'Clique no link abaixo, informe seu email e receba um código de acesso seguro:',
     loginUrl,
     '',
     `Email de acesso: ${email}`,
@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
     const loginUrl = buildLoginUrl(appUrl, email);
     const html = buildEmailHtml({ ownerName: company.owner_name, email, loginUrl });
     const text = buildEmailText({ ownerName: company.owner_name, email, loginUrl });
-    const subject = 'Crie sua senha de acesso — O CORTE';
+    const subject = 'Acesse seu painel O CORTE';
 
     try {
       const response = await fetch(RESEND_API_URL, {

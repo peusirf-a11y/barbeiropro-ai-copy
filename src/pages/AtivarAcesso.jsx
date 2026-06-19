@@ -108,7 +108,7 @@ export default function AtivarAcesso() {
             Seu acesso está pronto
           </h1>
           <p className="text-sm sm:text-base text-gray-500 max-w-md mx-auto">
-            Enviamos um email para você criar sua senha. Verifique sua caixa de entrada para acessar o painel.
+            Enviamos um email com o link de acesso ao seu painel. Você vai informar seu email e receber um código seguro de 6 dígitos.
           </p>
         </div>
 
@@ -145,7 +145,7 @@ export default function AtivarAcesso() {
               <div className="flex-1">
                 <div className="font-bold text-[#0F172A] text-sm">Link enviado!</div>
                 <p className="text-[13px] text-emerald-900/80 mt-1 leading-relaxed">
-                  Enviamos um email para <strong className="break-all">{email}</strong>. Abra o email e clique no botão "Criar minha senha".
+                  Enviamos um email para <strong className="break-all">{email}</strong>. Abra o email e clique em "Acessar meu painel".
                 </p>
                 <p className="text-[11px] text-emerald-900/60 mt-2">Não chegou em 1 minuto? Verifique a caixa de spam.</p>
               </div>
@@ -169,7 +169,7 @@ export default function AtivarAcesso() {
             disabled={busy === 'reset' && !resetSent}
             highlight={!resetSent}
             icon={<KeyRound className="w-5 h-5" />}
-            label={resetSent ? 'Reenviar link de senha' : 'Receber link para criar senha'}
+            label={resetSent ? 'Reenviar link de acesso' : 'Receber link de acesso por email'}
             sublabel={resetSent ? `Reenviar para ${email}` : 'Enviaremos um link para seu email'}
           />
           <ActionButton
@@ -178,7 +178,7 @@ export default function AtivarAcesso() {
             disabled={!!busy && busy !== 'login'}
             variant="ghost"
             icon={<Lock className="w-5 h-5" />}
-            label="Já tenho senha — entrar"
+            label="Acessar agora pelo navegador"
             sublabel="Abrir tela de acesso"
           />
         </div>
