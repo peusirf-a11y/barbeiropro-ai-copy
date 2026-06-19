@@ -29,7 +29,6 @@ import CheckoutSuccess from './pages/CheckoutSuccess';
 import AcessarConta from './pages/AcessarConta';
 import AtivarAcesso from './pages/AtivarAcesso';
 import LoginRedirect from './pages/LoginRedirect';
-import Register from './pages/Register';
 
 // Master pages (super admin)
 import MasterLayout from './components/master/MasterLayout';
@@ -125,8 +124,6 @@ function App() {
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<LoginRedirect />} />
             <Route path="/signin" element={<LoginRedirect />} />
-            <Route path="/Register" element={<Register />} />
-            <Route path="/register" element={<Register />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
             <Route path="/cliente/:slug/login" element={<CustomerLoginPage />} />
