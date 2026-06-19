@@ -83,7 +83,7 @@ export default function AtivarAcesso() {
     setError('');
     recordEvent('first_access_otp_verify', { email });
     try {
-      await base44.auth.verifyOtp({ email, otp });
+      await base44.auth.verifyOtp({ email, otpCode: otp });
       recordEvent('first_access_otp_success', { email });
       window.location.href = '/app/dashboard';
     } catch (e) {
