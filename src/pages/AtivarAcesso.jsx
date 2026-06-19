@@ -187,14 +187,17 @@ export default function AtivarAcesso() {
               onChange={handleCodeChange}
               disabled={verifying}
               autoFocus
+              inputMode="numeric"
+              pattern="[0-9]*"
             >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
+              <InputOTPGroup className="gap-2">
+                {[0,1,2,3,4,5].map((i) => (
+                  <InputOTPSlot
+                    key={i}
+                    index={i}
+                    className="h-14 w-12 sm:h-16 sm:w-14 text-2xl sm:text-3xl font-black text-[#0F172A] bg-white border-2 border-gray-200 rounded-xl first:rounded-l-xl last:rounded-r-xl"
+                  />
+                ))}
               </InputOTPGroup>
             </InputOTP>
           </div>
