@@ -223,7 +223,7 @@ export default function AppConfiguracoes() {
         {company && has('stripe_payments') && (
           <SettingsShortcutCard
             title="Pagamentos online"
-            description="Conecte sua conta Stripe para receber pagamentos via Pix e cartão direto pelo seu link público."
+            description="Conecte sua conta Asaas para receber pagamentos via Pix e cartão direto pelo seu link público."
             icon={CreditCard}
             ctaLabel="Gerenciar pagamentos"
             to="/app/configuracoes/pagamentos"

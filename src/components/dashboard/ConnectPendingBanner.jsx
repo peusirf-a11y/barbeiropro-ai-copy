@@ -17,7 +17,7 @@ export default function ConnectPendingBanner({ company }) {
     : 'Ative pagamentos online para sua barbearia';
   const desc = hasAccount
     ? 'Faltam alguns dados (documentos, dados bancários) no seu cadastro Stripe. Sem isso, o link público não aceita Pix nem cartão.'
-    : 'Conecte sua conta Stripe e comece a receber via Pix e cartão direto na sua conta bancária.';
+    : 'Conecte sua conta Asaas e comece a receber via Pix e cartão direto na sua conta bancária.';
 
   return (
     <Link
