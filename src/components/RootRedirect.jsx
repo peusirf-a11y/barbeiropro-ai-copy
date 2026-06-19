@@ -1,8 +1,12 @@
 // RootRedirect — controla apenas "/".
 //   - Carregando auth → spinner.
-//   - Autenticado admin → /master/dashboard.
-//   - Autenticado user → /app/dashboard.
+//   - Autenticado super-admin (Master da plataforma O CORTE) → /master/dashboard.
+//   - Autenticado outros (donos de barbearia, equipe) → /app/dashboard.
 //   - Não autenticado → /landing.
+//
+// IMPORTANTE: "Master" é controlado por user.is_super_admin (flag da plataforma Base44),
+// NÃO por user.role. O role=admin é o padrão da Base44 pra qualquer dono de app —
+// se usássemos role aqui, todos os donos de barbearia cairiam no painel Master.
 
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
@@ -22,7 +26,7 @@ export default function RootRedirect() {
     return <Navigate to="/landing" replace />;
   }
 
-  if (user?.role === 'admin') {
+  if (user?.is_super_admin) {
     return <Navigate to="/master/dashboard" replace />;
   }
 
