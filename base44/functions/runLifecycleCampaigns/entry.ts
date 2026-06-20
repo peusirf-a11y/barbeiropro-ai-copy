@@ -268,17 +268,6 @@ async function processCompany(sdk, company, baseUrl, { dryRun, limit }) {
       continue;
     }
 
-    // LGPD guard: campanhas de marketing exigem consentimento explícito
-    // Campanhas como fiel_sem_plano, vip_inativo são consideradas marketing/CRM
-    const MARKETING_CAMPAIGNS = ['em_risco', 'inativo', 'perdido', 'vip_inativo', 'fiel_sem_plano'];
-    if (MARKETING_CAMPAIGNS.includes(campaignKey)) {
-      const hasConsent = await hasMarketingConsent(sdk, customer.id, company.id);
-      if (!hasConsent) {
-        stats.skipped_no_consent = (stats.skipped_no_consent || 0) + 1;
-        continue;
-      }
-    }
-
     try {
       const message = renderTemplate(cfg.message, {
         nome: customer.name?.split(' ')[0] || 'cliente',
