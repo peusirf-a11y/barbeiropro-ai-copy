@@ -122,6 +122,13 @@ Deno.serve(async (req) => {
     const user = loginRes?.user;
 
     if (!accessToken) {
+      // Caso especial: User da Base44 ainda não verificou email (recém-criado pelo
+      // registerBarberCredential). O login com senha só é liberado após OTP de
+      // verificação. Frontend deve redirecionar pra /ativar-acesso.
+      if (/verify your email|verification code/i.test(loginErrMsg)) {
+        console.log(`[loginBarberCredential ${rid}] email_not_verified`, { email });
+        return Response.json({ ok: false, error: 'email_not_verified' }, { status: 200 });
+      }
       // Fase 4 — Fallback de migração:
       // Credencial legacy (sem base44_password_hint conhecido) OU senha técnica
       // rejeitada. Devolvemos legacy_account pro frontend disparar redirectToLogin

@@ -43,6 +43,10 @@ export default function BarberLogin() {
         if (data.error === 'account_locked') {
           const until = data.locked_until ? new Date(data.locked_until).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
           setError(`Conta bloqueada por excesso de tentativas. Tente novamente após ${until}.`);
+        } else if (data.error === 'email_not_verified') {
+          // Conta recém-criada (pós-checkout) — precisa verificar email via OTP.
+          navigate(`/ativar-acesso?email=${encodeURIComponent(cleanEmail)}`, { replace: true });
+          return;
         } else if (data.error === 'legacy_account') {
           // Fase 4: dono antigo. Senha local validada, mas não temos hint Base44.
           // Único login dessa vez é via OTP nativo da plataforma.
