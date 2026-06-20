@@ -230,8 +230,8 @@ export default function PublicBooking() {
       {/* ─── HERO / CAPA ─── */}
       <div className="relative">
         {company.logo_url ? (
-          <div className="h-52 w-full overflow-hidden">
-            <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
+          <div className="h-52 w-full overflow-hidden flex items-center justify-center bg-[#1a0a0a]">
+            <img src={company.logo_url} alt={company.name} className="max-w-full max-h-full object-contain" />
           </div>
         ) : (
           <div className="h-52 w-full" style={{ background: heroBg }}>
