@@ -232,7 +232,6 @@ export default function PublicBooking() {
         {company.logo_url ? (
           <div className="h-52 w-full overflow-hidden">
             <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
-            <div className={`absolute inset-0 bg-gradient-to-b from-black/20 via-transparent ${heroOverlay}`} />
           </div>
         ) : (
           <div className="h-52 w-full" style={{ background: heroBg }}>
@@ -280,7 +279,6 @@ export default function PublicBooking() {
                   <Star className="w-3 h-3 fill-amber-400" /> {avgRating}
                 </span>
               )}
-              <h1 className={`${tw.text} font-black text-xl truncate`}>{company.name}</h1>
             </div>
             {(company.address || company.phone) && (
               <p className={`${tw.textMuted} text-xs truncate`}>{company.address || company.phone}</p>
