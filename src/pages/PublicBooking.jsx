@@ -328,8 +328,8 @@ export default function PublicBooking() {
                   </div>
                   <button
                     onClick={() => openBooking(s)}
-                    className="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-xl text-white transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: primaryColor }}
+                    className="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-xl transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
                   >
                     Agendar
                   </button>
