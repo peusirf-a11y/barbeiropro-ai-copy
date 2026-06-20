@@ -67,6 +67,13 @@ export default function PublicBooking() {
     enabled: !!company?.id,
   });
 
+  const { data: activePlans = [] } = useQuery({
+    queryKey: ['public-active-plans', company?.id],
+    queryFn: () => base44.entities.CustomerPlan.filter({ company_id: company.id, active: true }),
+    enabled: !!company?.id,
+  });
+  const hasActivePlans = activePlans.length > 0;
+
   const { data: allProfessionals = [] } = useQuery({
     queryKey: ['public-professionals', company?.id],
     queryFn: () => base44.entities.Professional.filter({ company_id: company.id, active: true }),
@@ -435,6 +442,7 @@ export default function PublicBooking() {
         subscriptionBlocker={subscriptionBlocker}
         slug={slug}
         initialService={bookingService}
+        hasActivePlans={hasActivePlans}
         onBookingDone={(result) => {
           setShowBookingModal(false);
           setBookingDone(result);

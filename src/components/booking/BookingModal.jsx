@@ -43,6 +43,7 @@ export default function BookingModal({
   onBookingDone,
   onNeedAuth,
   initialService = null,
+  hasActivePlans = false,
 }) {
   const primaryColor = company?.primary_color || '#2563EB';
   const { isDark, tw } = usePublicTheme();
@@ -437,7 +438,7 @@ export default function BookingModal({
                     />
                   )}
 
-                  {loggedCustomer && !activeSubscription && (
+                  {loggedCustomer && !activeSubscription && hasActivePlans && (
                     <Link to={`/cliente/${slug}/planos`}
                       className="block px-4 py-3 rounded-xl border border-dashed border-amber-400/30 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
                     >
