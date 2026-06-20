@@ -94,7 +94,7 @@ export default function CustomerPlans() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-            <Scissors className="w-4 h-4 text-white" />
+            <Scissors className="w-4 h-4" style={{ color: '#FFFFFF' }} />
           </div>
           <span className={`font-bold text-sm ${tw.text} flex-1 truncate`}>{company.name}</span>
           <button onClick={toggle} className={`w-8 h-8 rounded-full flex items-center justify-center ${tw.logoutBtn}`}>
@@ -139,9 +139,9 @@ export default function CustomerPlans() {
                   )}
                 </div>
                 <button onClick={() => handleSubscribe(p)} disabled={hasActiveOrPending || submittingPlanId === p.id}
-                  className="w-full text-white font-bold py-3 rounded-xl text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: primaryColor }}>
-                  {submittingPlanId === p.id ? 'Processando...' : hasActiveOrPending ? 'Você já possui um plano' : 'Assinar este plano'}
+                  className="w-full font-bold py-3 rounded-xl text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
+                  <span style={{ color: '#FFFFFF' }}>{submittingPlanId === p.id ? 'Processando...' : hasActiveOrPending ? 'Você já possui um plano' : 'Assinar este plano'}</span>
                 </button>
               </div>
             ))}

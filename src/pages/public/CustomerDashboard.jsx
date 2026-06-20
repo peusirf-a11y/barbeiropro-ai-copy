@@ -96,7 +96,7 @@ export default function CustomerDashboard() {
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-              <Scissors className="w-4 h-4 text-white" />
+              <Scissors className="w-4 h-4" style={{ color: '#FFFFFF' }} />
             </div>
             <div className="min-w-0">
               <div className={`font-bold text-sm ${tw.text} truncate`}>{company.name}</div>
@@ -125,8 +125,8 @@ export default function CustomerDashboard() {
         <Link to={`/agendar/${slug}`}
           className={`flex items-center justify-between gap-4 ${tw.card} rounded-2xl p-4 ${tw.cardHover} transition-all`}>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-              <Plus className="w-5 h-5" />
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: primaryColor }}>
+              <Plus className="w-5 h-5" style={{ color: '#FFFFFF' }} />
             </div>
             <div>
               <div className={`font-bold ${tw.text}`}>Agendar novo horário</div>
@@ -280,9 +280,9 @@ function PausedCard({ sub, onResume, isPending, primaryColor, tw }) {
       <div className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-1`}>Plano pausado</div>
       <div className={`font-bold ${tw.text}`}>{sub.plan_name_snapshot}</div>
       <button onClick={() => onResume(sub.id)} disabled={isPending}
-        className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-white py-2.5 rounded-xl disabled:opacity-50 transition-all"
-        style={{ backgroundColor: primaryColor }}>
-        <Play className="w-3.5 h-3.5" /> Retomar plano
+        className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-xl disabled:opacity-50 transition-all"
+        style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
+        <Play className="w-3.5 h-3.5" style={{ color: '#FFFFFF' }} /> <span style={{ color: '#FFFFFF' }}>Retomar plano</span>
       </button>
     </div>
   );

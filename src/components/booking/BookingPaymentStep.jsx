@@ -152,10 +152,10 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
           <button
             onClick={handleStart}
             disabled={method === 'pix' && cpfDigits.length !== 11}
-            className="w-full text-white font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-            style={{ backgroundColor: primaryColor }}
+            className="w-full font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
           >
-            Continuar para pagamento
+            <span style={{ color: '#FFFFFF' }}>Continuar para pagamento</span>
           </button>
           <p className="text-[11px] text-gray-400 text-center">
             Seu agendamento só é confirmado após o pagamento ser aprovado.

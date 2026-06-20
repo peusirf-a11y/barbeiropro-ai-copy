@@ -119,10 +119,10 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
         )}
 
         <button type="submit" disabled={loading}
-          className="w-full py-3 rounded-xl font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          style={{ backgroundColor: primaryColor }}>
-          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {loading ? 'Criando conta...' : 'Criar conta'}
+          className="w-full py-3 rounded-xl font-bold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
+          {loading && <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#FFFFFF' }} />}
+          <span style={{ color: '#FFFFFF' }}>{loading ? 'Criando conta...' : 'Criar conta'}</span>
         </button>
       </form>
 

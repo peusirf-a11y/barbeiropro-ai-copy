@@ -253,11 +253,11 @@ export default function CardPaymentFormAsaas({
       <button
         type="submit"
         disabled={loading || !isValid()}
-        className="w-full text-white font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md inline-flex items-center justify-center gap-2"
-        style={{ backgroundColor: primaryColor }}
+        className="w-full font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md inline-flex items-center justify-center gap-2"
+        style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
       >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-        {loading ? 'Processando…' : amountLabel}
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#FFFFFF' }} /> : <CreditCard className="w-4 h-4" style={{ color: '#FFFFFF' }} />}
+        <span style={{ color: '#FFFFFF' }}>{loading ? 'Processando…' : amountLabel}</span>
       </button>
     </form>
   );
