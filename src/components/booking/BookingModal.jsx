@@ -292,8 +292,8 @@ export default function BookingModal({
                           <span className={`${tw.textFaint} text-xs flex items-center gap-1`}><Clock className="w-3 h-3" />{s.duration_minutes} min</span>
                         </div>
                       </div>
-                      <span className="text-xs font-bold px-3 py-1.5 rounded-lg text-white flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-                        Agendar
+                      <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0" style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
+                        <span style={{ color: '#FFFFFF' }}>Agendar</span>
                       </span>
                     </button>
                   ))}
@@ -324,8 +324,8 @@ export default function BookingModal({
                       {p.photo_url ? (
                         <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-                          {(p.name || '?')[0]}
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0" style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
+                          <span style={{ color: '#FFFFFF' }}>{(p.name || '?')[0]}</span>
                         </div>
                       )}
                       <div className="flex-1">
@@ -348,12 +348,12 @@ export default function BookingModal({
                       return (
                         <button key={i}
                           onClick={() => setSelected(p => ({ ...p, date: day, time: null }))}
-                          className={`flex-shrink-0 flex flex-col items-center px-3 py-3 rounded-2xl border transition-all min-w-[56px] ${isSel ? 'border-transparent text-white' : `${tw.card} ${tw.textMuted}`}`}
-                          style={{ backgroundColor: isSel ? primaryColor : undefined }}
+                          className={`flex-shrink-0 flex flex-col items-center px-3 py-3 rounded-2xl border transition-all min-w-[56px] ${isSel ? 'border-transparent' : `${tw.card} ${tw.textMuted}`}`}
+                          style={{ backgroundColor: isSel ? primaryColor : undefined, color: isSel ? '#FFFFFF' : undefined }}
                         >
-                          <span className="text-[10px] uppercase tracking-wide opacity-70">{format(day, 'EEE', { locale: ptBR })}</span>
-                          <span className="text-lg font-black">{format(day, 'd')}</span>
-                          <span className="text-[10px] opacity-70">{format(day, 'MMM', { locale: ptBR })}</span>
+                          <span className="text-[10px] uppercase tracking-wide opacity-70" style={isSel ? { color: '#FFFFFF' } : undefined}>{format(day, 'EEE', { locale: ptBR })}</span>
+                          <span className="text-lg font-black" style={isSel ? { color: '#FFFFFF' } : undefined}>{format(day, 'd')}</span>
+                          <span className="text-[10px] opacity-70" style={isSel ? { color: '#FFFFFF' } : undefined}>{format(day, 'MMM', { locale: ptBR })}</span>
                         </button>
                       );
                     })}
@@ -374,10 +374,10 @@ export default function BookingModal({
                               return (
                                 <button key={t}
                                   onClick={() => setSelected(p => ({ ...p, time: t }))}
-                                  className={`relative py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSel ? 'text-white border-transparent' : `${tw.card} ${tw.textMuted}`} ${smart && !isSel ? 'ring-1 ring-amber-400/50' : ''}`}
-                                  style={{ backgroundColor: isSel ? primaryColor : undefined }}
+                                  className={`relative py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSel ? 'border-transparent' : `${tw.card} ${tw.textMuted}`} ${smart && !isSel ? 'ring-1 ring-amber-400/50' : ''}`}
+                                  style={{ backgroundColor: isSel ? primaryColor : undefined, color: isSel ? '#FFFFFF' : undefined }}
                                 >
-                                  {t}
+                                  {isSel ? <span style={{ color: '#FFFFFF' }}>{t}</span> : t}
                                   {smart && !isSel && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full" />}
                                 </button>
                               );
@@ -385,10 +385,10 @@ export default function BookingModal({
                           </div>
                           {selected.time && (
                             <button onClick={handleContinueToConfirmation}
-                              className="w-full text-white font-bold py-4 rounded-2xl text-sm transition-opacity hover:opacity-90"
-                              style={{ backgroundColor: primaryColor }}
+                              className="w-full font-bold py-4 rounded-2xl text-sm transition-opacity hover:opacity-90"
+                              style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
                             >
-                              Continuar
+                              <span style={{ color: '#FFFFFF' }}>Continuar</span>
                             </button>
                           )}
                         </>
@@ -463,11 +463,13 @@ export default function BookingModal({
 
                   <button onClick={handleBook}
                     disabled={createApptMutation.isPending}
-                    className="w-full text-white font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 shadow-lg"
-                    style={{ backgroundColor: primaryColor }}
+                    className="w-full font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 shadow-lg"
+                    style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
                   >
-                    {createApptMutation.isPending ? 'Confirmando...' :
-                      (paymentMethod === 'subscription' && canUseSubscription) ? 'Confirmar agendamento' : 'Continuar para pagamento →'}
+                    <span style={{ color: '#FFFFFF' }}>
+                      {createApptMutation.isPending ? 'Confirmando...' :
+                        (paymentMethod === 'subscription' && canUseSubscription) ? 'Confirmar agendamento' : 'Continuar para pagamento →'}
+                    </span>
                   </button>
                 </div>
               )}

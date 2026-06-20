@@ -172,7 +172,7 @@ export default function CustomerLoginPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-            <Scissors className="w-4 h-4 text-white" />
+            <Scissors className="w-4 h-4" style={{ color: '#FFFFFF' }} />
           </div>
           <span className={`font-bold text-sm ${tw.text} flex-1 truncate`}>{company.name}</span>
           <button onClick={toggle} className={`w-8 h-8 rounded-full flex items-center justify-center ${tw.logoutBtn}`}>
@@ -196,8 +196,8 @@ export default function CustomerLoginPage() {
               </div>
               {error && <div className={`text-sm text-red-500 flex items-center gap-2`}><AlertCircle className="w-4 h-4" />{error}</div>}
               <button type="submit" disabled={submitting}
-                className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: primaryColor }}>
+                className="w-full font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
                 {submitting ? 'Verificando...' : 'Continuar'}
               </button>
             </form>
@@ -217,8 +217,8 @@ export default function CustomerLoginPage() {
               </div>
               {error && <div className="text-sm text-red-500 flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
               <button type="submit" disabled={submitting}
-                className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: primaryColor }}>
+                className="w-full font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
                 {submitting ? 'Entrando...' : 'Entrar'}
               </button>
               <div className="flex items-center justify-between mt-2">
@@ -272,8 +272,8 @@ export default function CustomerLoginPage() {
               </div>
               {error && <div className="text-sm text-red-500 flex items-center gap-2"><AlertCircle className="w-4 h-4 flex-shrink-0" />{error}</div>}
               <button type="submit" disabled={submitting}
-                className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: primaryColor }}>
+                className="w-full font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
                 {submitting ? 'Salvando...' : 'Salvar nova senha'}
               </button>
             </form>
@@ -304,8 +304,8 @@ export default function CustomerLoginPage() {
               </div>
               {error && <div className="text-sm text-red-500 flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
               <button type="submit" disabled={submitting}
-                className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: primaryColor }}>
+                className="w-full font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
                 {submitting ? 'Criando conta...' : 'Criar conta'}
               </button>
               <button type="button" onClick={() => { setMode('check'); setError(''); }}
