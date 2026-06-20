@@ -64,7 +64,7 @@ export default function CriarSenha() {
       const regRes = await base44.functions.invoke('registerBarberCredential', {
         email,
         password,
-      });
+      }).catch((e) => e?.response || { data: { ok: false, error: 'network_error' } });
       const regData = regRes?.data || {};
 
       if (!regData.ok) {
@@ -84,12 +84,15 @@ export default function CriarSenha() {
         return;
       }
 
-      // 2) Faz login automático.
+      // 2) Tenta login automático. Pode falhar se a Base44 exigir verificação
+      //    de email do User recém-criado — nesse caso, mandamos pro /ativar-acesso
+      //    pra ele confirmar via OTP, e na próxima vez o login direto vai funcionar.
       const loginRes = await base44.functions.invoke('loginBarberCredential', {
         email,
         password,
-      });
+      }).catch((e) => e?.response || { data: { ok: false, error: 'network_error' } });
       const loginData = loginRes?.data || {};
+
       if (loginData.ok && loginData.access_token) {
         if (typeof base44.auth.setToken === 'function') {
           base44.auth.setToken(loginData.access_token);
@@ -98,8 +101,9 @@ export default function CriarSenha() {
         return;
       }
 
-      // Login falhou por algum motivo — manda pro /login pra ele tentar manualmente.
-      navigate(`/login?email=${encodeURIComponent(email)}`, { replace: true });
+      // Login falhou — provavelmente Base44 exige verificação de email do User novo.
+      // Manda pro /ativar-acesso pra confirmar via OTP. Depois disso, o login passa.
+      navigate(`/ativar-acesso?email=${encodeURIComponent(email)}&plan=${encodeURIComponent(planKey)}`, { replace: true });
     } catch (err) {
       console.error('[CriarSenha] submit_failed', err);
       setError('Erro inesperado. Tente novamente.');
