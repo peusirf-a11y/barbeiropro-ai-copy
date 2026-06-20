@@ -281,17 +281,30 @@ function AsaasSplitFlow({ company }) {
             </Field>
           </div>
 
-          {createMutation.isError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800">
-              {createMutation.error?.message || 'Não foi possível criar sua conta. Verifique os dados e tente novamente.'}
-              {/* Se o backend sugeriu modo manual, oferece o botão automático */}
-              {String(createMutation.error?.message || '').toLowerCase().includes('cnpj') && (
-                <p className="mt-2 text-[11px] text-red-700">
-                  Dica: você pode usar o modo de repasse manual abaixo enquanto não tem CNPJ.
-                </p>
-              )}
-            </div>
-          )}
+          {createMutation.isError && (() => {
+            const rawMsg = String(createMutation.error?.message || '');
+            const docDigits = String(form.cpf_cnpj || '').replace(/\D+/g, '');
+            const userTypedCNPJ = docDigits.length === 14;
+            // Só sugere modo manual quando o usuário realmente está usando CPF
+            // (11 dígitos) — não quando ele digitou um CNPJ que o Asaas recusou.
+            const suggestManual = !userTypedCNPJ && /cpf|cnpj.*requer|pessoa f[ií]sica/i.test(rawMsg);
+            const looksLikeInvalidCNPJ = userTypedCNPJ && /cnpj|cpfcnpj|invalid|inv[áa]lido|n[ãa]o.*encontrad/i.test(rawMsg);
+            return (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800">
+                {rawMsg || 'Não foi possível criar sua conta. Verifique os dados e tente novamente.'}
+                {looksLikeInvalidCNPJ && (
+                  <p className="mt-2 text-[11px] text-red-700">
+                    Confira se o CNPJ está correto e ativo na Receita Federal. CNPJs em situação irregular são recusados pelo Asaas.
+                  </p>
+                )}
+                {suggestManual && (
+                  <p className="mt-2 text-[11px] text-red-700">
+                    Dica: você pode usar o modo de repasse manual abaixo enquanto não tem CNPJ.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           <button
             onClick={() => createMutation.mutate()}
