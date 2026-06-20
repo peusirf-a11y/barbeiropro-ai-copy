@@ -1,118 +1,43 @@
-// AsaasSplitCard — Etapa 2C+
-// Card no painel admin (AppPagamentos) para a barbearia ativar a subaccount
-// Asaas e habilitar split automático nos recebimentos.
+// AsaasSplitCard — Recebimentos via Asaas (split automático)
 //
-// Modo híbrido:
-//   - CPF (PF) ou Company já marcada como manual → renderiza AsaasManualModeCard
-//   - CNPJ (PJ) → renderiza o fluxo de subaccount Asaas (este arquivo)
+// POLÍTICA: O CORTE opera EXCLUSIVAMENTE com empresas CNPJ/MEI.
+// Não há modo manual, não há repasse manual, não há recebimento centralizado.
+// Toda barbearia precisa de subaccount Asaas ativa para usar o agendamento online pago.
 //
-// Estados do fluxo PJ:
-//   - Sem subaccount → form CPF/CNPJ + endereço → botão "Ativar pagamento online"
-//   - Subaccount pending → banner âmbar + link onboarding + botão "Atualizar status"
-//   - Subaccount active → banner emerald + métricas (PIX habilitado, split %)
-//   - Subaccount rejected → banner vermelho + link suporte
+// Estados:
+//   - Sem subaccount → form CNPJ + endereço → "Ativar pagamento online"
+//   - pending → banner âmbar + link onboarding + "Atualizar status"
+//   - active → banner emerald + métricas
+//   - rejected → banner vermelho + suporte
+//
+// Barbearias PF legadas (cadastradas antes desta política): mantêm acesso ao recebimento
+// já configurado, mas não conseguem criar novas subaccounts via este card.
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Banknote, CheckCircle2, AlertCircle, ExternalLink, Loader2, ShieldCheck, Zap } from 'lucide-react';
-import AsaasManualModeCard from './AsaasManualModeCard';
+import { Banknote, CheckCircle2, AlertCircle, ExternalLink, Loader2, ShieldCheck, Zap, Building2 } from 'lucide-react';
 
-function maskCpfCnpj(v) {
+function maskCNPJ(v) {
   const d = String(v || '').replace(/\D+/g, '').slice(0, 14);
-  if (d.length <= 11) {
-    return d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-  }
-  return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2}\.\d{3})(\d)/, '$1.$2').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
+  return d
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2}\.\d{3})(\d)/, '$1.$2')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
 }
 function maskCEP(v) {
   return String(v || '').replace(/\D+/g, '').slice(0, 8).replace(/(\d{5})(\d)/, '$1-$2');
 }
 
-// Wrapper público: faz a decisão PF vs PJ ANTES de qualquer hook.
-// Como cada branch renderiza um componente diferente, os hooks ficam isolados
-// e a regra dos hooks é respeitada (cada componente tem sua ordem fixa).
-//
-// Quando a Company ainda não tem owner_cpf_cnpj salvo (primeiro acesso),
-// mostramos um seletor PF/PJ para o usuário escolher o fluxo.
 export default function AsaasSplitCard({ company }) {
-  const docDigits = String(company?.owner_cpf_cnpj || '').replace(/\D+/g, '');
-  const isPF = docDigits.length === 11;
-  const isCNPJ = docDigits.length === 14;
-  const isManualMode = company?.asaas_split_mode === 'manual'
-    || company?.asaas_subaccount_status === 'not_available_pf';
-  const hasSubaccount = !!company?.asaas_subaccount_id;
-
-  // Seletor manual: usuário escolhe antes de começar (quando ainda não há documento salvo nem subaccount).
-  const [chosen, setChosen] = useState(null); // 'pf' | 'pj' | null
-
-  if (isPF || isManualMode || chosen === 'pf') {
-    return <AsaasManualModeCard company={company} />;
-  }
-  if (isCNPJ || hasSubaccount || chosen === 'pj') {
-    return <AsaasSplitFlow company={company} />;
-  }
-  // Sem documento salvo → mostra seletor.
-  return <DocTypeChooser onChoose={setChosen} />;
-}
-
-function DocTypeChooser({ onChoose }) {
-  return (
-    <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)] mb-4">
-      <div className="flex items-start gap-4 mb-5">
-        <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-          <Banknote className="w-5 h-5 text-[#2563EB]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="font-bold text-[#111827]">Como você quer receber?</h2>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Escolha o modo de recebimento de acordo com o seu tipo de documento.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-3">
-        <button
-          onClick={() => onChoose('pf')}
-          className="text-left rounded-2xl border border-black/10 bg-white p-4 hover:border-[#2563EB] hover:shadow-[0_4px_12px_rgba(37,99,235,0.15)] transition-all"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-              Mais rápido
-            </span>
-          </div>
-          <div className="text-base font-bold text-[#111827] mb-1">Tenho CPF</div>
-          <p className="text-xs text-[#6B7280] leading-relaxed mb-3">
-            Comece em 1 clique. A O CORTE recebe os pagamentos e repassa pra você semanalmente via PIX.
-          </p>
-          <div className="text-[11px] text-blue-700 font-semibold">Repasse manual →</div>
-        </button>
-
-        <button
-          onClick={() => onChoose('pj')}
-          className="text-left rounded-2xl border border-black/10 bg-white p-4 hover:border-[#2563EB] hover:shadow-[0_4px_12px_rgba(37,99,235,0.15)] transition-all"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Automático
-            </span>
-          </div>
-          <div className="text-base font-bold text-[#111827] mb-1">Tenho CNPJ ou MEI</div>
-          <p className="text-xs text-[#6B7280] leading-relaxed mb-3">
-            Cada PIX/cartão cai direto na sua conta bancária via split do Asaas. Sem intermediário.
-          </p>
-          <div className="text-[11px] text-emerald-700 font-semibold">Repasse automático →</div>
-        </button>
-      </div>
-    </div>
-  );
+  return <AsaasSplitFlow company={company} />;
 }
 
 function AsaasSplitFlow({ company }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     cpf_cnpj: company?.owner_cpf_cnpj || '',
-    birth_date: '',
     line1: company?.address_details?.line1 || '',
     address_number: '',
     neighborhood: company?.address_details?.neighborhood || '',
@@ -128,13 +53,19 @@ function AsaasSplitFlow({ company }) {
     refetchOnWindowFocus: true,
   });
 
+  const docDigits = String(form.cpf_cnpj || '').replace(/\D+/g, '');
+  const isCpf = docDigits.length === 11;
+  const isCnpj = docDigits.length === 14;
+
   const createMutation = useMutation({
     mutationFn: async () => {
+      if (!isCnpj) {
+        throw new Error('Para utilizar os recebimentos automáticos do O CORTE é necessário possuir um CNPJ ativo (MEI também é aceito).');
+      }
       try {
         const res = await base44.functions.invoke('createAsaasSubaccount', {
           company_id: company.id,
-          cpf_cnpj: form.cpf_cnpj.replace(/\D+/g, ''),
-          birth_date: form.birth_date || undefined,
+          cpf_cnpj: docDigits,
           address_number: form.address_number,
           address_details: {
             line1: form.line1,
@@ -147,7 +78,6 @@ function AsaasSplitFlow({ company }) {
         if (res?.data?.error) throw new Error(res.data.message || res.data.error);
         return res.data;
       } catch (err) {
-        // Axios encapsula 4xx em err.response.data — mostra a mensagem real do Asaas.
         const payload = err?.response?.data;
         const msg = payload?.message || payload?.error || err.message;
         throw new Error(msg || 'Falha ao criar conta Asaas.');
@@ -197,7 +127,7 @@ function AsaasSplitFlow({ company }) {
             )}
           </div>
           <p className="text-sm text-[#6B7280] mt-1">
-            Receba PIX dos seus agendamentos e mensalidades dos clientes <strong className="text-[#111827]">direto na sua conta</strong>, sem intermediário.
+            Receba PIX e cartão dos seus agendamentos e mensalidades <strong className="text-[#111827]">direto na sua conta</strong> via split automático do Asaas.
           </p>
         </div>
       </div>
@@ -208,27 +138,32 @@ function AsaasSplitFlow({ company }) {
         </div>
       )}
 
-      {/* ─── Estado: NÃO conectado → form de ativação ─── */}
+      {/* ─── Estado: NÃO conectado → form ─── */}
       {!isLoading && !connected && (
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-            <div className="text-sm font-bold text-blue-900 mb-2">Como funciona</div>
-            <ol className="text-xs text-blue-900 space-y-1 list-decimal pl-4">
-              <li>Você preenche os dados abaixo (CNPJ + endereço)</li>
-              <li>Criamos sua conta Asaas em segundos</li>
-              <li>O Asaas faz uma verificação rápida (até 24h)</li>
-              <li>Aprovado: cada PIX vai direto pra você. Sem repasse manual.</li>
-            </ol>
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
+            <Building2 className="w-4 h-4 text-blue-700 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="text-sm font-bold text-blue-900 mb-1">É necessário possuir CNPJ (inclusive MEI)</div>
+              <p className="text-xs text-blue-900 leading-relaxed">
+                O CORTE opera exclusivamente com empresas com CNPJ ativo. Cada PIX/cartão cai direto na sua conta bancária via split automático — sem intermediário e sem repasse manual.
+              </p>
+            </div>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
             <Field label="CNPJ" required>
               <input
-                value={maskCpfCnpj(form.cpf_cnpj)}
+                value={maskCNPJ(form.cpf_cnpj)}
                 onChange={e => setForm({ ...form, cpf_cnpj: e.target.value })}
                 placeholder="00.000.000/0000-00"
                 className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
               />
+              {isCpf && (
+                <p className="mt-1 text-[11px] text-red-700">
+                  Para utilizar os recebimentos automáticos do O CORTE é necessário possuir um CNPJ ativo (MEI também é aceito). Caso precise de uma análise especial, entre em contato pelo WhatsApp.
+                </p>
+              )}
             </Field>
             <Field label="CEP" required>
               <input
@@ -281,34 +216,15 @@ function AsaasSplitFlow({ company }) {
             </Field>
           </div>
 
-          {createMutation.isError && (() => {
-            const rawMsg = String(createMutation.error?.message || '');
-            const docDigits = String(form.cpf_cnpj || '').replace(/\D+/g, '');
-            const userTypedCNPJ = docDigits.length === 14;
-            // Só sugere modo manual quando o usuário realmente está usando CPF
-            // (11 dígitos) — não quando ele digitou um CNPJ que o Asaas recusou.
-            const suggestManual = !userTypedCNPJ && /cpf|cnpj.*requer|pessoa f[ií]sica/i.test(rawMsg);
-            const looksLikeInvalidCNPJ = userTypedCNPJ && /cnpj|cpfcnpj|invalid|inv[áa]lido|n[ãa]o.*encontrad/i.test(rawMsg);
-            return (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800">
-                {rawMsg || 'Não foi possível criar sua conta. Verifique os dados e tente novamente.'}
-                {looksLikeInvalidCNPJ && (
-                  <p className="mt-2 text-[11px] text-red-700">
-                    Confira se o CNPJ está correto e ativo na Receita Federal. CNPJs em situação irregular são recusados pelo Asaas.
-                  </p>
-                )}
-                {suggestManual && (
-                  <p className="mt-2 text-[11px] text-red-700">
-                    Dica: você pode usar o modo de repasse manual abaixo enquanto não tem CNPJ.
-                  </p>
-                )}
-              </div>
-            );
-          })()}
+          {createMutation.isError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800">
+              {String(createMutation.error?.message || 'Não foi possível criar sua conta. Verifique os dados e tente novamente.')}
+            </div>
+          )}
 
           <button
             onClick={() => createMutation.mutate()}
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || !isCnpj}
             className="inline-flex items-center gap-2 bg-[#2563EB] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#1d4ed8] disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
           >
             {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Banknote className="w-4 h-4" />}
@@ -317,13 +233,13 @@ function AsaasSplitFlow({ company }) {
         </div>
       )}
 
-      {/* ─── Estado: PENDING ─── */}
+      {/* ─── PENDING ─── */}
       {!isLoading && isPending && (
         <div className="space-y-3">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
             <div className="text-sm font-bold text-amber-900 mb-1">Conta criada — aguardando aprovação do Asaas</div>
             <p className="text-xs text-amber-800 leading-relaxed">
-              Geralmente leva até 24h úteis. Você receberá um email do Asaas quando aprovado. Enquanto isso, pagamentos online ainda caem na conta master (com repasse manual).
+              Geralmente leva até 24h úteis. Você receberá um email do Asaas quando aprovado.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -350,7 +266,7 @@ function AsaasSplitFlow({ company }) {
         </div>
       )}
 
-      {/* ─── Estado: ACTIVE ─── */}
+      {/* ─── ACTIVE ─── */}
       {!isLoading && isActive && (
         <div className="space-y-3">
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
@@ -375,7 +291,7 @@ function AsaasSplitFlow({ company }) {
         </div>
       )}
 
-      {/* ─── Estado: REJECTED ─── */}
+      {/* ─── REJECTED ─── */}
       {!isLoading && isRejected && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <div className="text-sm font-bold text-red-900 mb-1">Cadastro reprovado pelo Asaas</div>

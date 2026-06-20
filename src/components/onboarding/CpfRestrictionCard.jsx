@@ -1,29 +1,23 @@
-// CpfRestrictionCard — exibido quando o cadastro automático detecta CPF (11 dígitos).
-// Bloqueia a continuação e oferece contato direto com a equipe O CORTE
-// (WhatsApp como CTA principal, e-mail como secundário).
+// CpfRestrictionCard — exibido quando o cadastro detecta CPF (11 dígitos).
+// O CORTE opera exclusivamente com CNPJ/MEI para garantir o split automático Asaas.
+// Não há modo manual. Casos especiais são tratados via análise comercial (WhatsApp/email).
 //
-// Política PJ-first: docs/PJ_ONLY_POLICY.md
+// Política PJ-only: docs/PJ_ONLY_POLICY.md
 //
 // Props:
 //   formData (opcional)  → { name, email, phone, city } pré-preenche a mensagem WhatsApp.
 //   origin (opcional)    → identifica de onde o bloqueio veio (checkout | onboarding).
-//                          Apenas registrado no console (observabilidade local) —
-//                          não envia ao backend para evitar exigir auth no /checkout público.
 
 import { Building2, MessageCircle, Mail, ShieldCheck } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
-// Defaults seguros caso o env não esteja carregado no SSR/build.
-// Os secrets reais (OCORTE_COMMERCIAL_WHATSAPP / OCORTE_COMMERCIAL_EMAIL) ficam no backend.
-// Para o frontend usar valores específicos por ambiente, exponha-os via APP_URL/config
-// — aqui usamos placeholders sensatos.
-const WHATSAPP_NUMBER = '5511999999999';      // override em produção via build env se necessário
+const WHATSAPP_NUMBER = '5511999999999';
 const COMMERCIAL_EMAIL = 'comercial@ocorte.app';
 
 function buildWhatsAppMessage({ name, email, phone, city } = {}) {
   const lines = [
     'Olá! Vim do site da O CORTE.',
-    'Atuo como pessoa física (CPF) e gostaria de saber se posso ativar minha conta.',
+    'Atuo como pessoa física (CPF) e gostaria de uma análise especial para ativar minha conta.',
     '',
     name ? `Nome: ${name}` : null,
     email ? `E-mail: ${email}` : null,
@@ -35,28 +29,21 @@ function buildWhatsAppMessage({ name, email, phone, city } = {}) {
   return encodeURIComponent(lines.join('\n'));
 }
 
-// Observabilidade local: tenta enviar ao trackEvent (silencioso se não autenticado).
-// Em rotas públicas (/checkout), trackEvent retorna 401 — ignorado.
 function fireEvent(eventType, metadata) {
   try {
     base44.functions.invoke('trackEvent', { event_type: eventType, metadata }).catch(() => {});
   } catch { /* ignore */ }
-  // Log local sempre — útil para debugging mesmo sem auth
   // eslint-disable-next-line no-console
-  console.info('[pj-first]', eventType, metadata || {});
+  console.info('[pj-only]', eventType, metadata || {});
 }
 
 export default function CpfRestrictionCard({ formData, origin = 'checkout' }) {
   const waMessage = buildWhatsAppMessage(formData);
   const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
-  const emailUrl = `mailto:${COMMERCIAL_EMAIL}?subject=${encodeURIComponent('Solicitação de cadastro via CPF')}&body=${waMessage}`;
+  const emailUrl = `mailto:${COMMERCIAL_EMAIL}?subject=${encodeURIComponent('Solicitação de análise especial — cadastro via CPF')}&body=${waMessage}`;
 
-  const handleWhatsApp = () => {
-    fireEvent('cpf_contact_click_whatsapp', { origin });
-  };
-  const handleEmail = () => {
-    fireEvent('cpf_contact_click_email', { origin });
-  };
+  const handleWhatsApp = () => fireEvent('cpf_contact_click_whatsapp', { origin });
+  const handleEmail = () => fireEvent('cpf_contact_click_email', { origin });
 
   return (
     <div className="bg-white rounded-2xl border border-[#2563EB]/15 p-5 sm:p-6 shadow-card animate-fade-in">
@@ -66,19 +53,14 @@ export default function CpfRestrictionCard({ formData, origin = 'checkout' }) {
           <Building2 className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-black text-[#0F172A] leading-tight">Cadastro via CPF</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Atendimento personalizado pela nossa equipe</p>
+          <h3 className="text-lg font-black text-[#0F172A] leading-tight">CNPJ obrigatório</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Análise especial pela nossa equipe comercial</p>
         </div>
       </div>
 
-      {/* Texto */}
-      <p className="text-sm text-gray-700 leading-relaxed mb-2">
-        No momento, o cadastro automático do <strong>O CORTE</strong> está disponível apenas para
-        empresas com <strong>CNPJ</strong> ou <strong>MEI</strong>.
-      </p>
+      {/* Texto oficial */}
       <p className="text-sm text-gray-700 leading-relaxed mb-5">
-        Se você ainda atua como pessoa física, fale com nossa equipe para avaliarmos possibilidades
-        de ativação.
+        Para utilizar os recebimentos automáticos do <strong>O CORTE</strong> é necessário possuir um <strong>CNPJ ativo</strong> (MEI também é aceito). Caso precise de uma análise especial, entre em contato pelo WhatsApp.
       </p>
 
       {/* CTAs */}
@@ -107,16 +89,14 @@ export default function CpfRestrictionCard({ formData, origin = 'checkout' }) {
       <div className="mt-5 pt-4 border-t border-black/5 flex items-start gap-2 text-[11px] text-gray-500 leading-relaxed">
         <ShieldCheck className="w-3.5 h-3.5 text-[#2563EB] flex-shrink-0 mt-0.5" />
         <span>
-          Nossa equipe responde em horário comercial. Já temos barbearias atendidas via análise
-          manual — entre em contato e conversamos sobre o seu caso.
+          Nossa equipe responde em horário comercial e avalia caso a caso.
         </span>
       </div>
     </div>
   );
 }
 
-// Helper exportado para uso em validações de form (Checkout / Onboarding).
-// CPF = 11 dígitos; CNPJ = 14 dígitos.
+// Helpers de validação reaproveitados em Checkout / Onboarding.
 export function isPersonaFisica(rawValue) {
   const digits = String(rawValue || '').replace(/\D/g, '');
   return digits.length === 11;

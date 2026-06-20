@@ -39,6 +39,7 @@ export default function Onboarding() {
   const [businessDetails, setBusinessDetails] = useState({
     business_type: '',
     phone: '',
+    owner_cpf_cnpj: '',
     address_details: { line1: '', line2: '', neighborhood: '', city: '', state: '', postal_code: '', country: 'BR' },
   });
   const [services, setServices] = useState([{ name: 'Corte Clássico', duration_minutes: 30, price: 45 }]);
@@ -69,11 +70,12 @@ export default function Onboarding() {
           slug: existing.slug || p.slug,
           primary_color: existing.primary_color || p.primary_color,
         }));
-        if (existing.business_type || existing.address_details) {
+        if (existing.business_type || existing.address_details || existing.owner_cpf_cnpj) {
           setBusinessDetails(p => ({
             ...p,
             business_type: existing.business_type || p.business_type,
             phone: existing.phone || p.phone,
+            owner_cpf_cnpj: existing.owner_cpf_cnpj || p.owner_cpf_cnpj,
             address_details: existing.address_details || p.address_details,
           }));
         }
@@ -165,6 +167,7 @@ export default function Onboarding() {
       await base44.entities.Company.update(companyId, {
         business_type: businessDetails.business_type,
         phone: businessDetails.phone || company.phone || '',
+        owner_cpf_cnpj: String(businessDetails.owner_cpf_cnpj || '').replace(/\D/g, ''),
         address_details: businessDetails.address_details,
         address: legacyAddress,
         onboarding_step: 4,

@@ -118,15 +118,14 @@ Deno.serve(async (req) => {
     const cpfNorm = sanitizeCpfCnpj(body.cpf_cnpj || company.owner_cpf_cnpj);
     if (!cpfNorm) return Response.json({ error: 'cpf_cnpj_required', message: 'Informe o CPF ou CNPJ do responsável.' }, { status: 400 });
 
-    // ─── BLOQUEIO PF: Asaas não permite subaccount com CPF ──────────
-    // Devolve erro amigável já traduzido — frontend usa este código pra rotear
-    // o usuário pro modo manual (enableAsaasManualMode).
+    // ─── BLOQUEIO PF: O CORTE opera exclusivamente com CNPJ/MEI ─────
+    // Asaas não permite subaccount com CPF e a política da plataforma
+    // exige split automático — não há fallback manual.
     if (cpfNorm.length === 11) {
-      console.log('[createAsaasSubaccount] cpf_blocked → suggest manual mode', { corrId, company_id });
+      console.log('[createAsaasSubaccount] cpf_blocked', { corrId, company_id });
       return Response.json({
         error: 'cnpj_required',
-        message: 'Para recebimento automático direto na sua conta, é necessário CNPJ ou MEI. Você pode começar agora no modo de repasse manual (a O CORTE recebe e repassa para você).',
-        suggest_manual_mode: true,
+        message: 'Para utilizar os recebimentos automáticos do O CORTE é necessário possuir um CNPJ ativo (MEI também é aceito). Caso precise de uma análise especial, entre em contato pelo WhatsApp.',
       }, { status: 400 });
     }
 
@@ -149,22 +148,7 @@ Deno.serve(async (req) => {
     if (!ownerName || !email) return Response.json({ error: 'missing_owner_data' }, { status: 400 });
     const mobilePhone = sanitizePhone(body.mobile_phone || company.whatsapp || company.phone) || undefined;
 
-    const companyType = company.business_type === 'mei' ? 'MEI'
-      : company.business_type === 'cnpj' ? (cpfNorm.length === 14 ? 'LIMITED' : 'INDIVIDUAL')
-      : 'INDIVIDUAL';
-
-    // Asaas exige birthDate quando é conta com CPF (INDIVIDUAL/MEI). CNPJ (LIMITED) não precisa.
-    // Formato esperado: YYYY-MM-DD.
-    const needsBirthDate = cpfNorm.length === 11;
-    const birthDate = String(body.birth_date || '').trim();
-    if (needsBirthDate) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
-        return Response.json({
-          error: 'birth_date_required',
-          message: 'Informe a data de nascimento do responsável (exigência do Asaas).',
-        }, { status: 400 });
-      }
-    }
+    const companyType = company.business_type === 'mei' ? 'MEI' : 'LIMITED';
 
     // ─── Cria subaccount no Asaas ────────────────────────────────────
     let account = null;
@@ -181,8 +165,6 @@ Deno.serve(async (req) => {
           addressNumber: String(addressNumber),
           province,
           postalCode,
-          // birthDate obrigatório para CPF (INDIVIDUAL/MEI); ignorado para CNPJ.
-          birthDate: needsBirthDate ? birthDate : undefined,
         },
       });
     } catch (err) {

@@ -1,23 +1,31 @@
-// Banner persistente no dashboard quando a conta Stripe Connect ainda não
-// está totalmente liberada (sem charges_enabled). Não bloqueia o sistema —
-// só convida o dono a completar o cadastro pra liberar pagamentos online.
+// Banner persistente no dashboard quando a barbearia ainda não configurou
+// recebimentos (sem subaccount Asaas aprovada). Não bloqueia o sistema —
+// convida o dono a completar a configuração pra liberar o agendamento online pago.
 
 import { Link } from 'react-router-dom';
 import { CreditCard, ChevronRight } from 'lucide-react';
 
 export default function ConnectPendingBanner({ company }) {
   if (!company) return null;
-  // Só mostra para o dono (não confunde membros de equipe)
-  // Se já está enabled, não exibe.
-  if (company.stripe_connect_charges_enabled) return null;
+  // Subaccount ativa + PIX habilitado = nada a fazer.
+  if (company.asaas_subaccount_status === 'active' && company.asaas_pix_enabled) return null;
+  // Barbearias legadas em modo manual continuam funcionando — não exibimos o banner.
+  if (company.asaas_split_mode === 'manual' && company.asaas_pix_enabled) return null;
 
-  const hasAccount = !!company.stripe_connect_account_id;
-  const title = hasAccount
-    ? 'Complete seu cadastro Stripe para receber pagamentos'
-    : 'Ative pagamentos online para sua barbearia';
-  const desc = hasAccount
-    ? 'Faltam alguns dados (documentos, dados bancários) no seu cadastro Stripe. Sem isso, o link público não aceita Pix nem cartão.'
-    : 'Conecte sua conta Asaas e comece a receber via Pix e cartão direto na sua conta bancária.';
+  const hasAccount = !!company.asaas_subaccount_id;
+  const isPending = hasAccount && company.asaas_subaccount_status === 'pending';
+  const isRejected = hasAccount && company.asaas_subaccount_status === 'rejected';
+
+  const title = isPending
+    ? 'Cadastro Asaas aguardando aprovação'
+    : isRejected
+      ? 'Cadastro Asaas reprovado — revise os dados'
+      : 'Pagamentos não configurados';
+  const desc = isPending
+    ? 'O Asaas está analisando seus dados. Geralmente leva até 24h úteis.'
+    : isRejected
+      ? 'Entre em contato com o suporte para revisar e reabrir o cadastro.'
+      : 'Para receber pelo seu link de agendamento é necessário CNPJ (MEI também aceito) + conta Asaas ativa.';
 
   return (
     <Link
@@ -32,7 +40,10 @@ export default function ConnectPendingBanner({ company }) {
           <div className="font-bold text-amber-900 text-sm">{title}</div>
           <div className="text-xs text-amber-800 mt-0.5 leading-snug">{desc}</div>
         </div>
-        <ChevronRight className="w-5 h-5 text-amber-700 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+        <div className="flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-white/60 px-3 py-1.5 rounded-lg flex-shrink-0 group-hover:bg-white transition-colors">
+          Configurar recebimentos
+          <ChevronRight className="w-3.5 h-3.5" />
+        </div>
       </div>
     </Link>
   );

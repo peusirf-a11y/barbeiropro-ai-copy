@@ -30,11 +30,9 @@ export default function PublicBooking() {
   const company = companies[0];
   const primaryColor = company?.primary_color || '#2563EB';
 
-  // Gate Asaas (substitui o legado Stripe Connect):
-  // qualquer um dos dois modos híbridos já libera o agendamento online.
-  //   - automatic: subaccount Asaas aprovada (split direto)
-  //   - manual:    PF/CPF — recebimento centralizado + repasse manual
-  // Ambos setam asaas_pix_enabled=true ao serem ativados.
+  // Gate Asaas: O CORTE opera exclusivamente com split automático (CNPJ/MEI).
+  // Barbearias PF legadas (cadastradas antes desta política) mantêm acesso enquanto
+  // asaas_pix_enabled=true. Novos cadastros exigem subaccount ativa.
   const loadingConnect = false;
   const canAcceptPayments = !!company?.asaas_pix_enabled;
 

@@ -23,7 +23,7 @@ export default function AppPagamentos() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto animate-fade-in">
         <AppPageHeader
           title="Pagamentos online"
-          subtitle="Receba PIX e cartão pelo seu link de agendamento — automático com CNPJ, manual com CPF"
+          subtitle="Receba PIX e cartão pelo seu link de agendamento com split automático Asaas (CNPJ/MEI)"
           icon={CreditCard}
         />
 
@@ -66,7 +66,7 @@ export default function AppPagamentos() {
               Pix cai em minutos. Cartão segue o ciclo padrão do Asaas (1–30 dias após a cobrança, conforme seu plano).
             </Faq>
             <Faq q="Preciso ter CNPJ?">
-              Não para começar. Com CPF, você usa o modo de repasse manual (O CORTE recebe e repassa). Para repasse automático direto na sua conta a cada transação, é necessário CNPJ ou MEI.
+              Sim. É necessário possuir CNPJ (inclusive MEI) para utilizar os recursos de recebimento da plataforma. Cada pagamento cai direto na sua conta via split automático Asaas.
             </Faq>
             <Faq q="E se o cliente não pagar?">
               O horário fica reservado por 15 minutos enquanto ele paga. Se o pagamento não for concluído, o slot é liberado automaticamente.
