@@ -40,6 +40,87 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || '');
 
+    if (action === 'kpis') {
+      // KPIs globais do programa: parceiros por status, comissões a pagar/pagas mês,
+      // indicações convertidas no mês corrente.
+      const [partners, commissions, referrals] = await Promise.all([
+        sdk.entities.Partner.list('-created_date', 500),
+        sdk.entities.Commission.list('-created_date', 1000),
+        sdk.entities.Referral.list('-created_date', 1000),
+      ]);
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const inThisMonth = (iso) => iso && new Date(iso) >= monthStart;
+
+      const partnersActive = partners.filter(p => p.status === 'active').length;
+      const partnersPending = partners.filter(p => p.status === 'pending').length;
+      const partnersSuspended = partners.filter(p => p.status === 'suspended').length;
+
+      const commissionsHold = commissions.filter(c => c.status === 'pending');
+      const commissionsApproved = commissions.filter(c => c.status === 'approved');
+      const commissionsPaidMonth = commissions.filter(c => c.status === 'paid' && inThisMonth(c.paid_at));
+
+      const sum = (arr) => arr.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+
+      const referralsConvertedMonth = referrals.filter(r =>
+        ['converted', 'active'].includes(r.status) && inThisMonth(r.converted_at || r.created_date)
+      ).length;
+
+      return Response.json({
+        success: true,
+        kpis: {
+          partners_active: partnersActive,
+          partners_pending: partnersPending,
+          partners_suspended: partnersSuspended,
+          commissions_hold_count: commissionsHold.length,
+          commissions_hold_amount: sum(commissionsHold),
+          commissions_to_pay_count: commissionsApproved.length,
+          commissions_to_pay_amount: sum(commissionsApproved),
+          commissions_paid_month_count: commissionsPaidMonth.length,
+          commissions_paid_month_amount: sum(commissionsPaidMonth),
+          referrals_converted_month: referralsConvertedMonth,
+        },
+      });
+    }
+
+    if (action === 'partner_detail') {
+      // Detalhe completo de um parceiro: dados + métricas agregadas.
+      const id = _sanitize(body.partner_id, 64);
+      const partner = await sdk.entities.Partner.get(id).catch(() => null);
+      if (!partner) return Response.json({ error: 'not_found' }, { status: 404 });
+      const [referrals, commissions] = await Promise.all([
+        sdk.entities.Referral.filter({ partner_id: id }, '-created_date', 500),
+        sdk.entities.Commission.filter({ partner_id: id }, '-created_date', 500),
+      ]);
+      const sum = (arr) => arr.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+      const summary = {
+        referrals_total: referrals.length,
+        referrals_converted: referrals.filter(r => ['converted', 'active'].includes(r.status)).length,
+        referrals_active: referrals.filter(r => r.status === 'active').length,
+        referrals_fraud: referrals.filter(r => r.status === 'fraud').length,
+        commissions_total_count: commissions.length,
+        commissions_hold_amount: sum(commissions.filter(c => c.status === 'pending')),
+        commissions_to_pay_amount: sum(commissions.filter(c => c.status === 'approved')),
+        commissions_paid_amount: sum(commissions.filter(c => c.status === 'paid')),
+      };
+      return Response.json({
+        success: true,
+        partner: {
+          id: partner.id, name: partner.name, email: partner.email, phone: partner.phone,
+          cpf_cnpj: partner.cpf_cnpj, pix_key: partner.pix_key,
+          referral_code: partner.referral_code, status: partner.status,
+          commission_percentage: partner.commission_percentage,
+          approved_at: partner.approved_at, approved_by: partner.approved_by,
+          suspended_at: partner.suspended_at, suspended_by: partner.suspended_by,
+          suspension_reason: partner.suspension_reason,
+          created_date: partner.created_date, notes: partner.notes,
+        },
+        summary,
+        referrals: referrals.slice(0, 100),
+        commissions: commissions.slice(0, 100),
+      });
+    }
+
     if (action === 'list_partners') {
       const limit = Math.min(parseInt(body.limit, 10) || 50, 200);
       const filter = {};

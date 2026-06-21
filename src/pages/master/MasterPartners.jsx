@@ -3,11 +3,14 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { partnerKeys, commissionKeys, referralKeys } from '@/lib/partnerKeys';
-import { Users, DollarSign, CheckCircle2, Pause, Play, Search, Pencil, FileText } from 'lucide-react';
+import { Users, DollarSign, CheckCircle2, Pause, Play, Search, Pencil, FileText, Eye } from 'lucide-react';
 import FilterSelect from '@/components/ui/filter-select';
 import StandardModal from '@/components/ui/standard-modal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import MasterPartnersKpis from '@/components/master/MasterPartnersKpis';
+import MasterPartnersReferralsTab from '@/components/master/MasterPartnersReferralsTab';
+import PartnerDetailDrawer from '@/components/master/PartnerDetailDrawer';
 
 const brl = (n) => 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ',');
 const PAGE = 25;
@@ -32,8 +35,18 @@ export default function MasterPartners() {
   const [editPartner, setEditPartner] = useState(null);
   const [payCommission, setPayCommission] = useState(null);
   const [viewReferrals, setViewReferrals] = useState(null);
+  const [detailPartnerId, setDetailPartnerId] = useState(null);
   const [visible, setVisible] = useState(PAGE);
   const qc = useQueryClient();
+
+  const kpisQ = useQuery({
+    queryKey: ['partners', 'kpis'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('partnerAdminAction', { action: 'kpis' });
+      return res?.data?.kpis || null;
+    },
+    staleTime: 60_000,
+  });
 
   const partnersQ = useQuery({
     queryKey: partnerKeys.list({ status: statusFilter, search }),
@@ -79,6 +92,9 @@ export default function MasterPartners() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: partnerKeys.all() });
       qc.invalidateQueries({ queryKey: commissionKeys.all() });
+      qc.invalidateQueries({ queryKey: ['partners', 'kpis'] });
+      qc.invalidateQueries({ queryKey: ['partner', 'detail'] });
+      qc.invalidateQueries({ queryKey: ['referrals', 'master'] });
     },
   });
 
@@ -92,11 +108,15 @@ export default function MasterPartners() {
         <p className="text-white/55 text-sm mt-1">Aprove cadastros, gerencie comissões e monitore o programa de indicações.</p>
       </div>
 
+      {/* KPIs */}
+      <MasterPartnersKpis kpis={kpisQ.data} isLoading={kpisQ.isLoading} />
+
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-white/[0.03] border border-white/8 rounded-xl p-1 w-fit">
+      <div className="flex items-center gap-1 bg-white/[0.03] border border-white/8 rounded-xl p-1 w-fit overflow-x-auto">
         {[
           { k: 'partners', label: 'Parceiros', icon: Users },
           { k: 'commissions', label: 'Comissões', icon: DollarSign },
+          { k: 'referrals', label: 'Indicações', icon: FileText },
         ].map(t => {
           const Icon = t.icon;
           return (
@@ -123,19 +143,29 @@ export default function MasterPartners() {
         )}
         <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v); setVisible(PAGE); }}>
           <option value="all">Todos os status</option>
-          {tab === 'partners' ? (
+          {tab === 'partners' && (
             <>
               <option value="pending">Pendentes (aprovação)</option>
               <option value="active">Ativos</option>
               <option value="suspended">Suspensos</option>
             </>
-          ) : (
+          )}
+          {tab === 'commissions' && (
             <>
               <option value="pending">Em hold</option>
               <option value="approved">Aprovado · pagar</option>
               <option value="paid">Pago</option>
               <option value="cancelled">Cancelado</option>
               <option value="chargeback">Chargeback</option>
+            </>
+          )}
+          {tab === 'referrals' && (
+            <>
+              <option value="pending">Clicou</option>
+              <option value="converted">Convertido (trial)</option>
+              <option value="active">Pagando</option>
+              <option value="cancelled">Cancelado</option>
+              <option value="fraud">Fraude</option>
             </>
           )}
         </FilterSelect>
@@ -186,6 +216,7 @@ export default function MasterPartners() {
                               <Play className="w-3 h-3" />Reativar
                             </button>
                           )}
+                          <button onClick={() => setDetailPartnerId(p.id)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/60" title="Ver detalhe"><Eye className="w-3.5 h-3.5" /></button>
                           <button onClick={() => setEditPartner(p)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/60" title="Editar comissão"><Pencil className="w-3.5 h-3.5" /></button>
                           <button onClick={() => setViewReferrals(p)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/60" title="Ver indicações"><FileText className="w-3.5 h-3.5" /></button>
                         </div>
@@ -254,6 +285,23 @@ export default function MasterPartners() {
           )}
         </div>
       )}
+
+      {tab === 'referrals' && (
+        <MasterPartnersReferralsTab
+          statusFilter={statusFilter}
+          partners={partners}
+          visible={visible}
+          onLoadMore={() => setVisible(v => v + PAGE)}
+        />
+      )}
+
+      {/* Drawer: detalhe completo do parceiro */}
+      <PartnerDetailDrawer
+        partnerId={detailPartnerId}
+        onClose={() => setDetailPartnerId(null)}
+        onEdit={(p) => { setDetailPartnerId(null); setEditPartner(p); }}
+        onAction={(payload) => adminMutation.mutate(payload)}
+      />
 
       {/* Modal: editar comissão/notas */}
       <EditPartnerModal partner={editPartner} onClose={() => setEditPartner(null)} onSave={(patch) => { adminMutation.mutate({ action: 'update_partner', partner_id: editPartner.id, ...patch }); setEditPartner(null); }} />
