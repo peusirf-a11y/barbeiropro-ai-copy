@@ -14,6 +14,38 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const RATE_LIMIT_HOUR = 5;
+const PBKDF2_ITERATIONS = 310000;
+
+function _b64(arr) {
+  let s = '';
+  const bytes = new Uint8Array(arr);
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s);
+}
+function _b64decode(str) {
+  const s = atob(str);
+  const arr = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) arr[i] = s.charCodeAt(i);
+  return arr;
+}
+async function _hashPassword(password, saltB64) {
+  const pepper = Deno.env.get('BARBER_AUTH_PEPPER') || '';
+  const enc = new TextEncoder();
+  const salt = _b64decode(saltB64);
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(password + pepper), { name: 'PBKDF2' }, false, ['deriveBits']
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    keyMaterial, 256
+  );
+  return _b64(bits);
+}
+function _newSalt() {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return _b64(arr);
+}
 
 function _sanitize(v, max) {
   if (v == null) return '';
@@ -87,11 +119,15 @@ Deno.serve(async (req) => {
     const cpf_cnpj = _digits(body.cpf_cnpj);
     const pix_key = _sanitize(body.pix_key, 100);
     const fingerprint = _sanitize(body.fingerprint, 64);
+    const password = String(body.password || '');
 
     if (!name) return Response.json({ error: 'name_required' }, { status: 400 });
     if (!_isEmail(email)) return Response.json({ error: 'invalid_email' }, { status: 400 });
     if (phone.length < 10) return Response.json({ error: 'invalid_phone' }, { status: 400 });
     if (cpf_cnpj.length < 11) return Response.json({ error: 'cpf_cnpj_required' }, { status: 400 });
+    if (!password || password.length < 8 || password.length > 200) {
+      return Response.json({ error: 'invalid_password', message: 'Crie uma senha com pelo menos 8 caracteres.' }, { status: 400 });
+    }
 
     // Duplicidade por email
     const existing = await sdk.entities.Partner.filter({ email }, '-created_date', 1);
@@ -110,12 +146,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'code_generation_failed' }, { status: 500 });
     }
 
+    const salt = _newSalt();
+    const password_hash = await _hashPassword(password, salt);
+
     const partner = await sdk.entities.Partner.create({
       name, email, phone, cpf_cnpj, pix_key,
       referral_code,
       status: 'pending',
       commission_percentage: 20,
       fingerprint_seen: fingerprint ? [fingerprint] : [],
+      password_hash, password_salt: salt,
+      password_algo: `pbkdf2-sha256-${PBKDF2_ITERATIONS}`,
     });
 
     // AuditLog

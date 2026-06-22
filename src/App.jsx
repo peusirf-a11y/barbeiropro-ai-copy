@@ -55,6 +55,8 @@ import MasterPartners from './pages/master/MasterPartners';
 // Partner MVP
 import PartnerLanding from './pages/partner/PartnerLanding';
 import PartnerLogin from './pages/partner/PartnerLogin';
+import PartnerForgotPassword from './pages/partner/PartnerForgotPassword';
+import PartnerResetPassword from './pages/partner/PartnerResetPassword';
 import PartnerDashboard from './pages/partner/PartnerDashboard';
 import PartnerReferrals from './pages/partner/PartnerReferrals';
 import PartnerCommissions from './pages/partner/PartnerCommissions';
@@ -195,6 +197,8 @@ function App() {
             {/* ── PARTNER PROGRAM (public landing + login + private painel) ── */}
             <Route path="/parceiro" element={<PartnerLanding />} />
             <Route path="/parceiro/login" element={<PartnerLogin />} />
+            <Route path="/parceiro/esqueci-senha" element={<PartnerForgotPassword />} />
+            <Route path="/parceiro/resetar-senha" element={<PartnerResetPassword />} />
             <Route path="/parceiro/dashboard" element={<PartnerGuard><PartnerDashboard /></PartnerGuard>} />
             <Route path="/parceiro/indicacoes" element={<PartnerGuard><PartnerReferrals /></PartnerGuard>} />
             <Route path="/parceiro/comissoes" element={<PartnerGuard><PartnerCommissions /></PartnerGuard>} />

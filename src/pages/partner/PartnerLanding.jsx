@@ -8,7 +8,7 @@ import { Loader2, CheckCircle, Gift, TrendingUp, Shield, ArrowRight } from 'luci
 import { getDeviceFingerprint } from '@/lib/referralTracking';
 
 export default function PartnerLanding() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', cpf_cnpj: '', pix_key: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', cpf_cnpj: '', pix_key: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
@@ -18,6 +18,10 @@ export default function PartnerLanding() {
     setError('');
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.cpf_cnpj.trim()) {
       setError('Preencha todos os campos obrigatórios.');
+      return;
+    }
+    if (!form.password || form.password.length < 8) {
+      setError('Crie uma senha com pelo menos 8 caracteres.');
       return;
     }
     setLoading(true);
@@ -98,6 +102,7 @@ export default function PartnerLanding() {
             { k: 'phone', label: 'WhatsApp *', type: 'tel', placeholder: '(11) 99999-9999' },
             { k: 'cpf_cnpj', label: 'CPF ou CNPJ *', type: 'text' },
             { k: 'pix_key', label: 'Chave PIX para receber', type: 'text' },
+            { k: 'password', label: 'Senha de acesso * (mín. 8 caracteres)', type: 'password' },
           ].map(f => (
             <div key={f.k} className="mb-3">
               <label className="block text-[11px] font-semibold text-white/60 mb-1">{f.label}</label>

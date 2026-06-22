@@ -8,7 +8,7 @@ import { Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function PartnerRegister() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', phone: '', cpf_cnpj: '', pix_key: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', cpf_cnpj: '', pix_key: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -19,12 +19,18 @@ export default function PartnerRegister() {
     invalid_email: 'Email inválido.',
     invalid_phone: 'Telefone inválido.',
     cpf_cnpj_required: 'CPF ou CNPJ obrigatório.',
+    invalid_password: 'Crie uma senha com pelo menos 8 caracteres.',
     email_already_registered: 'Já existe um cadastro com este email.',
   };
 
   const submit = async (e) => {
     e.preventDefault();
-    setError(''); setLoading(true);
+    setError('');
+    if (!form.password || form.password.length < 8) {
+      setError('Crie uma senha com pelo menos 8 caracteres.');
+      return;
+    }
+    setLoading(true);
     try {
       const fingerprint = getDeviceFingerprint();
       const res = await base44.functions.invoke('partnerRegister', { ...form, fingerprint });
@@ -76,6 +82,7 @@ export default function PartnerRegister() {
           <Field label="Telefone (WhatsApp)" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="(11) 99999-9999" />
           <Field label="CPF ou CNPJ" value={form.cpf_cnpj} onChange={v => setForm(f => ({ ...f, cpf_cnpj: v }))} placeholder="Somente números" />
           <Field label="Chave PIX (para receber comissão)" value={form.pix_key} onChange={v => setForm(f => ({ ...f, pix_key: v }))} placeholder="CPF, email, telefone ou chave aleatória" />
+          <Field label="Senha (mín. 8 caracteres)" type="password" value={form.password} onChange={v => setForm(f => ({ ...f, password: v }))} placeholder="Crie sua senha de acesso" />
 
           {error && <div className="bg-rose-400/10 border border-rose-400/30 text-rose-200 text-xs p-3 rounded-lg">{error}</div>}
 
