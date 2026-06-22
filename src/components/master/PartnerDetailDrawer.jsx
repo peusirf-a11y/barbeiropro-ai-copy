@@ -59,8 +59,9 @@ export default function PartnerDetailDrawer({ partnerId, onClose, onEdit, onActi
       });
       return res?.data;
     },
-    enabled: open,
+    enabled: !!partnerId,
     staleTime: 15_000,
+    retry: false,
   });
 
   if (!open) return null;
@@ -98,7 +99,13 @@ export default function PartnerDetailDrawer({ partnerId, onClose, onEdit, onActi
 
         {/* Body */}
         <div className="flex-1 min-h-0 overflow-y-auto modal-scroll px-5 py-4 space-y-5">
-          {detailQ.isLoading || !p ? (
+          {detailQ.isError ? (
+            <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-200">
+              <div className="font-bold mb-1">Erro ao carregar parceiro</div>
+              <div className="text-xs text-rose-200/80">{detailQ.error?.message || 'Tente novamente em instantes.'}</div>
+              <button onClick={() => detailQ.refetch()} className="mt-3 px-3 py-1.5 rounded-lg bg-white/8 hover:bg-white/15 text-xs font-semibold">Tentar de novo</button>
+            </div>
+          ) : detailQ.isLoading || !p ? (
             <div className="space-y-3">
               <div className="h-20 rounded-xl skeleton" />
               <div className="h-32 rounded-xl skeleton" />
