@@ -2,12 +2,16 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import PartnerLayout from '@/components/partner/PartnerLayout';
 import { getPartnerToken } from '@/hooks/usePartnerAuth';
-import { partnerKeys, commissionKeys } from '@/lib/partnerKeys';
-import { Copy, Users, DollarSign, TrendingUp, Clock, CheckCircle2, Wallet } from 'lucide-react';
+import { partnerKeys } from '@/lib/partnerKeys';
+import { Copy, Users, DollarSign, TrendingUp, Clock, CheckCircle2, Wallet, Target, Percent, Coins, UserCheck } from 'lucide-react';
 import { useState } from 'react';
-import KpiCard from '@/components/dashboard/KpiCard';
+import PartnerKpiCard from '@/components/partner/PartnerKpiCard';
+import PartnerGoalCard from '@/components/partner/PartnerGoalCard';
+import PartnerEvolutionChart from '@/components/partner/PartnerEvolutionChart';
+import PartnerRecentLists from '@/components/partner/PartnerRecentLists';
+import PartnerRankCard from '@/components/partner/PartnerRankCard';
 
-function formatBRL(n) { return 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ','); }
+const brl = (n) => 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ',');
 
 export default function PartnerDashboard() {
   const token = getPartnerToken();
@@ -25,6 +29,9 @@ export default function PartnerDashboard() {
 
   const partner = data?.partner;
   const kpis = data?.kpis || {};
+  const evolution = data?.monthly_evolution || [];
+  const recentRefs = data?.recent_referrals || [];
+  const recentComms = data?.recent_commissions || [];
   const referralLink = partner ? `${window.location.origin}/landing?ref=${partner.referral_code}` : '';
 
   const copyLink = async () => {
@@ -38,8 +45,10 @@ export default function PartnerDashboard() {
   return (
     <PartnerLayout>
       <div className="mb-6">
-        <h1 className="text-2xl lg:text-3xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Dashboard</h1>
-        <p className="text-white/50 text-sm mt-1">Acompanhe suas indicações e comissões em tempo real.</p>
+        <h1 className="text-2xl lg:text-3xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+          Olá, {partner?.name?.split(' ')[0] || 'parceiro'} 👋
+        </h1>
+        <p className="text-white/50 text-sm mt-1">Acompanhe sua performance e ganhos em tempo real.</p>
       </div>
 
       {/* Link de indicação */}
@@ -60,38 +69,57 @@ export default function PartnerDashboard() {
         </p>
       </div>
 
-      {/* KPIs */}
       {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[0,1,2,3].map(i => <div key={i} className="h-28 skeleton rounded-2xl" />)}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[0,1,2,3].map(i => <div key={i} className="h-28 skeleton rounded-2xl" />)}
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[0,1,2,3].map(i => <div key={i} className="h-28 skeleton rounded-2xl" />)}
+          </div>
+          <div className="h-64 skeleton rounded-2xl" />
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4">
-            <KpiCard label="Total de indicações" value={kpis.total_referrals || 0} sub={`${kpis.converted || 0} convertidas`} icon={Users} tone="blue" />
-            <KpiCard label="Barbearias ativas" value={kpis.active || 0} sub={`${kpis.cancelled || 0} canceladas`} icon={TrendingUp} tone="green" />
-            <KpiCard label="MRR estimado" value={formatBRL(kpis.mrr_estimated)} sub="Receita recorrente projetada" icon={DollarSign} tone="amber" />
-            <KpiCard label="Total recebido" value={formatBRL(kpis.balance_paid)} sub="Comissões já pagas" icon={Wallet} tone="green" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-            <div className="rounded-2xl border border-amber-400/25 bg-amber-500/[0.08] backdrop-blur-xl p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-amber-300" />
-                <div className="text-xs font-bold uppercase tracking-wider text-amber-200">Em hold (15 dias)</div>
-              </div>
-              <div className="text-2xl font-black">{formatBRL(kpis.balance_pending)}</div>
-              <p className="text-xs text-white/55 mt-1">Liberado automaticamente após o período anti-fraude.</p>
-            </div>
-            <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.08] backdrop-blur-xl p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-300" />
-                <div className="text-xs font-bold uppercase tracking-wider text-emerald-200">Aprovado · aguardando PIX</div>
-              </div>
-              <div className="text-2xl font-black">{formatBRL(kpis.balance_approved)}</div>
-              <p className="text-xs text-white/55 mt-1">Pago manualmente pelo time O CORTE em até 7 dias úteis.</p>
+        <div className="space-y-4">
+          {/* Bloco 1: Comissões (4 cards) */}
+          <div>
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-white/45 mb-2.5">💰 Suas comissões</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <PartnerKpiCard label="Pendente (hold)" value={brl(kpis.balance_pending)} sub="Liberação automática" icon={Clock} tone="amber" />
+              <PartnerKpiCard label="Aprovado · a pagar" value={brl(kpis.balance_approved)} sub="PIX em até 7 dias" icon={CheckCircle2} tone="emerald" highlight={kpis.balance_approved > 0} />
+              <PartnerKpiCard label="Total recebido" value={brl(kpis.balance_paid)} sub="Já pago via PIX" icon={Wallet} tone="blue" />
+              <PartnerKpiCard label="Total gerado" value={brl(kpis.total_generated)} sub="Desde o início" icon={Coins} tone="violet" />
             </div>
           </div>
-        </>
+
+          {/* Bloco 2: Funil de indicações (4 cards) */}
+          <div>
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-white/45 mb-2.5">📈 Funil de indicações</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <PartnerKpiCard label="Leads indicados" value={kpis.total_referrals || 0} sub={`${kpis.cancelled || 0} cancelados`} icon={Users} tone="blue" />
+              <PartnerKpiCard label="Convertidos" value={kpis.converted || 0} sub={`${kpis.active || 0} pagando hoje`} icon={UserCheck} tone="emerald" />
+              <PartnerKpiCard label="Taxa de conversão" value={`${kpis.conversion_rate || 0}%`} sub="lead → cliente" icon={Percent} tone="amber" />
+              <PartnerKpiCard label="Receita p/ O CORTE" value={brl(kpis.revenue_for_ocorte)} sub="que você gerou" icon={TrendingUp} tone="violet" />
+            </div>
+          </div>
+
+          {/* Bloco 3: Meta + Ranking + MRR */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+            <div className="lg:col-span-2">
+              <PartnerGoalCard goal={kpis.monthly_goal} generated={kpis.month_generated} progress={kpis.goal_progress} />
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
+              <PartnerRankCard rank={kpis.my_rank} total={kpis.total_partners} />
+              <PartnerKpiCard label="MRR estimado" value={brl(kpis.mrr_estimated)} sub="Recorrência ativa" icon={DollarSign} tone="emerald" />
+            </div>
+          </div>
+
+          {/* Bloco 4: Evolução mensal */}
+          <PartnerEvolutionChart data={evolution} />
+
+          {/* Bloco 5: Últimas indicações + Últimas comissões */}
+          <PartnerRecentLists referrals={recentRefs} commissions={recentComms} />
+        </div>
       )}
     </PartnerLayout>
   );
