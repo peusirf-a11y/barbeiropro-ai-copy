@@ -5,6 +5,7 @@ import MasterMetrics from '@/components/master/MasterMetrics';
 import SystemAlertsList from '@/components/master/SystemAlertsList';
 import SystemHealth from '@/components/master/SystemHealth';
 import PlatformFeatures from '@/components/master/PlatformFeatures';
+import MasterActivityFeed from '@/components/master/feed/MasterActivityFeed';
 
 export default function MasterDashboard() {
   return (
@@ -16,6 +17,7 @@ export default function MasterDashboard() {
 
       <MasterCriticalAlerts />
       <MasterMetrics />
+      <MasterActivityFeed />
       <SystemAlertsList />
       <PlatformFeatures />
       <SystemHealth />
