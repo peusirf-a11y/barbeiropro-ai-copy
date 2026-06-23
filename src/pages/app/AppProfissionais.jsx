@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/app/PrimaryButton';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
-import PhotoUpload from '@/components/ui/photo-upload';
+import BarberPhotoStandardizer from '@/components/profissionais/BarberPhotoStandardizer';
 
 const DAYS = [
   { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
@@ -220,7 +220,7 @@ export default function AppProfissionais() {
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-white/60 block mb-1">Foto do barbeiro</label>
-                      <PhotoUpload
+                      <BarberPhotoStandardizer
                         value={form.photo_url}
                         onChange={(url) => setForm(p => ({ ...p, photo_url: url }))}
                         fallbackText={form.name}
