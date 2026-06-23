@@ -6,7 +6,16 @@
 // Retorna: { success: true, original_url, standardized_url }
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const STANDARDIZATION_PROMPT = `Edit this photo of a barber for a professional barbershop profile picture.
+function buildPrompt(shirtColor) {
+  const isWhite = shirtColor === 'white';
+  const colorName = isWhite ? 'WHITE' : 'BLACK';
+  const colorAdj = isWhite ? 'matte white' : 'matte black';
+  const bgHint = isWhite
+    ? 'soft light gray or subtle warm gradient'
+    : 'soft dark gray or subtle gradient';
+  const resultColor = isWhite ? 'clean plain white' : 'clean plain black';
+
+  return `Edit this photo of a barber for a professional barbershop profile picture.
 
 STRICT RULES — ABSOLUTELY DO NOT CHANGE:
 - Do NOT alter the face, facial features, expression, or facial proportions
@@ -20,15 +29,16 @@ STRICT RULES — ABSOLUTELY DO NOT CHANGE:
 - Preserve the exact identity of the person
 
 WHAT TO CHANGE:
-- Replace whatever clothing the person is wearing with a plain, solid BLACK basic t-shirt
-- The t-shirt must have NO logos, NO prints, NO graphics, NO text, NO patterns — completely plain matte black
+- Replace whatever clothing the person is wearing with a plain, solid ${colorName} basic t-shirt
+- The t-shirt must have NO logos, NO prints, NO graphics, NO text, NO patterns — completely ${colorAdj}
 - The t-shirt should look natural on the body, with realistic folds and fit
-- If the background is messy, distracting, or unprofessional, replace it with a clean neutral studio background (soft dark gray or subtle gradient)
+- If the background is messy, distracting, or unprofessional, replace it with a clean neutral studio background (${bgHint})
 - Preserve original natural lighting and shadows on the face and body
 - Slightly improve image sharpness and clarity, but keep it photorealistic — no over-smoothing of skin
 - If the framing is too wide or off-center, lightly recompose to a clean portrait centered on the upper body
 
-RESULT: a professional, consistent barbershop profile photo where the person looks identical to the original but is wearing a clean plain black t-shirt against a clean background. Photorealistic only.`;
+RESULT: a professional, consistent barbershop profile photo where the person looks identical to the original but is wearing a ${resultColor} t-shirt against a clean background. Photorealistic only.`;
+}
 
 Deno.serve(async (req) => {
   console.log('FUNCTION START: standardizeBarberPhoto');
@@ -38,16 +48,17 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { original_url } = body;
+    const { original_url, shirt_color } = body;
 
     if (!original_url || typeof original_url !== 'string') {
       return Response.json({ error: 'original_url é obrigatório' }, { status: 400 });
     }
 
-    console.log('[standardizeBarberPhoto] gerando padronização para:', original_url);
+    const color = shirt_color === 'white' ? 'white' : 'black';
+    console.log('[standardizeBarberPhoto] gerando padronização', { original_url, color });
 
     const result = await base44.integrations.Core.GenerateImage({
-      prompt: STANDARDIZATION_PROMPT,
+      prompt: buildPrompt(color),
       existing_image_urls: [original_url],
     });
 

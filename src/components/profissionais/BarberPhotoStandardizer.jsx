@@ -60,6 +60,7 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
   const [phase, setPhase] = useState('idle'); // idle | uploading | standardizing | review | error
   const [originalUrl, setOriginalUrl] = useState('');
   const [standardizedUrl, setStandardizedUrl] = useState('');
+  const [shirtColor, setShirtColor] = useState('black'); // 'black' | 'white'
   const [error, setError] = useState('');
   const inputRef = useRef(null);
 
@@ -94,6 +95,7 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
       setPhase('standardizing');
       const { data } = await base44.functions.invoke('standardizeBarberPhoto', {
         original_url: file_url,
+        shirt_color: shirtColor,
       });
 
       if (!data?.success || !data?.standardized_url) {
@@ -116,6 +118,7 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
       setPhase('standardizing');
       const { data } = await base44.functions.invoke('standardizeBarberPhoto', {
         original_url: originalUrl,
+        shirt_color: shirtColor,
       });
       if (!data?.success || !data?.standardized_url) {
         throw new Error(data?.error || 'Falha ao gerar nova versão.');
@@ -326,9 +329,41 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
             )}
           </div>
           <p className="text-[11px] text-[#93C5FD]/80 mt-1.5 flex items-center gap-1">
-            <Sparkles className="w-3 h-3" /> Padronizamos automaticamente com camisa preta
+            <Sparkles className="w-3 h-3" /> Padronizamos automaticamente com a IA
           </p>
-          <p className="text-[10px] text-white/40 mt-0.5">
+
+          {/* Seletor de cor da camisa */}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/55">Camisa:</span>
+            <button
+              type="button"
+              onClick={() => setShirtColor('black')}
+              disabled={disabled || phase === 'uploading'}
+              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+                shirtColor === 'black'
+                  ? 'bg-[#60A5FA]/15 border-[#60A5FA]/40 text-white'
+                  : 'bg-white/[0.03] border-white/10 text-white/55 hover:text-white/85'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-black ring-1 ring-white/30" />
+              Preta
+            </button>
+            <button
+              type="button"
+              onClick={() => setShirtColor('white')}
+              disabled={disabled || phase === 'uploading'}
+              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+                shirtColor === 'white'
+                  ? 'bg-[#60A5FA]/15 border-[#60A5FA]/40 text-white'
+                  : 'bg-white/[0.03] border-white/10 text-white/55 hover:text-white/85'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-white ring-1 ring-white/30" />
+              Branca
+            </button>
+          </div>
+
+          <p className="text-[10px] text-white/40 mt-1.5">
             JPG, PNG ou WEBP até {MAX_SIZE_MB}MB
           </p>
         </div>
