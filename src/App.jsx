@@ -22,6 +22,7 @@ import RoleRoute from '@/components/guards/RoleRoute';
 
 // Public pages
 import LandingPage from './pages/LandingPage';
+import LaunchLandingPage from './pages/LaunchLandingPage';
 import PublicBooking from './pages/PublicBooking';
 import Onboarding from './pages/Onboarding';
 import Checkout from './pages/Checkout';
@@ -135,6 +136,7 @@ function App() {
             {/* Mantemos /login-base44 como fallback emergencial pro OTP da Base44. */}
             <Route path="/login-base44" element={<LoginRedirect />} />
             <Route path="/landing" element={<LandingPage />} />
+            <Route path="/lancamento" element={<LaunchLandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
             <Route path="/cliente/:slug/login" element={<CustomerLoginPage />} />
             <Route path="/cliente/:slug/planos/convite/:token" element={<CustomerPlanInviteRedeem />} />
