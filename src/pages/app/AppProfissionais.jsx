@@ -11,6 +11,7 @@ import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
 import BarberPhotoStandardizer from '@/components/profissionais/BarberPhotoStandardizer';
 import BarberBioGenerator from '@/components/profissionais/BarberBioGenerator';
+import BarberSpecialtiesAnalyzer from '@/components/profissionais/BarberSpecialtiesAnalyzer';
 
 const DAYS = [
   { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
@@ -75,6 +76,8 @@ export default function AppProfissionais() {
       bio_medium: p.bio_medium || '',
       bio_full: p.bio_full || '',
       bio_generated_at: p.bio_generated_at || '',
+      suggested_specialties: p.suggested_specialties || [],
+      specialties_analyzed_at: p.specialties_analyzed_at || '',
     });
     setShowForm(true);
   };
@@ -199,6 +202,7 @@ export default function AppProfissionais() {
                 {[
                   { id: 'info', label: 'Dados' },
                   { id: 'bio', label: 'Biografia' },
+                  { id: 'specialties', label: 'Especialidades' },
                   { id: 'schedule', label: 'Horários' },
                   { id: 'services', label: 'Serviços' },
                   ...(isMultiUnit ? [{ id: 'units', label: 'Unidades' }] : []),
@@ -264,6 +268,19 @@ export default function AppProfissionais() {
                     }}
                     generatedAt={form.bio_generated_at}
                     onChange={(patch) => setForm(p => ({ ...p, ...patch }))}
+                  />
+                )}
+
+                {tab === 'specialties' && (
+                  <BarberSpecialtiesAnalyzer
+                    professionalId={editing?.id}
+                    suggested={form.suggested_specialties || []}
+                    analyzedAt={form.specialties_analyzed_at}
+                    currentSpecialty={form.specialty}
+                    onApplySpecialty={(tag) => {
+                      setForm(p => ({ ...p, specialty: tag }));
+                      setTab('info');
+                    }}
                   />
                 )}
 
