@@ -6,6 +6,7 @@ import { CheckCircle, ArrowLeft, Loader2, Shield, Star, Zap, Lock, CreditCard, Q
 import { getReferralCode, getDeviceFingerprint } from '@/lib/referralTracking';
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
 import CpfRestrictionCard, { isPersonaFisica } from '@/components/onboarding/CpfRestrictionCard';
+import { usePublicPlans } from '@/hooks/usePublicPlans';
 
 // Oferta de lançamento: R$ 49/mês durante os primeiros 6 meses, depois preço cheio do plano Pro.
 const LAUNCH_PROMO = {
@@ -21,30 +22,55 @@ function getPromoFromUrl() {
   return params.get('promo') === LAUNCH_PROMO.code ? LAUNCH_PROMO : null;
 }
 
-const PLANS = [
-  {
-    key: 'starter',
-    name: 'Starter',
-    price: 97,
-    desc: 'Para barbearias que estão começando',
-    features: ['Até 2 profissionais', 'Agenda online', 'Link público de agendamento', 'Gestão de clientes', 'Financeiro básico'],
-  },
-  {
-    key: 'pro',
-    name: 'Pro',
-    price: 197,
-    desc: 'Para barbearias em crescimento',
-    features: ['Até 8 profissionais', 'Tudo do Starter', 'AI Growth Engine', 'Relatórios avançados', 'Suporte prioritário'],
-    highlight: true,
-  },
-  {
-    key: 'enterprise',
-    name: 'Enterprise',
-    price: 397,
-    desc: 'Para redes e estúdios premium',
-    features: ['Profissionais ilimitados', 'Tudo do Pro', 'White-label total', 'Multi-unidade', 'Onboarding dedicado'],
-  },
+// Deriva a "key" canônica (starter/pro/enterprise) a partir do nome.
+// Usada nas funções de cobrança que esperam o slug do plano.
+function planKeyFromName(name) {
+  const n = String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (n.includes('starter')) return 'starter';
+  if (n.includes('pro')) return 'pro';
+  if (n.includes('enterprise') || n.includes('premium')) return 'enterprise';
+  return n.split(/\s+/)[0] || 'pro';
+}
+
+// Descrições curtas por slug. As features vêm do banco; este texto é cosmético.
+const PLAN_DESC = {
+  starter: 'Para barbearias que estão começando',
+  pro: 'Para barbearias em crescimento',
+  enterprise: 'Para redes e estúdios premium',
+};
+
+// Fallback usado enquanto os planos do banco estão carregando (UX evita flash em branco).
+// NÃO é usado pra cobrar — apenas pra renderizar a UI inicial. Quando o hook retorna,
+// substituímos pelos valores reais.
+const PLANS_FALLBACK = [
+  { key: 'starter', name: 'Starter', price: 0, desc: PLAN_DESC.starter, features: [] },
+  { key: 'pro', name: 'Pro', price: 0, desc: PLAN_DESC.pro, features: [], highlight: true },
+  { key: 'enterprise', name: 'Enterprise', price: 0, desc: PLAN_DESC.enterprise, features: [] },
 ];
+
+// Mapeia os planos do banco para o shape que a UI usa.
+// `features` exibidos: usa um set fixo amigável por slug; as flags técnicas do banco
+// (crm, online_booking, …) não são copy de marketing.
+const STATIC_FEATURE_COPY = {
+  starter: ['Até 2 profissionais', 'Agenda online', 'Link público de agendamento', 'Gestão de clientes', 'Financeiro básico'],
+  pro: ['Até 8 profissionais', 'Tudo do Starter', 'AI Growth Engine', 'Relatórios avançados', 'Suporte prioritário'],
+  enterprise: ['Profissionais ilimitados', 'Tudo do Pro', 'White-label total', 'Multi-unidade', 'Onboarding dedicado'],
+};
+
+function mapDbPlansToUi(dbPlans) {
+  if (!Array.isArray(dbPlans) || dbPlans.length === 0) return PLANS_FALLBACK;
+  return dbPlans.map(p => {
+    const key = planKeyFromName(p.name);
+    return {
+      key,
+      name: p.name,
+      price: Number(p.price_monthly) || 0,
+      desc: PLAN_DESC[key] || '',
+      features: STATIC_FEATURE_COPY[key] || [],
+      highlight: key === 'pro',
+    };
+  });
+}
 
 function getInitialPlan() {
   if (typeof window === 'undefined') return 'pro';
@@ -74,6 +100,8 @@ export default function Checkout() {
   const [selectedPlan, setSelectedPlan] = useState(getInitialPlan());
   const [promo] = useState(getPromoFromUrl()); // null ou LAUNCH_PROMO
   const isLaunch = !!promo;
+  const { plans: dbPlans, isLoading: loadingPlans } = usePublicPlans();
+  const PLANS = mapDbPlansToUi(dbPlans);
   const [form, setForm] = useState({
     business_name: '',
     owner_name: '',
@@ -99,7 +127,8 @@ export default function Checkout() {
     if (params.get('cancelled')) setCancelled(true);
   }, []);
 
-  const plan = PLANS.find(p => p.key === selectedPlan);
+  // Se o slug selecionado não existir nos planos (ex: banco só tem Pro), cai no primeiro.
+  const plan = PLANS.find(p => p.key === selectedPlan) || PLANS[0];
   // Preço efetivo cobrado nos primeiros meses (promo) vs preço cheio (depois).
   const effectivePrice = isLaunch ? promo.price : plan.price;
 
@@ -254,10 +283,12 @@ export default function Checkout() {
                   <div className="text-xl font-black text-[#0F172A]">O CORTE · {plan.name}</div>
                 </div>
                 <div className="text-right">
-                  {isLaunch && (
+                  {isLaunch && plan.price > 0 && (
                     <div className="text-xs text-gray-400 line-through">R${plan.price}/mês</div>
                   )}
-                  <div className="text-2xl font-black text-[#0F172A]">R${effectivePrice}</div>
+                  <div className="text-2xl font-black text-[#0F172A]">
+                    {loadingPlans && !isLaunch ? '—' : `R$${effectivePrice}`}
+                  </div>
                   <div className="text-xs text-gray-400">/mês</div>
                 </div>
               </div>
@@ -326,7 +357,9 @@ export default function Checkout() {
                           </span>
                         )}
                         <div className="text-xs font-bold text-[#0F172A]">{p.name}</div>
-                        <div className="text-base font-black text-[#0F172A] mt-0.5">R${p.price}</div>
+                        <div className="text-base font-black text-[#0F172A] mt-0.5">
+                          {loadingPlans ? '—' : `R$${p.price}`}
+                        </div>
                         <div className="text-[10px] text-gray-400">/mês</div>
                       </button>
                     ))}
