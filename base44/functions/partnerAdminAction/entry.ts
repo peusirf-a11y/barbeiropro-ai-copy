@@ -43,11 +43,16 @@ Deno.serve(async (req) => {
     if (action === 'kpis') {
       // KPIs globais do programa: parceiros por status, comissões a pagar/pagas mês,
       // indicações convertidas no mês corrente.
-      const [partners, commissions, referrals] = await Promise.all([
+      // IMPORTANTE: a entidade Commission é compartilhada entre dois domínios —
+      // (1) programa de parceiros/afiliados (tem partner_id) e
+      // (2) comissão interna de barbeiro por atendimento (tem professional_id, sem partner_id).
+      // Aqui só nos interessam as do programa de parceiros → filtramos por partner_id existir.
+      const [partners, allCommissions, referrals] = await Promise.all([
         sdk.entities.Partner.list('-created_date', 500),
         sdk.entities.Commission.list('-created_date', 1000),
         sdk.entities.Referral.list('-created_date', 1000),
       ]);
+      const commissions = allCommissions.filter(c => !!c.partner_id);
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const inThisMonth = (iso) => iso && new Date(iso) >= monthStart;
@@ -224,7 +229,11 @@ Deno.serve(async (req) => {
       const filter = {};
       if (body.status) filter.status = body.status;
       if (body.partner_id) filter.partner_id = body.partner_id;
-      const commissions = await sdk.entities.Commission.filter(filter, '-created_date', limit);
+      // Defesa: Commission é compartilhada com comissões internas de barbeiro
+      // (que usam professional_id e não partner_id). Aqui só queremos as do
+      // programa de afiliados. Buscamos um pouco mais e filtramos pós-query.
+      const raw = await sdk.entities.Commission.filter(filter, '-created_date', Math.max(limit * 2, 200));
+      const commissions = raw.filter(c => !!c.partner_id).slice(0, limit);
       return Response.json({ success: true, commissions });
     }
 
