@@ -22,13 +22,13 @@ export default function LandingPage() {
   const { isAuthenticated, isLoadingAuth, user } = useAuth();
   const [landingMode, setLandingMode] = useState(null); // null | 'default' | 'launch'
 
-  // Lê a flag `landing_mode` para decidir qual landing exibir.
-  // Falha silenciosamente para o default — landing principal nunca quebra.
+  // Lê a flag `landing_mode` via endpoint público (usuários deslogados
+  // não têm permissão para ler FeatureFlag direto pelo SDK).
   useEffect(() => {
     (async () => {
       try {
-        const flags = await base44.entities.FeatureFlag.filter({ key: 'landing_mode' });
-        setLandingMode(flags[0]?.enabled ? 'launch' : 'default');
+        const { data } = await base44.functions.invoke('getLandingMode', {});
+        setLandingMode(data?.mode === 'launch' ? 'launch' : 'default');
       } catch {
         setLandingMode('default');
       }
