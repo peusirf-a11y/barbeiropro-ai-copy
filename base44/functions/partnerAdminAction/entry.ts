@@ -6,8 +6,10 @@
 //  • suspend_partner       { partner_id, reason? }
 //  • activate_partner      { partner_id }
 //  • update_partner        { partner_id, commission_percentage?, notes? }
-//  • list_commissions      { status?, partner_id?, cursor?, limit? }
+//  • list_commissions      { status?, partner_id?, cursor?, limit?, month? (YYYY-MM) }
 //  • mark_commission_paid  { commission_id, payment_reference }
+//  • mark_commissions_paid_bulk { commission_ids[], payment_reference }
+//  • payouts_by_month      { month? (YYYY-MM, default = mês corrente) }
 //  • cancel_commission     { commission_id, reason? }
 //
 // Todas as ações ficam em AuditLog e exigem user.is_super_admin.
@@ -232,9 +234,124 @@ Deno.serve(async (req) => {
       // Defesa: Commission é compartilhada com comissões internas de barbeiro
       // (que usam professional_id e não partner_id). Aqui só queremos as do
       // programa de afiliados. Buscamos um pouco mais e filtramos pós-query.
-      const raw = await sdk.entities.Commission.filter(filter, '-created_date', Math.max(limit * 2, 200));
-      const commissions = raw.filter(c => !!c.partner_id).slice(0, limit);
-      return Response.json({ success: true, commissions });
+      const raw = await sdk.entities.Commission.filter(filter, '-created_date', Math.max(limit * 2, 400));
+      let commissions = raw.filter(c => !!c.partner_id);
+
+      // Filtro por mês (YYYY-MM). Aplicado sobre a data de geração (created_date),
+      // que é quando a fatura da assinatura indicada foi paga.
+      const month = _sanitize(body.month, 7);
+      if (month && /^\d{4}-\d{2}$/.test(month)) {
+        const [y, m] = month.split('-').map(Number);
+        const start = new Date(Date.UTC(y, m - 1, 1)).toISOString();
+        const end = new Date(Date.UTC(y, m, 1)).toISOString();
+        commissions = commissions.filter(c => c.created_date >= start && c.created_date < end);
+      }
+
+      return Response.json({ success: true, commissions: commissions.slice(0, limit) });
+    }
+
+    if (action === 'payouts_by_month') {
+      // Agrupa comissões aprovadas (e opcionalmente pagas) por parceiro dentro do mês.
+      // Usado pra o gestor pagar tudo de uma vez via PIX.
+      const month = _sanitize(body.month, 7) ||
+        new Date().toISOString().slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(month)) {
+        return Response.json({ error: 'invalid_month' }, { status: 400 });
+      }
+      const [y, m] = month.split('-').map(Number);
+      const start = new Date(Date.UTC(y, m - 1, 1)).toISOString();
+      const end = new Date(Date.UTC(y, m, 1)).toISOString();
+
+      const [allCommissions, partners] = await Promise.all([
+        sdk.entities.Commission.list('-created_date', 2000),
+        sdk.entities.Partner.list('-created_date', 500),
+      ]);
+      const partnersById = Object.fromEntries(partners.map(p => [p.id, p]));
+
+      // Filtra: do programa (partner_id) + dentro do mês + status relevante.
+      const inMonth = allCommissions.filter(c =>
+        c.partner_id &&
+        c.created_date >= start && c.created_date < end &&
+        ['approved', 'paid', 'pending'].includes(c.status)
+      );
+
+      // Agrupa por parceiro.
+      const groups = {};
+      for (const c of inMonth) {
+        const p = partnersById[c.partner_id];
+        if (!p) continue;
+        if (!groups[c.partner_id]) {
+          groups[c.partner_id] = {
+            partner_id: c.partner_id,
+            partner_name: p.name,
+            partner_email: p.email,
+            pix_key: p.pix_key || null,
+            cpf_cnpj: p.cpf_cnpj || null,
+            commissions: [],
+            to_pay_amount: 0,
+            to_pay_ids: [],
+            paid_amount: 0,
+            paid_count: 0,
+            hold_amount: 0,
+            hold_count: 0,
+          };
+        }
+        const g = groups[c.partner_id];
+        const amount = Number(c.amount) || 0;
+        g.commissions.push({
+          id: c.id, amount, status: c.status, billing_cycle: c.billing_cycle,
+          invoice_amount: c.invoice_amount, created_date: c.created_date,
+          paid_at: c.paid_at, hold_until: c.hold_until,
+        });
+        if (c.status === 'approved') { g.to_pay_amount += amount; g.to_pay_ids.push(c.id); }
+        else if (c.status === 'paid') { g.paid_amount += amount; g.paid_count++; }
+        else if (c.status === 'pending') { g.hold_amount += amount; g.hold_count++; }
+      }
+
+      const payouts = Object.values(groups).sort((a, b) => b.to_pay_amount - a.to_pay_amount);
+      const totals = payouts.reduce((acc, g) => ({
+        to_pay_amount: acc.to_pay_amount + g.to_pay_amount,
+        paid_amount: acc.paid_amount + g.paid_amount,
+        hold_amount: acc.hold_amount + g.hold_amount,
+        partners_to_pay: acc.partners_to_pay + (g.to_pay_amount > 0 ? 1 : 0),
+      }), { to_pay_amount: 0, paid_amount: 0, hold_amount: 0, partners_to_pay: 0 });
+
+      return Response.json({ success: true, month, payouts, totals });
+    }
+
+    if (action === 'mark_commissions_paid_bulk') {
+      const ids = Array.isArray(body.commission_ids) ? body.commission_ids.slice(0, 200) : [];
+      const ref = _sanitize(body.payment_reference, 100);
+      if (ids.length === 0) {
+        return Response.json({ error: 'no_commissions' }, { status: 400 });
+      }
+      const now = new Date().toISOString();
+      let updated = 0;
+      let skipped = 0;
+      const errors = [];
+      for (const rawId of ids) {
+        const id = _sanitize(rawId, 64);
+        const c = await sdk.entities.Commission.get(id).catch(() => null);
+        if (!c || c.status !== 'approved' || !c.partner_id) { skipped++; continue; }
+        try {
+          await sdk.entities.Commission.update(id, {
+            status: 'paid',
+            paid_at: now,
+            paid_by: user.email,
+            payment_reference: ref || undefined,
+          });
+          updated++;
+        } catch (e) {
+          errors.push({ id, message: e.message });
+        }
+      }
+      await _audit(sdk, {
+        actor: user.email,
+        action: 'COMMISSIONS_PAID_BULK',
+        target_type: 'Commission',
+        metadata: { count: updated, skipped, payment_reference: ref, requested: ids.length },
+      });
+      return Response.json({ success: true, updated, skipped, errors });
     }
 
     if (action === 'list_referrals') {

@@ -3,13 +3,15 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { partnerKeys, commissionKeys, referralKeys } from '@/lib/partnerKeys';
-import { Users, DollarSign, CheckCircle2, Pause, Play, Search, Pencil, FileText, Eye } from 'lucide-react';
+import { Users, DollarSign, CheckCircle2, Pause, Play, Search, Pencil, FileText, Eye, Wallet } from 'lucide-react';
 import FilterSelect from '@/components/ui/filter-select';
 import StandardModal from '@/components/ui/standard-modal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import MasterPartnersKpis from '@/components/master/MasterPartnersKpis';
 import MasterPartnersReferralsTab from '@/components/master/MasterPartnersReferralsTab';
+import MasterPartnersPayoutsTab from '@/components/master/MasterPartnersPayoutsTab';
+import MonthPicker, { currentMonthKey } from '@/components/master/MonthPicker';
 import PartnerDetailDrawer from '@/components/master/PartnerDetailDrawer';
 
 const brl = (n) => 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ',');
@@ -32,6 +34,7 @@ export default function MasterPartners() {
   const [tab, setTab] = useState('partners');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState(currentMonthKey()); // filtro do ciclo mensal
   const [editPartner, setEditPartner] = useState(null);
   const [payCommission, setPayCommission] = useState(null);
   const [viewReferrals, setViewReferrals] = useState(null);
@@ -63,11 +66,12 @@ export default function MasterPartners() {
   });
 
   const commissionsQ = useQuery({
-    queryKey: commissionKeys.byMaster({ status: statusFilter }),
+    queryKey: commissionKeys.byMaster({ status: statusFilter, month: monthFilter }),
     queryFn: async () => {
       const res = await base44.functions.invoke('partnerAdminAction', {
         action: 'list_commissions',
         status: statusFilter === 'all' ? undefined : statusFilter,
+        month: monthFilter || undefined,
         limit: 200,
       });
       return res?.data?.commissions || [];
@@ -115,6 +119,7 @@ export default function MasterPartners() {
       <div className="flex items-center gap-1 bg-white/[0.03] border border-white/8 rounded-xl p-1 w-fit overflow-x-auto">
         {[
           { k: 'partners', label: 'Parceiros', icon: Users },
+          { k: 'payouts', label: 'Pagamentos do mês', icon: Wallet },
           { k: 'commissions', label: 'Comissões', icon: DollarSign },
           { k: 'referrals', label: 'Indicações', icon: FileText },
         ].map(t => {
@@ -128,7 +133,8 @@ export default function MasterPartners() {
         })}
       </div>
 
-      {/* Toolbar */}
+      {/* Toolbar — escondida na aba payouts (tem seletor de mês próprio) */}
+      {tab !== 'payouts' && (
       <div className="flex flex-col sm:flex-row gap-2">
         {tab === 'partners' && (
           <div className="flex-1 relative">
@@ -140,6 +146,9 @@ export default function MasterPartners() {
               className="w-full pl-9 pr-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
             />
           </div>
+        )}
+        {tab === 'commissions' && (
+          <MonthPicker value={monthFilter} onChange={(m) => { setMonthFilter(m); setVisible(PAGE); }} />
         )}
         <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v); setVisible(PAGE); }}>
           <option value="all">Todos os status</option>
@@ -170,6 +179,7 @@ export default function MasterPartners() {
           )}
         </FilterSelect>
       </div>
+      )}
 
       {/* Conteúdo */}
       {tab === 'partners' && (
@@ -233,6 +243,10 @@ export default function MasterPartners() {
             </div>
           )}
         </div>
+      )}
+
+      {tab === 'payouts' && (
+        <MasterPartnersPayoutsTab month={monthFilter} onMonthChange={setMonthFilter} />
       )}
 
       {tab === 'commissions' && (
