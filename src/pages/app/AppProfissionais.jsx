@@ -10,6 +10,7 @@ import { useActiveUnit } from '@/hooks/useActiveUnit';
 import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
 import BarberPhotoStandardizer from '@/components/profissionais/BarberPhotoStandardizer';
+import BarberBioGenerator from '@/components/profissionais/BarberBioGenerator';
 
 const DAYS = [
   { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
@@ -18,7 +19,7 @@ const DAYS = [
 
 const defaultSchedule = Object.fromEntries(DAYS.map(d => [d.key, { open: '09:00', close: '18:00', active: d.key !== 'dom' }]));
 
-const emptyForm = { name: '', specialty: '', photo_url: '', active: true, work_schedule: defaultSchedule, service_ids: [], unit_ids: [], commission_type: 'percent', commission_value: 0 };
+const emptyForm = { name: '', specialty: '', photo_url: '', active: true, work_schedule: defaultSchedule, service_ids: [], unit_ids: [], commission_type: 'percent', commission_value: 0, bio_short: '', bio_medium: '', bio_full: '', bio_generated_at: '' };
 
 export default function AppProfissionais() {
   const { companyId, isLoading: loadingCompany } = useCompany();
@@ -26,7 +27,7 @@ export default function AppProfissionais() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [tab, setTab] = useState('info'); // 'info' | 'schedule' | 'services' | 'units'
+  const [tab, setTab] = useState('info'); // 'info' | 'bio' | 'schedule' | 'services' | 'units'
   const queryClient = useQueryClient();
 
   const { data: professionals = [], isLoading } = useQuery({
@@ -70,6 +71,10 @@ export default function AppProfissionais() {
       unit_ids: p.unit_ids || [],
       commission_type: p.commission_type || 'percent',
       commission_value: p.commission_value || 0,
+      bio_short: p.bio_short || '',
+      bio_medium: p.bio_medium || '',
+      bio_full: p.bio_full || '',
+      bio_generated_at: p.bio_generated_at || '',
     });
     setShowForm(true);
   };
@@ -193,6 +198,7 @@ export default function AppProfissionais() {
               <div className="flex border-b border-white/8 -mx-6 mb-4">
                 {[
                   { id: 'info', label: 'Dados' },
+                  { id: 'bio', label: 'Biografia' },
                   { id: 'schedule', label: 'Horários' },
                   { id: 'services', label: 'Serviços' },
                   ...(isMultiUnit ? [{ id: 'units', label: 'Unidades' }] : []),
@@ -246,6 +252,19 @@ export default function AppProfissionais() {
                       Profissional ativo
                     </label>
                   </div>
+                )}
+
+                {tab === 'bio' && (
+                  <BarberBioGenerator
+                    professionalId={editing?.id}
+                    values={{
+                      bio_short: form.bio_short,
+                      bio_medium: form.bio_medium,
+                      bio_full: form.bio_full,
+                    }}
+                    generatedAt={form.bio_generated_at}
+                    onChange={(patch) => setForm(p => ({ ...p, ...patch }))}
+                  />
                 )}
 
                 {tab === 'schedule' && (
