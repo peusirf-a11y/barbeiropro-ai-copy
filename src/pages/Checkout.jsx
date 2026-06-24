@@ -2,10 +2,24 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
-import { CheckCircle, ArrowLeft, Loader2, Shield, Star, Zap, Lock, CreditCard, QrCode } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Loader2, Shield, Star, Zap, Lock, CreditCard, QrCode, Rocket } from 'lucide-react';
 import { getReferralCode, getDeviceFingerprint } from '@/lib/referralTracking';
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
 import CpfRestrictionCard, { isPersonaFisica } from '@/components/onboarding/CpfRestrictionCard';
+
+// Oferta de lançamento: R$ 49/mês durante os primeiros 6 meses, depois preço cheio do plano Pro.
+const LAUNCH_PROMO = {
+  code: 'lancamento',
+  price: 49,
+  durationMonths: 6,
+  plan: 'pro',
+};
+
+function getPromoFromUrl() {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('promo') === LAUNCH_PROMO.code ? LAUNCH_PROMO : null;
+}
 
 const PLANS = [
   {
@@ -35,6 +49,8 @@ const PLANS = [
 function getInitialPlan() {
   if (typeof window === 'undefined') return 'pro';
   const params = new URLSearchParams(window.location.search);
+  // Promo de lançamento só vale para o plano Pro — força ele de cara.
+  if (params.get('promo') === LAUNCH_PROMO.code) return LAUNCH_PROMO.plan;
   const p = params.get('plano');
   return ['starter', 'pro', 'enterprise'].includes(p) ? p : 'pro';
 }
@@ -56,6 +72,8 @@ function maskCpfCnpj(value) {
 
 export default function Checkout() {
   const [selectedPlan, setSelectedPlan] = useState(getInitialPlan());
+  const [promo] = useState(getPromoFromUrl()); // null ou LAUNCH_PROMO
+  const isLaunch = !!promo;
   const [form, setForm] = useState({
     business_name: '',
     owner_name: '',
@@ -82,6 +100,8 @@ export default function Checkout() {
   }, []);
 
   const plan = PLANS.find(p => p.key === selectedPlan);
+  // Preço efetivo cobrado nos primeiros meses (promo) vs preço cheio (depois).
+  const effectivePrice = isLaunch ? promo.price : plan.price;
 
   const cpfDigits = form.cpf_cnpj.replace(/\D/g, '');
   const isPF = cpfDigits.length === 11;
@@ -135,6 +155,8 @@ export default function Checkout() {
         payment_method: billingType, // 'PIX' | 'BOLETO'
         referral_code: referral_code || undefined,
         referral_fingerprint: fingerprint || undefined,
+        // Flag de promo de lançamento — backend pode aplicar o desconto quando estiver pronto.
+        promo: isLaunch ? promo.code : undefined,
       });
       if (data?.url) {
         window.location.href = data.url;
@@ -164,6 +186,7 @@ export default function Checkout() {
       card,
       referral_code: referral_code || undefined,
       referral_fingerprint: fingerprint || undefined,
+      promo: isLaunch ? promo.code : undefined,
     });
     const data = res?.data;
     if (!data?.success) {
@@ -193,25 +216,48 @@ export default function Checkout() {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
           {/* LEFT — Resumo */}
           <div className="order-2 lg:order-1">
-            <div className="inline-flex items-center gap-2 bg-[#2563EB]/10 text-[#2563EB] text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-              <Zap className="w-3 h-3" /> 7 dias grátis · Cancele quando quiser
+            <div className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 ${
+              isLaunch
+                ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                : 'bg-[#2563EB]/10 text-[#2563EB]'
+            }`}>
+              {isLaunch ? <Rocket className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
+              {isLaunch
+                ? 'Oferta de lançamento — R$ 49/mês por 6 meses'
+                : '7 dias grátis · Cancele quando quiser'}
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-[#0F172A] leading-tight mb-3">
-              Comece a usar O CORTE hoje
+              {isLaunch ? 'Garanta sua condição de lançamento' : 'Comece a usar O CORTE hoje'}
             </h1>
             <p className="text-gray-500 mb-8">
-              Cadastre sua barbearia, escolha o plano e ganhe <strong>7 dias grátis</strong>. Você só é cobrado depois desse período.
+              {isLaunch ? (
+                <>Plano <strong>Pro completo</strong> por <strong>R$ {promo.price}/mês durante os primeiros {promo.durationMonths} meses</strong>. Depois desse período, migra automaticamente para o preço oficial vigente.</>
+              ) : (
+                <>Cadastre sua barbearia, escolha o plano e ganhe <strong>7 dias grátis</strong>. Você só é cobrado depois desse período.</>
+              )}
             </p>
 
             {/* Resumo do plano */}
-            <div className="bg-white rounded-2xl border border-black/8 p-5 mb-5 shadow-card">
+            <div className={`bg-white rounded-2xl border p-5 mb-5 shadow-card ${
+              isLaunch ? 'border-amber-300 ring-2 ring-amber-200' : 'border-black/8'
+            }`}>
+              {isLaunch && (
+                <div className="flex items-center gap-2 mb-3 -mt-1">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    <Rocket className="w-3 h-3" /> Promo de lançamento
+                  </span>
+                </div>
+              )}
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Plano selecionado</div>
                   <div className="text-xl font-black text-[#0F172A]">O CORTE · {plan.name}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-black text-[#0F172A]">R${plan.price}</div>
+                  {isLaunch && (
+                    <div className="text-xs text-gray-400 line-through">R${plan.price}/mês</div>
+                  )}
+                  <div className="text-2xl font-black text-[#0F172A]">R${effectivePrice}</div>
                   <div className="text-xs text-gray-400">/mês</div>
                 </div>
               </div>
@@ -227,7 +273,11 @@ export default function Checkout() {
                 <span className="text-gray-500">Cobrança hoje</span>
                 <span className="font-bold text-green-600">R$ 0,00</span>
               </div>
-              <div className="text-xs text-gray-400 mt-1">Após 7 dias: R${plan.price}/mês</div>
+              <div className="text-xs text-gray-400 mt-1">
+                {isLaunch
+                  ? `Após 7 dias: R$${promo.price}/mês pelos próximos ${promo.durationMonths} meses. Depois, R$${plan.price}/mês.`
+                  : `Após 7 dias: R$${plan.price}/mês`}
+              </div>
             </div>
 
             {/* Garantias */}
@@ -254,33 +304,54 @@ export default function Checkout() {
           {/* RIGHT — Form */}
           <div className="order-1 lg:order-2">
             <div className="bg-white rounded-2xl border border-black/8 p-5 sm:p-7 shadow-card">
-              {/* Plan picker */}
-              <div className="mb-6">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Escolha seu plano</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {PLANS.map(p => (
-                    <button
-                      key={p.key}
-                      type="button"
-                      onClick={() => setSelectedPlan(p.key)}
-                      className={`relative text-center px-2 py-3 rounded-xl border-2 transition-all ${
-                        selectedPlan === p.key
-                          ? 'border-[#2563EB] bg-[#2563EB]/5'
-                          : 'border-black/8 hover:border-black/20'
-                      }`}
-                    >
-                      {p.highlight && (
-                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#2563EB] text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                          RECOMENDADO
-                        </span>
-                      )}
-                      <div className="text-xs font-bold text-[#0F172A]">{p.name}</div>
-                      <div className="text-base font-black text-[#0F172A] mt-0.5">R${p.price}</div>
-                      <div className="text-[10px] text-gray-400">/mês</div>
-                    </button>
-                  ))}
+              {/* Plan picker — escondido durante a promo de lançamento (oferta só vale para o Pro) */}
+              {!isLaunch && (
+                <div className="mb-6">
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Escolha seu plano</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {PLANS.map(p => (
+                      <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => setSelectedPlan(p.key)}
+                        className={`relative text-center px-2 py-3 rounded-xl border-2 transition-all ${
+                          selectedPlan === p.key
+                            ? 'border-[#2563EB] bg-[#2563EB]/5'
+                            : 'border-black/8 hover:border-black/20'
+                        }`}
+                      >
+                        {p.highlight && (
+                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#2563EB] text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                            RECOMENDADO
+                          </span>
+                        )}
+                        <div className="text-xs font-bold text-[#0F172A]">{p.name}</div>
+                        <div className="text-base font-black text-[#0F172A] mt-0.5">R${p.price}</div>
+                        <div className="text-[10px] text-gray-400">/mês</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Banner de promo travada — substitui o plan picker durante o lançamento */}
+              {isLaunch && (
+                <div className="mb-6 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-300 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-200/70 border border-amber-300 flex items-center justify-center flex-shrink-0">
+                      <Rocket className="w-4 h-4 text-amber-700" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold uppercase tracking-wider text-amber-800">
+                        Oferta de lançamento ativa
+                      </div>
+                      <div className="text-sm text-amber-900 mt-0.5 leading-snug">
+                        Plano <strong>Pro</strong> por <strong>R$ {promo.price}/mês</strong> nos primeiros <strong>{promo.durationMonths} meses</strong>. Depois, R$ {plan.price}/mês.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Etapa 1: dados */}
               {stage === 'form' && (
@@ -407,7 +478,11 @@ export default function Checkout() {
                   {paymentMethod === 'card' && (
                     <CardPaymentFormAsaas
                       primaryColor="#2563EB"
-                      amountLabel={`Iniciar 7 dias grátis — depois R$${plan.price}/mês`}
+                      amountLabel={
+                        isLaunch
+                          ? `Iniciar 7 dias grátis — depois R$${promo.price}/mês por ${promo.durationMonths} meses`
+                          : `Iniciar 7 dias grátis — depois R$${plan.price}/mês`
+                      }
                       defaultName={form.owner_name}
                       defaultEmail={form.email}
                       defaultPhone={form.phone}
