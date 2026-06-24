@@ -89,7 +89,10 @@ export default function MasterObservability() {
             <div className="text-sm font-bold text-white">Serviços externos</div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <ServiceStatus label="Stripe" value={sysData.stripe} />
+            <ServiceStatus
+              label={`Asaas${sysData.asaas_environment ? ` · ${sysData.asaas_environment}` : ''}`}
+              value={sysData.asaas}
+            />
             <ServiceStatus label="WhatsApp" value={sysData.whatsapp} />
             <ServiceStatus label="E-mail" value={sysData.email} />
             <ServiceStatus label="Geral" value={sysData.overall_status} />

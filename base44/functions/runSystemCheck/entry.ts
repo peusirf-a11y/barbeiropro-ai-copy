@@ -1,9 +1,8 @@
 // runSystemCheck — diagnóstico de produção (admin-only)
-// Verifica: Z-API, Stripe, contagem de empresas em trial, automations ativas.
+// Verifica: Z-API, Asaas (gateway oficial de pagamento), contagem de empresas em trial, automations ativas.
 // NÃO envia mensagens reais — apenas valida conexões e configuração.
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import Stripe from 'npm:stripe@17.0.0';
 
 Deno.serve(async (req) => {
   console.log('JOB START: runSystemCheck');
@@ -17,7 +16,7 @@ Deno.serve(async (req) => {
     const result = {
       whatsapp: 'unknown',
       email: 'unknown',
-      stripe: 'unknown',
+      asaas: 'unknown',
       trial_companies: 0,
       blocked_companies: 0,
       checked_at: new Date().toISOString(),
@@ -46,21 +45,34 @@ Deno.serve(async (req) => {
       result.whatsapp_error = err.message;
     }
 
-    // --- Stripe ---
+    // --- Asaas (gateway oficial de pagamento das assinaturas SaaS) ---
     try {
-      const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-      if (!stripeKey) {
-        result.stripe = 'not_configured';
+      const asaasKey = Deno.env.get('ASAAS_API_KEY');
+      const environment = Deno.env.get('ASAAS_ENVIRONMENT') || 'sandbox';
+      const baseUrl = Deno.env.get('ASAAS_BASE_URL')
+        || (environment === 'production' ? 'https://api.asaas.com/v3' : 'https://api-sandbox.asaas.com/v3');
+      if (!asaasKey) {
+        result.asaas = 'not_configured';
       } else {
-        const stripe = new Stripe(stripeKey);
-        // Chamada leve para validar a chave
-        await stripe.products.list({ limit: 1 });
-        result.stripe = 'ok';
+        // Chamada leve (saldo) para validar a chave
+        const res = await fetch(`${baseUrl}/finance/balance`, {
+          headers: { Accept: 'application/json', access_token: asaasKey },
+        });
+        if (res.ok) {
+          result.asaas = 'ok';
+          result.asaas_environment = environment;
+        } else if (res.status === 401 || res.status === 403) {
+          result.asaas = 'error';
+          result.asaas_error = `unauthorized (HTTP ${res.status})`;
+        } else {
+          result.asaas = 'degraded';
+          result.asaas_error = `HTTP ${res.status}`;
+        }
       }
     } catch (err) {
-      console.error('stripe check failed:', err.message);
-      result.stripe = 'error';
-      result.stripe_error = err.message;
+      console.error('asaas check failed:', err.message);
+      result.asaas = 'error';
+      result.asaas_error = err.message;
     }
 
     // --- Email (Core integration disponível?) ---
@@ -104,7 +116,7 @@ Deno.serve(async (req) => {
     }
 
     // Status global derivado
-    const checks = [result.whatsapp, result.stripe, result.email];
+    const checks = [result.whatsapp, result.asaas, result.email];
     const hasError = checks.includes('error');
     const hasDegraded = checks.includes('not_configured') || checks.includes('disconnected');
     result.overall_status = hasError ? 'critical' : hasDegraded ? 'degraded' : 'healthy';
