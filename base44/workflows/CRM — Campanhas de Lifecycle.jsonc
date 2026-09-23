@@ -1,0 +1,44 @@
+{
+  "name": "CRM \u2014 Campanhas de Lifecycle",
+  "description": "Roda de hora em hora durante o dia (10h \u00e0s 19h BRT). Dispara welcome de 1\u00aa visita, em_risco, inativo, perdido, vip_inativo e fiel_sem_plano respeitando toggles e cooldowns por barbearia. S\u00f3 envia entre send_window_start e send_window_end de cada company.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 13-22 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "crm_campanhas_de_lifecycle",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "runLifecycleCampaigns",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "runLifecycleCampaigns"
+  }
+}

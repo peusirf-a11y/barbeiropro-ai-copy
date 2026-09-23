@@ -1,0 +1,44 @@
+{
+  "name": "CRM \u2014 Recomputar lifecycle de clientes (di\u00e1rio)",
+  "description": "Recalcula diariamente o lifecycle_status de todos os clientes (em_risco/inativo/perdido) com base nos per\u00edodos configurados em Company.crm_settings.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 7 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "crm_recomputar_lifecycle_de_clientes_di_rio",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "recomputeCustomerLifecycle",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "recomputeCustomerLifecycle"
+  }
+}

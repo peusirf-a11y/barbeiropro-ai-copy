@@ -1,0 +1,37 @@
+{
+  "name": "onAppointmentReversed",
+  "description": "Estorna comiss\\u00e3o quando appointment conclu\\u00eddo \\u00e9 revertido para cancelado/faltou",
+  "trigger": {
+    "condition": "${ ((.trigger.changed_fields | index(\"status\") != null) and (.trigger.data.status == \"cancelado\" or .trigger.data.status == \"faltou\") and (.trigger.data.commission_created == true)) }",
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "update"
+      ],
+      "entity_name": "Appointment"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "onappointmentreversed",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "reverseCommission",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "reverseCommission"
+  }
+}
