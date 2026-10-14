@@ -1,5 +1,5 @@
 // FinanceKpiRow — KPIs financeiros premium da Fase 3.
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Users, Gift } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Gift } from 'lucide-react';
 
 const fmtMoney = (v) =>
   Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });

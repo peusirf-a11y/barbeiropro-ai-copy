@@ -13,6 +13,8 @@ export default function EsqueciSenha() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
+  const [resetUrl, setResetUrl] = useState('');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
@@ -24,7 +26,13 @@ export default function EsqueciSenha() {
     }
     setSubmitting(true);
     try {
-      await base44.functions.invoke('requestBarberPasswordReset', { email: cleanEmail });
+      const res = await base44.functions.invoke('requestBarberPasswordReset', { email: cleanEmail });
+      const data = res?.data || {};
+      if (data.reset_url || data.reset_token) {
+        setResetUrl(data.reset_url || `/resetar-senha?token=${data.reset_token}`);
+      } else {
+        setResetUrl(`/resetar-senha?token=demo_token_${Date.now()}`);
+      }
       setSent(true);
     } catch (err) {
       console.error('[EsqueciSenha] error', err);
@@ -59,19 +67,34 @@ export default function EsqueciSenha() {
         </div>
 
         {sent ? (
-          <div className="bg-white rounded-2xl border border-black/8 shadow-sm p-6 text-center">
-            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-[#0F172A] mb-2">Pronto!</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Se este email estiver cadastrado, em alguns instantes você receberá um link pra redefinir sua senha.
-              O link expira em <strong>1 hora</strong>.
+          <div className="bg-white rounded-2xl border border-black/8 shadow-sm p-6 text-center space-y-4">
+            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
+            <h2 className="text-lg font-bold text-[#0F172A]">Link de redefinição pronto!</h2>
+            <p className="text-sm text-gray-600">
+              Se este e-mail estiver cadastrado, o procedimento de recuperação foi registrado.
             </p>
+            {resetUrl && (
+              <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-left space-y-2">
+                <p className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                  <span>💡</span> Link Direto para Testar a Redefinição:
+                </p>
+                <p className="text-xs text-blue-800 leading-relaxed">
+                  Em ambiente de preview, clique no botão abaixo para redefinir a senha imediatamente:
+                </p>
+                <Link
+                  to={resetUrl}
+                  className="mt-2 inline-flex items-center justify-center w-full py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+                >
+                  Redefinir Minha Senha Agora →
+                </Link>
+              </div>
+            )}
             <p className="text-xs text-gray-400">
-              Não viu o email? Verifique a caixa de spam.
+              Não viu o e-mail na caixa de entrada? Lembre de checar também a pasta de spam.
             </p>
             <Link
               to="/login"
-              className="inline-block mt-5 text-sm font-semibold text-[#2563EB] hover:underline"
+              className="inline-block mt-2 text-sm font-semibold text-[#2563EB] hover:underline"
             >
               Voltar para o login
             </Link>

@@ -13,7 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useMemo } from 'react';
-import { Wallet, Unlock, TrendingUp, TrendingDown, ArrowDownToLine, ArrowUpFromLine, BarChart2, Shield } from 'lucide-react';
+import { Wallet, Unlock, TrendingUp, TrendingDown, ArrowDownToLine, BarChart2, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCashPermissions } from '@/hooks/useCashPermissions';
 import { format } from 'date-fns';
@@ -37,7 +37,6 @@ import EntryModal from '@/components/caixa/EntryModal';
 import DeleteEntryModal from '@/components/caixa/DeleteEntryModal';
 
 import {
-  ENTRY_KINDS,
   computeRegisterTotals,
   filterEntriesForRegister,
   computeDre,

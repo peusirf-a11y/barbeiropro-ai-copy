@@ -1,4 +1,4 @@
-import { Edit, Users, Infinity as InfIcon, Check, Globe, Lock, Link2 } from 'lucide-react';
+import { Edit, Users, Infinity as InfIcon, Check, Lock, Link2 } from 'lucide-react';
 
 function VisibilityChip({ v }) {
   if (!v || v === 'public') return null;

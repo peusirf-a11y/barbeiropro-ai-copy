@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Shield, AlertTriangle, Info, CheckCircle2, XCircle,
-  MessageSquare, DollarSign, Calendar, User, Zap, Eye
+  MessageSquare, DollarSign, Calendar, Zap, Eye
 } from 'lucide-react';
 
 const SEVERITY_CONFIG = {
@@ -39,7 +39,7 @@ const ACTION_ICONS = {
   APPOINTMENT_CREATED: Calendar,
   CROSS_TENANT_ATTEMPT: Zap,
   PERMISSION_DENIED: Shield,
-  STRIPE_ENV_MISMATCH: AlertTriangle,
+  ASAAS_ENV_MISMATCH: AlertTriangle,
 };
 
 function ActionBadge({ action, severity }) {

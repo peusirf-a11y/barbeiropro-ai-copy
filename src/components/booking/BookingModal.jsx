@@ -78,7 +78,7 @@ export default function BookingModal({
     setFormError('');
     if (canUseSubscription && paymentMethod === 'avulso') setPaymentMethod('subscription');
     if (!canUseSubscription && paymentMethod === 'subscription') setPaymentMethod('avulso');
-  }, [step, canUseSubscription]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, canUseSubscription]);  
 
   const next14Days = Array.from({ length: 14 }, (_, i) => addDays(startOfDay(new Date()), i)).filter(day => {
     if (!company?.business_hours) return true;
@@ -148,6 +148,10 @@ export default function BookingModal({
 
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
+      if (company?.id === 'mock-company-id') {
+        await new Promise(r => setTimeout(r, 600));
+        return { success: true, appointment_id: 'mock-appt-' + Date.now() };
+      }
       if (!idemKeyRef.current) {
         idemKeyRef.current = generateStableIdempotencyKey('public_appt', {
           company_id: data.company_id,

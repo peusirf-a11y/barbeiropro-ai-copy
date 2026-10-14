@@ -28,7 +28,7 @@ export const COOKIE_CATEGORIES = {
     label: 'Necessários',
     description: 'Autenticação, sessão, segurança (CSRF) e persistência de login. Sempre ativos.',
     always_on: true,
-    cookies: ['session', 'auth_token', 'csrf_token', '__stripe_*'],
+    cookies: ['session', 'auth_token', 'csrf_token'],
   },
   analytics: {
     id: 'analytics',

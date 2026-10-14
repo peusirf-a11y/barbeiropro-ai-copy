@@ -125,21 +125,23 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
             </div>
           )}
 
-          {!loading && !error && !analysis?.insufficient_data && createdCount === 0 && m && (
+          {!loading && !error && !analysis?.insufficient_data && createdCount === 0 && (
             <>
               {/* Métricas detectadas */}
               <div className="mb-5">
                 <h4 className="text-xs font-bold uppercase tracking-wide text-white/55 mb-3">📊 Diagnóstico do seu negócio</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <MetricCard icon={Users} label="Clientes ativos" value={m.total_customers} />
-                  <MetricCard icon={Activity} label="Frequência média" value={`${m.frequencia_media_mes}x/mês`} />
-                  <MetricCard icon={TrendingUp} label="Ticket médio" value={`R$${m.ticket_medio.toFixed(0)}`} />
-                  <MetricCard icon={Activity} label="Ocupação atual" value={`${m.occupancy_pct}%`}
-                    color={m.occupancy_pct > 85 ? 'text-emerald-300' : m.occupancy_pct < 60 ? 'text-amber-300' : 'text-[#93C5FD]'} />
+                  <MetricCard icon={Users} label="Clientes ativos" value={m?.total_customers ?? 0} />
+                  <MetricCard icon={Activity} label="Frequência média" value={`${m?.frequencia_media_mes ?? 1}x/mês`} />
+                  <MetricCard icon={TrendingUp} label="Ticket médio" value={`R$${Number(m?.ticket_medio || 0).toFixed(0)}`} />
+                  <MetricCard icon={Activity} label="Ocupação atual" value={`${m?.occupancy_pct ?? 50}%`}
+                    color={(m?.occupancy_pct || 0) > 85 ? 'text-emerald-300' : (m?.occupancy_pct || 0) < 60 ? 'text-amber-300' : 'text-[#93C5FD]'} />
                 </div>
-                <div className="mt-3 px-3 py-2 bg-blue-400/[0.08] border border-blue-400/25 rounded-lg text-xs text-blue-100">
-                  <strong>Estratégia:</strong> {analysis.discount_strategy.label}
-                </div>
+                {analysis?.discount_strategy?.label && (
+                  <div className="mt-3 px-3 py-2 bg-blue-400/[0.08] border border-blue-400/25 rounded-lg text-xs text-blue-100">
+                    <strong>Estratégia:</strong> {analysis.discount_strategy.label}
+                  </div>
+                )}
                 {analysis.low_data && (
                   <div className="mt-2 px-3 py-2 bg-amber-400/[0.08] border border-amber-400/25 rounded-lg text-xs text-amber-100 flex items-start gap-2">
                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />

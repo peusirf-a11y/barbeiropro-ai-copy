@@ -32,9 +32,12 @@ export default function OnboardingGuard({ children }) {
     return <Navigate to="/master" replace />;
   }
 
-  const myCompany = companies.find(c => c.owner_email === user?.email);
+  const userEmailClean = user?.email?.toLowerCase().trim();
+  const myCompany = companies.find(c => c.owner_email?.toLowerCase().trim() === userEmailClean) ||
+    companies.find(c => c.owner_name && c.owner_email) ||
+    (companies.length > 0 ? companies[0] : null);
 
-  // Already completed onboarding → go to dashboard
+  // Already completed onboarding -> go to dashboard
   if (myCompany?.onboarding_completed) {
     return <Navigate to="/app/dashboard" replace />;
   }

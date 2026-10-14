@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
   Database, Trash2, Play, RefreshCw, Users, Calendar, DollarSign,
-  Scissors, Star, Award, ChevronDown, ChevronRight, AlertTriangle,
+  Scissors, Star, Award, AlertTriangle,
   CheckCircle2, Loader2, Zap, BarChart3, Clock, Building2
 } from 'lucide-react';
 import { safeArray } from '@/lib/safeArray';

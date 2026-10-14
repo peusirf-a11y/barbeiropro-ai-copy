@@ -219,15 +219,15 @@ export default function AppConfiguracoes() {
           </button>
         </div>
 
-        {/* Stripe Connect — atalho para a página dedicada */}
-        {company && has('stripe_payments') && (
+        {/* Asaas Connect — atalho para a página dedicada */}
+        {company && has('online_payments') && (
           <SettingsShortcutCard
             title="Pagamentos online"
             description="Conecte sua conta Asaas para receber pagamentos via Pix e cartão direto pelo seu link público."
             icon={CreditCard}
             ctaLabel="Gerenciar pagamentos"
             to="/app/configuracoes/pagamentos"
-            statusBadge={company?.stripe_connect_charges_enabled ? <ActiveBadge /> : null}
+            statusBadge={company?.asaas_pix_enabled ? <ActiveBadge /> : null}
           />
         )}
 

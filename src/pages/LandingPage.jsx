@@ -3,6 +3,7 @@
 import { Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdmin } from '@/lib/permissions';
 import { base44 } from '@/api/base44Client';
 import LaunchLandingPage from './LaunchLandingPage';
 import PremiumBackground from '@/components/landing/PremiumBackground';
@@ -35,9 +36,9 @@ export default function LandingPage() {
     })();
   }, []);
 
-  // Usuário já logado: super admin → /master, demais → /app/dashboard.
+  // Usuário já logado: super admin → /master/dashboard, demais → /app/dashboard.
   if (!isLoadingAuth && isAuthenticated && user) {
-    if (user.is_super_admin) return <Navigate to="/master" replace />;
+    if (isSuperAdmin(user)) return <Navigate to="/master/dashboard" replace />;
     return <Navigate to="/app/dashboard" replace />;
   }
 

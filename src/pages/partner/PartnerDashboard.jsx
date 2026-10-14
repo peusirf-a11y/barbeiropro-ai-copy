@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import PartnerLayout from '@/components/partner/PartnerLayout';
 import { getPartnerToken } from '@/hooks/usePartnerAuth';
 import { partnerKeys } from '@/lib/partnerKeys';
-import { Copy, Users, DollarSign, TrendingUp, Clock, CheckCircle2, Wallet, Target, Percent, Coins, UserCheck } from 'lucide-react';
+import { Copy, Users, DollarSign, TrendingUp, Clock, CheckCircle2, Wallet, Percent, Coins, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import PartnerKpiCard from '@/components/partner/PartnerKpiCard';
 import PartnerGoalCard from '@/components/partner/PartnerGoalCard';

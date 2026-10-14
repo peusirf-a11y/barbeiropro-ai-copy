@@ -80,7 +80,7 @@ export const ROUTE_FEATURE_MAP = {
   '/app/planos':                   'subscriptions',
   '/app/equipe':                   'team_management',
   '/app/configuracoes/unidades':   'multi_units',
-  '/app/configuracoes/pagamentos': 'stripe_payments',
+  '/app/configuracoes/pagamentos': 'online_payments',
 };
 
 // Retorna a feature requerida pela rota (ou null se rota não tem gating).

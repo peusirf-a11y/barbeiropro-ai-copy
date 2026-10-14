@@ -93,11 +93,21 @@ export default function CriarSenha() {
       }).catch((e) => e?.response || { data: { ok: false, error: 'network_error' } });
       const loginData = loginRes?.data || {};
 
-      if (loginData.ok && loginData.access_token) {
-        if (typeof base44.auth.setToken === 'function') {
-          base44.auth.setToken(loginData.access_token);
+      if (loginData.ok) {
+        const userObj = loginData.user || {
+          id: `usr_${Date.now()}`,
+          email,
+          full_name: 'Proprietário',
+          role: 'owner',
+        };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('admin_logged_user', JSON.stringify(userObj));
+          localStorage.setItem('barberpass_auth_email', email);
         }
-        window.location.href = '/app/dashboard';
+        if (typeof base44.auth.setToken === 'function' && loginData.access_token) {
+          base44.auth.setToken(loginData.access_token, userObj);
+        }
+        window.location.href = '/onboarding';
         return;
       }
 

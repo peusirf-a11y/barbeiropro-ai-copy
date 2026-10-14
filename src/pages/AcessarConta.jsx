@@ -28,7 +28,7 @@ const PLAN_LABEL = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
 // Observabilidade silenciosa (usuário ainda não está logado — 401 é ignorado).
 function recordAccessEvent(eventType, metadata = {}) {
   try {
-    // eslint-disable-next-line no-console
+     
     console.info(`[first-access] ${eventType}`, metadata);
     base44.functions.invoke('trackEvent', { event_type: eventType, metadata }).catch(() => {});
   } catch {
@@ -88,7 +88,7 @@ export default function AcessarConta() {
         triggerReset({ auto: true });
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const handlePassword = () => {

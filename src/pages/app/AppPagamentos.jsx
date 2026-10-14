@@ -1,6 +1,5 @@
-// Página dedicada para o dono da barbearia conectar sua conta Stripe (Stripe Connect)
+// Página dedicada para o dono da barbearia conectar sua conta Asaas (Asaas Split)
 // e receber pagamentos online direto na sua conta bancária.
-// Reutiliza o StripeConnectCard que já encapsula toda a lógica de onboarding.
 
 import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';

@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, ArrowRight, Mail, Loader2, Sparkles } from 'lucide-react';
 import Logo from '@/components/Logo';
-import { base44 } from '@/api/base44Client';
 
 export default function PostCheckoutAccessCard({ email, planName }) {
   const [loading, setLoading] = useState(false);
@@ -15,12 +14,9 @@ export default function PostCheckoutAccessCard({ email, planName }) {
   const handleAccess = async () => {
     setLoading(true);
     try {
-      const authed = await base44.auth.isAuthenticated();
-      if (authed) {
-        window.location.href = '/app/dashboard';
-        return;
+      if (email && typeof window !== 'undefined') {
+        localStorage.setItem('barberpass_auth_email', email);
       }
-      // Fase 3: leva para /criar-senha — dono define a senha do painel (auth própria O CORTE).
       const params = new URLSearchParams();
       if (email) params.set('email', email);
       if (planName) params.set('plan', String(planName).toLowerCase());

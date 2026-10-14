@@ -33,7 +33,7 @@ function fireEvent(eventType, metadata) {
   try {
     base44.functions.invoke('trackEvent', { event_type: eventType, metadata }).catch(() => {});
   } catch { /* ignore */ }
-  // eslint-disable-next-line no-console
+   
   console.info('[pj-only]', eventType, metadata || {});
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Scissors, Check, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useNavigate } from 'react-router-dom';
 import BusinessDetailsStep, { isBusinessDetailsValid } from '@/components/onboarding/BusinessDetailsStep';
@@ -30,6 +30,8 @@ const STEPS = [
   { id: 7, title: 'Conclusão', sub: 'Sua barbearia está pronta!' },
 ];
 
+const PUBLIC_DOMAIN = import.meta.env.VITE_PUBLIC_DOMAIN || 'https://ocorte.com.br';
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -48,7 +50,7 @@ export default function Onboarding() {
   const [slugError, setSlugError] = useState('');
   const [validatingSlug, setValidatingSlug] = useState(false);
 
-  // Carrega a Company existente do usuário (criada pelo webhook do Stripe quando ele
+  // Carrega a Company existente do usuário (criada pelo webhook do Asaas quando ele
   // pagou o checkout) para pré-preencher o onboarding. Sem isso, criamos uma Company
   // duplicada no step 2 — e o companyId pode ficar nulo, fazendo o onboarding nunca
   // persistir os steps seguintes (incluindo onboarding_completed=true).
@@ -263,7 +265,7 @@ export default function Onboarding() {
                   <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
                   <input type="text" value={company[f.key]} onChange={e => setCompany(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 bg-white" />
+                    className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 bg-white" />
                 </div>
               ))}
             </div>
@@ -273,22 +275,36 @@ export default function Onboarding() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Slug (URL pública) *</label>
-                <div className="flex items-center bg-white border border-black/10 rounded-xl overflow-hidden">
-                  <span className="px-4 py-3 text-gray-400 text-sm border-r border-black/10 bg-gray-50">/agendar/</span>
+                <div className="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden">
+                  <span className="px-4 py-3 text-gray-400 text-sm border-r border-slate-300 bg-gray-50">/agendar/</span>
                   <input type="text" value={company.slug}
                     onChange={e => { setCompany(p => ({ ...p, slug: sanitizeSlug(e.target.value) })); setSlugError(''); }}
                     onBlur={e => validateSlug(e.target.value)}
                     placeholder="studio47"
-                    className="flex-1 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
+                    className="flex-1 px-4 py-3 text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
                 </div>
-                {company.slug && !slugError && <p className="text-xs text-[#2563EB] mt-1">Link: {window.location.origin}/agendar/{company.slug}</p>}
+                {company.slug && !slugError && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs text-slate-500">
+                      Link em produção: <strong className="text-slate-700">ocorte.com.br/agendar/{company.slug}</strong>
+                    </p>
+                    <a
+                      href={`${window.location.origin}/agendar/${company.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#2563EB] hover:underline"
+                    >
+                      Testar página de agendamento agora (preview) ↗
+                    </a>
+                  </div>
+                )}
                 {slugError && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{slugError}</p>}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Cor principal</label>
                 <div className="flex items-center gap-3">
                   <input type="color" value={company.primary_color} onChange={e => setCompany(p => ({ ...p, primary_color: e.target.value }))}
-                    className="w-12 h-12 rounded-xl border border-black/10 cursor-pointer" />
+                    className="w-12 h-12 rounded-xl border border-slate-300 cursor-pointer" />
                   <div>
                     <div className="text-sm font-semibold text-[#1B1C1E]">{company.primary_color}</div>
                     <div className="text-xs text-gray-400">Cor dos botões e destaques no link público</div>
@@ -305,28 +321,28 @@ export default function Onboarding() {
           {step === 4 && (
             <div className="space-y-3">
               {services.map((s, i) => (
-                <div key={i} className="bg-white rounded-xl border border-black/10 p-4">
+                <div key={i} className="bg-white rounded-xl border border-slate-300 p-4">
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div>
                       <label className="text-xs font-semibold text-gray-500 block mb-1">Nome</label>
                       <input type="text" value={s.name} onChange={e => setServices(arr => arr.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                        className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 block mb-1">Preço (R$)</label>
                       <input type="number" value={s.price} onChange={e => setServices(arr => arr.map((x, j) => j === i ? { ...x, price: +e.target.value } : x))}
-                        className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Duração (min)</label>
                     <input type="number" value={s.duration_minutes} onChange={e => setServices(arr => arr.map((x, j) => j === i ? { ...x, duration_minutes: +e.target.value } : x))}
-                      className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
                   </div>
                 </div>
               ))}
               <button onClick={() => setServices(p => [...p, { name: '', duration_minutes: 30, price: 0 }])}
-                className="w-full py-2.5 border-2 border-dashed border-black/15 rounded-xl text-sm text-gray-400 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors">
+                className="w-full py-2.5 border-2 border-dashed border-slate-300 rounded-xl text-sm font-semibold text-gray-500 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors">
                 + Adicionar serviço
               </button>
             </div>
@@ -335,16 +351,16 @@ export default function Onboarding() {
           {step === 5 && (
             <div className="space-y-3">
               {professionals.map((p, i) => (
-                <div key={i} className="bg-white rounded-xl border border-black/10 p-4 grid grid-cols-2 gap-3">
+                <div key={i} className="bg-white rounded-xl border border-slate-300 p-4 grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Nome</label>
                     <input type="text" value={p.name} onChange={e => setProfessionals(arr => arr.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                      className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1">Especialidade</label>
                     <input type="text" value={p.specialty} onChange={e => setProfessionals(arr => arr.map((x, j) => j === i ? { ...x, specialty: e.target.value } : x))}
-                      className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none" />
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
                   </div>
                 </div>
               ))}
@@ -369,8 +385,18 @@ export default function Onboarding() {
               <h2 className="text-2xl font-black text-[#1B1C1E] mb-3">Tudo pronto!</h2>
               <p className="text-gray-500 mb-6">Sua barbearia está configurada e o link público de agendamento está ativo.</p>
               {company.slug && (
-                <div className="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-xl p-4 text-sm text-[#2563EB] font-medium mb-6">
-                  {window.location.origin}/agendar/{company.slug}
+                <div className="space-y-3 mb-6">
+                  <div className="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-xl p-4 text-sm text-[#2563EB] font-medium">
+                    ocorte.com.br/agendar/{company.slug}
+                  </div>
+                  <a
+                    href={`${window.location.origin}/agendar/${company.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block text-xs font-semibold text-[#2563EB] hover:underline"
+                  >
+                    Testar página de agendamento no preview ↗
+                  </a>
                 </div>
               )}
             </div>

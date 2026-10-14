@@ -38,8 +38,11 @@ export default function PremiumHero() {
             <Link to="/checkout">
               <GlowButton className="w-full sm:w-auto">Começar agora — 7 dias grátis</GlowButton>
             </Link>
+            <Link to="/login">
+              <GlowButton variant="ghost" className="w-full sm:w-auto border border-white/20 bg-white/5 hover:bg-white/10">Entrar na minha conta</GlowButton>
+            </Link>
             <Link to="/demo/dashboard">
-              <GlowButton variant="ghost" className="w-full sm:w-auto">Ver a plataforma</GlowButton>
+              <GlowButton variant="ghost" className="w-full sm:w-auto text-white/70 hover:text-white">Ver a plataforma</GlowButton>
             </Link>
           </div>
 

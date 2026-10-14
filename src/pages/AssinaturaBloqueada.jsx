@@ -84,7 +84,7 @@ export default function AssinaturaBloqueada() {
           </button>
 
           <p className="text-xs text-gray-400 mt-4">
-            Você será redirecionado para o portal seguro do Stripe para atualizar seus dados de pagamento.
+            Você será redirecionado para o portal seguro do Asaas para atualizar seus dados de pagamento.
           </p>
         </div>
       </div>

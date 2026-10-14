@@ -7,9 +7,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
   Calendar, Users, Briefcase, DollarSign, BarChart2, Zap,
-  LayoutDashboard, X, Scissors, Wallet, MoreHorizontal,
-  ChevronLeft, Lock, Package, Repeat, Percent, Star, Gift,
-  UserCheck, Settings, CreditCard, MessageSquare,
+  LayoutDashboard, X, Scissors, MoreHorizontal,
+  ChevronLeft,
 } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';

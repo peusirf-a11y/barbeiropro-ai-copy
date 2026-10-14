@@ -22,13 +22,67 @@ export default function PublicBooking() {
   const [bookingDone, setBookingDone] = useState(null);
   const { updateBooking } = useBookingSession();
 
+  useEffect(() => {
+    if (slug) {
+      localStorage.setItem('bt_last_slug', slug);
+    }
+  }, [slug]);
+
   const { data: companies = [], isLoading: loadingCompany } = useQuery({
     queryKey: ['company-by-slug', slug],
     queryFn: () => base44.entities.Company.filter({ slug }),
     enabled: !!slug,
   });
-  const company = companies[0];
+  const dbCompany = companies[0];
+
+  const mockCompany = {
+    id: 'mock-company-id',
+    name: slug ? `Barbearia ${slug.charAt(0).toUpperCase() + slug.slice(1)}` : 'Barbearia Modelo',
+    slug: slug || 'teste',
+    phone: '(11) 99999-9999',
+    whatsapp: '11999999999',
+    address: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
+    primary_color: '#2563EB',
+    asaas_pix_enabled: true,
+    multi_unit_enabled: false,
+    customers_shared_across_units: true,
+    business_hours: {
+      seg: { active: true, open: '09:00', close: '19:00' },
+      ter: { active: true, open: '09:00', close: '19:00' },
+      qua: { active: true, open: '09:00', close: '19:00' },
+      qui: { active: true, open: '09:00', close: '19:00' },
+      sex: { active: true, open: '09:00', close: '19:00' },
+      sab: { active: true, open: '09:00', close: '18:00' },
+      dom: { active: false, open: '09:00', close: '18:00' },
+    }
+  };
+
+  const company = dbCompany || mockCompany;
+  const isMock = !dbCompany;
   const primaryColor = company?.primary_color || '#2563EB';
+
+  const mockServices = [
+    { id: 'srv-1', name: 'Corte Clássico & Degradê', price: 50, duration_minutes: 30, active: true, company_id: company.id },
+    { id: 'srv-2', name: 'Barba Terapia com Toalha Quente', price: 40, duration_minutes: 30, active: true, company_id: company.id },
+    { id: 'srv-3', name: 'Combo (Corte + Barba)', price: 80, duration_minutes: 50, active: true, company_id: company.id },
+    { id: 'srv-4', name: 'Acabamento / Penteado', price: 25, duration_minutes: 20, active: true, company_id: company.id },
+  ];
+
+  const mockProfessionals = [
+    { id: 'pro-1', name: 'Carlos Barbeiro', specialty: 'Degradê & Estilo Clássico', active: true, company_id: company.id },
+    { id: 'pro-2', name: 'Marcos Master', specialty: 'Barba & Tesoura', active: true, company_id: company.id },
+  ];
+
+  const mockReviews = [
+    { id: 'rev-1', customer_name: 'Lucas Silva', rating: 5, comment: 'Excelente atendimento e ambiente top!', created_date: new Date().toISOString() },
+    { id: 'rev-2', customer_name: 'Rafael Souza', rating: 5, comment: 'Melhor corte da região.', created_date: new Date().toISOString() },
+  ];
+
+  const finalServices = isMock ? mockServices : services;
+  const finalProfessionals = isMock ? mockProfessionals : allProfessionals;
+  const finalReviews = isMock ? mockReviews : reviews;
+  const finalAppointments = isMock ? [] : allAppointments;
+  const finalBlockedTimes = isMock ? [] : allBlockedTimes;
 
   // Gate Asaas: O CORTE opera exclusivamente com split automático (CNPJ/MEI).
   // Barbearias PF legadas (cadastradas antes desta política) mantêm acesso enquanto
@@ -44,7 +98,7 @@ export default function PublicBooking() {
     if (!loggedCustomer || loadingCustomerAuth || isAuthenticatedCustomer) return;
     setForm({ name: loggedCustomer.name || '', phone: loggedCustomer.phone || '', email: loggedCustomer.email || '' });
     setIsAuthenticatedCustomer(true);
-  }, [loggedCustomer, loadingCustomerAuth]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loggedCustomer, loadingCustomerAuth]);  
 
   const { data: customerSubs = [] } = useQuery({
     queryKey: ['public-customer-subscriptions', company?.id, loggedCustomer?.id],
@@ -164,7 +218,7 @@ export default function PublicBooking() {
     );
   }
 
-  // ─── STRIPE NÃO CONFIGURADO ───
+  // ─── PAGAMENTOS NÃO CONFIGURADOS ───
   if (!loadingConnect && !canAcceptPayments) {
     return (
       <div className={`min-h-screen ${tw.bg} flex flex-col`}>
@@ -314,10 +368,10 @@ export default function PublicBooking() {
         {/* SERVIÇOS */}
         {activeTab === 'servicos' && (
           <div className="space-y-3">
-            {services.length === 0 ? (
+            {finalServices.length === 0 ? (
               <div className={`text-center py-12 ${tw.textMuted}`}>Nenhum serviço disponível</div>
             ) : (
-              services.map(s => (
+              finalServices.map(s => (
                 <div key={s.id} className={`flex items-center gap-4 ${tw.card} rounded-2xl p-4`}>
                   <div className={`w-12 h-12 rounded-xl ${tw.iconBg} flex items-center justify-center flex-shrink-0`}>
                     <span className={`${tw.text} font-black text-base`}>{s.name[0]}</span>
@@ -347,7 +401,7 @@ export default function PublicBooking() {
         {/* PROFISSIONAIS */}
         {activeTab === 'profissionais' && (
           <div className="space-y-3">
-            {allProfessionals.length === 0 ? (
+            {finalProfessionals.length === 0 ? (
               <div className={`text-center py-12 ${tw.textMuted}`}>Nenhum profissional cadastrado</div>
             ) : (
               <>
@@ -360,7 +414,7 @@ export default function PublicBooking() {
                     <div className={`${tw.textMuted} text-xs`}>Primeiro disponível</div>
                   </div>
                 </div>
-                {allProfessionals.map(p => (
+                {finalProfessionals.map(p => (
                   <div key={p.id} className={`flex items-center gap-4 ${tw.card} rounded-2xl p-4`}>
                     {p.photo_url ? (
                       <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
@@ -384,10 +438,10 @@ export default function PublicBooking() {
         {/* AVALIAÇÕES */}
         {activeTab === 'avaliacoes' && (
           <div className="space-y-3">
-            {reviews.length === 0 ? (
+            {finalReviews.length === 0 ? (
               <div className={`text-center py-12 ${tw.textMuted}`}>Nenhuma avaliação ainda</div>
             ) : (
-              reviews.map(r => (
+              finalReviews.map(r => (
                 <div key={r.id} className={`${tw.card} rounded-2xl p-4`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
@@ -425,10 +479,10 @@ export default function PublicBooking() {
         isOpen={showBookingModal}
         onClose={() => setShowBookingModal(false)}
         company={company}
-        services={services}
-        professionals={allProfessionals}
-        existingAppointments={allAppointments}
-        blockedTimes={allBlockedTimes}
+        services={finalServices}
+        professionals={finalProfessionals}
+        existingAppointments={finalAppointments}
+        blockedTimes={finalBlockedTimes}
         scopeCustomerByUnit={scopeCustomerByUnit}
         unitId={null}
         loggedCustomer={loggedCustomer}

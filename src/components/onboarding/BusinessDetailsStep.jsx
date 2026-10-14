@@ -71,8 +71,8 @@ export default function BusinessDetailsStep({ value, onChange }) {
           value={maskCNPJ(value.owner_cpf_cnpj || '')}
           onChange={e => onChange({ ...value, owner_cpf_cnpj: e.target.value })}
           placeholder="00.000.000/0000-00"
-          className={`w-full px-4 py-3 border rounded-xl text-sm bg-white ${
-            isCpf ? 'border-red-400' : 'border-black/10'
+          className={`w-full px-4 py-3 border rounded-xl text-sm font-semibold text-slate-900 bg-white ${
+            isCpf ? 'border-red-400' : 'border-slate-300'
           }`}
         />
         {isCpf && (
@@ -96,12 +96,12 @@ export default function BusinessDetailsStep({ value, onChange }) {
           value={value.phone || ''}
           onChange={e => onChange({ ...value, phone: e.target.value })}
           placeholder="(11) 99999-9999"
-          className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white"
+          className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 bg-white"
         />
       </div>
 
       {/* Endereço estruturado */}
-      <div className="bg-white rounded-xl border border-black/10 p-4 space-y-3">
+      <div className="bg-white rounded-xl border border-slate-300 p-4 space-y-3">
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Endereço *</div>
 
         <div>
@@ -112,7 +112,7 @@ export default function BusinessDetailsStep({ value, onChange }) {
             onChange={e => setAddr('postal_code', maskCep(e.target.value))}
             placeholder="00000-000"
             maxLength={9}
-            className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm bg-white"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
           />
         </div>
 
@@ -124,7 +124,7 @@ export default function BusinessDetailsStep({ value, onChange }) {
               value={addr.line1 || ''}
               onChange={e => setAddr('line1', e.target.value)}
               placeholder="Rua das Flores, 123"
-              className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
             />
           </div>
           <div>
@@ -134,7 +134,7 @@ export default function BusinessDetailsStep({ value, onChange }) {
               value={addr.line2 || ''}
               onChange={e => setAddr('line2', e.target.value)}
               placeholder="Sala 2 (opcional)"
-              className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
             />
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function BusinessDetailsStep({ value, onChange }) {
               type="text"
               value={addr.neighborhood || ''}
               onChange={e => setAddr('neighborhood', e.target.value)}
-              className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
             />
           </div>
           <div>
@@ -155,7 +155,7 @@ export default function BusinessDetailsStep({ value, onChange }) {
               type="text"
               value={addr.city || ''}
               onChange={e => setAddr('city', e.target.value)}
-              className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
             />
           </div>
           <div>
@@ -163,7 +163,7 @@ export default function BusinessDetailsStep({ value, onChange }) {
             <select
               value={addr.state || ''}
               onChange={e => setAddr('state', e.target.value)}
-              className="w-full px-3 py-2 border border-black/10 rounded-lg text-sm bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
             >
               <option value="">UF</option>
               {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}

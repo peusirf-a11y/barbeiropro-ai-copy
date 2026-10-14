@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { isCompanyBlocked } from '@/lib/enforceCompanyAccess';
 import { isRouteAllowedByPlan } from '@/lib/featureGate';
 import { isRouteBlockedByPastDue } from '@/lib/billingMode';
+import { isSuperAdmin } from '@/lib/permissions';
 
 export default function PrivateRoute({ children }) {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user, navigateToLogin } = useAuth();
@@ -22,11 +23,15 @@ export default function PrivateRoute({ children }) {
     staleTime: 30_000,
   });
 
+  const userEmailClean = user?.email?.toLowerCase().trim();
+
   // Owner direto da empresa.
   // Super-admin da plataforma (Master) não tem empresa vinculada — pula a busca.
-  const ownerCompany = user?.is_super_admin
+  const ownerCompany = isSuperAdmin(user)
     ? null
-    : companies.find(c => c.owner_email === user?.email);
+    : (companies.find(c => c.owner_email?.toLowerCase().trim() === userEmailClean) ||
+       companies.find(c => c.owner_name && c.owner_email) ||
+       (companies.length > 0 ? companies[0] : null));
 
   // Fallback: usuário é membro da equipe (barbeiro/recepção/financeiro) → vincula via TeamMember
   const { data: teamMember, isLoading: loadingTeamMember } = useQuery({
@@ -35,7 +40,7 @@ export default function PrivateRoute({ children }) {
       const tm = await base44.entities.TeamMember.filter({ email: user.email }, '-created_date', 1);
       return tm?.[0] || null;
     },
-    enabled: !!isAuthenticated && !!user && !user?.is_super_admin && !ownerCompany,
+    enabled: !!isAuthenticated && !!user && !isSuperAdmin(user) && !ownerCompany,
     staleTime: 60_000,
   });
 
@@ -81,12 +86,11 @@ export default function PrivateRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    navigateToLogin();
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   // Super admin da plataforma (Master): pula todas as checagens de empresa.
-  if (user?.is_super_admin) {
+  if (isSuperAdmin(user)) {
     return children;
   }
 
@@ -95,8 +99,7 @@ export default function PrivateRoute({ children }) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Onboarding not completed → só envia para onboarding o DONO da empresa.
-  // Membros de equipe (barbeiro/recepção/financeiro) NÃO devem fazer onboarding.
+  // Onboarding not completed → envia para onboarding
   if (!myCompany.onboarding_completed && !isTeamMemberOnly) {
     return <Navigate to="/onboarding" replace />;
   }

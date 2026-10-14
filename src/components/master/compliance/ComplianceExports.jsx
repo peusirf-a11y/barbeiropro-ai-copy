@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Download, Search } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 export default function ComplianceExports({ privacyLogs, companies }) {
   const [filterCo, setFilterCo] = useState('');

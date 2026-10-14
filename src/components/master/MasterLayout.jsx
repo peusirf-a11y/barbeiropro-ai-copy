@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Building2, CreditCard, DollarSign, Users, Settings, Menu, X, LogOut, Shield, Layers, Activity, Database, Lock, ShieldCheck, ShieldAlert, Gauge, Gift } from 'lucide-react';
-import BrandMark from '@/components/BrandMark';
 import Logo from '@/components/Logo';
 import ThemeToggle from '@/components/ThemeToggle';
-import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import ImpersonationCountdown from '@/components/security/ImpersonationCountdown';
 import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 
@@ -28,6 +27,7 @@ const navItems = [
 ];
 
 export default function MasterLayout() {
+  const { logout } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const { isImpersonating } = useImpersonationContext();
@@ -85,7 +85,7 @@ export default function MasterLayout() {
 
       <div className="px-3 py-4 border-t border-white/5 space-y-1">
         <button
-          onClick={() => base44.auth.logout()}
+          onClick={() => logout()}
           className="flex items-center gap-3 text-sm text-gray-400 hover:text-red-400 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 font-medium"
         >
           <LogOut className="w-[18px] h-[18px]" />
@@ -145,7 +145,7 @@ export default function MasterLayout() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <button
-            onClick={() => base44.auth.logout()}
+            onClick={() => logout()}
             className="text-xs text-muted-foreground hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors font-medium flex items-center gap-1.5"
           >
             <LogOut className="w-3.5 h-3.5" /> Sair

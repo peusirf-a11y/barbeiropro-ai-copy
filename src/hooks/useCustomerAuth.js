@@ -1,9 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 
-// Hook simples para autenticação de cliente final na área pública (/cliente/:slug).
-// Token é armazenado no localStorage com chave por company_id, permitindo
-// múltiplas sessões em barbearias diferentes no mesmo navegador.
+// Hook para autenticação de cliente final na área pública (/cliente/:slug).
 const tokenKey = (companyId) => `bt_customer_token_${companyId}`;
 
 export function useCustomerAuth(companyId) {
@@ -12,18 +10,35 @@ export function useCustomerAuth(companyId) {
   const [loading, setLoading] = useState(true);
 
   const loadFromToken = useCallback(async (storedToken) => {
-    if (!storedToken || !companyId) {
+    if (!companyId) {
       setCustomer(null);
       setToken(null);
       setLoading(false);
       return;
     }
+    if (!storedToken) {
+      setCustomer(null);
+      setToken(null);
+      setLoading(false);
+      return;
+    }
+
+    // Timeout de segurança de 2 segundos para evitar spinner infinito caso a API demore
+    let timeoutReached = false;
+    const timer = setTimeout(() => {
+      timeoutReached = true;
+      setLoading(false);
+    }, 2000);
+
     try {
       const res = await base44.functions.invoke('customerAuth', {
         action: 'me',
         company_id: companyId,
         token: storedToken,
       });
+      if (timeoutReached) return;
+      clearTimeout(timer);
+
       if (res?.data?.customer) {
         setCustomer(res.data.customer);
         setToken(storedToken);
@@ -33,16 +48,24 @@ export function useCustomerAuth(companyId) {
         setToken(null);
       }
     } catch {
-      localStorage.removeItem(tokenKey(companyId));
-      setCustomer(null);
-      setToken(null);
+      if (!timeoutReached) {
+        clearTimeout(timer);
+        localStorage.removeItem(tokenKey(companyId));
+        setCustomer(null);
+        setToken(null);
+      }
     } finally {
-      setLoading(false);
+      if (!timeoutReached) {
+        setLoading(false);
+      }
     }
   }, [companyId]);
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const stored = localStorage.getItem(tokenKey(companyId));
     loadFromToken(stored);

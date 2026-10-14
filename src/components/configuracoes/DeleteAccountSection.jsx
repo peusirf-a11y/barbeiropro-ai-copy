@@ -9,14 +9,15 @@
 
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useMutation } from '@tanstack/react-query';
-import { AlertTriangle, LogOut, Trash2, X, Loader2 } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AlertTriangle, LogOut, Trash2, Eraser, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function DeleteAccountSection({ company, isOwner }) {
-  const [confirmType, setConfirmType] = useState(null); // 'logout' | 'company'
+  const [confirmType, setConfirmType] = useState(null); // 'logout' | 'company' | 'clear_demo'
   const [confirmText, setConfirmText] = useState('');
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const deleteCompanyMutation = useMutation({
     mutationFn: () => base44.functions.invoke('deleteCompany', { company_id: company.id }),
@@ -29,7 +30,19 @@ export default function DeleteAccountSection({ company, isOwner }) {
     },
   });
 
-  const requiredText = confirmType === 'company' ? (company?.name || '') : 'SAIR';
+  const clearDemoMutation = useMutation({
+    mutationFn: () => base44.functions.invoke('generateDemoData', { action: 'clear', company_id: company.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      toast({ title: 'Dados demo removidos!', description: 'Sua barbearia agora está limpa para uso real.' });
+      closeModal();
+    },
+    onError: (err) => {
+      toast({ title: 'Erro ao limpar dados', description: err?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+  });
+
+  const requiredText = confirmType === 'company' ? (company?.name || '') : confirmType === 'clear_demo' ? 'LIMPAR' : 'SAIR';
   const matchesRequired = confirmText.trim().toUpperCase() === requiredText.toUpperCase();
 
   const handleConfirm = () => {
@@ -38,11 +51,15 @@ export default function DeleteAccountSection({ company, isOwner }) {
       base44.auth.logout('/');
     } else if (confirmType === 'company') {
       deleteCompanyMutation.mutate();
+    } else if (confirmType === 'clear_demo') {
+      clearDemoMutation.mutate();
     }
   };
 
+  const isPending = deleteCompanyMutation.isPending || clearDemoMutation.isPending;
+
   const closeModal = () => {
-    if (deleteCompanyMutation.isPending) return;
+    if (isPending) return;
     setConfirmType(null);
     setConfirmText('');
   };
@@ -55,12 +72,33 @@ export default function DeleteAccountSection({ company, isOwner }) {
             <AlertTriangle className="w-5 h-5 text-red-600" />
           </div>
           <div>
-            <h2 className="font-bold text-red-700">Zona de risco</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Estas ações não podem ser desfeitas.</p>
+            <h2 className="font-bold text-red-700">Zona de risco & Manutenção</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Gerencie o acesso, limpeza de dados demo e conta.</p>
           </div>
         </div>
 
         <div className="space-y-3">
+          {/* Limpar dados demo (apenas owner/admin) */}
+          {isOwner && (
+            <div className="flex items-start justify-between gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50/50 flex-wrap">
+              <div className="flex-1 min-w-[200px]">
+                <div className="font-semibold text-sm text-amber-800 flex items-center gap-2">
+                  <Eraser className="w-4 h-4 text-amber-600" />
+                  Limpar dados de demonstração / teste
+                </div>
+                <p className="text-xs text-amber-700/80 mt-1">
+                  Remove agendamentos, clientes, serviços e lançamentos financeiros de exemplo da sua empresa.
+                </p>
+              </div>
+              <button
+                onClick={() => { setConfirmType('clear_demo'); setConfirmText(''); }}
+                className="text-xs font-semibold px-4 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 active:scale-[0.98] transition-all"
+              >
+                Limpar dados
+              </button>
+            </div>
+          )}
+
           {/* Sair desta conta */}
           <div className="flex items-start justify-between gap-3 p-4 rounded-xl border border-black/5 bg-gray-50/50 flex-wrap">
             <div className="flex-1 min-w-[200px]">
@@ -116,9 +154,13 @@ export default function DeleteAccountSection({ company, isOwner }) {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-[#111827]">
-                {confirmType === 'logout' ? 'Sair da conta' : 'Excluir barbearia'}
+                {confirmType === 'logout'
+                  ? 'Sair da conta'
+                  : confirmType === 'clear_demo'
+                  ? 'Limpar dados de demonstração'
+                  : 'Excluir barbearia'}
               </h3>
-              <button onClick={closeModal} disabled={deleteCompanyMutation.isPending} className="p-1 -mr-1 rounded-lg hover:bg-gray-100">
+              <button onClick={closeModal} disabled={isPending} className="p-1 -mr-1 rounded-lg hover:bg-gray-100">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
@@ -127,6 +169,10 @@ export default function DeleteAccountSection({ company, isOwner }) {
               <p className="text-sm leading-relaxed">
                 {confirmType === 'logout' ? (
                   <>Você será desconectado e precisará fazer login novamente para acessar o app.</>
+                ) : confirmType === 'clear_demo' ? (
+                  <>
+                    Esta ação removerá todos os registros e agendamentos de teste ou demonstração associados à sua empresa (<strong>{company?.name}</strong>).
+                  </>
                 ) : (
                   <>
                     <strong className="text-red-700">Atenção:</strong> esta ação apaga permanentemente sua barbearia e todos os dados associados (agendamentos, clientes, profissionais, pagamentos). <strong>Não há como reverter.</strong>
@@ -136,16 +182,20 @@ export default function DeleteAccountSection({ company, isOwner }) {
             </div>
 
             <label className="text-xs font-semibold text-gray-600 block mb-1.5">
-              {confirmType === 'logout'
-                ? <>Para confirmar, digite <strong className="text-[#111827]">SAIR</strong></>
-                : <>Para confirmar, digite o nome da barbearia: <strong className="text-red-700">{company?.name}</strong></>}
+              {confirmType === 'logout' ? (
+                <>Para confirmar, digite <strong className="text-[#111827]">SAIR</strong></>
+              ) : confirmType === 'clear_demo' ? (
+                <>Para confirmar a limpeza, digite <strong className="text-amber-800">LIMPAR</strong></>
+              ) : (
+                <>Para confirmar, digite o nome da barbearia: <strong className="text-red-700">{company?.name}</strong></>
+              )}
             </label>
             <input
               type="text"
               value={confirmText}
               onChange={e => setConfirmText(e.target.value)}
               autoFocus
-              disabled={deleteCompanyMutation.isPending}
+              disabled={isPending}
               className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 mb-4"
               placeholder={requiredText}
             />
@@ -153,20 +203,28 @@ export default function DeleteAccountSection({ company, isOwner }) {
             <div className="flex gap-2">
               <button
                 onClick={closeModal}
-                disabled={deleteCompanyMutation.isPending}
+                disabled={isPending}
                 className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={!matchesRequired || deleteCompanyMutation.isPending}
+                disabled={!matchesRequired || isPending}
                 className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                  confirmType === 'company' ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-[#111827] text-white hover:bg-black'
+                  confirmType === 'company'
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : confirmType === 'clear_demo'
+                    ? 'bg-amber-600 text-white hover:bg-amber-700'
+                    : 'bg-[#111827] text-white hover:bg-black'
                 }`}
               >
-                {deleteCompanyMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                {confirmType === 'logout' ? 'Confirmar saída' : 'Excluir definitivamente'}
+                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                {confirmType === 'logout'
+                  ? 'Confirmar saída'
+                  : confirmType === 'clear_demo'
+                  ? 'Confirmar limpeza'
+                  : 'Excluir definitivamente'}
               </button>
             </div>
           </div>

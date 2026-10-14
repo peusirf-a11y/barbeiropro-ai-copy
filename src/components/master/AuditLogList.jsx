@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Shield, AlertTriangle, Info, ExternalLink } from 'lucide-react';
+import { Shield, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const SEVERITY_BADGE = {
@@ -21,7 +21,7 @@ const ACTION_LABELS = {
   IMPERSONATION_ENDED: 'Encerrou impersonação',
   CROSS_TENANT_ATTEMPT: 'Tentativa cross-tenant',
   PERMISSION_DENIED: 'Permissão negada',
-  STRIPE_ENV_MISMATCH: 'Stripe env mismatch',
+  ASAAS_ENV_MISMATCH: 'Asaas env mismatch',
   DELETE_COMPANY: 'Deletou empresa',
   WHATSAPP_FAILED: 'Falha WhatsApp',
 };

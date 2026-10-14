@@ -1,5 +1,5 @@
 // CRUD de Planos (Master). Permite criar, editar, ativar/desativar e excluir planos.
-// Os campos seguem a entity Plan: name, price_monthly, stripe_price_id, features, limits.
+// Os campos seguem a entity Plan: name, price_monthly, features, limits.
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,7 +17,6 @@ import { Globe, Lock, Link2 } from 'lucide-react';
 const emptyForm = {
   name: '',
   price_monthly: 0,
-  stripe_price_id: '',
   active: true,
   sort_order: 0,
   features: [],
@@ -94,7 +93,6 @@ export default function PlansManager() {
     setForm({
       name: p.name || '',
       price_monthly: p.price_monthly || 0,
-      stripe_price_id: p.stripe_price_id || '',
       active: p.active !== false,
       sort_order: p.sort_order || 0,
       // Migra keys legadas para as canônicas ao abrir
@@ -227,17 +225,17 @@ export default function PlansManager() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {['Plano', 'Preço/mês', 'Stripe Price', 'Limites', 'Features', 'Status', 'Ações'].map(h => (
+              {['Plano', 'Preço/mês', 'Limites', 'Features', 'Status', 'Ações'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-sm">Carregando…</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">Carregando…</td></tr>
             )}
             {!isLoading && plans.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-sm">Nenhum plano cadastrado.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">Nenhum plano cadastrado.</td></tr>
             )}
             {plans.map(p => (
               <tr key={p.id} className="border-b border-border hover:bg-muted/40 transition-colors">
@@ -249,7 +247,6 @@ export default function PlansManager() {
                   <div className="text-[11px] text-muted-foreground mt-0.5">Ordem: {p.sort_order || 0}</div>
                 </td>
                 <td className="px-4 py-3 text-sm font-bold text-foreground">{fmtMoney(p.price_monthly)}</td>
-                <td className="px-4 py-3 text-xs font-mono text-muted-foreground truncate max-w-[140px]">{p.stripe_price_id || '–'}</td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
                   <div>{p.limits?.barbers ? `${p.limits.barbers} barbeiros` : '∞ barbeiros'}</div>
                   <div>{p.limits?.appointments_month ? `${p.limits.appointments_month} ag/mês` : '∞ agend./mês'}</div>
@@ -324,18 +321,10 @@ export default function PlansManager() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Stripe Price ID</label>
-                  <input value={form.stripe_price_id} onChange={e => setForm(p => ({ ...p, stripe_price_id: e.target.value }))}
-                    placeholder="price_..."
-                    className="w-full px-3 py-2.5 border border-border rounded-xl text-sm font-mono bg-background text-foreground" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Ordem de exibição</label>
-                  <input type="number" min="0" value={form.sort_order} onChange={e => setForm(p => ({ ...p, sort_order: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-background text-foreground" />
-                </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Ordem de exibição</label>
+                <input type="number" min="0" value={form.sort_order} onChange={e => setForm(p => ({ ...p, sort_order: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-background text-foreground" />
               </div>
 
               <div>

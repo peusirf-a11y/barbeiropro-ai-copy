@@ -78,8 +78,10 @@ const navItemsAll = [
 import { ROLE_PERMISSIONS } from '@/lib/rolePermissions';
 import { NAV_KEY_FEATURE_MAP, hasFeature } from '@/lib/featureGate';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function AppLayout({ children }) {
+  const { logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -204,7 +206,7 @@ export default function AppLayout({ children }) {
 
       <div className="px-3 py-4 border-t border-white/5">
         <button
-          onClick={() => base44.auth.logout()}
+          onClick={() => logout()}
           aria-label="Sair da conta"
           className="flex items-center gap-3 text-sm text-gray-400 hover:text-red-400 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 font-medium"
         >

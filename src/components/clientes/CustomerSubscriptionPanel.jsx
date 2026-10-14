@@ -17,7 +17,7 @@ async function invokeSubscriptionMutation(payload) {
     const map = {
       ALREADY_SUBSCRIBED: 'Cliente já tem uma assinatura ativa.',
       PLAN_INACTIVE: 'Esse plano está inativo.',
-      STRIPE_MANAGED_USE_PORTAL: 'Assinatura gerenciada pela Stripe — peça pro cliente cancelar pelo portal.',
+      AUTOMATIC_BILLING_MANAGED: 'Assinatura gerenciada por cobrança automática.',
       NOT_FOUND: 'Não foi possível localizar a assinatura.',
       FORBIDDEN_ROLE: 'Seu perfil não tem permissão para essa ação.',
     };

@@ -25,19 +25,12 @@ const SENSITIVE_PATTERNS = [
     replacement: '[CPF REDACTED]',
     severity: 'high',
   },
-  // Stripe Secret Key
+  // API Secret Key
   {
-    name: 'stripe_secret',
-    pattern: /sk_(live|test)_[A-Za-z0-9]{20,}/g,
-    replacement: '[STRIPE_SK REDACTED]',
+    name: 'api_secret_key',
+    pattern: /(sk|ak)_(live|test)_[A-Za-z0-9]{20,}/g,
+    replacement: '[API_KEY REDACTED]',
     severity: 'critical',
-  },
-  // Stripe Publishable Key
-  {
-    name: 'stripe_pk',
-    pattern: /pk_(live|test)_[A-Za-z0-9]{20,}/g,
-    replacement: '[STRIPE_PK REDACTED]',
-    severity: 'medium',
   },
   // JWT tokens
   {
@@ -167,7 +160,7 @@ export function validateLGPDExport(exportData) {
   }
 
   // Verificar se campos de segurança foram incluídos erroneamente
-  const dangerousFields = ['password_hash', 'auth_token', 'reset_token', 'stripe_secret'];
+  const dangerousFields = ['password_hash', 'auth_token', 'reset_token', 'api_secret_key'];
   dangerousFields.forEach(field => {
     if (str.includes(field) && !str.includes(`"${field}": "[REDACTED]"`)) {
       issues.push(`Campo proibido no export: ${field}`);

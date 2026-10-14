@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Plus, X, Filter } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SkeletonPage } from '@/components/Skeletons';
@@ -53,22 +53,13 @@ export default function AppFinanceiro() {
     // queryKey inclui period: ao trocar período, refetcha com o range correto.
     queryKey: ['financial', companyId, activeUnitId, period],
     queryFn: async () => {
-      // Quando impersonando, usamos um BFF que aceita o token.
-      // Quando não impersonando, chamada direta à entidade (como antes).
-      if (impPatch.impersonation_token) {
-        // financeiro direto via entidade com company_id da empresa impersonada:
-        // useCompany já retorna a empresa certa, então companyId é correto.
-        return base44.entities.FinancialEntry.filter(
-          { company_id: companyId, ...rangeFilter },
-          '-date',
-          5000,
-        );
-      }
-      return base44.entities.FinancialEntry.filter(
-        { company_id: companyId, ...rangeFilter },
-        '-date',
-        5000,
-      );
+      const res = await base44.functions.invoke('listFinancialEntries', {
+        company_id: companyId,
+        active_unit_id: activeUnitId,
+        period,
+        ...impPatch,
+      });
+      return res?.data?.entries || res?.data?.financial || [];
     },
     enabled: !!companyId,
   });

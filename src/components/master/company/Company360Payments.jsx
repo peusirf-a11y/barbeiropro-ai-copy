@@ -89,12 +89,6 @@ export default function Company360Payments({ company }) {
             </a>
           </div>
         )}
-        {company.stripe_customer_id && (
-          <>
-            <Row icon={Hash} label="Stripe Customer (legado)" value={company.stripe_customer_id} mono />
-            <Row icon={Hash} label="Stripe Subscription (legado)" value={company.stripe_subscription_id} mono />
-          </>
-        )}
       </div>
     </div>
   );

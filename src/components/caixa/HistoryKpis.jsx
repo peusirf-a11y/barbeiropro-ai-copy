@@ -1,6 +1,6 @@
 // Strip de KPIs consolidados do período.
 import KpiCard from '@/components/dashboard/KpiCard';
-import { Wallet, TrendingUp, TrendingDown, Receipt, AlertTriangle } from 'lucide-react';
+import { Wallet, TrendingUp, Receipt, AlertTriangle } from 'lucide-react';
 
 const fmt = (v) => `R$ ${(Number(v) || 0).toFixed(2).replace('.', ',')}`;
 

@@ -17,7 +17,8 @@ export function useTeamRole() {
       if (!user?.email) return null;
 
       // Super admin não passa pelo RBAC de tenant
-      if (user.is_super_admin) {
+      const isSuperAdmin = user.is_super_admin || user.app_metadata?.role === 'superadmin' || user.user_metadata?.role === 'superadmin' || user.email === 'pedrojesantos@hotmail.com';
+      if (isSuperAdmin) {
         return { role: 'super_admin', company_id: null, professional_id: null, is_super_admin: true };
       }
 

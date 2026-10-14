@@ -1,10 +1,8 @@
 // Dashboard executivo de compliance — KPIs, LGPD scores, alertas.
 
 import { useMemo } from 'react';
-import {
-  Users, Download, UserX, UserCog,
+import { Download, UserX, UserCog,
   CheckCircle2, XCircle, ShieldCheck, TrendingUp, AlertOctagon,
-  Clock,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -46,7 +44,7 @@ function LgpdScoreCard({ company, consents, privacyLogs }) {
     { label: 'Política publicada',     pass: !!company.slug,                     pts: 15 },
     { label: 'Consentimentos ativos',  pass: companyConsents.some(c => c.granted), pts: 20 },
     { label: 'Logs de auditoria',      pass: companyLogs.length > 0,              pts: 15 },
-    { label: 'Stripe Connect ativo',   pass: company.stripe_connect_status === 'enabled', pts: 10 },
+    { label: 'Recebimento Asaas ativo', pass: !!company.asaas_pix_enabled, pts: 10 },
     { label: 'Onboarding completo',    pass: !!company.onboarding_completed,      pts: 15 },
     { label: 'Assinatura ativa',       pass: company.subscription_status === 'active', pts: 10 },
     { label: 'Dados estruturados',     pass: !!(company.owner_email && company.owner_name), pts: 15 },

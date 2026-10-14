@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import GlowButton from './GlowButton';
 import BrandMark from '@/components/BrandMark';
-import { base44 } from '@/api/base44Client';
 
 export default function PremiumNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -38,12 +37,13 @@ export default function PremiumNav() {
               Demo
             </button>
           </Link>
-          <button
-            onClick={() => base44.auth.redirectToLogin('/app/dashboard')}
-            className="h-10 px-4 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            Entrar
-          </button>
+          <Link to="/login">
+            <button
+              className="h-10 px-4 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-1.5"
+            >
+              Entrar
+            </button>
+          </Link>
           <Link to="/checkout">
             <GlowButton className="h-10 px-5 text-[13px]">Começar agora</GlowButton>
           </Link>

@@ -18,7 +18,7 @@ const typeLabels = {
   subscription_canceled: 'Assinatura cancelada',
   critical_error: 'Erro crítico',
   abnormal_usage: 'Uso anormal',
-  stripe_env_mismatch: '⚠️ Stripe ambiente errado',
+  asaas_env_mismatch: '⚠️ Asaas ambiente errado',
   info: 'Informação',
 };
 

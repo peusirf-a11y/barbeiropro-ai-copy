@@ -3,7 +3,7 @@
 // Aparece apenas quando não há consentimento ou expirou.
 
 import { useState } from 'react';
-import { Cookie, Settings2, X, ChevronRight } from 'lucide-react';
+import { Cookie, Settings2 } from 'lucide-react';
 import { acceptAll, rejectOptional } from '@/lib/cookieConsent';
 import CookiePreferencesModal from './CookiePreferencesModal';
 

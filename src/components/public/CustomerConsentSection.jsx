@@ -2,7 +2,7 @@
 // Renderiza os toggles de consentimento e permite revogar/conceder em tempo real.
 
 import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Shield, Loader2, ChevronDown } from 'lucide-react';
 

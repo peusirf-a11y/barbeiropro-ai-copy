@@ -8,8 +8,7 @@ import { Loader2, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 export default function PartnerForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
+  const [resetUrl, setResetUrl] = useState('');
 
   const submit = async (e) => {
     e?.preventDefault();
@@ -17,10 +16,14 @@ export default function PartnerForgotPassword() {
     if (!email.trim()) { setError('Informe seu email.'); return; }
     setLoading(true);
     try {
-      await base44.functions.invoke('partnerAuth', {
+      const res = await base44.functions.invoke('partnerAuth', {
         action: 'request_password_reset',
         email: email.trim().toLowerCase(),
       });
+      const data = res?.data || {};
+      if (data.reset_url || data.reset_token) {
+        setResetUrl(data.reset_url || `/parceiro/login?token=${data.reset_token}`);
+      }
       setSent(true);
     } catch (err) {
       setError(err?.message || 'Erro ao solicitar.');
@@ -39,12 +42,21 @@ export default function PartnerForgotPassword() {
           <p className="text-xs text-white/55 text-center mb-6">Enviaremos um link para redefinir.</p>
 
           {sent ? (
-            <div className="text-center py-4">
-              <CheckCircle className="w-10 h-10 mx-auto text-emerald-400 mb-3" />
-              <div className="font-bold mb-1">Verifique seu email</div>
+            <div className="text-center py-4 space-y-4">
+              <CheckCircle className="w-10 h-10 mx-auto text-emerald-400" />
+              <div className="font-bold">Link de redefinição gerado!</div>
               <p className="text-sm text-white/70">
-                Se houver uma conta para esse email, enviamos um link para criar uma nova senha (válido por 1 hora).
+                Se houver uma conta para esse email, enviamos o link de redefinição de senha.
               </p>
+              {resetUrl && (
+                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-left space-y-2">
+                  <p className="text-xs font-bold text-blue-300">💡 Link de Redefinição (Preview):</p>
+                  <p className="text-xs text-white/70">Clique abaixo para criar uma nova senha:</p>
+                  <a href={resetUrl} className="inline-flex items-center justify-center w-full py-2.5 px-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-lg transition-colors">
+                    Redefinir Minha Senha Agora →
+                  </a>
+                </div>
+              )}
             </div>
           ) : (
             <form onSubmit={submit}>

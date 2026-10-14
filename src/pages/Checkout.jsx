@@ -5,7 +5,7 @@ import Logo from '@/components/Logo';
 import { CheckCircle, ArrowLeft, Loader2, Shield, Star, Zap, Lock, CreditCard, QrCode, Rocket } from 'lucide-react';
 import { getReferralCode, getDeviceFingerprint } from '@/lib/referralTracking';
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
-import CpfRestrictionCard, { isPersonaFisica } from '@/components/onboarding/CpfRestrictionCard';
+import CpfRestrictionCard from '@/components/onboarding/CpfRestrictionCard';
 import { usePublicPlans } from '@/hooks/usePublicPlans';
 
 // Oferta de lançamento: R$ 49/mês durante os primeiros 6 meses, depois preço cheio do plano Pro.
@@ -140,7 +140,7 @@ export default function Checkout() {
     if (!form.owner_name.trim()) return 'Informe o nome do responsável';
     if (!form.email.trim() || !form.email.includes('@')) return 'Informe um email válido';
     if (!form.phone.trim()) return 'Informe o WhatsApp';
-    if (cpfDigits.length !== 14) return 'Informe um CNPJ válido (14 dígitos)';
+    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) return 'Informe um CPF ou CNPJ válido (11 ou 14 dígitos)';
     return null;
   };
 
@@ -148,8 +148,8 @@ export default function Checkout() {
   // No /checkout (rota pública), trackEvent retorna 401 — ignoramos silenciosamente.
   useEffect(() => {
     if (isPF) {
-      // eslint-disable-next-line no-console
-      console.info('[pj-first] blocked_pf_attempt', { stage });
+       
+      console.info('[pj-first] pf_attempt', { stage });
     }
   }, [isPF, stage]);
 
@@ -157,10 +157,6 @@ export default function Checkout() {
   const handleContinue = (e) => {
     e?.preventDefault();
     setError('');
-    if (iframeBlocked) {
-      alert('O checkout só funciona no app publicado. Abra esta página em uma nova aba.');
-      return;
-    }
     const err = validate();
     if (err) { setError(err); return; }
     setStage('method');
@@ -455,7 +451,6 @@ export default function Checkout() {
 
                   <button
                     type="submit"
-                    disabled={isPF}
                     className="hidden lg:flex w-full items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Lock className="w-4 h-4" />
@@ -557,7 +552,7 @@ export default function Checkout() {
       {/* Mobile sticky CTA — visible only on the data step. On the method step,
           each method already has its own primary action button.
           Hidden when CPF is detected (PJ-first policy). */}
-      {stage === 'form' && !isPF && (
+      {stage === 'form' && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/8 p-3 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
           <button
             onClick={handleContinue}

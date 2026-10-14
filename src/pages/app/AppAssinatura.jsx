@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { CreditCard, CheckCircle, Loader2, ExternalLink, Calendar, Zap } from 'lucide-react';
+import { CreditCard, CheckCircle, ExternalLink, Calendar, Zap } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

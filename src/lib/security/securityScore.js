@@ -151,7 +151,7 @@ export function computeSecurityScore({
   let hardeningScore = 15;
 
   // Verifica se features de segurança estão ativas
-  if (!company.stripe_connect_charges_enabled) hardeningScore -= 2; // pagamentos sem segurança extra
+  if (!company.asaas_pix_enabled) hardeningScore -= 2; // pagamentos sem recebimento ativo
   if (company.status === 'blocked') hardeningScore -= 5;
 
   // Penaliza por falta de MFA forçado em admins

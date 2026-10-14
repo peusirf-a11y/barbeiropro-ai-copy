@@ -4,7 +4,7 @@
  * Mesma lógica de insights: inactiveCustomers, vipInactive, weakHours, unsoldServices.
  */
 import DemoLayout from '@/components/layout/DemoLayout.jsx';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Zap, Copy, AlertCircle, TrendingUp, Star, CheckCircle, Sparkles } from 'lucide-react';
 import { differenceInDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import AppPageHeader from '@/components/app/AppPageHeader';

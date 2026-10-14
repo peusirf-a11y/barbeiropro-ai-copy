@@ -6,7 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Building2, Pencil, Trash2, X, Star, MapPin, Phone } from 'lucide-react';
+import { Building2, Pencil, Trash2, Star, MapPin, Phone } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import StandardModal from '@/components/ui/standard-modal';

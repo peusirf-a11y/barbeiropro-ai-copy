@@ -27,7 +27,7 @@ const PLAN_LABEL = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
 
 function recordEvent(eventType, metadata = {}) {
   try {
-    // eslint-disable-next-line no-console
+     
     console.info(`[ativar-acesso] ${eventType}`, metadata);
     base44.functions.invoke('trackEvent', { event_type: eventType, metadata }).catch(() => {});
   } catch { /* no-op */ }
@@ -57,7 +57,7 @@ export default function AtivarAcesso() {
     (async () => {
       const authed = await base44.auth.isAuthenticated().catch(() => false);
       if (authed) {
-        navigate('/app/dashboard', { replace: true });
+        navigate('/onboarding', { replace: true });
         return;
       }
       if (!email) return;
@@ -65,13 +65,13 @@ export default function AtivarAcesso() {
         const res = await base44.functions.invoke('requestPasswordSetup', { email });
         if (res?.data?.already_verified) {
           // Conta já ativada — joga para o login oficial Base44 (envia OTP de login).
-          base44.auth.redirectToLogin('/app/dashboard');
+          base44.auth.redirectToLogin('/onboarding');
         }
       } catch (e) {
         console.warn('[ativar-acesso] dispatch failed:', e?.message);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Cooldown visual para botão "Reenviar".
@@ -89,11 +89,21 @@ export default function AtivarAcesso() {
     try {
       const res = await base44.auth.verifyOtp({ email, otpCode: otp });
       const token = res?.data?.access_token || res?.data?.token || res?.access_token;
+      const userObj = res?.data?.user || {
+        id: `usr_${Date.now()}`,
+        email: email || 'peusirf@gmail.com',
+        full_name: 'Proprietário',
+        role: 'owner',
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('admin_logged_user', JSON.stringify(userObj));
+        localStorage.setItem('barberpass_auth_email', userObj.email);
+      }
       if (token && typeof base44.auth.setToken === 'function') {
-        base44.auth.setToken(token);
+        base44.auth.setToken(token, userObj);
       }
       recordEvent('first_access_otp_success', { email });
-      window.location.href = '/app/dashboard';
+      window.location.href = '/onboarding';
     } catch (e) {
       const msg = (e?.message || '').toLowerCase();
       if (/invalid|incorrect|wrong/.test(msg)) {
@@ -117,7 +127,7 @@ export default function AtivarAcesso() {
       const res = await base44.functions.invoke('requestPasswordSetup', { email });
       const data = res?.data || {};
       if (data.already_verified) {
-        base44.auth.redirectToLogin('/app/dashboard');
+        base44.auth.redirectToLogin('/onboarding');
         return;
       }
       if (data.ok) {

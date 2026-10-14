@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Zap, Copy, AlertCircle, TrendingUp, Star, Users, CheckCircle, Sparkles } from 'lucide-react';
+import { Zap, Copy, AlertCircle, TrendingUp, Star, CheckCircle, Sparkles } from 'lucide-react';
 import { differenceInDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import { useActiveUnit } from '@/hooks/useActiveUnit';

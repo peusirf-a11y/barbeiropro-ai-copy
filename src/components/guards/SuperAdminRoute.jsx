@@ -14,8 +14,7 @@ export default function SuperAdminRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    navigateToLogin();
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   // Super Admin é separado de admin de tenant. role=admin NÃO basta.

@@ -18,16 +18,12 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
 
   // Filtra: público + private onde companyId está em allowed_company_ids.
   // invite_only nunca aparece aqui (precisa redimir via /planos/convite/:token).
-  // Também exclui planos sem stripe_price_id (não podem ser contratados via Stripe),
-  // mas mantém o plano atual mesmo sem price_id para mostrar como "ATUAL".
-  const plans = filterPlansVisibleToCompany(rawPlans, companyId)
-    .filter(p => p.stripe_price_id || p.id === currentPlanId);
+  const plans = filterPlansVisibleToCompany(rawPlans, companyId);
 
   // Mapeia códigos de erro do backend para mensagens amigáveis.
   const friendlyError = (raw) => {
     const code = String(raw || '').trim();
     const map = {
-      PLAN_HAS_NO_STRIPE_PRICE: 'Este plano ainda não está configurado para pagamento. Fale com o suporte para ativá-lo.',
       PLAN_NOT_FOUND: 'Plano não encontrado. Atualize a página e tente novamente.',
       PLAN_NOT_AVAILABLE: 'Este plano não está disponível para sua conta.',
       COMPANY_NOT_FOUND: 'Não foi possível identificar sua empresa. Recarregue a página.',
@@ -35,7 +31,6 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
       FORBIDDEN: 'Você não tem permissão para alterar este plano.',
       CHECKOUT_CREATE_FAILED: 'Não foi possível iniciar o checkout agora. Tente novamente em alguns segundos.',
       SUBSCRIPTION_NOT_FOUND_REFRESH_CHECKOUT: 'Sua assinatura anterior foi cancelada. Recarregue a página e clique em Selecionar de novo para refazer o checkout.',
-      STRIPE_ITEM_NOT_FOUND: 'Não conseguimos localizar sua assinatura no Stripe. Tente novamente em alguns minutos.',
       INTERNAL_ERROR: 'Ocorreu um erro inesperado. Tente novamente em instantes.',
       UNAUTHORIZED: 'Sua sessão expirou. Faça login novamente.',
       NO_COMPANY: 'Não foi possível identificar sua empresa. Recarregue a página.',
@@ -49,8 +44,6 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
     onSuccess: (res) => {
       const data = res?.data;
       if (data?.success) {
-        // Caso especial: tenant sem assinatura ativa precisa passar pelo Checkout
-        // (preencher cartão no Stripe) antes do plano virar ativo.
         if (data.requires_checkout && data.checkout_url) {
           window.location.href = data.checkout_url;
           return;

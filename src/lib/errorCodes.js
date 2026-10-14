@@ -34,8 +34,8 @@ export const ERROR_MESSAGES = {
   PAYMENTS_DISABLED:       'Pagamentos online não estão habilitados.',
   PIX_NOT_ENABLED:         'Pix não está ativo. Escolha cartão.',
   CONNECT_NOT_READY:       'A barbearia ainda não está aceitando pagamentos online.',
-  STRIPE_ERROR:            'Erro ao processar pagamento. Tente novamente.',
-  STRIPE_MANAGED_USE_PORTAL: 'Esta assinatura é gerida pelo Stripe. Use o portal do cliente.',
+  PAYMENT_ERROR:           'Erro ao processar pagamento. Tente novamente.',
+  BILLING_MANAGED_AUTOMATIC: 'Esta assinatura é gerida por cobrança automática.',
   CPF_REQUIRED:            'CPF é obrigatório (11 dígitos).',
   RATE_LIMITED:            'Muitas tentativas. Aguarde e tente de novo.',
 

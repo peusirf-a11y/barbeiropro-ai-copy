@@ -305,7 +305,7 @@ export default function EditAppointmentModal({
               type="button"
               onClick={() => setForm(p => ({ ...p, paid: !p.paid }))}
               disabled={appointment.paid_online}
-              title={appointment.paid_online ? 'Pago online via Stripe — não é possível alterar' : ''}
+              title={appointment.paid_online ? 'Pago online antecipadamente — não é possível alterar' : ''}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border text-sm font-semibold transition-all ${
                 form.paid
                   ? 'bg-emerald-400/15 text-emerald-200 border-emerald-400/40 ring-2 ring-emerald-400/25'

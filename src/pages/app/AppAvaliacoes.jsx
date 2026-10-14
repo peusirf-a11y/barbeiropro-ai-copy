@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useAuth } from '@/lib/AuthContext';
 import { useState } from 'react';
-import { Star, MessageCircle, Eye, EyeOff, Trash2, Check } from 'lucide-react';
+import { Star, MessageCircle, EyeOff, Trash2, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
@@ -18,6 +18,17 @@ const TABS = [
   { id: 'published', label: 'Publicadas', filter: (r) => r.published },
   { id: 'all', label: 'Todas', filter: () => true },
 ];
+
+function safeFormatDate(dateVal, formatStr = "d MMM yyyy") {
+  if (!dateVal) return '—';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '—';
+  try {
+    return format(d, formatStr, { locale: ptBR });
+  } catch {
+    return '—';
+  }
+}
 
 // Mensagem manual de agradecimento — usada quando o dono quer responder
 // individualmente uma avaliação. Curto e cordial; nada de promoção.
@@ -37,7 +48,10 @@ export default function AppAvaliacoes() {
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['reviews', companyId],
-    queryFn: () => base44.entities.Review.filter({ company_id: companyId }, '-created_date', 200),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listReviews', { company_id: companyId });
+      return res?.data?.reviews || [];
+    },
     enabled: !!companyId,
   });
 
@@ -167,7 +181,7 @@ export default function AppAvaliacoes() {
                       </span>
                     </div>
                     <span className="text-xs text-white/45">
-                      {format(new Date(r.created_date), "d MMM yyyy", { locale: ptBR })}
+                      {safeFormatDate(r.created_at || r.created_date || r.date)}
                     </span>
                   </div>
                   <div className="text-xs text-white/55 mb-2">

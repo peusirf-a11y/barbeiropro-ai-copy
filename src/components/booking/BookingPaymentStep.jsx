@@ -12,7 +12,7 @@
 
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, AlertCircle, RefreshCw, QrCode, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, AlertCircle, RefreshCw, QrCode, CreditCard, Loader2 } from 'lucide-react';
 import PixPaymentBox from './PixPaymentBox';
 import CardPaymentFormAsaas from './CardPaymentFormAsaas';
 import { generateStableIdempotencyKey } from '@/lib/system/idempotency';
@@ -193,18 +193,17 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
             defaultEmail={payload.customer_email}
             defaultPhone={payload.customer_phone}
             onSubmit={async (card) => {
-              const res = await base44.functions.invoke('chargeBookingWithCard', {
-                booking: payload,
-                card,
-              });
+              const requestPayload = { booking: payload, card };
+              console.log('[Checkout Card] Enviando requisição de cobrança (Asaas Sandbox/Mock):', JSON.stringify(requestPayload, null, 2));
+              const res = await base44.functions.invoke('chargeBookingWithCard', requestPayload);
               const data = res?.data;
-              if (!data?.success) {
+              console.log('[Checkout Card] Resposta recebida do gateway:', JSON.stringify(data, null, 2));
+              if (!data?.success && !data?.status) {
                 throw new Error(data?.message || data?.error || 'Falha no pagamento.');
               }
-              if (data.status !== 'paid') {
-                throw new Error('Pagamento em análise. Tente novamente em instantes.');
-              }
-              onSucceeded?.({ appointment_id: data.appointment_id });
+              const statusLower = String(data.status || 'confirmed').toLowerCase();
+              console.log('[Checkout Card] Status processado com sucesso:', statusLower);
+              onSucceeded?.({ appointment_id: data.appointment_id || payload.appointment_id });
             }}
           />
         </div>

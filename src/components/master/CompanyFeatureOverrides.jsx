@@ -29,7 +29,7 @@ export default function CompanyFeatureOverrides({ company, plan }) {
   useEffect(() => {
     setEnabled((company?.feature_overrides?.enabled || []).map(canonicalFeatureKey));
     setDisabled((company?.feature_overrides?.disabled || []).map(canonicalFeatureKey));
-  }, [company?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [company?.id]);  
 
   const inheritedKeys = (plan?.features || []).map(canonicalFeatureKey);
 

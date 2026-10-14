@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Plus, X, Mail, Loader2, Send, UserCheck, Shield } from 'lucide-react';
+import { Mail, Loader2, Send, UserCheck, Shield } from 'lucide-react';
 import MemberPermissionsModal from '@/components/equipe/MemberPermissionsModal';
 import { useToast } from '@/components/ui/use-toast';
 import AppPageHeader from '@/components/app/AppPageHeader';

@@ -70,10 +70,18 @@ export default function AgendaMobileList({
         const pro = proById[appt.professional_id];
 
         return (
-          <button
+          <div
             key={appt.id}
+            role="button"
+            tabIndex={0}
             onClick={() => onCardClick?.(appt)}
-            className="w-full flex items-stretch gap-3 px-4 py-3 text-left active:bg-white/[0.04] transition-colors"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onCardClick?.(appt);
+              }
+            }}
+            className="w-full flex items-stretch gap-3 px-4 py-3 text-left active:bg-white/[0.04] transition-colors cursor-pointer"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {/* Coluna do horário */}
@@ -130,7 +138,7 @@ export default function AgendaMobileList({
                 )}
               </div>
             </div>
-          </button>
+          </div>
         );
       })}
     </div>

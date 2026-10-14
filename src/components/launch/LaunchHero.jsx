@@ -60,8 +60,11 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
             <Link to="/checkout?promo=lancamento">
               <GlowButton className="w-full sm:w-auto">Quero garantir minha vaga</GlowButton>
             </Link>
+            <Link to="/login">
+              <GlowButton variant="ghost" className="w-full sm:w-auto border border-white/20 bg-white/5 hover:bg-white/10">Entrar na minha conta</GlowButton>
+            </Link>
             <Link to="/demo/dashboard">
-              <GlowButton variant="ghost" className="w-full sm:w-auto">Ver demonstração</GlowButton>
+              <GlowButton variant="ghost" className="w-full sm:w-auto text-white/70 hover:text-white">Ver demonstração</GlowButton>
             </Link>
           </div>
 

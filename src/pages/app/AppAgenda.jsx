@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';

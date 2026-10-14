@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Plus, X, Star, Clock, Pencil, Trash2, Briefcase } from 'lucide-react';
+import { Star, Clock, Pencil, Trash2, Briefcase } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import StandardModal from '@/components/ui/standard-modal';
@@ -19,7 +19,10 @@ export default function AppServicos() {
 
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['services', companyId],
-    queryFn: () => base44.entities.Service.filter({ company_id: companyId }, 'name', 200),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listServices', { company_id: companyId });
+      return res?.data?.services || [];
+    },
     enabled: !!companyId,
   });
 

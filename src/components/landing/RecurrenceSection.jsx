@@ -117,7 +117,7 @@ export default function RecurrenceSection() {
             </span>
           </h2>
           <p className="text-white/55 text-base md:text-lg leading-relaxed mb-8">
-            Crie planos mensais (corte ilimitado, combos, premium) e cobre no automático via Stripe.
+            Crie planos mensais (corte ilimitado, combos, premium) e cobre no automático via Asaas.
             Sua barbearia para de depender da movimentação do dia.
           </p>
 

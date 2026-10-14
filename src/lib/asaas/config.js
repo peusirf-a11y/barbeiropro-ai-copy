@@ -1,7 +1,7 @@
 // Configuração centralizada do Asaas. Lê apenas de env (Deno.env / process.env).
 // NUNCA exporte estes valores para o frontend — só funções backend devem importar daqui.
 /* global Deno, process */
-/* eslint-disable no-undef */
+ 
 
 function readEnv(key) {
   try {

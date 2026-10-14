@@ -26,7 +26,7 @@ const groups = [
     icon: CreditCard,
     color: 'text-emerald-700 bg-emerald-50 ring-emerald-100',
     items: [
-      { icon: CreditCard, label: 'Pagamento Pix e cartão (Stripe)' },
+      { icon: CreditCard, label: 'Pagamento Pix e cartão (Asaas)' },
       { icon: Wallet, label: 'Planos de assinatura para clientes' },
       { icon: Sparkles, label: 'Sugestão inteligente de preços (IA)' },
       { icon: Clock4, label: 'Planos off-peak (janela restrita)' },

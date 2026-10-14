@@ -16,6 +16,7 @@ export default function ForgotPasswordModal({ companyId, onBack, primaryColor = 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
+  const [resetUrl, setResetUrl] = useState('');
 
   const inputClass = "w-full px-4 py-3 border border-white/10 rounded-xl text-sm bg-white/5 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30";
 
@@ -25,15 +26,15 @@ export default function ForgotPasswordModal({ companyId, onBack, primaryColor = 
     if (!email.trim()) { setError('Email obrigatório'); return; }
     setLoading(true);
     try {
-      // `request_reset` é o nome canônico. O backend também aceita o alias
-      // `request_password_reset` por retrocompat, mas usamos o novo aqui.
-      await base44.functions.invoke('customerAuth', {
+      const res = await base44.functions.invoke('customerAuth', {
         company_id: companyId,
         action: 'request_reset',
         email: email.trim().toLowerCase(),
       });
-      // Backend sempre retorna sucesso (anti-enumeração) — não vazamos
-      // se o email existe ou não.
+      const data = res?.data || {};
+      if (data.reset_url || data.reset_token) {
+        setResetUrl(data.reset_url || `/cliente/demo/login?mode=reset&reset_token=${data.reset_token}&email=${encodeURIComponent(email.trim().toLowerCase())}`);
+      }
       setSent(true);
     } catch (err) {
       setError(err?.message || 'Erro ao enviar link. Tente novamente.');
@@ -46,13 +47,24 @@ export default function ForgotPasswordModal({ companyId, onBack, primaryColor = 
     return (
       <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-black text-white mb-1">Verifique seu email</h3>
-          <p className="text-sm text-white/40">Se este email tiver cadastro, enviamos um link de redefinição.</p>
+          <h3 className="text-lg font-black text-white mb-1">Link de redefinição pronto!</h3>
+          <p className="text-sm text-white/40">Se este email tiver cadastro, o pedido de redefinição foi registrado.</p>
         </div>
+        {resetUrl && (
+          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-left space-y-2">
+            <p className="text-xs font-bold text-blue-300">💡 Link de Redefinição (Preview):</p>
+            <p className="text-xs text-white/70">Clique no botão para redefinir sua senha diretamente:</p>
+            <a href={resetUrl}
+              className="inline-flex items-center justify-center w-full py-2.5 px-3 text-white text-xs font-bold rounded-lg transition-colors"
+              style={{ backgroundColor: primaryColor }}>
+              Redefinir Minha Senha Agora →
+            </a>
+          </div>
+        )}
         <div className="flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
           <Mail className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-emerald-200/90 leading-relaxed">
-            Abra o email e clique no link para criar uma nova senha. Não esqueça de conferir o <strong>spam</strong>.
+            Se preferir por e-mail, abra sua caixa de entrada. Lembre-se de conferir o <strong>spam</strong>.
           </div>
         </div>
         <button type="button" onClick={onBack}

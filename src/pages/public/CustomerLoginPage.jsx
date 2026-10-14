@@ -95,15 +95,21 @@ export default function CustomerLoginPage() {
     finally { setSubmitting(false); }
   };
 
+  const [resetUrl, setResetUrl] = useState('');
+
   const handleForgot = async (e) => {
     e.preventDefault();
     if (!form.email.trim()) { setError('Informe seu e-mail'); return; }
-    setError(''); setInfo(''); setSubmitting(true);
+    setError(''); setInfo(''); setResetUrl(''); setSubmitting(true);
     try {
-      await base44.functions.invoke('customerAuth', {
+      const res = await base44.functions.invoke('customerAuth', {
         action: 'request_reset', company_id: company.id, email: form.email.trim().toLowerCase(),
       });
-      setInfo('Se este e-mail tiver cadastro, enviamos um link. Verifique sua caixa de entrada (e o spam).');
+      const data = res?.data || {};
+      if (data.reset_url || data.reset_token) {
+        setResetUrl(data.reset_url || `/cliente/${slug}/login?mode=reset&reset_token=${data.reset_token}&email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
+      }
+      setInfo('Se este e-mail tiver cadastro, enviamos um link de redefinição.');
     } catch (err) { setError(err?.response?.data?.error || err?.message || 'Erro ao solicitar redefinição'); }
     finally { setSubmitting(false); }
   };
@@ -244,6 +250,14 @@ export default function CustomerLoginPage() {
               </div>
               {error && <div className="text-sm text-red-500 flex items-center gap-2"><AlertCircle className="w-4 h-4 flex-shrink-0" />{error}</div>}
               {info && <div className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg p-3">{info}</div>}
+              {resetUrl && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-left space-y-1.5">
+                  <p className="text-xs font-bold text-blue-900">💡 Link de Redefinição (Preview):</p>
+                  <a href={resetUrl} className="inline-flex items-center justify-center w-full py-2 px-3 bg-[#2563EB] text-white text-xs font-bold rounded-md">
+                    Redefinir Minha Senha Agora →
+                  </a>
+                </div>
+              )}
               {!info && (
                 <button type="submit" disabled={submitting}
                   className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"

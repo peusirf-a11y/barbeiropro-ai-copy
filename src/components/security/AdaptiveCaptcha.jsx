@@ -64,7 +64,7 @@ export default function AdaptiveCaptcha({ mode = 'none', onVerified, loading = f
       setVerified(true);
       onVerified?.('auto_verified');
     }
-  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode]);  
 
   const handleCheckbox = useCallback(async () => {
     setChecking(true);

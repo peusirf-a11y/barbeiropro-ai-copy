@@ -4,6 +4,13 @@ import { ArrowRight, Users, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+const safeFmt = (dStr) => {
+  if (!dStr) return '—';
+  const d = new Date(dStr);
+  if (isNaN(d.getTime())) return '—';
+  try { return format(d, 'dd MMM yyyy', { locale: ptBR }); } catch { return '—'; }
+};
+
 const brl = (n) => 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ',');
 
 const REF_STATUS = {
@@ -54,7 +61,7 @@ export default function PartnerRecentLists({ referrals = [], commissions = [] })
                   {r.referred_company_name || <span className="text-white/40 italic">Pendente</span>}
                 </div>
                 <div className="text-[10px] text-white/45">
-                  {format(new Date(r.created_date), 'dd MMM yyyy', { locale: ptBR })}
+                  {safeFmt(r.created_at || r.created_date)}
                 </div>
               </div>
               <span className={`ds-badge ${s.cls}`}>{s.label}</span>
@@ -71,7 +78,7 @@ export default function PartnerRecentLists({ referrals = [], commissions = [] })
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-semibold text-white">{brl(c.amount)} · #{c.billing_cycle}</div>
                 <div className="text-[10px] text-white/45">
-                  {format(new Date(c.created_date), 'dd MMM yyyy', { locale: ptBR })}
+                  {safeFmt(c.created_at || c.created_date)}
                 </div>
               </div>
               <span className={`ds-badge ${s.cls}`}>{s.label}</span>

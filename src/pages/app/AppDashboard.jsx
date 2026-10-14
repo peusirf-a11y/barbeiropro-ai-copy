@@ -6,7 +6,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { canViewFinance } from '@/lib/rolePermissions';
 import { useFeatures } from '@/hooks/useFeatures';
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Calendar, Users, DollarSign, TrendingUp, Repeat } from 'lucide-react';
 import { format, startOfMonth, startOfDay, differenceInMinutes, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -33,7 +33,6 @@ export default function AppDashboard() {
   const { has } = useFeatures();
   const showSubscriptions = showFinance && has('subscriptions');
   const showCrm = has('crm_retention');
-  const [alerts, setAlerts] = useState([]);
   const queryClient = useQueryClient();
   const { containerProps: ptrProps, indicator: ptrIndicator } = usePullToRefresh({
     onRefresh: async () => {
@@ -54,6 +53,7 @@ export default function AppDashboard() {
     queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
     queryFn: async () => {
       const res = await base44.functions.invoke('listAppointments', {
+        company_id: companyId,
         active_unit_id: activeUnitId,
         limit: 200,
         ...impPatch,
@@ -68,6 +68,7 @@ export default function AppDashboard() {
     queryKey: ['customers', companyId, activeUnitId],
     queryFn: async () => {
       const res = await base44.functions.invoke('listCustomers', {
+        company_id: companyId,
         active_unit_id: activeUnitId,
         limit: 500,
         ...impPatch,
@@ -80,7 +81,14 @@ export default function AppDashboard() {
   // Barbeiro não acessa financeiro — query disabled.
   const { data: financial = [] } = useQuery({
     queryKey: ['financial', companyId, activeUnitId],
-    queryFn: () => base44.entities.FinancialEntry.filter({ company_id: companyId }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listFinancialEntries', {
+        company_id: companyId,
+        active_unit_id: activeUnitId,
+        ...impPatch,
+      });
+      return res?.data?.entries || res?.data?.financial || [];
+    },
     enabled: !!companyId && showFinance,
   });
 
@@ -107,28 +115,57 @@ export default function AppDashboard() {
   // Esconde cancelados por falha/expiração de pagamento online (mesma regra da Agenda).
   // Cancelamentos manuais continuam visíveis. Aplicado antes do filtro por unidade
   // para que KPIs, lista e insights todos usem a base limpa.
-  const apptsVisible = appointments.filter(a => {
-    if (a.status !== 'cancelado') return true;
-    return a.payment_status !== 'failed' && a.payment_status !== 'expired';
-  });
+  const apptsVisible = useMemo(() => {
+    return appointments.filter(a => {
+      if (a.status !== 'cancelado') return true;
+      return a.payment_status !== 'failed' && a.payment_status !== 'expired';
+    });
+  }, [appointments]);
 
-  // Aplica filtro por unidade ativa (registros sem unit_id continuam aparecendo)
-  const apptsScoped = filterByUnit(apptsVisible, activeUnitId, isMultiUnit);
-  const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
+  const apptsScoped = useMemo(() => {
+    return filterByUnit(apptsVisible, activeUnitId, isMultiUnit);
+  }, [apptsVisible, activeUnitId, isMultiUnit]);
 
-  const todayAppts = apptsScoped.filter(a => new Date(a.scheduled_at).toDateString() === todayStr);
+  const financialScoped = useMemo(() => {
+    return filterByUnit(financial, activeUnitId, isMultiUnit);
+  }, [financial, activeUnitId, isMultiUnit]);
 
-  const monthStart = startOfMonth(now);
-  const monthAppts = apptsScoped.filter(a => new Date(a.scheduled_at) >= monthStart);
-  const completedMonth = monthAppts.filter(a => a.status === 'concluido');
-  const revenue = financialScoped.filter(f => f.type === 'entrada' && new Date(f.date) >= monthStart).reduce((s, f) => s + (f.amount || 0), 0);
-  const apptRevenue = completedMonth.reduce((s, a) => s + (a.price || 0), 0);
+  const todayAppts = useMemo(() => {
+    return apptsScoped.filter(a => {
+      const d = a.scheduled_at || a.date || a.created_at;
+      return d ? new Date(d).toDateString() === todayStr : false;
+    });
+  }, [apptsScoped, todayStr]);
+
+  const monthStart = useMemo(() => startOfMonth(now), [now]);
+  const monthAppts = useMemo(() => {
+    return apptsScoped.filter(a => {
+      const d = a.scheduled_at || a.date || a.created_at;
+      return d ? new Date(d) >= monthStart : false;
+    });
+  }, [apptsScoped, monthStart]);
+
+  const completedMonth = useMemo(() => {
+    return monthAppts.filter(a => a.status === 'concluido');
+  }, [monthAppts]);
+
+  const revenue = useMemo(() => {
+    return financialScoped
+      .filter(f => f.type === 'entrada' && new Date(f.date) >= monthStart)
+      .reduce((s, f) => s + (f.amount || 0), 0);
+  }, [financialScoped, monthStart]);
+
+  const apptRevenue = useMemo(() => {
+    return completedMonth.reduce((s, a) => s + (a.price || 0), 0);
+  }, [completedMonth]);
+
   const avgTicket = completedMonth.length > 0 ? apptRevenue / completedMonth.length : 0;
 
-  // Faturamento de hoje (entradas com date = hoje)
-  const todayRevenue = financialScoped
-    .filter(f => f.type === 'entrada' && (f.date || '').startsWith(todayKey))
-    .reduce((s, f) => s + (f.amount || 0), 0);
+  const todayRevenue = useMemo(() => {
+    return financialScoped
+      .filter(f => f.type === 'entrada' && (f.date || '').startsWith(todayKey))
+      .reduce((s, f) => s + (f.amount || 0), 0);
+  }, [financialScoped, todayKey]);
 
   // Clientes únicos atendidos hoje (com base em appointments concluídos hoje)
   const todayCustomers = useMemo(() => {
@@ -154,14 +191,14 @@ export default function AppDashboard() {
       .slice(0, 5);
   }, [completedMonth]);
 
-  // AI bottleneck detection
-  useEffect(() => {
-    if (!apptsScoped.length && !customers.length) return;
+  // AI bottleneck detection (computado de forma pura via useMemo)
+  const alerts = useMemo(() => {
+    if (!apptsScoped.length && !customers.length) return [];
     const detected = [];
 
     const pendingOld = todayAppts.filter(a =>
       a.status === 'agendado' &&
-      differenceInMinutes(now, new Date(a.scheduled_at)) > 120
+      differenceInMinutes(now, new Date(a.scheduled_at || a.date || Date.now())) > 120
     );
     if (pendingOld.length > 0) {
       detected.push({
@@ -202,7 +239,6 @@ export default function AppDashboard() {
       });
     }
 
-    // Clientes inativos em geral (não-VIP) sem retorno há +60 dias
     const generalInactive = customers.filter(c => {
       if (c.status === 'vip') return false;
       if (!c.last_appointment_at) return false;
@@ -230,8 +266,8 @@ export default function AppDashboard() {
       });
     }
 
-    setAlerts(detected);
-  }, [apptsScoped, customers, loadingAppts]);
+    return detected;
+  }, [apptsScoped, todayAppts, customers, loadingAppts, now]);
 
   const isLoading = loadingCompany || loadingAppts;
 
@@ -258,7 +294,7 @@ export default function AppDashboard() {
           </p>
         </div>
 
-        {/* Banner: Stripe Connect pendente (só dono — barbeiros não veem) */}
+        {/* Banner: Recebimentos Asaas pendentes (só dono — barbeiros não veem) */}
         {!isBarbeiro && company && <ConnectPendingBanner company={company} />}
 
         {/* Quick Actions */}

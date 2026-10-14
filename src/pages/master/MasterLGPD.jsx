@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Shield, Download, UserX, Search, Clock,
-  CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, FileText,
+  CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 const CONSENT_LABELS = {

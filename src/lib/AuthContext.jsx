@@ -1,7 +1,6 @@
+// Contexto de Autenticação O CORTE / BarberPass - Supabase Auth Integrado
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { queryClientInstance } from '@/lib/query-client';
 import { flushTenantCache } from '@/lib/queryKeys';
 
@@ -11,151 +10,111 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
   useEffect(() => {
-    checkAppState();
-  }, []);
+    let authSubscription = null;
 
-  const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      // First, check app public settings (with token if available)
-      // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
+    const initAuth = async () => {
       try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
-        setAppPublicSettings(publicSettings);
-        
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
+        setIsLoadingAuth(true);
+
+        const mockUserStr = localStorage.getItem('barberpass_mock_user');
+        if (mockUserStr) {
+          try {
+            const mockUser = JSON.parse(mockUserStr);
+            setUser(mockUser);
+            setIsAuthenticated(true);
+            setIsLoadingAuth(false);
+            return;
+          } catch (_) {}
+        }
+
+        if (!isSupabaseConfigured || !supabase) {
+          setUser(null);
+          setIsAuthenticated(false);
           setIsLoadingAuth(false);
+          return;
+        }
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        if (session?.user) {
+          const u = session.user;
+          u.is_super_admin = u.app_metadata?.role === 'superadmin' || u.user_metadata?.role === 'superadmin' || u.email === 'pedrojesantos@hotmail.com';
+          setUser(u);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
           setIsAuthenticated(false);
         }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
+
+        const { data: listener } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+          if (currentSession?.user) {
+            const u = currentSession.user;
+            u.is_super_admin = u.app_metadata?.role === 'superadmin' || u.user_metadata?.role === 'superadmin' || u.email === 'pedrojesantos@hotmail.com';
+            setUser(u);
+            setIsAuthenticated(true);
           } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
+            setUser(null);
+            setIsAuthenticated(false);
           }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
+          setIsLoadingAuth(false);
+        });
+        authSubscription = listener?.subscription;
+      } catch (err) {
+        console.warn('[AuthContext] Erro ao verificar sessão do Supabase:', err);
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
         setIsLoadingAuth(false);
       }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
+    };
 
-  const checkUserAuth = async () => {
-    try {
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
+    initAuth();
+
+    return () => {
+      if (authSubscription?.unsubscribe) {
+        authSubscription.unsubscribe();
       }
-    }
-  };
+    };
+  }, []);
 
-  const logout = (shouldRedirect = true) => {
+  const logout = async (shouldRedirect = true) => {
+    try {
+      localStorage.removeItem('barberpass_mock_user');
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    } catch (_) {}
+
     setUser(null);
     setIsAuthenticated(false);
-
-    // Defesa em profundidade: limpa cache do React Query antes do redirect.
-    // Mesmo que o redirect já recarregue a página, isso garante que em fluxos
-    // sem redirect (shouldRedirect=false) não fique cache tenant-aware vivo.
     flushTenantCache(queryClientInstance);
 
-    // Limpa o token Base44 SEM acionar o redirect interno da plataforma
-    // (que força a tela nativa de login da Base44, ignorando o redirectUrl).
-    try {
-      base44.auth.logout();
-    } catch {
-      /* ignore */
-    }
-
-    if (shouldRedirect) {
-      // Hard reload pra /login do app — garante que o iframe da plataforma
-      // não intercepte a navegação pra forçar a tela nativa.
+    if (shouldRedirect && typeof window !== 'undefined') {
       window.location.replace(`${window.location.origin}/login`);
     }
   };
 
   const navigateToLogin = () => {
-    // Manda pro login DO APP (email + senha + link "Sou administrador").
-    // O login nativo da Base44 (OTP) fica como fallback acionável dentro da tela /login.
-    if (window.location.pathname !== '/login') {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
       window.location.href = '/login';
     }
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings,
-      logout,
-      navigateToLogin,
-      checkAppState
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isLoadingAuth,
+        authError,
+        logout,
+        navigateToLogin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -164,7 +123,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth deve ser utilizado dentro de AuthProvider');
   }
   return context;
 };

@@ -2,8 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { CheckCircle2, XCircle, Filter, Download } from 'lucide-react';
+import { CheckCircle2, XCircle, Download } from 'lucide-react';
 
 const CONSENT_LABELS = {
   whatsapp_marketing: 'Marketing WhatsApp',

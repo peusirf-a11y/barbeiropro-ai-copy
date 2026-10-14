@@ -8,8 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  LogIn, LogOut, Shield, UserCheck, Download, AlertTriangle,
+import { Shield, UserCheck, Download, AlertTriangle,
   Monitor, Smartphone, Filter, RefreshCw
 } from 'lucide-react';
 

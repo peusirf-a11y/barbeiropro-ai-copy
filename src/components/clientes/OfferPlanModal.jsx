@@ -2,7 +2,7 @@
 // Visual: SaaS enterprise / CRM inteligente
 // NÃO altera fluxo de ativação, billing ou subscriptions.
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
@@ -314,7 +314,7 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
         properties: { customer_id: customer?.id, company_id: companyId },
       });
     } catch {}
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   const { data: recData, isLoading } = useQuery({
     queryKey: ['plan-rec', companyId, customer?.id],

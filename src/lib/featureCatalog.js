@@ -55,6 +55,7 @@ export const LEGACY_FEATURE_ALIAS = {
   combos: 'combos',
   commissions: 'commissions',
   ai_features: 'ai_growth',
+  stripe_payments: 'online_payments',
 };
 
 export function canonicalFeatureKey(key) {
@@ -160,10 +161,10 @@ export const FEATURE_REGISTRY = [
 
   // ── PAGAMENTOS ────────────────────────────────────────────────────────────
   def({
-    key: 'stripe_payments',
-    name: 'Pagamentos Stripe',
+    key: 'online_payments',
+    name: 'Pagamentos online',
     category: 'payments',
-    description: 'Receber pagamentos online via Stripe Connect (Pix e cartão).',
+    description: 'Receber pagamentos online via Asaas (Pix e cartão).',
     badge: 'premium',
     icon: 'CreditCard',
   }),

@@ -5,7 +5,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { useState } from 'react';
-import { Search, Plus, X, Users, Pencil, Trash2, Phone, Package } from 'lucide-react';
+import { Search, Users, Pencil, Trash2, Phone, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import AppPageHeader from '@/components/app/AppPageHeader';
@@ -19,7 +19,6 @@ import LifecycleStatusCard from '@/components/clientes/LifecycleStatusCard';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import VipCandidatesCard from '@/components/clientes/VipCandidatesCard';
-import { Sparkles } from 'lucide-react';
 import WhatsAppButton from '@/components/whatsapp/WhatsAppButton';
 import { buildReactivationMessage } from '@/lib/whatsappCompose';
 import { safeArray } from '@/lib/safeArray';
@@ -49,6 +48,7 @@ export default function AppClientes() {
     queryKey: buildTenantQueryKey({ entity: 'customers', companyId, filters: { activeUnitId } }),
     queryFn: async () => {
       const res = await base44.functions.invoke('listCustomers', {
+        company_id: companyId,
         active_unit_id: activeUnitId,
         limit: 500,
         ...impPatch,
@@ -61,7 +61,15 @@ export default function AppClientes() {
 
   const { data: appointmentsRaw } = useQuery({
     queryKey: buildTenantQueryKey({ entity: 'appointments', companyId, filters: { activeUnitId } }),
-    queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listAppointments', {
+        company_id: companyId,
+        active_unit_id: activeUnitId,
+        limit: 500,
+        ...impPatch,
+      });
+      return res?.data?.appointments || [];
+    },
     enabled: !!companyId,
   });
   const appointments = safeArray(appointmentsRaw);

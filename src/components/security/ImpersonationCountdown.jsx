@@ -8,7 +8,6 @@ import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 import {
   getImpersonationSecondsLeft,
   formatSecondsLeft,
-  isImpersonationExpiringSoon,
 } from '@/lib/security/sessionManager';
 
 export default function ImpersonationCountdown() {

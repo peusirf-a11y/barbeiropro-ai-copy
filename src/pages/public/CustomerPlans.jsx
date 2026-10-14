@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Scissors, ArrowLeft, Check, AlertCircle, Infinity as InfinityIcon, Sun, Moon } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';

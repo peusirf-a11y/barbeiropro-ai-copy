@@ -25,7 +25,7 @@ const DEFAULT_FALLBACK = '/app/dashboard';
 // Caracteres que NUNCA podem aparecer numa rota interna.
 // Inclui controles ASCII (\u0000–\u001F + \u007F) que podem ser usados em
 // header/path smuggling, e backslash que alguns navegadores normalizam para "/".
-// eslint-disable-next-line no-control-regex
+ 
 const DANGEROUS_CHARS = /[\u0000-\u001F\u007F\\<>"`{}|^]/;
 
 const FORBIDDEN_PROTOCOL = /^(javascript|data|blob|file|vbscript|about|chrome|moz-extension|chrome-extension):/i;

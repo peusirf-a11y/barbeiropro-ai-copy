@@ -19,7 +19,7 @@
 
 const MAX_LEN = 256;
 const FORBIDDEN_PROTOCOL = /(javascript|data|blob|file|vbscript|about|chrome|moz-extension|chrome-extension):/i;
-// eslint-disable-next-line no-control-regex
+ 
 const CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
 const SLUG_VALID = /^[a-z0-9_-]+$/;
 const PATH_VALID = /^[a-zA-Z0-9_\-/.]+$/;

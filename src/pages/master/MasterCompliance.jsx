@@ -4,8 +4,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { format, subDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import ComplianceDashboard from '@/components/master/compliance/ComplianceDashboard';
 import ComplianceConsents from '@/components/master/compliance/ComplianceConsents';
 import ComplianceAudit from '@/components/master/compliance/ComplianceAudit';
@@ -16,7 +14,7 @@ import ComplianceSecurity from '@/components/master/compliance/ComplianceSecurit
 import ComplianceRetention from '@/components/master/compliance/ComplianceRetention';
 import {
   LayoutDashboard, Users, Activity, Download, UserX,
-  UserCog, ShieldCheck, Database, Cookie, AlertOctagon,
+  UserCog, ShieldCheck, Database,
 } from 'lucide-react';
 
 const TABS = [

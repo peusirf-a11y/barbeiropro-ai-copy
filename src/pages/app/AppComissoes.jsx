@@ -15,7 +15,7 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import FilterSelect from '@/components/ui/filter-select';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
-import { filterByUnit, filterProfessionalsByUnit } from '@/lib/unitFilter';
+import { filterProfessionalsByUnit } from '@/lib/unitFilter';
 
 export default function AppComissoes() {
   const { companyId, isLoading: loadingCompany } = useCompany();

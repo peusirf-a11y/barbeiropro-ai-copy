@@ -28,7 +28,7 @@ export default function PixPaymentBox({ appointmentId, pixData, expiresAt, prima
   useEffect(() => {
     const poll = setInterval(() => checkStatus(false), 4000);
     return () => clearInterval(poll);
-  }, [appointmentId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [appointmentId]);  
 
   const checkStatus = async (manual) => {
     if (checking) return;

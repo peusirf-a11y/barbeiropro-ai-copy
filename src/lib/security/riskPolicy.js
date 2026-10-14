@@ -85,7 +85,7 @@ export function actionRequiresEscalation(action, riskScore = 'low') {
     'FINANCIAL_ENTRY_DELETED',
     'SUBSCRIPTION_CANCELLED',
     'PLAN_CHANGED',
-    'STRIPE_DISCONNECTED',
+    'PAYMENT_PROVIDER_DISCONNECTED',
     'TEAM_MEMBER_REMOVED',
     'TEAM_MEMBER_ROLE_CHANGED',
     'PERMISSION_CHANGED',
@@ -98,7 +98,7 @@ export function actionRequiresEscalation(action, riskScore = 'low') {
     'APPOINTMENT_DELETED',
     'COMMISSION_REVERSED',
     'SUBSCRIPTION_CHANGED',
-    'STRIPE_CONNECTED',
+    'PAYMENT_PROVIDER_CONNECTED',
   ];
 
   const isCritical = CRITICAL_ACTIONS.includes(action);

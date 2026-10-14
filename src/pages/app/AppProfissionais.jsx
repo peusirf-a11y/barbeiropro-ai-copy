@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Plus, X, Pencil, Scissors, Trash2 } from 'lucide-react';
+import { Pencil, Scissors, Trash2 } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
@@ -33,13 +33,19 @@ export default function AppProfissionais() {
 
   const { data: professionals = [], isLoading } = useQuery({
     queryKey: ['professionals', companyId, activeUnitId],
-    queryFn: () => base44.entities.Professional.filter({ company_id: companyId }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listProfessionals', { company_id: companyId, active_unit_id: activeUnitId });
+      return res?.data?.professionals || [];
+    },
     enabled: !!companyId,
   });
 
   const { data: services = [] } = useQuery({
     queryKey: ['services', companyId],
-    queryFn: () => base44.entities.Service.filter({ company_id: companyId, active: true }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listServices', { company_id: companyId });
+      return res?.data?.services || [];
+    },
     enabled: !!companyId,
   });
 

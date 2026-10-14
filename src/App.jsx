@@ -133,8 +133,7 @@ function App() {
             <Route path="/signin" element={<BarberLogin />} />
             <Route path="/esqueci-senha" element={<EsqueciSenha />} />
             <Route path="/resetar-senha" element={<ResetarSenha />} />
-            {/* Mantemos /login-base44 como fallback emergencial pro OTP da Base44. */}
-            <Route path="/login-base44" element={<LoginRedirect />} />
+            <Route path="/login-base44" element={<BarberLogin />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/lancamento" element={<LaunchLandingPage />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
@@ -142,6 +141,7 @@ function App() {
             <Route path="/cliente/:slug/planos/convite/:token" element={<CustomerPlanInviteRedeem />} />
             <Route path="/cliente/:slug/planos" element={<CustomerPlans />} />
             <Route path="/cliente/:slug" element={<CustomerDashboard />} />
+            <Route path="/minha-conta" element={<CustomerDashboard />} />
             <Route path="/planos/convite/:token" element={<PlanInviteRedeem />} />
             <Route path="/confirma/:token" element={<ConfirmAppointment />} />
             <Route path="/avaliar/:token" element={<ReviewAppointment />} />

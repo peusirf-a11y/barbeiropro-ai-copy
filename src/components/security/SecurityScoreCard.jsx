@@ -3,9 +3,8 @@
  * Usado no MasterSecurityCenter e possivelmente no AppSeguranca.
  */
 
-import { useMemo } from 'react';
-import { Shield, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { computeSecurityScore, getBadgeForScore, SCORE_CATEGORIES } from '@/lib/security/securityScore';
+import { AlertTriangle } from 'lucide-react';
+import { SCORE_CATEGORIES } from '@/lib/security/securityScore';
 
 function ScoreRing({ score, size = 80 }) {
   const radius = (size - 8) / 2;

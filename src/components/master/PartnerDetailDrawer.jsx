@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
 import {
   X, Mail, Phone, FileText, Key, Hash, Calendar, ShieldCheck,
-  Pause, Play, CheckCircle2, Pencil, ExternalLink, AlertTriangle, Copy,
+  Pause, Play, CheckCircle2, Pencil, AlertTriangle, Copy,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
