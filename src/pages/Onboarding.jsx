@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabaseClient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
@@ -50,17 +51,26 @@ export default function Onboarding() {
   const [slugError, setSlugError] = useState('');
   const [validatingSlug, setValidatingSlug] = useState(false);
 
-  // Carrega a Company existente do usuário (criada pelo webhook do Asaas quando ele
-  // pagou o checkout) para pré-preencher o onboarding. Sem isso, criamos uma Company
-  // duplicada no step 2 — e o companyId pode ficar nulo, fazendo o onboarding nunca
-  // persistir os steps seguintes (incluindo onboarding_completed=true).
+  // Carrega a Company existente do usuário para pré-preencher o onboarding.
   useEffect(() => {
     if (!user?.email || companyId) return;
     let cancelled = false;
     (async () => {
       try {
-        const list = await base44.entities.Company.filter({ owner_email: user.email }, '-created_date', 1);
-        const existing = list?.[0];
+        const cleanEmail = user.email.toLowerCase().trim();
+        let existing = null;
+        if (supabase) {
+          const { data } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('owner_email', cleanEmail)
+            .maybeSingle();
+          if (data) existing = data;
+        }
+        if (!existing) {
+          const list = await base44.entities.Company.filter({ owner_email: cleanEmail }, '-created_at', 1);
+          existing = list?.[0];
+        }
         if (!existing || cancelled) return;
         setCompanyId(existing.id);
         setCompany(p => ({
@@ -199,16 +209,84 @@ export default function Onboarding() {
     }).catch(() => {});
 
     if (step === 7) {
-      // Marca como concluído SOMENTE no clique final, e invalida cache antes de navegar
-      if (companyId) {
-        await base44.entities.Company.update(companyId, {
-          onboarding_completed: true,
-          onboarding_step: 7,
-        });
+      const currentCompanyId = companyId || company?.id || user?.company_id;
+      const currentEmail = user?.email?.toLowerCase().trim();
+      const currentSlug = company?.slug;
+
+      console.log('[Onboarding] Finalizando Onboarding (Etapa 7):', { currentCompanyId, currentSlug, currentEmail });
+
+      // 1. UPDATE no Supabase garantindo que a empresa atual seja marcada como concluída e ativa
+      if (supabase) {
+        try {
+          let updateQuery = supabase
+            .from('companies')
+            .update({
+              onboarding_completed: true,
+              active: true,
+            });
+
+          if (currentCompanyId) {
+            updateQuery = updateQuery.eq('id', currentCompanyId);
+          } else if (currentSlug) {
+            updateQuery = updateQuery.eq('slug', currentSlug);
+          } else if (currentEmail) {
+            updateQuery = updateQuery.eq('owner_email', currentEmail);
+          }
+
+          let { error: updateError } = await updateQuery;
+
+          // Se a coluna onboarding_completed não existir no schema do banco, atualiza active: true
+          if (updateError && (updateError.code === 'PGRST204' || updateError.message?.includes('column'))) {
+            console.warn('[Onboarding] Coluna onboarding_completed não existe no Supabase, atualizando active: true:', updateError.message);
+            let fallbackQuery = supabase.from('companies').update({ active: true });
+            if (currentCompanyId) {
+              fallbackQuery = fallbackQuery.eq('id', currentCompanyId);
+            } else if (currentSlug) {
+              fallbackQuery = fallbackQuery.eq('slug', currentSlug);
+            } else if (currentEmail) {
+              fallbackQuery = fallbackQuery.eq('owner_email', currentEmail);
+            }
+            const fallbackRes = await fallbackQuery;
+            updateError = fallbackRes.error;
+          }
+
+          if (updateError) {
+            console.warn('[Onboarding] Erro no update do Supabase:', updateError.message);
+          } else {
+            console.log('[Onboarding] Empresa atualizada com sucesso no Supabase (active / onboarding_completed)!');
+          }
+        } catch (err) {
+          console.warn('[Onboarding] Exceção ao atualizar Supabase:', err);
+        }
       }
+
+      // 2. Atualiza via EntityRepository
+      if (currentCompanyId) {
+        try {
+          await base44.entities.Company.update(currentCompanyId, {
+            onboarding_completed: true,
+            active: true,
+            onboarding_step: 7,
+          });
+        } catch (_) {}
+      }
+
+      // 3. Persiste flags no localStorage para refletir imediatamente sem latência de rede
+      try {
+        if (currentCompanyId) {
+          localStorage.setItem(`barberpass_onboarding_completed_${currentCompanyId}`, 'true');
+        }
+        if (currentEmail) {
+          localStorage.setItem(`barberpass_onboarding_completed_email_${currentEmail}`, 'true');
+        }
+        if (currentSlug) {
+          localStorage.setItem(`barberpass_onboarding_completed_slug_${currentSlug}`, 'true');
+        }
+      } catch (_) {}
+
       base44.functions.invoke('trackEvent', { event_type: 'onboarding_completed' }).catch(() => {});
 
-      // Invalida todos os caches que decidem onboarding/redirect
+      // 4. Invalida todos os caches que decidem onboarding/redirect
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['companies'] }),
         queryClient.invalidateQueries({ queryKey: ['companies-onboarding'] }),
@@ -216,7 +294,8 @@ export default function Onboarding() {
         queryClient.invalidateQueries({ queryKey: ['my-company'] }),
       ]);
 
-      navigate('/app/dashboard');
+      // 5. Redireciona com replace: true para o painel da barbearia
+      navigate('/app/dashboard', { replace: true });
       return;
     }
     setStep(s => s + 1);

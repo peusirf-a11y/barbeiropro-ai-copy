@@ -9,6 +9,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import CookieConsentProvider from '@/components/cookies/CookieConsentProvider';
 import RootRedirect from '@/components/RootRedirect';
+import RecoveryRedirectHandler from '@/components/RecoveryRedirectHandler';
 import { ActiveUnitProvider } from '@/hooks/useActiveUnit';
 import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
 import { BookingSessionProvider } from '@/contexts/BookingSessionContext';
@@ -34,6 +35,8 @@ import LoginRedirect from './pages/LoginRedirect';
 import BarberLogin from './pages/BarberLogin';
 import EsqueciSenha from './pages/EsqueciSenha';
 import ResetarSenha from './pages/ResetarSenha';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Master pages (super admin)
 import MasterLayout from './components/master/MasterLayout';
@@ -123,6 +126,7 @@ function App() {
        <BookingSessionProvider>
        <ActiveUnitProvider>
          <Router>
+            <RecoveryRedirectHandler />
           <Routes>
             {/* ── PUBLIC ROUTES ── */}
             {/* "/" = login automático (app/APK abre direto no login).
@@ -132,7 +136,9 @@ function App() {
             <Route path="/login" element={<BarberLogin />} />
             <Route path="/signin" element={<BarberLogin />} />
             <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/resetar-senha" element={<ResetarSenha />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/login-base44" element={<BarberLogin />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/lancamento" element={<LaunchLandingPage />} />

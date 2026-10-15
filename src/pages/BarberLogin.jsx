@@ -1,22 +1,18 @@
-// BarberLogin — Tela de login com email + senha (auth própria O CORTE, Fase 1).
-//
-// UX:
-//   - Email + senha + botão "Entrar".
-//   - Link "Esqueci minha senha" (placeholder, Fase 2).
-//   - Mostra erros estáveis (invalid_credentials, account_locked).
-//   - Em sucesso, seta o token Base44 e redireciona para /app/dashboard.
-
+// BarberLogin — Tela de login oficial, limpa e profissional
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 import Logo from '@/components/Logo';
-import { AlertCircle, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Loader2, Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function BarberLogin() {
   const navigate = useNavigate();
+  const { setUser, setIsAuthenticated } = useAuth();
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const [email, setEmail] = useState((params.get('email') || '').trim().toLowerCase());
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,20 +23,15 @@ export default function BarberLogin() {
 
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !password) {
-      setError('Preencha e-mail e palavra-passe.');
+      setError('Informe seu e-mail e senha para continuar.');
       return;
     }
 
     setSubmitting(true);
-    console.log('[BarberLogin] Attempting login for:', cleanEmail);
-    const supabaseUrlEnv = import.meta.env.VITE_SUPABASE_URL || '';
-    const isPlaceholderUrl = supabaseUrlEnv.includes('your-project') || supabaseUrlEnv.includes('placeholder') || !supabaseUrlEnv;
 
-    if (isPlaceholderUrl || !isSupabaseConfigured || !supabase) {
-      console.warn('[BarberLogin] Using sandbox mock login due to placeholder/missing Supabase config.');
-      const isSuperAdmin = cleanEmail === 'pedrojesantos@hotmail.com';
-      localStorage.setItem('barberpass_mock_user', JSON.stringify({ email: cleanEmail, is_super_admin: isSuperAdmin }));
-      window.location.href = isSuperAdmin ? '/master/dashboard' : '/app/dashboard';
+    if (!isSupabaseConfigured || !supabase) {
+      setError('Sistema temporariamente indisponível. Tente novamente em instantes.');
+      setSubmitting(false);
       return;
     }
 
@@ -51,146 +42,184 @@ export default function BarberLogin() {
       });
 
       if (authError) {
-        if (authError.message?.includes('Failed to fetch') || authError.status === 0 || authError.name === 'AuthRetryableFetchError') {
-          console.warn('[BarberLogin] Supabase unreachable (Failed to fetch). Activating sandbox mock login fallback.');
-          const isSuperAdmin = cleanEmail === 'pedrojesantos@hotmail.com';
-          localStorage.setItem('barberpass_mock_user', JSON.stringify({ email: cleanEmail, is_super_admin: isSuperAdmin }));
-          window.location.href = isSuperAdmin ? '/master/dashboard' : '/app/dashboard';
-          return;
+        console.warn('[Login] Credenciais inválidas:', authError.message);
+        setError('E-mail ou senha incorretos. Verifique suas credenciais.');
+        setSubmitting(false);
+        return;
+      }
+
+      const session = data?.session;
+      const user = session?.user;
+
+      if (user) {
+        user.is_super_admin = user.email === 'pedrojesantos@hotmail.com' || user.app_metadata?.role === 'superadmin' || user.user_metadata?.role === 'superadmin';
+        setUser?.(user);
+        setIsAuthenticated?.(true);
+
+        try {
+          localStorage.setItem('admin_logged_user', JSON.stringify(user));
+          localStorage.setItem('barberpass_auth_email', cleanEmail);
+        } catch (_) {}
+
+        // Redireciona imediatamente para o painel correspondente
+        if (user.is_super_admin) {
+          navigate('/master/dashboard', { replace: true });
+        } else {
+          navigate('/app/dashboard', { replace: true });
         }
-        console.warn("Supabase Auth Warning:", authError);
-        setError(authError.message || 'Erro ao autenticar.');
+      } else {
+        setError('Não foi possível obter a sessão do usuário. Tente novamente.');
         setSubmitting(false);
-        return;
       }
 
-      if (!data?.session) {
-        console.warn("Supabase Auth Warning: No session returned", data);
-        setError('Nenhuma sessão gerada pelo Supabase.');
-        setSubmitting(false);
-        return;
-      }
-
-      const userObj = data.session.user;
-      console.log("[BarberLogin] Login successful for user:", userObj.email);
-      const isSuperAdmin = userObj.email === 'pedrojesantos@hotmail.com' || userObj.user_metadata?.role === 'superadmin' || userObj.app_metadata?.role === 'superadmin';
-      window.location.href = isSuperAdmin ? '/master/dashboard' : '/app/dashboard';
     } catch (err) {
-      if (err?.message?.includes('Failed to fetch') || err?.name === 'TypeError' || err?.name === 'AuthRetryableFetchError' || err?.message?.includes('fetch')) {
-        console.warn('[BarberLogin] Network/Fetch error caught. Activating sandbox mock login fallback.');
-        const isSuperAdmin = cleanEmail === 'pedrojesantos@hotmail.com';
-        localStorage.setItem('barberpass_mock_user', JSON.stringify({ email: cleanEmail, is_super_admin: isSuperAdmin }));
-        window.location.href = isSuperAdmin ? '/master/dashboard' : '/app/dashboard';
-        return;
-      }
-      console.warn("[BarberLogin] Unexpected submit_failed warning:", err);
-      setError(err?.message || 'Erro inesperado no login.');
+      console.warn('[Login] Exceção durante autenticação:', err);
+      setError('Erro de conexão ao autenticar. Tente novamente.');
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FB] font-inter">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-black/5">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Logo size={32} />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-            Acessar painel
-          </span>
+    <div className="min-h-screen bg-[#F8F9FC] font-inter flex flex-col justify-between">
+      {/* Top Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
+            <Logo size={32} />
+          </Link>
+          <Link
+            to="/checkout"
+            className="text-xs font-semibold text-[#2563EB] hover:text-[#1D4ED8] transition-colors"
+          >
+            Quero ser parceiro →
+          </Link>
         </div>
       </header>
 
-      <div className="max-w-md mx-auto px-4 sm:px-6 py-10 sm:py-16 animate-fade-in-up">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/10 text-[#2563EB] mb-4 shadow-sm">
-            <Lock className="w-7 h-7" />
+      {/* Main Content */}
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12">
+        <div className="max-w-md w-full animate-fade-in-up">
+          {/* Headline */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/10 text-[#2563EB] mb-4 shadow-sm">
+              <Lock className="w-7 h-7" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight mb-2">
+              Acesse sua conta
+            </h1>
+            <p className="text-sm text-slate-500">
+              Gerencie sua barbearia, agendamentos e clientes.
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight mb-2">
-            Entrar no O CORTE
-          </h1>
-          <p className="text-sm text-gray-500">
-            Acesse seu painel com email e senha.
-          </p>
-        </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-2xl border border-black/8 shadow-sm p-6 space-y-4"
-        >
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+          {/* Login Card */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-200/40 p-6 sm:p-8">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  E-mail
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={submitting}
+                    placeholder="seu@email.com"
+                    required
+                    className="w-full h-12 pl-10 pr-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                    Senha
+                  </label>
+                  <Link
+                    to="/esqueci-senha"
+                    className="text-xs font-semibold text-[#2563EB] hover:text-[#1D4ED8] hover:underline"
+                  >
+                    Esqueci a senha
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={submitting}
+                    placeholder="••••••••"
+                    required
+                    className="w-full h-12 pl-10 pr-10 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Alert */}
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 flex items-start gap-2.5 text-xs text-rose-800 animate-shake">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600" />
+                  <div className="font-medium leading-relaxed">{error}</div>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
                 disabled={submitting}
-                placeholder="seu@email.com"
-                className="w-full h-11 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm text-[#0F172A] placeholder-gray-400"
-                autoFocus
-              />
+                className="w-full h-12 mt-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-bold transition-all shadow-md shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 active:scale-[0.99]"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Entrando…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Entrar na plataforma</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Bottom Register CTA */}
+            <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+              <p className="text-xs text-slate-500">
+                Ainda não tem uma assinatura?{' '}
+                <Link
+                  to="/checkout"
+                  className="font-bold text-[#2563EB] hover:text-[#1D4ED8] hover:underline"
+                >
+                  Cadastre sua barbearia
+                </Link>
+              </p>
             </div>
           </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                Senha
-              </label>
-              <Link to="/esqueci-senha" className="text-[11px] font-semibold text-[#2563EB] hover:underline">
-                Esqueci a senha
-              </Link>
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={submitting}
-                placeholder="••••••••"
-                className="w-full h-11 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm text-[#0F172A] placeholder-gray-400"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 flex items-start gap-2 text-sm text-rose-800">
-              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div>{error}</div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full h-11 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Entrando…
-              </>
-            ) : (
-              'Entrar'
-            )}
-          </button>
-        </form>
-
-        <div className="text-center mt-6 text-xs text-gray-500">
-          <span>Administradores, proprietários e colaboradores usam o mesmo acesso direto acima com email e senha.</span>
         </div>
+      </main>
 
-        <div className="flex items-center justify-center gap-2 mt-8 text-[11px] text-gray-400">
-          <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>Acesso seguro e criptografado</span>
-        </div>
-      </div>
+      {/* Footer */}
+      <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-100">
+        <p>© {new Date().getFullYear()} O CORTE · BarberPass. Todos os direitos reservados.</p>
+      </footer>
     </div>
   );
 }

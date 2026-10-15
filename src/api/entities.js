@@ -1,154 +1,224 @@
-// Repositório de Entidades Autônomo O CORTE / BarberPass
-// Substitui a dependência do Base44 por uma camada relacional limpa,
-// com suporte a persistência local (localStorage) e rotas REST padrão.
+// Repositório de Entidades Robusto com Supabase e Fallback LocalStorage (Anti "Failed to fetch")
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
-import {
-  INITIAL_PLANS,
-  INITIAL_COMPANIES,
-  INITIAL_CUSTOMERS,
-  INITIAL_BARBER_CREDENTIALS,
-  INITIAL_PROFESSIONALS,
-  INITIAL_SERVICES,
-  INITIAL_APPOINTMENTS,
-  INITIAL_FINANCIAL,
-  INITIAL_COMMISSIONS,
-  INITIAL_REVIEWS,
-} from './mockData';
+const ENTITY_TABLE_MAP = {
+  Company: 'companies',
+  Plan: 'plans',
+  Customer: 'customers',
+  Service: 'services',
+  Professional: 'professionals',
+  TeamMember: 'professionals',
+  Appointment: 'appointments',
+  CustomerSubscription: 'customer_subscriptions',
+  FinancialEntry: 'financial_entries',
+  Commission: 'commissions',
+  Review: 'reviews',
+  Unit: 'units',
+  BarberCredential: 'barber_credentials',
+  User: 'users',
+  SystemAlert: 'system_alerts',
+  AuditLog: 'audit_logs',
+};
 
-function getStorageKey(entityName) {
-  return `barberpass_entity_${entityName.toLowerCase()}`;
-}
-
-function loadEntities(entityName, defaultData = []) {
-  if (typeof window === 'undefined') return defaultData;
+function getLocalTable(tableName) {
   try {
-    const raw = localStorage.getItem(getStorageKey(entityName));
-    if (!raw) {
-      localStorage.setItem(getStorageKey(entityName), JSON.stringify(defaultData));
-      return defaultData;
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-    return defaultData;
-  } catch (err) {
-    console.warn(`[Entities] Erro ao carregar ${entityName}:`, err);
-    return defaultData;
+    const raw = localStorage.getItem(`barberpass_local_${tableName}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
   }
 }
 
-function saveEntities(entityName, items) {
-  if (typeof window === 'undefined') return;
+function saveLocalTable(tableName, items) {
   try {
-    localStorage.setItem(getStorageKey(entityName), JSON.stringify(items));
+    localStorage.setItem(`barberpass_local_${tableName}`, JSON.stringify(items));
   } catch (err) {
-    console.warn(`[Entities] Erro ao salvar ${entityName}:`, err);
+    console.error(`[LocalFallback] Erro ao salvar ${tableName}:`, err);
   }
 }
 
 export class EntityRepository {
-  constructor(name, initialItems = []) {
+  constructor(name) {
     this.name = name;
-    this.initialItems = initialItems;
+    this.tableName = ENTITY_TABLE_MAP[name] || name.toLowerCase() + 's';
   }
 
   async list(sort = '-created_at', limit = 100) {
-    let items = loadEntities(this.name, this.initialItems);
-    
-    if (sort) {
-      const isDesc = sort.startsWith('-');
-      const field = isDesc ? sort.substring(1) : sort;
-      items = [...items].sort((a, b) => {
-        const valA = a[field] ?? '';
-        const valB = b[field] ?? '';
-        if (valA < valB) return isDesc ? 1 : -1;
-        if (valA > valB) return isDesc ? -1 : 1;
-        return 0;
-      });
+    if (!isSupabaseConfigured || !supabase) {
+      console.warn(`[Supabase] Não configurado, usando fallback local para ${this.name}`);
+      return getLocalTable(this.tableName);
     }
-
-    if (limit && limit > 0) {
-      items = items.slice(0, limit);
+    try {
+      let query = supabase.from(this.tableName).select('*');
+      if (sort) {
+        const isDesc = sort.startsWith('-');
+        const field = isDesc ? sort.substring(1) : sort;
+        query = query.order(field, { ascending: !isDesc });
+      }
+      if (limit && limit > 0) {
+        query = query.limit(limit);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.warn(`[Supabase Warning] Falha ao listar ${this.name} (${err.message}), usando dados locais.`, err);
+      return getLocalTable(this.tableName);
     }
-    return items;
   }
 
   async filter(criteria = {}, sort = '-created_at', limit = 100) {
-    const all = await this.list(sort, 1000);
-    const filtered = all.filter((item) => {
-      return Object.entries(criteria).every(([key, val]) => {
-        if (val === undefined || val === null) return true;
-        if (typeof val === 'string') {
-          return String(item[key] || '').toLowerCase() === val.toLowerCase();
-        }
-        return item[key] === val;
+    if (!isSupabaseConfigured || !supabase) {
+      const items = getLocalTable(this.tableName);
+      return items.filter(item => {
+        return Object.entries(criteria).every(([k, v]) => item[k] === v);
       });
-    });
-
-    if (limit && limit > 0) {
-      return filtered.slice(0, limit);
     }
-    return filtered;
+    try {
+      let query = supabase.from(this.tableName).select('*');
+      Object.entries(criteria).forEach(([key, val]) => {
+        if (val !== undefined && val !== null) {
+          query = query.eq(key, val);
+        }
+      });
+      if (sort) {
+        const isDesc = sort.startsWith('-');
+        const field = isDesc ? sort.substring(1) : sort;
+        query = query.order(field, { ascending: !isDesc });
+      }
+      if (limit && limit > 0) {
+        query = query.limit(limit);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.warn(`[Supabase Warning] Falha ao filtrar ${this.name}, usando fallback local.`, err);
+      const items = getLocalTable(this.tableName);
+      return items.filter(item => {
+        return Object.entries(criteria).every(([k, v]) => item[k] === v);
+      });
+    }
   }
 
   async get(id) {
-    const items = loadEntities(this.name, this.initialItems);
-    return items.find((i) => i.id === id || String(i.id) === String(id)) || null;
+    if (!isSupabaseConfigured || !supabase) {
+      const items = getLocalTable(this.tableName);
+      return items.find(i => i.id === id) || null;
+    }
+    try {
+      const { data, error } = await supabase.from(this.tableName).select('*').eq('id', id).single();
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.warn(`[Supabase Warning] Falha ao buscar ${this.name} por id ${id}, buscando local.`, err);
+      const items = getLocalTable(this.tableName);
+      return items.find(i => i.id === id) || null;
+    }
   }
 
   async create(data) {
-    const items = loadEntities(this.name, this.initialItems);
     const newItem = {
-      id: `${this.name.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      id: data.id || crypto.randomUUID(),
+      created_at: data.created_at || new Date().toISOString(),
+      updated_at: data.updated_at || new Date().toISOString(),
       ...data,
     };
-    items.unshift(newItem);
-    saveEntities(this.name, items);
-    return newItem;
+
+    // Salvar sempre no fallback local para garantir persistência imediata
+    const localItems = getLocalTable(this.tableName);
+    localItems.unshift(newItem);
+    saveLocalTable(this.tableName, localItems);
+
+    if (!isSupabaseConfigured || !supabase) {
+      console.log(`[LocalFallback] ${this.name} criado localmente:`, newItem);
+      return newItem;
+    }
+
+    try {
+      console.log(`[Supabase] Inserindo ${this.name} em [${this.tableName}]:`, newItem);
+      const { data: inserted, error } = await supabase.from(this.tableName).insert([newItem]).select();
+      if (error) throw error;
+      if (inserted && inserted[0]) {
+        return inserted[0];
+      }
+      return newItem;
+    } catch (err) {
+      console.warn(`[Supabase Warning] Falha ao inserir ${this.name} no Supabase (usando versão local):`, err.message);
+      return newItem;
+    }
   }
 
   async update(id, patchData) {
-    const items = loadEntities(this.name, this.initialItems);
-    const index = items.findIndex((i) => i.id === id || String(i.id) === String(id));
-    if (index === -1) {
-      throw new Error(`Item ${id} não encontrado em ${this.name}`);
-    }
-    items[index] = {
-      ...items[index],
+    const updatedPatch = {
       ...patchData,
       updated_at: new Date().toISOString(),
     };
-    saveEntities(this.name, items);
-    return items[index];
+
+    // Atualizar localmente
+    const localItems = getLocalTable(this.tableName);
+    let updatedLocalItem = null;
+    const newItems = localItems.map(item => {
+      if (item.id === id) {
+        updatedLocalItem = { ...item, ...updatedPatch };
+        return updatedLocalItem;
+      }
+      return item;
+    });
+    saveLocalTable(this.tableName, newItems);
+
+    if (!isSupabaseConfigured || !supabase) {
+      return updatedLocalItem || { id, ...updatedPatch };
+    }
+
+    try {
+      const { data: updated, error } = await supabase.from(this.tableName).update(updatedPatch).eq('id', id).select();
+      if (error) throw error;
+      if (updated && updated[0]) {
+        return updated[0];
+      }
+      return updatedLocalItem || { id, ...updatedPatch };
+    } catch (err) {
+      console.warn(`[Supabase Warning] Falha ao atualizar ${this.name} no Supabase (atualizado localmente):`, err.message);
+      return updatedLocalItem || { id, ...updatedPatch };
+    }
   }
 
   async delete(id) {
-    let items = loadEntities(this.name, this.initialItems);
-    items = items.filter((i) => i.id !== id && String(i.id) !== String(id));
-    saveEntities(this.name, items);
-    return true;
+    const localItems = getLocalTable(this.tableName);
+    const filtered = localItems.filter(i => i.id !== id);
+    saveLocalTable(this.tableName, filtered);
+
+    if (!isSupabaseConfigured || !supabase) {
+      return true;
+    }
+
+    try {
+      const { error } = await supabase.from(this.tableName).delete().eq('id', id);
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      console.warn(`[Supabase Warning] Falha ao deletar ${this.name} no Supabase (removido localmente):`, err.message);
+      return true;
+    }
   }
 }
 
-// Repositórios padronizados de cada entidade do ecossistema
-export const Plan = new EntityRepository('Plan', INITIAL_PLANS);
-export const Company = new EntityRepository('Company', INITIAL_COMPANIES);
-export const Customer = new EntityRepository('Customer', INITIAL_CUSTOMERS);
-export const BarberCredential = new EntityRepository('BarberCredential', INITIAL_BARBER_CREDENTIALS);
-export const User = new EntityRepository('User', INITIAL_BARBER_CREDENTIALS);
-export const Appointment = new EntityRepository('Appointment', INITIAL_APPOINTMENTS);
-export const FinancialEntry = new EntityRepository('FinancialEntry', INITIAL_FINANCIAL);
-export const Commission = new EntityRepository('Commission', INITIAL_COMMISSIONS);
-export const TeamMember = new EntityRepository('TeamMember', INITIAL_PROFESSIONALS);
-export const Professional = new EntityRepository('Professional', INITIAL_PROFESSIONALS);
-export const Unit = new EntityRepository('Unit', []);
-export const Service = new EntityRepository('Service', INITIAL_SERVICES);
-export const Review = new EntityRepository('Review', INITIAL_REVIEWS);
-export const SystemAlert = new EntityRepository('SystemAlert', []);
-export const AuditLog = new EntityRepository('AuditLog', []);
+export const Plan = new EntityRepository('Plan');
+export const Company = new EntityRepository('Company');
+export const Customer = new EntityRepository('Customer');
+export const BarberCredential = new EntityRepository('BarberCredential');
+export const User = new EntityRepository('User');
+export const Appointment = new EntityRepository('Appointment');
+export const FinancialEntry = new EntityRepository('FinancialEntry');
+export const Commission = new EntityRepository('Commission');
+export const TeamMember = new EntityRepository('TeamMember');
+export const Professional = new EntityRepository('Professional');
+export const Unit = new EntityRepository('Unit');
+export const Service = new EntityRepository('Service');
+export const Review = new EntityRepository('Review');
+export const SystemAlert = new EntityRepository('SystemAlert');
+export const AuditLog = new EntityRepository('AuditLog');
 
 const registeredEntities = {
   Plan,
@@ -166,16 +236,15 @@ const registeredEntities = {
   Review,
   SystemAlert,
   AuditLog,
-  CustomerSubscription: new EntityRepository('CustomerSubscription', []),
-  IdempotencyKey: new EntityRepository('IdempotencyKey', []),
+  CustomerSubscription: new EntityRepository('CustomerSubscription'),
+  IdempotencyKey: new EntityRepository('IdempotencyKey'),
 };
 
-// Proxy para dinamismo e segurança absoluta (nunca retorna undefined para nenhuma entidade)
 export const entities = new Proxy(registeredEntities, {
   get(target, prop) {
     if (typeof prop !== 'string') return target[prop];
     if (!(prop in target)) {
-      target[prop] = new EntityRepository(prop, []);
+      target[prop] = new EntityRepository(prop);
     }
     return target[prop];
   },

@@ -1,4 +1,4 @@
-// Contexto de Autenticação O CORTE / BarberPass - Supabase Auth Integrado
+// Contexto de Autenticação O CORTE / BarberPass - Supabase Auth Integrado com Timeout de Segurança
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { queryClientInstance } from '@/lib/query-client';
@@ -16,29 +16,37 @@ export const AuthProvider = ({ children }) => {
     let authSubscription = null;
 
     const initAuth = async () => {
+      let timeoutId = null;
       try {
         setIsLoadingAuth(true);
 
-        const mockUserStr = localStorage.getItem('barberpass_mock_user');
-        if (mockUserStr) {
-          try {
-            const mockUser = JSON.parse(mockUserStr);
-            setUser(mockUser);
-            setIsAuthenticated(true);
-            setIsLoadingAuth(false);
-            return;
-          } catch (_) {}
-        }
+        // Timeout de segurança de 3 segundos para evitar travamento infinito se Supabase demorar/falhar
+        const authTimeoutPromise = new Promise((resolve) => {
+          timeoutId = setTimeout(() => {
+            console.warn('[AuthContext] Auth init timeout reached. Forcing loading false.');
+            resolve({ session: null, error: new Error('Auth timeout') });
+          }, 3000);
+        });
+
 
         if (!isSupabaseConfigured || !supabase) {
           setUser(null);
           setIsAuthenticated(false);
           setIsLoadingAuth(false);
+          if (timeoutId) clearTimeout(timeoutId);
           return;
         }
 
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        const sessionPromise = supabase.auth.getSession();
+        const res = await Promise.race([sessionPromise, authTimeoutPromise]);
+        if (timeoutId) clearTimeout(timeoutId);
+
+        const session = res?.data?.session || res?.session || null;
+        const error = res?.error || null;
+
+        if (error && error.message !== 'Auth timeout') {
+          console.warn('[AuthContext] Session error:', error);
+        }
 
         if (session?.user) {
           const u = session.user;
@@ -46,28 +54,43 @@ export const AuthProvider = ({ children }) => {
           setUser(u);
           setIsAuthenticated(true);
         } else {
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-
-        const { data: listener } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-          if (currentSession?.user) {
-            const u = currentSession.user;
-            u.is_super_admin = u.app_metadata?.role === 'superadmin' || u.user_metadata?.role === 'superadmin' || u.email === 'pedrojesantos@hotmail.com';
-            setUser(u);
-            setIsAuthenticated(true);
+          const mockUserStr = localStorage.getItem('barberpass_mock_user');
+          if (mockUserStr) {
+            try {
+              const mockUser = JSON.parse(mockUserStr);
+              setUser(mockUser);
+              setIsAuthenticated(true);
+            } catch (e) {
+              setUser(null);
+              setIsAuthenticated(false);
+            }
           } else {
             setUser(null);
             setIsAuthenticated(false);
           }
-          setIsLoadingAuth(false);
-        });
-        authSubscription = listener?.subscription;
+        }
+
+        try {
+          const { data: listener } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+            if (currentSession?.user) {
+              const u = currentSession.user;
+              u.is_super_admin = u.app_metadata?.role === 'superadmin' || u.user_metadata?.role === 'superadmin' || u.email === 'pedrojesantos@hotmail.com';
+              setUser(u);
+              setIsAuthenticated(true);
+            } else {
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+            setIsLoadingAuth(false);
+          });
+          authSubscription = listener?.subscription;
+        } catch (_) {}
       } catch (err) {
         console.warn('[AuthContext] Erro ao verificar sessão do Supabase:', err);
         setUser(null);
         setIsAuthenticated(false);
       } finally {
+        if (timeoutId) clearTimeout(timeoutId);
         setIsLoadingAuth(false);
       }
     };
@@ -108,7 +131,9 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         isAuthenticated,
+        setIsAuthenticated,
         isLoadingAuth,
         authError,
         logout,

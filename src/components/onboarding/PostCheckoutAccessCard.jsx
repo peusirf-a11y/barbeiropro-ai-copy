@@ -14,12 +14,32 @@ export default function PostCheckoutAccessCard({ email, planName }) {
   const handleAccess = async () => {
     setLoading(true);
     try {
-      if (email && typeof window !== 'undefined') {
-        localStorage.setItem('barberpass_auth_email', email);
+      let checkoutData = {};
+      try {
+        const raw = localStorage.getItem('barberpass_checkout_data');
+        if (raw) checkoutData = JSON.parse(raw);
+      } catch (_) {}
+
+      const searchParams = new URLSearchParams(window.location.search);
+      const effEmail = email || searchParams.get('email') || checkoutData.email || '';
+      const effPlan = planName || searchParams.get('plano') || searchParams.get('plan') || checkoutData.plan || 'pro';
+      const effBusiness = searchParams.get('business') || checkoutData.business_name || '';
+      const effOwner = searchParams.get('owner') || checkoutData.owner_name || '';
+      const effPhone = searchParams.get('phone') || checkoutData.phone || '';
+      const effCnpj = searchParams.get('cnpj') || checkoutData.cnpj || '';
+
+      if (effEmail && typeof window !== 'undefined') {
+        localStorage.setItem('barberpass_auth_email', effEmail);
       }
+
       const params = new URLSearchParams();
-      if (email) params.set('email', email);
-      if (planName) params.set('plan', String(planName).toLowerCase());
+      if (effEmail) params.set('email', effEmail);
+      if (effPlan) params.set('plan', String(effPlan).toLowerCase());
+      if (effBusiness) params.set('business', effBusiness);
+      if (effOwner) params.set('owner', effOwner);
+      if (effPhone) params.set('phone', effPhone);
+      if (effCnpj) params.set('cnpj', effCnpj);
+
       window.location.href = `/criar-senha?${params.toString()}`;
     } catch {
       setLoading(false);
