@@ -18,6 +18,8 @@ const CSP_DIRECTIVES = {
   'img-src':         ["'self'", 'data:', 'https:', 'blob:'],
   'connect-src':     [
     "'self'",
+    'https://*.supabase.co',
+    'wss://*.supabase.co',
     'https://*.base44.com',
     'https://media.base44.com',
     'wss://*.base44.com',

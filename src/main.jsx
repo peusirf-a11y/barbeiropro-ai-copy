@@ -9,10 +9,12 @@ import { captureReferralFromUrl } from '@/lib/referralTracking'
 // Idempotente — chamadas repetidas em navegacão interna apenas sobrescrevem se houver nova ref.
 captureReferralFromUrl()
 
-// VULN-019: CSP em Enforcement Mode
-// Ativa CSP com bloqueio de recursos não-autorizados (CSP v3)
-// Violações reportadas para /api/cspReport
-initCSP({ reportOnly: false, reportUri: '/api/cspReport' })
+// CSP em Report-Only Mode para garantir estabilidade e evitar tela branca em produção
+try {
+  initCSP({ reportOnly: true, reportUri: '/api/cspReport' })
+} catch (e) {
+  console.warn('[CSP init error]', e)
+}
 
 // Log de violações no console (dev/staging)
 installCSPViolationListener((report) => {
