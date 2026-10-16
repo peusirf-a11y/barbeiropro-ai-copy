@@ -1357,15 +1357,18 @@ export async function invokeFunction(functionName, payload = {}) {
         }
 
         // action === 'me' ou validação de token
-        if (!matched && partnerList.length > 0) matched = partnerList[0];
+        if (!matched && partnerList.length > 0 && token && (token.includes('partner_session_') || token.includes('partner_token_'))) {
+          matched = partnerList[0];
+        }
+
         if (!matched) {
-          matched = {
-            id: token || `part_${Date.now()}`,
-            name: email ? email.split('@')[0] : 'Parceiro O CORTE',
-            email: email || 'parceiro@exemplo.com',
-            referral_code: 'PARC100',
-            status: 'active',
-            created_at: new Date().toISOString(),
+          return {
+            data: {
+              success: false,
+              ok: false,
+              partner: null,
+              message: 'Nenhum parceiro autenticado na sessão.',
+            },
           };
         }
 

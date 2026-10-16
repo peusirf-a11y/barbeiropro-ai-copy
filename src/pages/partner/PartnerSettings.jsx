@@ -82,6 +82,16 @@ export default function PartnerSettings() {
     }
   };
 
+  const copyCode = (code) => {
+    const targetCode = typeof code === 'string' ? code : partner?.referral_code;
+    if (targetCode) {
+      try {
+        navigator.clipboard?.writeText(targetCode);
+        toast({ title: 'Código copiado!', description: targetCode });
+      } catch (_) {}
+    }
+  };
+
   if (isLoading) {
     return (
       <PartnerLayout>

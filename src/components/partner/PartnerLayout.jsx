@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Navigate } from 'react-router-dom';
 import { LayoutDashboard, Users, DollarSign, Settings, LogOut, Gift, Menu, X } from 'lucide-react';
 import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
 import BrandMark from '@/components/BrandMark';
@@ -13,7 +13,7 @@ const NAV = [
 ];
 
 export default function PartnerLayout({ children }) {
-  const { partner, logout } = useCurrentPartner();
+  const { partner, isLoading, logout } = useCurrentPartner();
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
@@ -32,6 +32,10 @@ export default function PartnerLayout({ children }) {
       document.body.style.overflow = prev;
     };
   }, [open]);
+
+  if (!isLoading && !partner) {
+    return <Navigate to="/parceiro/login" replace />;
+  }
 
   return (
     <div className="min-h-screen text-white font-inter">
