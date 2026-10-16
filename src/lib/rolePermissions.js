@@ -15,7 +15,7 @@ export const ROLE_PERMISSIONS = {
     'dashboard', 'agenda', 'bloqueios', 'clientes', 'servicos', 'combos', 'planos', 'profissionais',
   ],
   barbeiro: [
-    'dashboard', 'agenda', 'clientes',
+    'dashboard', 'agenda', 'clientes', 'comissoes',
   ],
 };
 
