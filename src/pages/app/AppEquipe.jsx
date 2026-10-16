@@ -4,7 +4,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Mail, Loader2, Send, UserCheck, Shield, Copy, MessageCircle, Check, Sparkles } from 'lucide-react';
+import { Mail, Loader2, Send, UserCheck, Shield, Copy, MessageCircle, Check, Sparkles, Trash2, AlertCircle } from 'lucide-react';
 import MemberPermissionsModal from '@/components/equipe/MemberPermissionsModal';
 import { useToast } from '@/components/ui/use-toast';
 import AppPageHeader from '@/components/app/AppPageHeader';
@@ -24,6 +24,7 @@ export default function AppEquipe() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', role: 'recepcao' });
   const [permsTarget, setPermsTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [createdModal, setCreatedModal] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
@@ -303,6 +304,105 @@ export default function AppEquipe() {
     },
   });
 
+  // Mutação para exclusão de membro com preservação de histórico em agendamentos
+  const deleteMutation = useMutation({
+    mutationFn: async (member) => {
+      if (!member?.id) return;
+
+      if (isSupabaseConfigured && supabase) {
+        // 1. Remove o registro da tabela team_members
+        const { error: delErr } = await supabase
+          .from('team_members')
+          .delete()
+          .eq('id', member.id);
+
+        if (delErr) {
+          console.error('[Equipe] Erro ao deletar do Supabase team_members:', delErr);
+          throw new Error(delErr.message);
+        }
+
+        // 2. Trata o registro correspondente em professionals (se existir)
+        const proId = member.professional_id;
+        if (proId || member.role === 'barbeiro') {
+          try {
+            let hasAppointments = false;
+
+            if (proId) {
+              const { data: appts } = await supabase
+                .from('appointments')
+                .select('id')
+                .eq('professional_id', proId)
+                .limit(1);
+
+              hasAppointments = !!(appts && appts.length > 0);
+            }
+
+            if (!hasAppointments && member.name) {
+              const { data: apptsByName } = await supabase
+                .from('appointments')
+                .select('id')
+                .eq('professional_name', member.name)
+                .limit(1);
+
+              hasAppointments = !!(apptsByName && apptsByName.length > 0);
+            }
+
+            if (hasAppointments) {
+              // Desativa o profissional mantendo o histórico de relatórios/DRE
+              if (proId) {
+                await supabase
+                  .from('professionals')
+                  .update({ active: false })
+                  .eq('id', proId);
+              }
+            } else {
+              // Sem histórico de cortes: remove também de professionals
+              if (proId) {
+                await supabase
+                  .from('professionals')
+                  .delete()
+                  .eq('id', proId);
+              } else if (member.email) {
+                await supabase
+                  .from('professionals')
+                  .delete()
+                  .eq('email', member.email.toLowerCase().trim());
+              }
+            }
+          } catch (proEx) {
+            console.warn('[Equipe] Aviso ao verificar histórico do profissional:', proEx);
+          }
+        }
+      }
+
+      // Deleta do repositório/localStorage como fallback
+      try {
+        await base44.entities.TeamMember.delete(member.id);
+      } catch (_) {}
+
+      return member;
+    },
+    onSuccess: async (deletedMember) => {
+      setDeleteTarget(null);
+      await queryClient.invalidateQueries({ queryKey: ['team', companyId] });
+      await queryClient.invalidateQueries({ queryKey: ['team'] });
+      await refetchTeam();
+
+      toast({
+        title: 'Membro da equipe removido com sucesso!',
+        description: `${deletedMember?.name || 'O colaborador'} teve seu acesso revogado.`,
+      });
+    },
+    onError: (e) => {
+      console.error('[Equipe] Erro na exclusão de membro:', e);
+      toast({
+        title: 'Não foi possível remover o membro. Tente novamente.',
+        description: e.message || 'Tente novamente em instantes.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   if (loadingCompany || (loadingTeam && companyId)) {
     return (
       <AppLayout>
@@ -421,6 +521,15 @@ export default function AppEquipe() {
                             )}
                             Reenviar
                           </button>
+
+                          <button
+                            onClick={() => setDeleteTarget(m)}
+                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium bg-rose-500/12 text-rose-200 ring-1 ring-rose-400/25 hover:bg-rose-500/20 inline-flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Excluir membro da equipe"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                            Excluir
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -510,7 +619,7 @@ export default function AppEquipe() {
           <StandardModal
             open={!!createdModal}
             onClose={() => setCreatedModal(null)}
-            title="Membro Cadastrado no Supabase!"
+            title="Membro Cadastrado com Sucesso!"
             footer={
               <button
                 onClick={() => setCreatedModal(null)}
@@ -526,8 +635,7 @@ export default function AppEquipe() {
                 <div>
                   <p className="font-bold text-white mb-0.5">Colaborador registrado com sucesso!</p>
                   <p className="text-white/70 leading-relaxed">
-                    O registro foi inserido no Supabase na tabela <code className="font-mono text-emerald-300">team_members</code>.
-                    Compartilhe o link abaixo para o colaborador ativar a conta e criar a senha.
+                    O registro foi salvo no Supabase. Compartilhe o link abaixo para o colaborador ativar a conta e criar a senha.
                   </p>
                 </div>
               </div>
@@ -577,6 +685,57 @@ export default function AppEquipe() {
                 <MessageCircle className="w-4 h-4 text-emerald-400" />
                 <span>Enviar pelo WhatsApp para {createdModal.name.split(' ')[0]}</span>
               </button>
+            </div>
+          </StandardModal>
+        )}
+
+        {/* Modal de Confirmação de Exclusão */}
+        {deleteTarget && (
+          <StandardModal
+            open={!!deleteTarget}
+            onClose={() => setDeleteTarget(null)}
+            title="Excluir Membro da Equipe?"
+            footer={
+              <>
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={deleteMutation.isPending}
+                  className="flex-1 min-h-[48px] px-4 border border-white/12 bg-white/[0.04] text-white/80 rounded-xl text-sm font-medium hover:bg-white/[0.08] active:bg-white/[0.1] transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => deleteMutation.mutate(deleteTarget)}
+                  disabled={deleteMutation.isPending}
+                  className="flex-1 min-h-[48px] px-4 bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold rounded-xl text-sm ring-1 ring-rose-400/30 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(225,29,72,0.4)] transition-all cursor-pointer"
+                >
+                  {deleteMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Excluindo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Confirmar Exclusão</span>
+                    </>
+                  )}
+                </button>
+              </>
+            }
+          >
+            <div className="space-y-3 py-2">
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-400/20 text-xs text-rose-200 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-white text-sm mb-1">
+                    Tem certeza que deseja remover {deleteTarget.name}?
+                  </p>
+                  <p className="text-white/70 leading-relaxed">
+                    Essa ação revogará o acesso de <strong className="text-white">{deleteTarget.email}</strong> ao sistema O CORTE.
+                  </p>
+                </div>
+              </div>
             </div>
           </StandardModal>
         )}
