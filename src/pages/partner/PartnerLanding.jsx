@@ -30,56 +30,46 @@ export default function PartnerLanding() {
     }
 
     console.log('[PartnerLanding] Clique no botão "Quero ser parceiro" disparado!');
-    console.log('[PartnerLanding] Dados do formulário recebidos:', {
-      name: form.name,
-      email: form.email,
-      phone: form.phone,
-      cpf_cnpj: form.cpf_cnpj,
-      pix_key: form.pix_key,
-      hasPassword: Boolean(form.password),
-    });
-
     setError('');
 
     // 1. Validações locais com mensagens visíveis
     if (!form.name.trim()) {
       setError('Por favor, informe seu nome completo.');
-      console.warn('[PartnerLanding] Validação falhou: nome em branco.');
       return;
     }
 
     const cleanEmail = form.email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
       setError('Por favor, informe um endereço de e-mail válido.');
-      console.warn('[PartnerLanding] Validação falhou: e-mail inválido:', form.email);
       return;
     }
 
     if (!form.phone.trim() || form.phone.trim().length < 8) {
       setError('Por favor, informe seu número de WhatsApp com DDD.');
-      console.warn('[PartnerLanding] Validação falhou: telefone em branco ou curto.');
       return;
     }
 
     if (!form.cpf_cnpj.trim() || form.cpf_cnpj.trim().length < 11) {
       setError('Por favor, informe um CPF ou CNPJ válido.');
-      console.warn('[PartnerLanding] Validação falhou: CPF/CNPJ em branco ou incompleto.');
       return;
     }
 
     if (!form.password || form.password.length < 8) {
       setError('Crie uma senha de acesso com no mínimo 8 caracteres.');
-      console.warn('[PartnerLanding] Validação falhou: senha com menos de 8 caracteres.');
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log('[PartnerLanding] Iniciando envio do cadastro...');
+      console.log('[PartnerLanding] Iniciando envio do cadastro de parceiro...');
       const fingerprint = getDeviceFingerprint ? getDeviceFingerprint() : 'device_' + Date.now();
+      const cleanFirst = (form.name.trim().split(' ')[0] || 'PARC').toUpperCase().replace(/[^A-Z]/g, '');
+      const referralCode = `${cleanFirst}${Math.floor(1000 + Math.random() * 9000)}`;
 
-      // 2. Registro no Supabase Auth (se disponível)
+      let authUserId = null;
+
+      // 2. Criação da conta de autenticação no Supabase Auth (se disponível)
       if (isSupabaseConfigured && supabase?.auth?.signUp) {
         try {
           console.log('[PartnerLanding] Criando conta no Supabase Auth para o parceiro:', cleanEmail);
@@ -89,32 +79,71 @@ export default function PartnerLanding() {
             options: {
               data: {
                 name: form.name.trim(),
+                full_name: form.name.trim(),
                 phone: form.phone.trim(),
                 cpf_cnpj: form.cpf_cnpj.trim(),
                 pix_key: form.pix_key.trim(),
+                referral_code: referralCode,
                 role: 'partner',
               },
             },
           });
 
+          if (authData?.user?.id) {
+            authUserId = authData.user.id;
+          }
+
           if (authErr && !authErr.message?.includes('already registered')) {
-            console.warn('[PartnerLanding] Aviso retornado pelo Supabase Auth:', authErr.message);
+            console.warn('[PartnerLanding] Aviso no Supabase Auth signUp:', authErr.message);
           } else {
             console.log('[PartnerLanding] Registro no Supabase Auth concluído com sucesso!');
           }
         } catch (supaErr) {
-          console.warn('[PartnerLanding] Exceção silenciosa no Supabase Auth:', supaErr);
+          console.warn('[PartnerLanding] Exceção no Supabase Auth:', supaErr);
+        }
+
+        // 3. Inserção na tabela partners do Supabase
+        try {
+          console.log('[PartnerLanding] Inserindo registro na tabela partners...');
+          const partnerPayload = {
+            full_name: form.name.trim(),
+            email: cleanEmail,
+            phone: form.phone.trim(),
+            cpf_cnpj: form.cpf_cnpj.trim(),
+            pix_key: form.pix_key.trim(),
+            referral_code: referralCode,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+          };
+
+          if (authUserId) {
+            partnerPayload.id = authUserId;
+          }
+
+          const { data: partnerRow, error: insertErr } = await supabase
+            .from('partners')
+            .upsert(partnerPayload, { onConflict: 'email' })
+            .select()
+            .maybeSingle();
+
+          if (insertErr) {
+            console.warn('[PartnerLanding] Aviso ao gravar na tabela partners:', insertErr.message);
+          } else {
+            console.log('[PartnerLanding] Registro gravado na tabela partners com sucesso:', partnerRow);
+          }
+        } catch (tableErr) {
+          console.warn('[PartnerLanding] Aviso ao consultar tabela partners:', tableErr);
         }
       }
 
-      // 3. Chamada da função partnerRegister
-      console.log('[PartnerLanding] Chamando base44.functions.invoke("partnerRegister")...');
+      // 4. Chamada da função partnerRegister para manter compatibilidade com painel local e Master
       const res = await base44.functions.invoke('partnerRegister', {
         name: form.name.trim(),
         email: cleanEmail,
         phone: form.phone.trim(),
         cpf_cnpj: form.cpf_cnpj.trim(),
         pix_key: form.pix_key.trim(),
+        password: form.password,
         fingerprint,
       });
 
@@ -125,7 +154,7 @@ export default function PartnerLanding() {
         email: cleanEmail,
         phone: form.phone.trim(),
         cpf_cnpj: form.cpf_cnpj.trim(),
-        referral_code: (form.name.trim().split(' ')[0] || 'PARC').toUpperCase() + Math.floor(1000 + Math.random() * 9000),
+        referral_code: referralCode,
       };
 
       if (res?.data?.success || res?.data?.ok || partnerData) {
@@ -133,7 +162,6 @@ export default function PartnerLanding() {
         setSuccess(partnerData);
       } else {
         const errorMsg = res?.data?.message || res?.data?.error || 'Erro ao processar o cadastro de parceiro.';
-        console.error('[PartnerLanding] Erro retornado pela função:', errorMsg);
         setError(errorMsg);
       }
     } catch (err) {

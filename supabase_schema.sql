@@ -224,5 +224,48 @@ CREATE POLICY "Acesso a agendamentos" ON appointments
     FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================================================
+-- 10. TABELA: partners (Programa de Parceiros e Afiliados)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS partners (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    full_name VARCHAR(255) NOT NULL,
+    name VARCHAR(255),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    phone VARCHAR(50),
+    cpf_cnpj VARCHAR(50),
+    pix_key VARCHAR(255),
+    referral_code VARCHAR(50) UNIQUE,
+    commission_rate NUMERIC(5, 2) DEFAULT 20.00,
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'active', 'suspended'
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_partners_email ON partners(email);
+CREATE INDEX IF NOT EXISTS idx_partners_status ON partners(status);
+CREATE INDEX IF NOT EXISTS idx_partners_referral_code ON partners(referral_code);
+
+-- RLS: Habilitar Row Level Security na tabela partners
+ALTER TABLE partners ENABLE ROW LEVEL SECURITY;
+
+-- Política de Cadastro Público (Anon e Authenticated podem cadastrar novos parceiros)
+CREATE POLICY "Permitir cadastro público de parceiros" ON partners
+    FOR INSERT TO anon, authenticated
+    WITH CHECK (true);
+
+-- Política de Leitura de Parceiros
+CREATE POLICY "Permitir leitura de parceiros" ON partners
+    FOR SELECT TO anon, authenticated
+    USING (true);
+
+-- Política de Atualização de Parceiros
+CREATE POLICY "Permitir atualização de parceiros pelo próprio titular ou admin" ON partners
+    FOR UPDATE TO authenticated
+    USING (true)
+    WITH CHECK (true);
+
+-- ============================================================================
 -- FIM DO SCRIPT
 -- ============================================================================
+

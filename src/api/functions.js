@@ -1234,29 +1234,113 @@ export async function invokeFunction(functionName, payload = {}) {
       case 'partnerAuth': {
         const action = payload.action;
         const email = String(payload.email || '').trim().toLowerCase();
+        const password = String(payload.password || '').trim();
+        const token = String(payload.token || '').trim();
+
+        let partnerList = [];
+        try {
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('ocorte_partner_leads') || '[]';
+            partnerList = JSON.parse(raw);
+          }
+        } catch (_) {}
+
+        let matched = null;
+        if (email) {
+          matched = partnerList.find((p) => p.email?.toLowerCase().trim() === email);
+        } else if (token) {
+          matched = partnerList.find((p) => p.token === token || p.id === token);
+        }
 
         if (action === 'request_password_reset' || action === 'request_magic_link') {
-          const token = `rst_part_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-          const resetUrl = `/parceiro/login?token=${token}`;
+          const resetToken = `rst_part_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+          const resetUrl = `/parceiro/login?token=${resetToken}`;
           return {
             data: {
               success: true,
               ok: true,
-              reset_token: token,
+              reset_token: resetToken,
               reset_url: resetUrl,
               message: 'Link enviado com sucesso.',
             },
           };
         }
 
-        if (action === 'reset_password' || action === 'verify_magic_link' || action === 'login_password') {
+        if (action === 'login_password') {
+          if (!matched) {
+            // Se não estava no leads, cria cadastro
+            const cleanFirst = (email.split('@')[0] || 'PARC').toUpperCase().replace(/[^A-Z]/g, '');
+            matched = {
+              id: `part_${Date.now()}`,
+              name: email.split('@')[0] || 'Parceiro O CORTE',
+              email,
+              password,
+              referral_code: `${cleanFirst}100`,
+              status: 'pending',
+              created_at: new Date().toISOString(),
+            };
+            partnerList.unshift(matched);
+            try { localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList)); } catch (_) {}
+          }
+
+          // Se a senha estiver cadastrada e for divergente
+          if (matched.password && password && matched.password !== password) {
+            return {
+              data: {
+                success: false,
+                error: 'invalid_credentials',
+                message: 'Email ou senha incorretos.',
+              },
+            };
+          }
+
+          // Se estiver com status pendente de aprovação manual
+          if (matched.status === 'pending') {
+            return {
+              data: {
+                success: false,
+                error: 'pending_approval',
+                partner: matched,
+                message: 'Cadastro recebido! Sua conta de parceiro está em análise manual e aguardando aprovação.',
+              },
+            };
+          }
+
+          if (matched.status === 'suspended') {
+            return {
+              data: {
+                success: false,
+                error: 'partner_suspended',
+                message: 'Cadastro suspenso. Entre em contato com o suporte.',
+              },
+            };
+          }
+
+          const sessionToken = `partner_token_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          matched.token = sessionToken;
+          try { localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList)); } catch (_) {}
+
           return {
             data: {
               success: true,
               ok: true,
-              token: `partner_token_${Date.now()}`,
-              user: { email, role: 'partner' },
+              token: sessionToken,
+              partner: matched,
+              user: { email: matched.email, role: 'partner', name: matched.name },
             },
+          };
+        }
+
+        // action === 'me' ou validação de token
+        if (!matched && partnerList.length > 0) matched = partnerList[0];
+        if (!matched) {
+          matched = {
+            id: token || `part_${Date.now()}`,
+            name: email ? email.split('@')[0] : 'Parceiro O CORTE',
+            email: email || 'parceiro@exemplo.com',
+            referral_code: 'PARC100',
+            status: 'active',
+            created_at: new Date().toISOString(),
           };
         }
 
@@ -1264,29 +1348,9 @@ export async function invokeFunction(functionName, payload = {}) {
           data: {
             success: true,
             ok: true,
-            token: payload.token || `partner_token_${Date.now()}`,
-            user: { email: email || 'parceiro@ocorte.com', role: 'partner' },
-          },
-        };
-      }
-
-      case 'requestPasswordSetup': {
-        const email = String(payload.email || '').trim().toLowerCase();
-        if (email) {
-          const creds = await BarberCredential.filter({ email });
-          if (creds.length === 0) {
-            await BarberCredential.create({
-              email,
-              full_name: 'Proprietário',
-              role: 'owner',
-            });
-          }
-        }
-        return {
-          data: {
-            ok: true,
-            success: true,
-            wait_seconds: 60,
+            token: token || matched.token || `partner_token_${Date.now()}`,
+            partner: matched,
+            user: { email: matched.email, role: 'partner', name: matched.name },
           },
         };
       }
@@ -1297,6 +1361,7 @@ export async function invokeFunction(functionName, payload = {}) {
         const phone = String(payload.phone || '').trim();
         const cpf_cnpj = String(payload.cpf_cnpj || '').trim();
         const pix_key = String(payload.pix_key || '').trim();
+        const password = String(payload.password || '').trim();
         const cleanFirst = (name.split(' ')[0] || 'PARC').toUpperCase().replace(/[^A-Z]/g, '');
         const referral_code = `${cleanFirst}${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -1307,6 +1372,7 @@ export async function invokeFunction(functionName, payload = {}) {
           phone,
           cpf_cnpj,
           pix_key,
+          password,
           referral_code,
           status: 'pending',
           created_at: new Date().toISOString(),
@@ -1329,6 +1395,111 @@ export async function invokeFunction(functionName, payload = {}) {
             message: 'Cadastro de parceiro recebido com sucesso!',
           },
         };
+      }
+
+      case 'partnerData': {
+        const token = String(payload.token || '').trim();
+        let partnerList = [];
+        try {
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('ocorte_partner_leads') || '[]';
+            partnerList = JSON.parse(raw);
+          }
+        } catch (_) {}
+
+        let matched = partnerList.find((p) => p.token === token || p.id === token) || partnerList[0];
+        if (!matched) {
+          matched = {
+            id: 'part_active_01',
+            name: 'Parceiro O CORTE',
+            email: 'parceiro@ocorte.com',
+            referral_code: 'PARC100',
+            status: 'active',
+            pix_key: 'parceiro@ocorte.com',
+            phone: '(11) 99999-9999',
+            cpf_cnpj: '000.000.000-00',
+            created_at: new Date().toISOString(),
+          };
+        }
+
+        return {
+          data: {
+            success: true,
+            ok: true,
+            partner: matched,
+            kpis: {
+              total_referrals: 8,
+              active_subscriptions: 5,
+              total_earned: 480.00,
+              pending_payout: 120.00,
+              available_balance: 360.00,
+              conversion_rate: 62.5,
+            },
+            monthly_evolution: [
+              { month: 'Mai', referrals: 2, earnings: 96.00 },
+              { month: 'Jun', referrals: 3, earnings: 144.00 },
+              { month: 'Jul', referrals: 5, earnings: 240.00 },
+            ],
+            recent_referrals: [
+              { id: 'ref_1', company_name: 'Barbearia Vintage Club', plan_name: 'Plano Pro', status: 'active', commission: 48.00, created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
+              { id: 'ref_2', company_name: 'Studio Navalha de Ouro', plan_name: 'Plano Barber Elite', status: 'active', commission: 72.00, created_at: new Date(Date.now() - 86400000 * 5).toISOString() },
+            ],
+            recent_commissions: [
+              { id: 'comm_1', amount: 48.00, status: 'approved', description: 'Comissão Recorrente - Vintage Club', created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
+              { id: 'comm_2', amount: 72.00, status: 'approved', description: 'Comissão Recorrente - Navalha de Ouro', created_at: new Date(Date.now() - 86400000 * 5).toISOString() },
+            ],
+          },
+        };
+      }
+
+      case 'partnerAdminAction': {
+        const action = payload.action;
+        let partnerList = [];
+        try {
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('ocorte_partner_leads') || '[]';
+            partnerList = JSON.parse(raw);
+          }
+        } catch (_) {}
+
+        if (action === 'kpis') {
+          return {
+            data: {
+              success: true,
+              kpis: {
+                total_partners: Math.max(partnerList.length, 12),
+                active_partners: partnerList.filter(p => p.status === 'active').length + 10,
+                pending_partners: partnerList.filter(p => p.status === 'pending').length,
+                total_referrals: 38,
+                total_commission_paid: 3840.00,
+                pending_payouts: 480.00,
+              },
+            },
+          };
+        }
+
+        if (action === 'list_partners') {
+          return {
+            data: {
+              success: true,
+              partners: partnerList.length > 0 ? partnerList : [
+                { id: 'part_demo_01', name: 'Lucas Silveira', email: 'lucas@barberpass.com', phone: '(11) 98888-7777', cpf_cnpj: '123.456.789-00', referral_code: 'LUCAS10', status: 'active', created_at: new Date().toISOString() }
+              ],
+            },
+          };
+        }
+
+        if (action === 'approve_partner') {
+          const partnerId = payload.partner_id || payload.id;
+          const found = partnerList.find(p => p.id === partnerId);
+          if (found) {
+            found.status = 'active';
+            try { localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList)); } catch (_) {}
+          }
+          return { data: { success: true, message: 'Parceiro aprovado com sucesso!' } };
+        }
+
+        return { data: { success: true, ok: true } };
       }
 
       case 'runSystemCheck': {
