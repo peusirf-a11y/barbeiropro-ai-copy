@@ -1292,10 +1292,41 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'partnerRegister': {
+        const name = String(payload.name || '').trim();
+        const email = String(payload.email || '').trim().toLowerCase();
+        const phone = String(payload.phone || '').trim();
+        const cpf_cnpj = String(payload.cpf_cnpj || '').trim();
+        const pix_key = String(payload.pix_key || '').trim();
+        const cleanFirst = (name.split(' ')[0] || 'PARC').toUpperCase().replace(/[^A-Z]/g, '');
+        const referral_code = `${cleanFirst}${Math.floor(1000 + Math.random() * 9000)}`;
+
+        const partner = {
+          id: `part_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          name: name || 'Parceiro O CORTE',
+          email: email || 'parceiro@exemplo.com',
+          phone,
+          cpf_cnpj,
+          pix_key,
+          referral_code,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        };
+
+        try {
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('ocorte_partner_leads') || '[]';
+            const list = JSON.parse(raw);
+            list.unshift(partner);
+            localStorage.setItem('ocorte_partner_leads', JSON.stringify(list));
+          }
+        } catch (_) {}
+
         return {
           data: {
             success: true,
             ok: true,
+            partner,
+            message: 'Cadastro de parceiro recebido com sucesso!',
           },
         };
       }
