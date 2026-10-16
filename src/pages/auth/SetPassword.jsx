@@ -73,27 +73,43 @@ export default function SetPassword() {
 
     try {
       let activeUser = sessionUser;
+      const emailToUse = activeUser?.email || emailParam || localStorage.getItem('pending_activation_email') || 'colaborador@ocorte.com';
 
-      // 1. Atualiza a senha no Supabase Auth
+      // 1. Tenta atualizar ou criar o utilizador no Supabase Auth
       if (isSupabaseConfigured && supabase?.auth) {
-        const { data, error: updateErr } = await supabase.auth.updateUser({ password });
-
-        if (updateErr) {
-          console.warn('[SetPassword] Aviso no updateUser do Supabase:', updateErr.message);
-
-          if (tokenParam || emailParam) {
-            console.log('[SetPassword] Prosseguindo via token/link assinado.');
+        // Se houver sessão ativa vinda do link
+        if (activeUser) {
+          const { data, error: updateErr } = await supabase.auth.updateUser({ password });
+          if (!updateErr && data?.user) {
+            activeUser = data.user;
           } else {
-            setError(`Não foi possível salvar a senha (${updateErr.message}). Solicite um novo convite.`);
-            setLoading(false);
-            return;
+            console.warn('[SetPassword] Aviso no updateUser:', updateErr?.message);
           }
-        } else if (data?.user) {
-          activeUser = data.user;
+        } else {
+          // Se não houver sessão ativa, tenta registar a conta no Supabase Auth
+          const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+            email: emailToUse,
+            password,
+            options: {
+              data: {
+                role: 'barbeiro',
+                name: emailToUse.split('@')[0],
+              },
+            },
+          });
+
+          if (!signUpErr && signUpData?.user) {
+            activeUser = signUpData.user;
+          } else if (signUpErr?.message?.includes('already registered')) {
+            // Se a conta já existe em auth.users, tenta login com a nova senha
+            const { data: loginData } = await supabase.auth.signInWithPassword({
+              email: emailToUse,
+              password,
+            });
+            if (loginData?.user) activeUser = loginData.user;
+          }
         }
       }
-
-      const emailToUse = activeUser?.email || emailParam || localStorage.getItem('pending_activation_email') || 'colaborador@ocorte.com';
 
       // 2. Atualiza o status do membro na tabela team_members do Supabase para 'active'
       if (isSupabaseConfigured && supabase) {

@@ -96,8 +96,9 @@ export default function AppEquipe() {
     }
   };
 
-  const openWhatsAppInvite = (name, phoneOrLink, link) => {
-    const text = `Olá ${name || 'colaborador'}, seu acesso ao sistema O CORTE foi liberado! Acesse o link para definir sua senha e entrar no painel: ${link}`;
+  const openWhatsAppInvite = (name, phoneOrLink, link, tempPass) => {
+    const passMsg = tempPass ? ` Senha provisória: ${tempPass}.` : '';
+    const text = `Olá ${name || 'colaborador'}, seu acesso ao sistema O CORTE foi liberado!${passMsg} Acesse o link para criar sua senha definitiva e entrar no painel: ${link}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -185,10 +186,30 @@ export default function AppEquipe() {
         insertedMember = tmRes;
       }
 
-      // 4. Dispara o convite de autenticação pelo Supabase Auth para a rota /definir-senha
+      // 4. Provisiona o utilizador no Supabase Auth com senha provisória e dispara convite
+      const tempPassword = `corte${Math.floor(100000 + Math.random() * 900000)}`;
       let emailSent = false;
+
       if (isSupabaseConfigured && supabase?.auth) {
         try {
+          // Provisiona conta em auth.users para garantir que signInWithPassword funcione no futuro
+          const { error: signUpErr } = await supabase.auth.signUp({
+            email: cleanEmail,
+            password: tempPassword,
+            options: {
+              data: {
+                name: cleanName,
+                role,
+                company_id: companyId,
+              },
+            },
+          });
+
+          if (!signUpErr) {
+            console.log('[Equipe] Utilizador criado com sucesso em auth.users');
+          }
+
+          // Dispara também o e-mail de redefinição de senha caso o SMTP esteja ativo
           const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ocorte.vercel.app';
           const { error: authErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
             redirectTo: `${appUrl}/definir-senha?email=${encodeURIComponent(cleanEmail)}`,
@@ -197,7 +218,7 @@ export default function AppEquipe() {
             emailSent = true;
           }
         } catch (e) {
-          console.warn('[Equipe] Erro ao disparar e-mail de convite no Supabase Auth:', e);
+          console.warn('[Equipe] Erro no provisionamento Supabase Auth:', e);
         }
       }
 
@@ -225,6 +246,7 @@ export default function AppEquipe() {
         success: true,
         email_sent: emailSent,
         invite_token: token,
+        temp_password: tempPassword,
         member: memberResult,
       };
     },
@@ -249,6 +271,7 @@ export default function AppEquipe() {
         email: memberEmail,
         role: data.member?.role || form.role,
         emailSent: !!data.email_sent,
+        tempPassword: data.temp_password,
         link,
       });
 
@@ -643,6 +666,11 @@ export default function AppEquipe() {
               <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/8 space-y-1">
                 <div className="text-xs font-bold text-white">{createdModal.name}</div>
                 <div className="text-xs text-white/50">{createdModal.email}</div>
+                {createdModal.tempPassword && (
+                  <div className="text-xs text-emerald-300 font-mono font-semibold pt-1">
+                    Senha Provisória: {createdModal.tempPassword}
+                  </div>
+                )}
                 <div className="pt-1">
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${roleColors[createdModal.role] || 'bg-white/10 text-white/60'}`}>
                     {roleLabels[createdModal.role] || createdModal.role}
@@ -679,7 +707,7 @@ export default function AppEquipe() {
               </div>
 
               <button
-                onClick={() => openWhatsAppInvite(createdModal.name, null, createdModal.link)}
+                onClick={() => openWhatsAppInvite(createdModal.name, null, createdModal.link, createdModal.tempPassword)}
                 className="w-full py-3 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-200 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
               >
                 <MessageCircle className="w-4 h-4 text-emerald-400" />

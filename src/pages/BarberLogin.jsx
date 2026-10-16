@@ -43,7 +43,34 @@ export default function BarberLogin() {
 
       if (authError) {
         console.warn('[Login] Credenciais inválidas:', authError.message);
-        setError('E-mail ou senha incorretos. Verifique suas credenciais.');
+
+        // Diagnóstico: verifica se o e-mail consta na tabela team_members
+        let pendingMember = null;
+        try {
+          const { data: tmData } = await supabase
+            .from('team_members')
+            .select('*')
+            .eq('email', cleanEmail)
+            .maybeSingle();
+
+          if (tmData) pendingMember = tmData;
+        } catch (_) {}
+
+        if (pendingMember) {
+          setError(
+            <span>
+              O seu acesso ainda não foi ativado ou a sua senha precisa ser definida.{' '}
+              <Link
+                to={`/definir-senha?email=${encodeURIComponent(cleanEmail)}&token=${pendingMember.invite_token || ''}`}
+                className="font-bold underline text-[#2563EB] hover:text-blue-800"
+              >
+                Clique aqui para definir a sua senha
+              </Link>
+            </span>
+          );
+        } else {
+          setError('E-mail ou senha incorretos. Verifique suas credenciais.');
+        }
         setSubmitting(false);
         return;
       }
