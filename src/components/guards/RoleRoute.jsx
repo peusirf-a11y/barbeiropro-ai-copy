@@ -19,7 +19,8 @@ export default function RoleRoute({ roles, children }) {
   if (data?.is_super_admin) return children;
 
   if (!data || !roles.includes(data.role)) {
-    return <Navigate to="/app/dashboard" replace />;
+    const fallbackPath = data?.role === 'barbeiro' ? '/app/agenda' : '/app/dashboard';
+    return <Navigate to={fallbackPath} replace />;
   }
 
   return children;

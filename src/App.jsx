@@ -219,8 +219,8 @@ function App() {
             <Route path="/app/dashboard" element={<PrivateRoute><AppDashboard /></PrivateRoute>} />
             <Route path="/app/agenda" element={<PrivateRoute><AppAgenda /></PrivateRoute>} />
             <Route path="/app/clientes" element={<PrivateRoute><AppClientes /></PrivateRoute>} />
-            <Route path="/app/servicos" element={<PrivateRoute><AppServicos /></PrivateRoute>} />
-            <Route path="/app/profissionais" element={<PrivateRoute><AppProfissionais /></PrivateRoute>} />
+            <Route path="/app/servicos" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppServicos /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/profissionais" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppProfissionais /></RoleRoute></PrivateRoute>} />
             <Route path="/app/financeiro" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppFinanceiro /></RoleRoute></PrivateRoute>} />
             <Route path="/app/bloqueios" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppBloqueios /></RoleRoute></PrivateRoute>} />
             <Route path="/app/caixa" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppCaixa /></RoleRoute></PrivateRoute>} />
