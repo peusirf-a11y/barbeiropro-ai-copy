@@ -28,7 +28,7 @@ const COMM_STATUS = {
   cancelled: { label: 'Cancelado', cls: 'bg-rose-500/10 text-rose-200 border-rose-400/25' },
 };
 
-function Card({ title, icon: Icon, link, linkLabel, children, empty }) {
+function Card({ title, icon: Icon, link, linkLabel, children, empty, emptyMessage }) {
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5">
       <div className="flex items-center justify-between mb-3">
@@ -42,7 +42,13 @@ function Card({ title, icon: Icon, link, linkLabel, children, empty }) {
       </div>
       <div className="space-y-1.5">
         {children}
-        {empty && <p className="text-xs text-white/45 text-center py-4">Nada por aqui ainda.</p>}
+        {empty && (
+          <div className="text-center py-6 px-4">
+            <p className="text-xs text-white/50 leading-relaxed font-medium">
+              {emptyMessage || 'Nada por aqui ainda.'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -51,14 +57,21 @@ function Card({ title, icon: Icon, link, linkLabel, children, empty }) {
 export default function PartnerRecentLists({ referrals = [], commissions = [] }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card title="Últimas indicações" icon={Users} link="/parceiro/indicacoes" linkLabel="Ver todas" empty={referrals.length === 0}>
+      <Card
+        title="Últimas indicações"
+        icon={Users}
+        link="/parceiro/indicacoes"
+        linkLabel="Ver todas"
+        empty={referrals.length === 0}
+        emptyMessage="Nenhuma indicação cadastrada ainda. Compartilhe seu link para começar!"
+      >
         {referrals.map((r) => {
           const s = REF_STATUS[r.status] || REF_STATUS.pending;
           return (
             <div key={r.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8">
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-semibold text-white truncate">
-                  {r.referred_company_name || <span className="text-white/40 italic">Pendente</span>}
+                  {r.referred_company_name || r.company_name || <span className="text-white/40 italic">Pendente</span>}
                 </div>
                 <div className="text-[10px] text-white/45">
                   {safeFmt(r.created_at || r.created_date)}
@@ -70,13 +83,20 @@ export default function PartnerRecentLists({ referrals = [], commissions = [] })
         })}
       </Card>
 
-      <Card title="Últimas comissões" icon={DollarSign} link="/parceiro/comissoes" linkLabel="Ver todas" empty={commissions.length === 0}>
+      <Card
+        title="Últimas comissões"
+        icon={DollarSign}
+        link="/parceiro/comissoes"
+        linkLabel="Ver todas"
+        empty={commissions.length === 0}
+        emptyMessage="Nenhuma comissão gerada até o momento."
+      >
         {commissions.map((c) => {
           const s = COMM_STATUS[c.status] || COMM_STATUS.pending;
           return (
             <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8">
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold text-white">{brl(c.amount)} · #{c.billing_cycle}</div>
+                <div className="text-xs font-semibold text-white">{brl(c.amount)} · #{c.billing_cycle || 1}</div>
                 <div className="text-[10px] text-white/45">
                   {safeFmt(c.created_at || c.created_date)}
                 </div>

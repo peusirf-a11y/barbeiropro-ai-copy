@@ -20,27 +20,36 @@ function TooltipBox({ active, payload, label }) {
 }
 
 export default function PartnerEvolutionChart({ data = [] }) {
+  const hasData = data && data.length > 0 && data.some((d) => (Number(d.referrals) > 0 || Number(d.commissions) > 0 || Number(d.converted) > 0));
+
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-bold text-white">Evolução mensal</h3>
-          <p className="text-[11px] text-white/45 mt-0.5">Últimos 6 meses</p>
+          <p className="text-[11px] text-white/45 mt-0.5">Histórico de indicações e comissões</p>
         </div>
       </div>
-      <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-            <XAxis dataKey="month" stroke="rgba(255,255,255,0.45)" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis stroke="rgba(255,255,255,0.45)" fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip content={<TooltipBox />} cursor={{ fill: 'rgba(96,165,250,0.06)' }} />
-            <Legend wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }} iconType="circle" />
-            <Bar dataKey="referrals" name="Indicações" fill="#60A5FA" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="converted" name="Convertidas" fill="#34D399" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      {!hasData ? (
+        <div className="h-44 flex flex-col items-center justify-center rounded-xl bg-white/[0.02] border border-dashed border-white/10 text-center p-6 space-y-1">
+          <p className="text-xs font-semibold text-white/60">Sem histórico de indicações recente.</p>
+          <p className="text-[11px] text-white/40">Assim que você indicar novas barbearias, seu gráfico mensal aparecerá aqui.</p>
+        </div>
+      ) : (
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+              <XAxis dataKey="month" stroke="rgba(255,255,255,0.45)" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="rgba(255,255,255,0.45)" fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip content={<TooltipBox />} cursor={{ fill: 'rgba(96,165,250,0.06)' }} />
+              <Legend wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }} iconType="circle" />
+              <Bar dataKey="referrals" name="Indicações" fill="#60A5FA" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="converted" name="Convertidas" fill="#34D399" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }

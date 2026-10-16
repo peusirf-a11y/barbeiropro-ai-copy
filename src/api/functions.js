@@ -1399,6 +1399,8 @@ export async function invokeFunction(functionName, payload = {}) {
 
       case 'partnerData': {
         const token = String(payload.token || '').trim();
+        const action = payload.action || 'dashboard';
+
         let partnerList = [];
         try {
           if (typeof window !== 'undefined') {
@@ -1407,20 +1409,87 @@ export async function invokeFunction(functionName, payload = {}) {
           }
         } catch (_) {}
 
-        let matched = partnerList.find((p) => p.token === token || p.id === token) || partnerList[0];
+        let matched = partnerList.find((p) => p.token === token || p.id === token);
+        if (!matched && partnerList.length > 0 && token.includes('partner_')) {
+          matched = partnerList[0];
+        }
+
         if (!matched) {
           matched = {
-            id: 'part_active_01',
+            id: token || `part_${Date.now()}`,
             name: 'Parceiro O CORTE',
             email: 'parceiro@ocorte.com',
             referral_code: 'PARC100',
             status: 'active',
-            pix_key: 'parceiro@ocorte.com',
-            phone: '(11) 99999-9999',
-            cpf_cnpj: '000.000.000-00',
+            pix_key: '',
+            phone: '',
+            cpf_cnpj: '',
             created_at: new Date().toISOString(),
           };
         }
+
+        // Lê indicações e comissões persistidas para o parceiro
+        let partnerReferrals = [];
+        let partnerCommissions = [];
+        try {
+          if (typeof window !== 'undefined') {
+            const rawRefs = localStorage.getItem('ocorte_partner_referrals') || '[]';
+            const allRefs = JSON.parse(rawRefs);
+            partnerReferrals = allRefs.filter(
+              (r) => r.partner_id === matched.id || r.referral_code === matched.referral_code
+            );
+
+            const rawComms = localStorage.getItem('ocorte_partner_commissions') || '[]';
+            const allComms = JSON.parse(rawComms);
+            partnerCommissions = allComms.filter(
+              (c) => c.partner_id === matched.id || c.referral_code === matched.referral_code
+            );
+          }
+        } catch (_) {}
+
+        if (action === 'my_referrals') {
+          return {
+            data: {
+              success: true,
+              referrals: partnerReferrals,
+            },
+          };
+        }
+
+        if (action === 'my_commissions') {
+          return {
+            data: {
+              success: true,
+              commissions: partnerCommissions,
+            },
+          };
+        }
+
+        // Cálculo de KPIs dinâmicos (estritamente zerados se não houverem registros reais)
+        const total_referrals = partnerReferrals.length;
+        const converted = partnerReferrals.filter((r) => r.status === 'active' || r.status === 'converted').length;
+        const active = partnerReferrals.filter((r) => r.status === 'active').length;
+        const cancelled = partnerReferrals.filter((r) => r.status === 'cancelled').length;
+
+        const conversion_rate = total_referrals > 0 ? Math.round((converted / total_referrals) * 100) : 0;
+
+        const balance_pending = partnerCommissions
+          .filter((c) => c.status === 'pending')
+          .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+        const balance_approved = partnerCommissions
+          .filter((c) => c.status === 'approved')
+          .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+        const balance_paid = partnerCommissions
+          .filter((c) => c.status === 'paid')
+          .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+        const total_generated = balance_pending + balance_approved + balance_paid;
+        const revenue_for_ocorte = active * 240;
+        const mrr_estimated = active * 48;
+
+        const goal_progress = matched.monthly_goal ? Math.min(Math.round((active / matched.monthly_goal) * 100), 100) : 0;
 
         return {
           data: {
@@ -1428,26 +1497,28 @@ export async function invokeFunction(functionName, payload = {}) {
             ok: true,
             partner: matched,
             kpis: {
-              total_referrals: 8,
-              active_subscriptions: 5,
-              total_earned: 480.00,
-              pending_payout: 120.00,
-              available_balance: 360.00,
-              conversion_rate: 62.5,
+              balance_pending,
+              balance_approved,
+              balance_paid,
+              total_generated,
+              total_referrals,
+              converted,
+              active,
+              cancelled,
+              conversion_rate,
+              revenue_for_ocorte,
+              mrr_estimated,
+              monthly_goal: matched.monthly_goal || 10,
+              month_generated: active,
+              goal_progress,
+              my_rank: active > 0 ? 3 : '—',
+              total_partners: Math.max(partnerList.length, 1),
             },
-            monthly_evolution: [
-              { month: 'Mai', referrals: 2, earnings: 96.00 },
-              { month: 'Jun', referrals: 3, earnings: 144.00 },
-              { month: 'Jul', referrals: 5, earnings: 240.00 },
-            ],
-            recent_referrals: [
-              { id: 'ref_1', company_name: 'Barbearia Vintage Club', plan_name: 'Plano Pro', status: 'active', commission: 48.00, created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
-              { id: 'ref_2', company_name: 'Studio Navalha de Ouro', plan_name: 'Plano Barber Elite', status: 'active', commission: 72.00, created_at: new Date(Date.now() - 86400000 * 5).toISOString() },
-            ],
-            recent_commissions: [
-              { id: 'comm_1', amount: 48.00, status: 'approved', description: 'Comissão Recorrente - Vintage Club', created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
-              { id: 'comm_2', amount: 72.00, status: 'approved', description: 'Comissão Recorrente - Navalha de Ouro', created_at: new Date(Date.now() - 86400000 * 5).toISOString() },
-            ],
+            monthly_evolution: partnerReferrals.length > 0 ? [
+              { month: 'Este Mês', referrals: total_referrals, converted, commissions: total_generated },
+            ] : [],
+            recent_referrals: partnerReferrals.slice(0, 5),
+            recent_commissions: partnerCommissions.slice(0, 5),
           },
         };
       }
