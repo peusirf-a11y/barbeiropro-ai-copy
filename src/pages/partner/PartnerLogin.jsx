@@ -5,7 +5,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
 import BrandMark from '@/components/BrandMark';
 import { Loader2, Mail, CheckCircle, AlertCircle, Lock, Eye, EyeOff, KeyRound, Clock, ArrowRight } from 'lucide-react';
-import { setPartnerToken } from '@/hooks/usePartnerAuth';
+import { setPartnerToken, savePartnerSession } from '@/hooks/usePartnerAuth';
 
 export default function PartnerLogin() {
   const [mode, setMode] = useState('password'); // 'password' | 'magic'
@@ -131,13 +131,32 @@ export default function PartnerLogin() {
                   return;
                 }
                 // Status active / approved
-                setPartnerToken(`partner_session_${partnerRow.id}`);
+                const sessionPartner = {
+                  id: partnerRow.id,
+                  name: partnerRow.full_name || partnerRow.name || cleanEmail.split('@')[0],
+                  email: partnerRow.email,
+                  phone: partnerRow.phone || '',
+                  pix_key: partnerRow.pix_key || '',
+                  cpf_cnpj: partnerRow.cpf_cnpj || '',
+                  referral_code: partnerRow.referral_code || `${cleanEmail.split('@')[0].toUpperCase().replace(/[^A-Z]/g, '')}100`,
+                  status: partnerRow.status || 'active',
+                };
+                console.log('Login efetuado com os dados:', sessionPartner);
+                savePartnerSession(sessionPartner, `partner_session_${partnerRow.id}`);
                 navigate('/parceiro/dashboard', { replace: true });
                 return;
               }
             } catch (_) {}
 
-            setPartnerToken(supaData.session.access_token || `partner_session_${Date.now()}`);
+            const sessionPartner = {
+              id: supaData.session.user?.id || `part_${Date.now()}`,
+              name: supaData.session.user?.user_metadata?.name || cleanEmail.split('@')[0],
+              email: cleanEmail,
+              referral_code: `${cleanEmail.split('@')[0].toUpperCase().replace(/[^A-Z]/g, '')}100`,
+              status: 'active',
+            };
+            console.log('Login efetuado com os dados:', sessionPartner);
+            savePartnerSession(sessionPartner, supaData.session.access_token || `partner_session_${Date.now()}`);
             navigate('/parceiro/dashboard', { replace: true });
             return;
           }
@@ -168,7 +187,18 @@ export default function PartnerLogin() {
               return;
             }
             if (partnerRow.status === 'active' || partnerRow.status === 'approved') {
-              setPartnerToken(`partner_session_${partnerRow.id}`);
+              const sessionPartner = {
+                id: partnerRow.id,
+                name: partnerRow.full_name || partnerRow.name || cleanEmail.split('@')[0],
+                email: partnerRow.email,
+                phone: partnerRow.phone || '',
+                pix_key: partnerRow.pix_key || '',
+                cpf_cnpj: partnerRow.cpf_cnpj || '',
+                referral_code: partnerRow.referral_code || `${cleanEmail.split('@')[0].toUpperCase().replace(/[^A-Z]/g, '')}100`,
+                status: partnerRow.status || 'active',
+              };
+              console.log('Login efetuado com os dados:', sessionPartner);
+              savePartnerSession(sessionPartner, `partner_session_${partnerRow.id}`);
               navigate('/parceiro/dashboard', { replace: true });
               return;
             }
@@ -190,8 +220,15 @@ export default function PartnerLogin() {
       const data = res?.data;
 
       if (data?.success && data.token) {
-        console.log('[PartnerLogin] Login efetuado com sucesso! Redirecionando para /parceiro/dashboard...');
-        setPartnerToken(data.token);
+        const sessionPartner = data.partner || {
+          id: `part_${Date.now()}`,
+          name: cleanEmail.split('@')[0],
+          email: cleanEmail,
+          referral_code: `${cleanEmail.split('@')[0].toUpperCase().replace(/[^A-Z]/g, '')}100`,
+          status: 'active',
+        };
+        console.log('Login efetuado com os dados:', sessionPartner);
+        savePartnerSession(sessionPartner, data.token);
         navigate('/parceiro/dashboard', { replace: true });
         return;
       }
