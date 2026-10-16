@@ -44,6 +44,8 @@ export function useTeamRole() {
             console.log(`[useTeamRole] Membro localizado em team_members: role = '${supaTm.role}' para ${cleanEmail}`);
             return {
               role: supaTm.role || 'barbeiro',
+              name: supaTm.name || null,
+              email: supaTm.email,
               company_id: supaTm.company_id,
               professional_id: supaTm.professional_id || null,
               team_member_id: supaTm.id,
@@ -64,6 +66,8 @@ export function useTeamRole() {
           console.log(`[useTeamRole] Membro localizado via TeamMember: role = '${tm[0].role}' para ${cleanEmail}`);
           return {
             role: tm[0].role || 'barbeiro',
+            name: tm[0].name || null,
+            email: tm[0].email,
             company_id: tm[0].company_id,
             professional_id: tm[0].professional_id || null,
             team_member_id: tm[0].id,

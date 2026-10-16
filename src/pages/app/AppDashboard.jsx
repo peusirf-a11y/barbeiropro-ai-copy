@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
+import { useAuth } from '@/lib/AuthContext';
 import { canViewFinance } from '@/lib/rolePermissions';
 import { useFeatures } from '@/hooks/useFeatures';
 import { useMemo } from 'react';
@@ -24,11 +25,15 @@ import ConnectPendingBanner from '@/components/dashboard/ConnectPendingBanner';
 import RetentionCampaignsCard from '@/components/dashboard/RetentionCampaignsCard';
 
 export default function AppDashboard() {
+  const { user } = useAuth();
   const { company, companyId, isLoading: loadingCompany } = useCompany();
   const { activeUnitId, isMultiUnit } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
   const isBarbeiro = teamRole?.role === 'barbeiro';
   const myProId = teamRole?.professional_id || null;
+
+  const rawUserName = teamRole?.name || user?.user_metadata?.name || user?.full_name || (user?.email ? user.email.split('@')[0] : '');
+  const userName = rawUserName && rawUserName.toLowerCase() !== 'teste' ? rawUserName : 'Profissional';
   const showFinance = canViewFinance(teamRole?.role);
   const { has } = useFeatures();
   const showSubscriptions = showFinance && has('subscriptions');
@@ -288,9 +293,14 @@ export default function AppDashboard() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Dashboard</h1>
+          <h1 className="text-2xl lg:text-3xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+            {isBarbeiro ? `Olá, ${userName}` : 'Dashboard'}
+          </h1>
           <p className="text-white/50 text-sm mt-1 capitalize">
-            {format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} · <span className="text-white/70">{company?.name || 'Sua barbearia'}</span>
+            {format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} ·{' '}
+            <span className="text-white/70 font-medium">
+              {isBarbeiro ? userName : (company?.name && company.name.toLowerCase() !== 'teste' ? company.name : 'Sua barbearia')}
+            </span>
           </p>
         </div>
 
