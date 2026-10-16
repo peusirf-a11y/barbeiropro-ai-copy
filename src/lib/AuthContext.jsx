@@ -20,14 +20,13 @@ export const AuthProvider = ({ children }) => {
       try {
         setIsLoadingAuth(true);
 
-        // Timeout de segurança de 3 segundos para evitar travamento infinito se Supabase demorar/falhar
+        // Timeout de segurança de 12 segundos para dar margem a conexões em produção
         const authTimeoutPromise = new Promise((resolve) => {
           timeoutId = setTimeout(() => {
-            console.warn('[AuthContext] Auth init timeout reached. Forcing loading false.');
+            console.warn('[AuthContext] Auth init timeout de 12s atingido. Finalizando loading.');
             resolve({ session: null, error: new Error('Auth timeout') });
-          }, 3000);
+          }, 12000);
         });
-
 
         if (!isSupabaseConfigured || !supabase) {
           setUser(null);
@@ -43,6 +42,8 @@ export const AuthProvider = ({ children }) => {
 
         const session = res?.data?.session || res?.session || null;
         const error = res?.error || null;
+
+        console.log("[Supabase Auth] Status da sessão em produção:", session);
 
         if (error && error.message !== 'Auth timeout') {
           console.warn('[AuthContext] Session error:', error);
@@ -72,6 +73,7 @@ export const AuthProvider = ({ children }) => {
 
         try {
           const { data: listener } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+            console.log("[Supabase Auth] onAuthStateChange event:", _event, "| Session:", currentSession);
             if (currentSession?.user) {
               const u = currentSession.user;
               u.is_super_admin = u.app_metadata?.role === 'superadmin' || u.user_metadata?.role === 'superadmin' || u.email === 'pedrojesantos@hotmail.com';

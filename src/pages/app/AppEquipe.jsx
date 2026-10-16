@@ -25,12 +25,23 @@ export default function AppEquipe() {
   const [permsTarget, setPermsTarget] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { companyId } = useCompany();
+  const { companyId, isLoading: loadingCompany } = useCompany();
 
-  const { data: team = [] } = useQuery({
+  const { data: team = [], isLoading: loadingTeam } = useQuery({
     queryKey: ['team', companyId],
-    queryFn: () => base44.entities.TeamMember.filter({ company_id: companyId }),
+    queryFn: async () => {
+      console.log("[Equipe] Carregando dados da equipe para companyId:", companyId);
+      if (!companyId) return [];
+      try {
+        const res = await base44.entities.TeamMember.filter({ company_id: companyId });
+        return res || [];
+      } catch (err) {
+        console.warn("[Equipe] Erro ao carregar membros da equipe:", err);
+        return [];
+      }
+    },
     enabled: !!companyId,
+    retry: 1,
   });
 
   const inviteMutation = useMutation({
@@ -52,7 +63,6 @@ export default function AppEquipe() {
       try {
         res = await base44.functions.invoke('inviteTeamMember', data);
       } catch (httpErr) {
-        // axios lança em status >= 400; extrai o code retornado pelo backend
         const code = httpErr?.response?.data?.error;
         throw new Error(ERR_MSG[code] || code || httpErr.message || 'Falha ao convidar');
       }
@@ -97,6 +107,21 @@ export default function AppEquipe() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team', companyId] }),
   });
 
+  if (loadingCompany || (loadingTeam && companyId)) {
+    return (
+      <AppLayout>
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+          <AppPageHeader title="Equipe" subtitle="Carregando colaboradores..." icon={UserCheck} />
+          <div className="space-y-3 mt-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 rounded-2xl border border-white/8 bg-white/[0.02] animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
@@ -109,70 +134,89 @@ export default function AppEquipe() {
         </AppPageHeader>
 
         <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
-         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px]">
-            <thead>
-              <tr className="border-b border-white/8 bg-white/[0.02]">
-                <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">Membro</th>
-                <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">E-mail</th>
-                <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">Papel</th>
-                <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">Status</th>
-                <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {team.map(m => (
-                <tr key={m.id} className="border-b border-white/5 hover:bg-blue-400/5 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-full flex items-center justify-center text-xs font-bold text-white ring-1 ring-white/15 shadow-[0_4px_12px_rgba(37,99,235,0.4)]">
-                        {(m.name || '?')[0]}
-                      </div>
-                      <span className="font-semibold text-sm text-white">{m.name}</span>
-                    </div>
-                  </td>
-                  <td className="p-4 text-sm text-white/55">{m.email}</td>
-                  <td className="p-4">
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${roleColors[m.role] || 'bg-white/10 text-white/60 ring-1 ring-white/15'}`}>
-                      {roleLabels[m.role] || m.role}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <button onClick={() => updateMutation.mutate({ id: m.id, data: { active: !m.active } })}
-                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${m.active ? 'bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-400/30 hover:bg-emerald-400/25' : 'bg-white/8 text-white/50 ring-1 ring-white/15 hover:bg-white/12'}`}>
-                      {m.active ? 'Ativo' : 'Inativo'}
-                    </button>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <button
-                        onClick={() => setPermsTarget(m)}
-                        className="text-xs px-2 py-1 rounded-lg font-medium bg-violet-400/12 text-violet-200 ring-1 ring-violet-400/25 hover:bg-violet-400/20 inline-flex items-center gap-1 transition-colors"
-                        title="Configurar permissões e unidades"
-                      >
-                        <Shield className="w-3 h-3" />Permissões
-                      </button>
-                      <button
-                        onClick={() => resendMutation.mutate(m.id)}
-                        disabled={resendMutation.isPending}
-                        className="text-xs px-2 py-1 rounded-lg font-medium bg-blue-400/12 text-blue-200 ring-1 ring-blue-400/25 hover:bg-blue-400/20 inline-flex items-center gap-1 disabled:opacity-50 transition-colors"
-                        title="Reenviar e-mail de convite"
-                      >
-                        {resendMutation.isPending && resendMutation.variables === m.id
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : <Send className="w-3 h-3" />}
-                        Reenviar convite
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px]">
+              <thead>
+                <tr className="border-b border-white/8 bg-white/[0.02]">
+                  <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">Membro</th>
+                  <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">E-mail</th>
+                  <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">Papel</th>
+                  <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">Status</th>
+                  <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">Ações</th>
                 </tr>
-              ))}
-              {team.length === 0 && (
-                <tr><td colSpan={5} className="p-12 text-center text-white/45 text-sm">Nenhum membro na equipe</td></tr>
-              )}
-            </tbody>
-          </table>
-         </div>
+              </thead>
+              <tbody>
+                {team.map((m) => (
+                  <tr key={m.id} className="border-b border-white/5 hover:bg-blue-400/5 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-full flex items-center justify-center text-xs font-bold text-white ring-1 ring-white/15 shadow-[0_4px_12px_rgba(37,99,235,0.4)]">
+                          {(m.name || '?')[0]}
+                        </div>
+                        <span className="font-semibold text-sm text-white">{m.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-sm text-white/55">{m.email}</td>
+                    <td className="p-4">
+                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${roleColors[m.role] || 'bg-white/10 text-white/60 ring-1 ring-white/15'}`}>
+                        {roleLabels[m.role] || m.role}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => updateMutation.mutate({ id: m.id, data: { active: !m.active } })}
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${m.active ? 'bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-400/30 hover:bg-emerald-400/25' : 'bg-white/8 text-white/50 ring-1 ring-white/15 hover:bg-white/12'}`}
+                      >
+                        {m.active ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => setPermsTarget(m)}
+                          className="text-xs px-2 py-1 rounded-lg font-medium bg-violet-400/12 text-violet-200 ring-1 ring-violet-400/25 hover:bg-violet-400/20 inline-flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Configurar permissões e unidades"
+                        >
+                          <Shield className="w-3 h-3" />
+                          Permissões
+                        </button>
+                        <button
+                          onClick={() => resendMutation.mutate(m.id)}
+                          disabled={resendMutation.isPending}
+                          className="text-xs px-2 py-1 rounded-lg font-medium bg-blue-400/12 text-blue-200 ring-1 ring-blue-400/25 hover:bg-blue-400/20 inline-flex items-center gap-1 disabled:opacity-50 transition-colors cursor-pointer"
+                          title="Reenviar e-mail de convite"
+                        >
+                          {resendMutation.isPending && resendMutation.variables === m.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Send className="w-3 h-3" />
+                          )}
+                          Reenviar convite
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {team.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center text-white/60 text-sm">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <UserCheck className="w-8 h-8 text-white/30" />
+                        <p className="font-semibold text-white/80">Nenhum colaborador encontrado na equipe.</p>
+                        <p className="text-xs text-white/45">Convide novos membros para gerenciar permissões e acessos.</p>
+                        <button
+                          onClick={() => setShowForm(true)}
+                          className="mt-2 px-4 py-2 bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-xs font-semibold hover:brightness-110 cursor-pointer"
+                        >
+                          Convidar / Adicionar Membro
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <StandardModal
@@ -181,11 +225,16 @@ export default function AppEquipe() {
           title="Convidar Membro"
           footer={
             <>
-              <button onClick={() => setShowForm(false)} className="flex-1 min-h-[48px] px-4 border border-white/12 bg-white/[0.04] text-white/80 rounded-xl text-sm font-medium hover:bg-white/[0.08] active:bg-white/[0.1] transition-colors">Cancelar</button>
+              <button
+                onClick={() => setShowForm(false)}
+                className="flex-1 min-h-[48px] px-4 border border-white/12 bg-white/[0.04] text-white/80 rounded-xl text-sm font-medium hover:bg-white/[0.08] active:bg-white/[0.1] transition-colors"
+              >
+                Cancelar
+              </button>
               <button
                 onClick={() => inviteMutation.mutate(form)}
                 disabled={!form.name || !form.email || inviteMutation.isPending}
-                className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold ring-1 ring-white/15 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(37,99,235,0.4)] transition-all"
+                className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold ring-1 ring-white/15 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(37,99,235,0.4)] transition-all cursor-pointer"
               >
                 {inviteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 Enviar convite
@@ -201,16 +250,20 @@ export default function AppEquipe() {
             {[
               { label: 'Nome *', key: 'name', type: 'text' },
               { label: 'E-mail *', key: 'email', type: 'email' },
-            ].map(f => (
+            ].map((f) => (
               <div key={f.key}>
                 <label className="text-xs font-semibold text-white/60 block mb-1">{f.label}</label>
-                <input type={f.type} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/40 focus:outline-none" />
+                <input
+                  type={f.type}
+                  value={form[f.key]}
+                  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                  className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/40 focus:outline-none"
+                />
               </div>
             ))}
             <div>
               <label className="text-xs font-semibold text-white/60 block mb-1">Papel</label>
-              <FilterSelect value={form.role} onChange={(v) => setForm(p => ({ ...p, role: v }))} className="w-full">
+              <FilterSelect value={form.role} onChange={(v) => setForm((p) => ({ ...p, role: v }))} className="w-full">
                 <option value="admin">Admin</option>
                 <option value="recepcao">Recepção</option>
                 <option value="barbeiro">Barbeiro</option>

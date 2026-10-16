@@ -20,9 +20,9 @@ export default function PrivateRoute({ children }) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      console.log('[PrivateRoute] Timeout de segurança de 3s atingido.');
+      console.log('[PrivateRoute] Timeout de segurança de 15s atingido.');
       setTimedOut(true);
-    }, 3000);
+    }, 15000);
     return () => clearTimeout(timer);
   }, []);
 

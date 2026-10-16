@@ -12,7 +12,7 @@ export default function OnboardingGuard({ children }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       setTimedOut(true);
-    }, 3000);
+    }, 15000);
     return () => clearTimeout(timer);
   }, []);
 
