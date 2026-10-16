@@ -79,10 +79,10 @@ export default function PartnerDetailDrawer({
 }) {
   const [partner, setPartner] = useState(initialPartner || null);
   const [summary, setSummary] = useState({
-    referrals_total: 6,
-    referrals_active: 4,
-    commissions_to_pay_amount: 144.0,
-    commissions_paid_amount: 384.0,
+    referrals_total: 0,
+    referrals_active: 0,
+    commissions_to_pay_amount: 0,
+    commissions_paid_amount: 0,
   });
   const [loading, setLoading] = useState(!initialPartner);
   const [error, setError] = useState(false);

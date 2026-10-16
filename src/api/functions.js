@@ -1331,6 +1331,31 @@ export async function invokeFunction(functionName, payload = {}) {
           };
         }
 
+        if (action === 'update_profile') {
+          if (matched) {
+            if (payload.name) {
+              matched.name = payload.name;
+              matched.full_name = payload.name;
+            }
+            if (payload.phone !== undefined) matched.phone = payload.phone;
+            if (payload.pix_key !== undefined) matched.pix_key = payload.pix_key;
+            if (payload.cpf_cnpj !== undefined) matched.cpf_cnpj = payload.cpf_cnpj;
+
+            try {
+              localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList));
+            } catch (_) {}
+          }
+
+          return {
+            data: {
+              success: true,
+              ok: true,
+              partner: matched,
+              message: 'Perfil atualizado com sucesso!',
+            },
+          };
+        }
+
         // action === 'me' ou validação de token
         if (!matched && partnerList.length > 0) matched = partnerList[0];
         if (!matched) {
@@ -1585,28 +1610,59 @@ export async function invokeFunction(functionName, payload = {}) {
 
         if (action === 'partner_detail') {
           const partnerId = payload.partner_id || payload.id;
-          const found = partnerList.find(p => p.id === partnerId || p.email?.toLowerCase() === payload.email?.toLowerCase()) || partnerList[0];
+          const partnerEmail = payload.partner_email || payload.email;
+
+          const found = partnerList.find((p) =>
+            (partnerId && p.id === partnerId) ||
+            (partnerEmail && p.email?.toLowerCase() === partnerEmail.toLowerCase())
+          ) || partnerList[0];
+
+          let partnerReferrals = [];
+          let partnerCommissions = [];
+          try {
+            if (typeof window !== 'undefined') {
+              const rawRefs = localStorage.getItem('ocorte_partner_referrals') || '[]';
+              const allRefs = JSON.parse(rawRefs);
+              partnerReferrals = allRefs.filter(
+                (r) => (found?.id && r.partner_id === found.id) || (found?.referral_code && r.referral_code === found.referral_code)
+              );
+
+              const rawComms = localStorage.getItem('ocorte_partner_commissions') || '[]';
+              const allComms = JSON.parse(rawComms);
+              partnerCommissions = allComms.filter(
+                (c) => (found?.id && c.partner_id === found.id) || (found?.referral_code && c.referral_code === found.referral_code)
+              );
+            }
+          } catch (_) {}
+
+          const referrals_total = partnerReferrals.length;
+          const referrals_active = partnerReferrals.filter((r) => r.status === 'active').length;
+          const referrals_converted = partnerReferrals.filter((r) => r.status === 'active' || r.status === 'converted').length;
+          const referrals_fraud = partnerReferrals.filter((r) => r.status === 'fraud').length;
+
+          const commissions_to_pay_amount = partnerCommissions
+            .filter((c) => c.status === 'approved' || c.status === 'pending')
+            .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+          const commissions_paid_amount = partnerCommissions
+            .filter((c) => c.status === 'paid')
+            .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
           return {
             data: {
               success: true,
               partner: found,
               summary: {
-                referrals_total: 6,
-                referrals_active: 4,
-                referrals_converted: 4,
-                referrals_fraud: 0,
-                commissions_to_pay_amount: 144.00,
-                commissions_paid_amount: 384.00,
-                commissions_total_count: 5,
+                referrals_total,
+                referrals_active,
+                referrals_converted,
+                referrals_fraud,
+                commissions_to_pay_amount,
+                commissions_paid_amount,
+                commissions_total_count: partnerCommissions.length,
               },
-              referrals: [
-                { id: 'ref_1', referred_company_name: 'Barbearia Vintage Club', plan_name: 'Plano Pro', status: 'active', commission: 48.00, created_date: new Date(Date.now() - 86400000 * 3).toISOString() },
-                { id: 'ref_2', referred_company_name: 'Studio Navalha de Ouro', plan_name: 'Plano Barber Elite', status: 'active', commission: 72.00, created_date: new Date(Date.now() - 86400000 * 7).toISOString() },
-              ],
-              commissions: [
-                { id: 'comm_1', amount: 48.00, status: 'approved', billing_cycle: 1, created_date: new Date(Date.now() - 86400000 * 3).toISOString() },
-                { id: 'comm_2', amount: 72.00, status: 'approved', billing_cycle: 1, created_date: new Date(Date.now() - 86400000 * 7).toISOString() },
-              ],
+              referrals: partnerReferrals,
+              commissions: partnerCommissions,
             },
           };
         }
