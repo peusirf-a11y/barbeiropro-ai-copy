@@ -7,7 +7,7 @@ const ENTITY_TABLE_MAP = {
   Customer: 'customers',
   Service: 'services',
   Professional: 'professionals',
-  TeamMember: 'professionals',
+  TeamMember: 'team_members',
   Appointment: 'appointments',
   CustomerSubscription: 'customer_subscriptions',
   FinancialEntry: 'financial_entries',

@@ -1092,6 +1092,22 @@ export async function invokeFunction(functionName, payload = {}) {
         };
       }
 
+      case 'requestPasswordSetup': {
+        const email = String(payload.email || '').trim().toLowerCase();
+        if (!email) {
+          return { data: { ok: false, error: 'EMAIL_REQUIRED', message: 'E-mail obrigatório' } };
+        }
+        return {
+          data: {
+            ok: true,
+            success: true,
+            email_sent: true,
+            wait_seconds: 60,
+            message: 'Código de acesso gerado com sucesso.',
+          },
+        };
+      }
+
       case 'requestBarberPasswordReset': {
         const email = String(payload.email || '').trim().toLowerCase();
         const token = `rst_barber_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
