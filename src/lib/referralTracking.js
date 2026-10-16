@@ -79,6 +79,9 @@ export function captureReferralFromUrl() {
       landing: window.location.pathname + window.location.search,
     };
     _writeRaw(payload);
+    try {
+      window.localStorage.setItem('partner_ref', code);
+    } catch (_) {}
     return code;
   } catch {
     return null;
@@ -98,7 +101,14 @@ export function getActiveReferral() {
  */
 export function getReferralCode() {
   const r = _readRaw();
-  return r?.code || null;
+  if (r?.code) return r.code;
+  if (typeof window !== 'undefined') {
+    try {
+      const pRef = window.localStorage.getItem('partner_ref');
+      if (pRef) return pRef.trim();
+    } catch (_) {}
+  }
+  return null;
 }
 
 /**

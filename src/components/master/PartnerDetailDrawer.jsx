@@ -164,8 +164,9 @@ export default function PartnerDetailDrawer({
   const statusObj = p ? STATUS_PARTNER[p.status] || STATUS_PARTNER.pending : null;
   const waNumber = p ? cleanPhoneForWa(p.phone || p.whatsapp) : null;
   const waLink = waNumber ? `https://wa.me/${waNumber}` : null;
+  const BASE_DOMAIN = import.meta.env.VITE_APP_URL || 'https://ocorte.vercel.app';
   const referralLink = p?.referral_code
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/landing?ref=${p.referral_code}`
+    ? `${BASE_DOMAIN}/landing?ref=${p.referral_code}`
     : '';
 
   const isPending = p?.status === 'pending';

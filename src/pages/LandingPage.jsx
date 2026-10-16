@@ -19,12 +19,27 @@ import PremiumTestimonials from '@/components/landing/PremiumTestimonials';
 import PremiumCTA from '@/components/landing/PremiumCTA';
 import PremiumFooter from '@/components/landing/PremiumFooter';
 
+import { captureReferralFromUrl } from '@/lib/referralTracking';
+
 export default function LandingPage() {
   const { isAuthenticated, isLoadingAuth, user } = useAuth();
   const [landingMode, setLandingMode] = useState(null); // null | 'default' | 'launch'
 
-  // Lê a flag `landing_mode` via endpoint público (usuários deslogados
-  // não têm permissão para ler FeatureFlag direto pelo SDK).
+  // Captura código de indicação do parceiro (?ref=)
+  useEffect(() => {
+    try {
+      captureReferralFromUrl();
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const refParam = params.get('ref');
+        if (refParam) {
+          localStorage.setItem('partner_ref', refParam.trim());
+        }
+      }
+    } catch (_) {}
+  }, []);
+
+  // Lê a flag `landing_mode` via endpoint público
   useEffect(() => {
     (async () => {
       try {

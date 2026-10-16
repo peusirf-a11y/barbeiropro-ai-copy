@@ -32,9 +32,13 @@ export default function PartnerDashboard() {
   const evolution = data?.monthly_evolution || [];
   const recentRefs = data?.recent_referrals || [];
   const recentComms = data?.recent_commissions || [];
-  const referralLink = partner ? `${window.location.origin}/landing?ref=${partner.referral_code}` : '';
+  const BASE_DOMAIN = import.meta.env.VITE_APP_URL || 'https://ocorte.vercel.app';
+  const referralLink = partner?.referral_code
+    ? `${BASE_DOMAIN}/landing?ref=${partner.referral_code}`
+    : '';
 
   const copyLink = async () => {
+    if (!referralLink) return;
     try {
       await navigator.clipboard.writeText(referralLink);
       setCopied(true);

@@ -26,8 +26,23 @@ import LaunchFinalCTA from '@/components/launch/LaunchFinalCTA';
 
 const VAGAS_TOTAIS = 10;
 
+import { captureReferralFromUrl } from '@/lib/referralTracking';
+
 export default function LaunchLandingPage() {
   const { isAuthenticated, isLoadingAuth, user } = useAuth();
+
+  useEffect(() => {
+    try {
+      captureReferralFromUrl();
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const refParam = params.get('ref');
+        if (refParam) {
+          localStorage.setItem('partner_ref', refParam.trim());
+        }
+      }
+    } catch (_) {}
+  }, []);
   const [vagasRestantes, setVagasRestantes] = useState(VAGAS_TOTAIS);
 
   // SEO + título
