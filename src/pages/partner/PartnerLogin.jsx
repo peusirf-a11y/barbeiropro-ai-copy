@@ -120,16 +120,17 @@ export default function PartnerLogin() {
                 .maybeSingle();
 
               if (partnerRow) {
+                if (partnerRow.status === 'blocked' || partnerRow.status === 'rejected' || partnerRow.status === 'suspended') {
+                  setError('Seu cadastro foi recusado ou desativado pela administração.');
+                  setLoading(false);
+                  return;
+                }
                 if (partnerRow.status === 'pending' || partnerRow.status === 'em_analise') {
                   setPendingApproval(partnerRow);
                   setLoading(false);
                   return;
                 }
-                if (partnerRow.status === 'suspended') {
-                  setError('Cadastro suspenso. Entre em contato com o suporte.');
-                  setLoading(false);
-                  return;
-                }
+                // Status active / approved
                 setPartnerToken(`partner_session_${partnerRow.id}`);
                 navigate('/parceiro/dashboard', { replace: true });
                 return;
@@ -156,14 +157,19 @@ export default function PartnerLogin() {
 
           if (partnerRow) {
             console.log('[PartnerLogin] Registro encontrado na tabela partners:', partnerRow);
+            if (partnerRow.status === 'blocked' || partnerRow.status === 'rejected' || partnerRow.status === 'suspended') {
+              setError('Seu cadastro foi recusado ou desativado pela administração.');
+              setLoading(false);
+              return;
+            }
             if (partnerRow.status === 'pending' || partnerRow.status === 'em_analise') {
               setPendingApproval(partnerRow);
               setLoading(false);
               return;
             }
-            if (partnerRow.status === 'suspended') {
-              setError('Cadastro suspenso. Entre em contato com o suporte.');
-              setLoading(false);
+            if (partnerRow.status === 'active' || partnerRow.status === 'approved') {
+              setPartnerToken(`partner_session_${partnerRow.id}`);
+              navigate('/parceiro/dashboard', { replace: true });
               return;
             }
           }
@@ -190,6 +196,12 @@ export default function PartnerLogin() {
         return;
       }
 
+      // Se rejeitado ou bloqueado
+      if (data?.error === 'partner_blocked' || data?.error === 'partner_suspended' || data?.error === 'partner_rejected') {
+        setError('Seu cadastro foi recusado ou desativado pela administração.');
+        return;
+      }
+
       // Se aguardando aprovação manual
       if (data?.error === 'pending_approval') {
         console.warn('[PartnerLogin] Conta aguardando aprovação manual.');
@@ -201,11 +213,6 @@ export default function PartnerLogin() {
       // Se credenciais inválidas
       if (data?.error === 'invalid_credentials') {
         setError('Email ou senha incorretos.');
-        return;
-      }
-
-      if (data?.error === 'partner_suspended') {
-        setError('Cadastro suspenso. Entre em contato com o suporte.');
         return;
       }
 

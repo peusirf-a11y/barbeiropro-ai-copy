@@ -1306,12 +1306,12 @@ export async function invokeFunction(functionName, payload = {}) {
             };
           }
 
-          if (matched.status === 'suspended') {
+          if (matched.status === 'suspended' || matched.status === 'blocked' || matched.status === 'rejected') {
             return {
               data: {
                 success: false,
-                error: 'partner_suspended',
-                message: 'Cadastro suspenso. Entre em contato com o suporte.',
+                error: 'partner_blocked',
+                message: 'Seu cadastro foi recusado ou desativado pela administração.',
               },
             };
           }
@@ -1489,14 +1489,55 @@ export async function invokeFunction(functionName, payload = {}) {
           };
         }
 
-        if (action === 'approve_partner') {
+        if (action === 'approve_partner' || action === 'activate_partner') {
           const partnerId = payload.partner_id || payload.id;
-          const found = partnerList.find(p => p.id === partnerId);
+          const partnerEmail = payload.partner_email || payload.email;
+          const found = partnerList.find(p => (partnerId && p.id === partnerId) || (partnerEmail && p.email?.toLowerCase() === partnerEmail.toLowerCase()));
           if (found) {
             found.status = 'active';
             try { localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList)); } catch (_) {}
           }
           return { data: { success: true, message: 'Parceiro aprovado com sucesso!' } };
+        }
+
+        if (action === 'reject_partner' || action === 'block_partner' || action === 'suspend_partner') {
+          const partnerId = payload.partner_id || payload.id;
+          const partnerEmail = payload.partner_email || payload.email;
+          const found = partnerList.find(p => (partnerId && p.id === partnerId) || (partnerEmail && p.email?.toLowerCase() === partnerEmail.toLowerCase()));
+          if (found) {
+            found.status = 'blocked';
+            found.block_reason = payload.reason || 'Bloqueado pela administração';
+            try { localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList)); } catch (_) {}
+          }
+          return { data: { success: true, message: 'Parceiro bloqueado/rejeitado com sucesso!' } };
+        }
+
+        if (action === 'partner_detail') {
+          const partnerId = payload.partner_id || payload.id;
+          const found = partnerList.find(p => p.id === partnerId || p.email?.toLowerCase() === payload.email?.toLowerCase()) || partnerList[0];
+          return {
+            data: {
+              success: true,
+              partner: found,
+              summary: {
+                referrals_total: 6,
+                referrals_active: 4,
+                referrals_converted: 4,
+                referrals_fraud: 0,
+                commissions_to_pay_amount: 144.00,
+                commissions_paid_amount: 384.00,
+                commissions_total_count: 5,
+              },
+              referrals: [
+                { id: 'ref_1', referred_company_name: 'Barbearia Vintage Club', plan_name: 'Plano Pro', status: 'active', commission: 48.00, created_date: new Date(Date.now() - 86400000 * 3).toISOString() },
+                { id: 'ref_2', referred_company_name: 'Studio Navalha de Ouro', plan_name: 'Plano Barber Elite', status: 'active', commission: 72.00, created_date: new Date(Date.now() - 86400000 * 7).toISOString() },
+              ],
+              commissions: [
+                { id: 'comm_1', amount: 48.00, status: 'approved', billing_cycle: 1, created_date: new Date(Date.now() - 86400000 * 3).toISOString() },
+                { id: 'comm_2', amount: 72.00, status: 'approved', billing_cycle: 1, created_date: new Date(Date.now() - 86400000 * 7).toISOString() },
+              ],
+            },
+          };
         }
 
         return { data: { success: true, ok: true } };
