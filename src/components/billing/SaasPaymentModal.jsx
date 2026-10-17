@@ -111,10 +111,8 @@ export default function SaasPaymentModal({
       });
 
       setPaidSuccess(true);
-      setTimeout(() => {
-        onSuccess?.();
-        onClose();
-      }, 1600);
+      onSuccess?.();
+      onClose();
     } catch (err) {
       console.warn('[SaasPaymentModal] Erro ao validar cartão no Asaas:', err);
       setError(err?.message || 'Cartão não autorizado ou dados inválidos. Verifique as informações ou utilize outro cartão.');

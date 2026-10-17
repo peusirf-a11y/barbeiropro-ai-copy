@@ -26,6 +26,13 @@ export default function PixPaymentBox({
   const targetApptId = appointmentId || pixData?.appointmentId || pixData?.appointment_id || '';
   const payload = pixData?.payload || pixData?.copy_paste || '';
 
+  const hasRealPaymentId = Boolean(
+    targetPaymentId &&
+    targetPaymentId.startsWith('pay_') &&
+    !targetPaymentId.startsWith('pay_mock_') &&
+    !targetPaymentId.startsWith('pay_test_')
+  );
+
   const rawImage = pixData?.encodedImage || pixData?.qr_code_base64 || '';
   const encodedImage = String(rawImage).replace(/^data:image\/png;base64,/, '');
 
@@ -44,7 +51,7 @@ export default function PixPaymentBox({
 
   // Consulta de status real do pagamento no Asaas (GET /v3/payments/{id} via /api/payments/status)
   const checkStatus = useCallback(async (isManualClick = false) => {
-    if (checking) return;
+    if (!hasRealPaymentId || checking) return;
     setChecking(true);
 
     if (isManualClick) {
@@ -53,15 +60,15 @@ export default function PixPaymentBox({
 
     try {
       const queryParams = new URLSearchParams();
-      if (targetPaymentId) queryParams.set('paymentId', targetPaymentId);
+      queryParams.set('paymentId', targetPaymentId);
       if (targetApptId) queryParams.set('appointmentId', targetApptId);
       if (companyId) queryParams.set('companyId', companyId);
 
       const res = await fetch(`/api/payments/status?${queryParams.toString()}`);
       const data = await res.json().catch(() => null);
 
-      // NUNCA avança para "Agendado!" a menos que retorne explicitamente { status: 'RECEIVED' } ou { status: 'CONFIRMED' }
-      const isPaid = data?.status === 'RECEIVED' || data?.status === 'CONFIRMED';
+      // NUNCA altera o estado para "Agendado" sem uma resposta HTTP 200 contendo status 'RECEIVED' ou 'CONFIRMED' do Asaas
+      const isPaid = res.status === 200 && (data?.status === 'RECEIVED' || data?.status === 'CONFIRMED');
 
       if (isPaid) {
         setFeedback('Pagamento confirmado com sucesso!');
@@ -100,20 +107,19 @@ export default function PixPaymentBox({
     } finally {
       setChecking(false);
     }
-  }, [checking, targetPaymentId, targetApptId, companyId, onPaid]);
+  }, [hasRealPaymentId, checking, targetPaymentId, targetApptId, companyId, onPaid]);
 
   // Polling periódico a cada 5 segundos chamando o endpoint de verificação real no Asaas
   useEffect(() => {
-    if (!targetPaymentId && !targetApptId) return;
+    if (!hasRealPaymentId) return;
     const poll = setInterval(() => checkStatus(false), 5000);
     return () => clearInterval(poll);
-  }, [targetPaymentId, targetApptId, checkStatus]);
+  }, [hasRealPaymentId, checkStatus]);
 
   const copyCode = () => {
     if (!payload) return;
     navigator.clipboard.writeText(payload);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
   };
 
   const minutes = Math.floor(timeLeft / 60);
@@ -184,12 +190,12 @@ export default function PixPaymentBox({
         <li>Confira o valor e confirme a transferência</li>
       </ol>
 
-      {/* Botão "Já paguei" com consulta imediata e validação estrita */}
+      {/* Botão "Já paguei" desabilitado se não houver payment_id real do Asaas */}
       <button
         type="button"
         onClick={() => checkStatus(true)}
-        disabled={checking || timeLeft === 0}
-        className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-md"
+        disabled={!hasRealPaymentId || checking || timeLeft === 0}
+        className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-md"
         style={{ backgroundColor: primaryColor }}
       >
         {checking ? (

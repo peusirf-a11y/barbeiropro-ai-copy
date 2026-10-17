@@ -1083,33 +1083,56 @@ export async function invokeFunction(functionName, payload = {}) {
           return { data: { success: false, message: 'Cartão recusado pelo banco emissor (simulação de teste).' } };
         }
 
-        // Se a barbearia tiver chave, processa via conta direta
-        if (barberApiKey) {
-          try {
-            await asaasRequest('POST', '/payments', {
-              apiKey: barberApiKey,
-              body: {
-                billingType: 'CREDIT_CARD',
-                value: price,
-                dueDate: new Date().toISOString().split('T')[0],
-                description: `Agendamento - ${customerName}`,
-                creditCard: payload.card,
-                creditCardHolderInfo: payload.holder_info || {
-                  name: payload.card?.holderName || customerName,
-                  email: payload.booking?.customer_email || payload.customer_email || 'cliente@barbearia.com',
-                  cpfCnpj: payload.booking?.customer_cpf || payload.customer_cpf || '00000000000',
-                  postalCode: '01310100',
-                  addressNumber: '100',
-                  phone: payload.booking?.customer_phone || payload.customer_phone || '11999999999',
-                },
-              },
-            });
-          } catch (err) {
-            console.warn('[chargeBookingWithCard] Aviso na cobrança com cartão da barbearia:', err);
-          }
+        if (!barberApiKey) {
+          return {
+            data: {
+              success: false,
+              error: 'ASAAS_NOT_CONFIGURED',
+              message: 'Não foi possível processar o pagamento no Asaas. Verifique a chave de API da barbearia.',
+            },
+          };
         }
 
-        let appointmentId = `apt_${Date.now()}`;
+        let realCardPaymentId = null;
+        try {
+          const payRes = await asaasRequest('POST', '/payments', {
+            apiKey: barberApiKey,
+            body: {
+              billingType: 'CREDIT_CARD',
+              value: price,
+              dueDate: new Date().toISOString().split('T')[0],
+              description: `Agendamento - ${customerName}`,
+              creditCard: payload.card,
+              creditCardHolderInfo: payload.holder_info || {
+                name: payload.card?.holderName || customerName,
+                email: payload.booking?.customer_email || payload.customer_email || 'cliente@barbearia.com',
+                cpfCnpj: payload.booking?.customer_cpf || payload.customer_cpf || '39053344705',
+                postalCode: '01310100',
+                addressNumber: '100',
+                phone: payload.booking?.customer_phone || payload.customer_phone || '11988887777',
+              },
+            },
+          });
+          realCardPaymentId = payRes?.data?.id || null;
+          const cardStatus = String(payRes?.data?.status || '').toUpperCase();
+          if (!realCardPaymentId || (cardStatus !== 'CONFIRMED' && cardStatus !== 'RECEIVED')) {
+            return {
+              data: {
+                success: false,
+                message: 'Pagamento com cartão não autorizado pelo Asaas.',
+              },
+            };
+          }
+        } catch (err) {
+          return {
+            data: {
+              success: false,
+              message: err?.message || 'Falha na cobrança com cartão no Asaas.',
+            },
+          };
+        }
+
+        let appointmentId = null;
         if (payload.booking) {
           try {
             const b = payload.booking;
@@ -1129,9 +1152,9 @@ export async function invokeFunction(functionName, payload = {}) {
               time: timeVal,
               scheduled_at: b.scheduled_at || `${dateVal}T${timeVal}:00-03:00`,
               price: price,
-              status: 'agendado',
-              payment_status: 'paid',
-              payment_id: `pay_card_${Date.now()}`,
+              status: 'confirmed',
+              payment_status: 'confirmed',
+              payment_id: realCardPaymentId,
               notes: b.notes || '',
             });
             if (created?.id) appointmentId = created.id;
@@ -1144,7 +1167,7 @@ export async function invokeFunction(functionName, payload = {}) {
           data: {
             success: true,
             status: 'CONFIRMED',
-            payment_id: `pay_card_${Date.now()}`,
+            payment_id: realCardPaymentId,
             appointment_id: appointmentId,
           },
         };
@@ -1155,7 +1178,6 @@ export async function invokeFunction(functionName, payload = {}) {
       // ==========================================
       case 'createAsaasSaasSubscription': {
         const companyId = payload.company_id || (await resolveCompanyId(payload));
-        const company = companyId ? await Company.get(companyId) : null;
         const planId = payload.plan_id || 'pro';
         const cycle = payload.cycle === 'yearly' ? 'YEARLY' : 'MONTHLY';
         const method = payload.payment_method || 'PIX';
@@ -1165,13 +1187,12 @@ export async function invokeFunction(functionName, payload = {}) {
         const basePrice = Number(targetPlan.price_monthly || targetPlan.price || 89);
         const amount = cycle === 'YEARLY' ? Math.round(basePrice * 12 * 0.8) : basePrice;
 
-        const paymentId = `saas_sub_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        let paymentId = null;
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
         let pixData = null;
         if (method === 'PIX') {
           try {
-            // Tenta criar cobrança na conta mãe Asaas via ASAAS_API_KEY
             const paymentRes = await asaasRequest('POST', '/payments', {
               body: {
                 billingType: 'PIX',
@@ -1182,8 +1203,9 @@ export async function invokeFunction(functionName, payload = {}) {
             });
 
             if (paymentRes?.data?.id) {
+              paymentId = paymentRes.data.id;
               const qrRes = await asaasRequest('GET', `/payments/${paymentRes.data.id}/pixQrCode`);
-              if (qrRes?.data?.encodedImage) {
+              if (qrRes?.data?.encodedImage && qrRes?.data?.payload) {
                 pixData = {
                   qr_code_base64: `data:image/png;base64,${qrRes.data.encodedImage}`,
                   copy_paste: qrRes.data.payload,
@@ -1196,11 +1218,12 @@ export async function invokeFunction(functionName, payload = {}) {
           }
 
           if (!pixData) {
-            const copyPaste = `00020126580014br.gov.bcb.pix0136ocorte-saas-${paymentId}520400005303986540${amount.toFixed(2)}5802BR5913O CORTE SAAS6009SAO PAULO62070503***6304E2CA`;
-            pixData = {
-              qr_code_base64: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(copyPaste)}`,
-              copy_paste: copyPaste,
-              expires_at: expiresAt,
+            return {
+              data: {
+                success: false,
+                error: 'Não foi possível gerar a cobrança Pix no Asaas. Verifique a chave de API da barbearia.',
+                message: 'Não foi possível gerar a cobrança Pix no Asaas. Verifique a chave de API da barbearia.',
+              },
             };
           }
         } else if (method === 'CREDIT_CARD') {

@@ -50,11 +50,8 @@ export default function AuthGateModal({
   }, []);
 
   const handleSuccess = (customerId, token) => {
-    // Aguarda um pouco para animação, depois fecha
-    setTimeout(() => {
-      onSuccess(customerId, token);
-      onClose();
-    }, 300);
+    onSuccess(customerId, token);
+    onClose();
   };
 
   return (

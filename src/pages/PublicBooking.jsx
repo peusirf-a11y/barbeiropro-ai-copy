@@ -499,7 +499,7 @@ export default function PublicBooking() {
             }
           } catch { /* segue mesmo assim — useCustomerAuth refaz o me() no próximo render */ }
           setShowAuthGate(false);
-          setTimeout(() => setShowBookingModal(true), 300);
+          setShowBookingModal(true);
         }}
       />
     </div>

@@ -10,7 +10,6 @@ function toSafeUuid(val) {
   return null;
 }
 
-// Valida dígitos verificadores de CPF (módulo 11) para garantir aceitação na API de produção do Asaas
 function isValidCpf(cpf) {
   const digits = String(cpf || '').replace(/\D/g, '');
   if (digits.length !== 11) return false;
@@ -40,7 +39,6 @@ function resolveValidCpf(rawCpf) {
   if (isValidCpf(cleaned)) {
     return cleaned;
   }
-  // CPF válido padrão caso o cliente não tenha informado ou tenha digitado CPF de teste inválido
   return '39053344705';
 }
 
@@ -55,13 +53,15 @@ function getAsaasBaseUrl(apiKey) {
   return 'https://api.asaas.com/v3';
 }
 
+const DEFAULT_PIX_ERROR = 'Não foi possível gerar a cobrança Pix no Asaas. Verifique a chave de API da barbearia.';
+
 export async function handleCreatePix(body = {}) {
   try {
     const rawCompanyId = body.companyId || body.company_id || null;
     const rawServiceId = body.serviceId || body.service_id || null;
     const rawProfessionalId = body.professionalId || body.professional_id || null;
 
-    let companyId = toSafeUuid(rawCompanyId);
+    const companyId = toSafeUuid(rawCompanyId);
     const serviceId = toSafeUuid(rawServiceId);
     const professionalId = toSafeUuid(rawProfessionalId);
 
@@ -94,36 +94,13 @@ export async function handleCreatePix(body = {}) {
       }
     }
 
-    // Fallback para empresa com chave ativa no Supabase se a companyId não tiver chave própria
-    if (!companyApiKey && supabase) {
-      try {
-        const { data: fallbackComp } = await supabase
-          .from('companies')
-          .select('id, name, asaas_api_key')
-          .not('asaas_api_key', 'is', null)
-          .limit(1)
-          .maybeSingle();
-
-        if (fallbackComp?.asaas_api_key) {
-          companyApiKey = fallbackComp.asaas_api_key.trim();
-          if (!companyId) {
-            companyId = fallbackComp.id;
-          }
-        }
-      } catch (_) {}
-    }
-
-    if (!companyApiKey && process.env.ASAAS_API_KEY) {
-      companyApiKey = process.env.ASAAS_API_KEY.trim();
-    }
-
     if (!companyApiKey) {
       return {
         status: 400,
         body: {
           success: false,
-          error: 'A barbearia ainda não configurou a chave de API do Asaas.',
-          message: 'A barbearia ainda não configurou a chave de API do Asaas.',
+          error: DEFAULT_PIX_ERROR,
+          message: DEFAULT_PIX_ERROR,
         },
       };
     }
@@ -147,7 +124,6 @@ export async function handleCreatePix(body = {}) {
       const searchData = await searchRes.json().catch(() => null);
       if (searchRes.ok && Array.isArray(searchData?.data) && searchData.data.length > 0) {
         customerId = searchData.data[0].id;
-        // Garante que o cliente encontrado possui cpfCnpj preenchido
         if (!searchData.data[0].cpfCnpj) {
           await fetch(`${baseUrl}/customers/${customerId}`, {
             method: 'POST',
@@ -181,7 +157,6 @@ export async function handleCreatePix(body = {}) {
       if (createCustRes.ok && createCustData?.id) {
         customerId = createCustData.id;
       } else {
-        // Retry apenas com name + cpfCnpj (caso telefone ou email tenham sido recusados pelo validador do Asaas)
         const retryCustRes = await fetch(`${baseUrl}/customers`, {
           method: 'POST',
           headers,
@@ -194,13 +169,12 @@ export async function handleCreatePix(body = {}) {
         if (retryCustRes.ok && retryCustData?.id) {
           customerId = retryCustData.id;
         } else {
-          const errDesc = retryCustData?.errors?.[0]?.description || createCustData?.errors?.[0]?.description || 'Falha ao registrar cliente no Asaas.';
           return {
             status: 400,
             body: {
               success: false,
-              error: errDesc,
-              message: errDesc,
+              error: DEFAULT_PIX_ERROR,
+              message: DEFAULT_PIX_ERROR,
             },
           };
         }
@@ -222,7 +196,6 @@ export async function handleCreatePix(body = {}) {
     });
     let payData = await payRes.json().catch(() => null);
 
-    // Se o serviço cadastrado for menor que R$ 5,00 e o Asaas exigir mínimo de R$ 5,00, ajusta para 5.00
     if (!payRes.ok && servicePrice < 5) {
       payRes = await fetch(`${baseUrl}/payments`, {
         method: 'POST',
@@ -239,13 +212,12 @@ export async function handleCreatePix(body = {}) {
     }
 
     if (!payRes.ok || !payData?.id) {
-      const asaasMsg = payData?.errors?.[0]?.description || payData?.message || 'Erro ao criar cobrança Pix no Asaas.';
       return {
         status: 400,
         body: {
           success: false,
-          error: `Erro Asaas: ${asaasMsg}`,
-          message: `Erro Asaas: ${asaasMsg}`,
+          error: DEFAULT_PIX_ERROR,
+          message: DEFAULT_PIX_ERROR,
         },
       };
     }
@@ -260,13 +232,12 @@ export async function handleCreatePix(body = {}) {
     const qrData = await qrRes.json().catch(() => null);
 
     if (!qrRes.ok || !qrData?.encodedImage || !qrData?.payload) {
-      const qrErrMsg = qrData?.errors?.[0]?.description || 'Não foi possível obter o QR Code Pix no Asaas.';
       return {
         status: 400,
         body: {
           success: false,
-          error: qrErrMsg,
-          message: qrErrMsg,
+          error: DEFAULT_PIX_ERROR,
+          message: DEFAULT_PIX_ERROR,
         },
       };
     }
@@ -352,8 +323,8 @@ export async function handleCreatePix(body = {}) {
       status: 500,
       body: {
         success: false,
-        error: err.message || 'Erro interno ao criar cobrança Pix.',
-        message: err.message || 'Erro interno ao criar cobrança Pix.',
+        error: DEFAULT_PIX_ERROR,
+        message: DEFAULT_PIX_ERROR,
       },
     };
   }
@@ -405,24 +376,6 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId) {
       } catch (_) {}
     }
 
-    if (!asaasApiKey && supabase) {
-      try {
-        const { data: fallbackComp } = await supabase
-          .from('companies')
-          .select('asaas_api_key')
-          .not('asaas_api_key', 'is', null)
-          .limit(1)
-          .maybeSingle();
-        if (fallbackComp?.asaas_api_key) {
-          asaasApiKey = fallbackComp.asaas_api_key.trim();
-        }
-      } catch (_) {}
-    }
-
-    if (!asaasApiKey && process.env.ASAAS_API_KEY) {
-      asaasApiKey = process.env.ASAAS_API_KEY.trim();
-    }
-
     if (!asaasApiKey || !targetPaymentId) {
       return {
         status: 200,
@@ -450,7 +403,6 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId) {
     const asaasStatus = String(asaasData?.status || 'PENDING').toUpperCase();
 
     if (asaasRes.ok && (asaasStatus === 'RECEIVED' || asaasStatus === 'CONFIRMED')) {
-      // Atualiza o agendamento no Supabase para status: 'confirmed'
       if (supabase) {
         try {
           let updateQuery = supabase.from('appointments').update({

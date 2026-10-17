@@ -54,7 +54,7 @@ function asaasApiDevPlugin() {
               req.on('end', async () => {
                 let parsedBody = {};
                 try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
-                const { handleCreatePix } = await import('./src/server/appointmentsPixHandler.js');
+                const { handleCreatePix } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
                 const result = await handleCreatePix(parsedBody);
                 res.writeHead(result.status, {
                   'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ function asaasApiDevPlugin() {
                 const appointmentId = query.appointmentId || query.appointment_id || parsedBody.appointmentId || parsedBody.appointment_id;
                 const companyId = query.companyId || query.company_id || parsedBody.companyId || parsedBody.company_id;
 
-                const { handlePaymentStatus } = await import('./src/server/appointmentsPixHandler.js');
+                const { handlePaymentStatus } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
                 const result = await handlePaymentStatus(paymentId, appointmentId, companyId);
                 res.writeHead(result.status, {
                   'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ function asaasApiDevPlugin() {
           req.on('end', async () => {
             let parsedBody = {};
             try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
-            const { handleTestConnection } = await import('./src/server/asaasTestConnectionHandler.js');
+            const { handleTestConnection } = await import(`./src/server/asaasTestConnectionHandler.js?t=${Date.now()}`);
             const result = await handleTestConnection(parsedBody);
             res.writeHead(result.status, {
               'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ function asaasApiDevPlugin() {
           req.on('end', async () => {
             let parsedBody = {};
             try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
-            const { handleCreatePix } = await import('./src/server/appointmentsPixHandler.js');
+            const { handleCreatePix } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
             const result = await handleCreatePix(parsedBody);
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
@@ -150,7 +150,7 @@ function asaasApiDevPlugin() {
             const appointmentId = query.appointmentId || parsedBody.appointmentId;
             const companyId = query.companyId || parsedBody.companyId;
 
-            const { handlePaymentStatus } = await import('./src/server/appointmentsPixHandler.js');
+            const { handlePaymentStatus } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
             const result = await handlePaymentStatus(paymentId, appointmentId, companyId);
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));

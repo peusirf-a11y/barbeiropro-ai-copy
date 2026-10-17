@@ -8,6 +8,8 @@ import PixPaymentBox from './PixPaymentBox';
 import CardPaymentFormAsaas from './CardPaymentFormAsaas';
 import { generateStableIdempotencyKey } from '@/lib/system/idempotency';
 
+const ASAAS_PIX_ERROR_MSG = 'Não foi possível gerar a cobrança Pix no Asaas. Verifique a chave de API da barbearia.';
+
 function maskCpf(value) {
   const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
   return digits
@@ -97,22 +99,29 @@ export default function BookingPaymentStep({ payload, primaryColor, onBack, onSu
       });
 
       const jsonRes = await fetchRes.json().catch(() => null);
+      const realPaymentId = jsonRes?.paymentId || jsonRes?.payment_id || '';
+      const isValidAsaasPayment =
+        fetchRes.ok &&
+        jsonRes &&
+        !jsonRes.error &&
+        Boolean(realPaymentId && realPaymentId.startsWith('pay_') && !realPaymentId.startsWith('pay_mock_') && !realPaymentId.startsWith('pay_test_')) &&
+        Boolean(jsonRes.encodedImage) &&
+        Boolean(jsonRes.payload);
 
-      if (!fetchRes.ok || !jsonRes || jsonRes.error || !jsonRes.encodedImage || !jsonRes.payload) {
-        const msg = jsonRes?.message || jsonRes?.error || 'Não foi possível gerar a cobrança Pix no Asaas. Verifique a chave de API da barbearia.';
-        setErrorMsg(msg);
+      if (!isValidAsaasPayment) {
+        setErrorMsg(ASAAS_PIX_ERROR_MSG);
         setStage('error');
         return;
       }
 
       const normalizedIntent = {
         appointment_id: jsonRes.appointmentId || jsonRes.appointment_id,
-        payment_id: jsonRes.paymentId || jsonRes.payment_id,
-        paymentId: jsonRes.paymentId || jsonRes.payment_id,
+        payment_id: realPaymentId,
+        paymentId: realPaymentId,
         encodedImage: jsonRes.encodedImage,
         payload: jsonRes.payload,
         pix: {
-          paymentId: jsonRes.paymentId || jsonRes.payment_id,
+          paymentId: realPaymentId,
           encodedImage: jsonRes.encodedImage,
           payload: jsonRes.payload,
           copy_paste: jsonRes.payload,
@@ -123,9 +132,8 @@ export default function BookingPaymentStep({ payload, primaryColor, onBack, onSu
 
       setIntentData(normalizedIntent);
       setStage('pix');
-    } catch (err) {
-      const friendly = err?.message || 'Erro de comunicação com o servidor. Tente novamente.';
-      setErrorMsg(friendly);
+    } catch (_) {
+      setErrorMsg(ASAAS_PIX_ERROR_MSG);
       setStage('error');
     }
   };
@@ -185,7 +193,7 @@ export default function BookingPaymentStep({ payload, primaryColor, onBack, onSu
           </div>
 
           {errorMsg && (
-            <div className="flex items-center gap-2 text-red-600 text-sm">
+            <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-xl">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />{errorMsg}
             </div>
           )}
@@ -239,7 +247,7 @@ export default function BookingPaymentStep({ payload, primaryColor, onBack, onSu
               const requestPayload = { booking: payload, card };
               const res = await base44.functions.invoke('chargeBookingWithCard', requestPayload);
               const data = res?.data;
-              if (!data?.success && !data?.status) {
+              if (!data?.success || (data?.status !== 'CONFIRMED' && data?.status !== 'RECEIVED')) {
                 throw new Error(data?.message || data?.error || 'Falha no pagamento.');
               }
               onSucceeded?.({ appointment_id: data.appointment_id || payload.appointment_id });
@@ -263,12 +271,12 @@ export default function BookingPaymentStep({ payload, primaryColor, onBack, onSu
         </div>
       )}
 
-      {/* ─── ERRO ─── */}
+      {/* ─── ERRO EM VERMELHO ─── */}
       {stage === 'error' && (
-        <div className="bg-white rounded-2xl border border-red-200 bg-red-50 p-5 text-center">
-          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-          <h3 className="font-bold text-red-900 mb-1">Não foi possível iniciar o pagamento</h3>
-          <p className="text-sm text-red-800 mb-4">{errorMsg || 'Tente novamente em instantes.'}</p>
+        <div className="bg-red-50 rounded-2xl border border-red-300 p-5 text-center">
+          <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+          <h3 className="font-bold text-red-900 mb-1">Erro ao gerar cobrança Pix</h3>
+          <p className="text-sm font-medium text-red-700 mb-4">{errorMsg || ASAAS_PIX_ERROR_MSG}</p>
           <button
             onClick={restart}
             className="inline-flex items-center gap-2 bg-white text-red-700 border border-red-300 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-red-100"
