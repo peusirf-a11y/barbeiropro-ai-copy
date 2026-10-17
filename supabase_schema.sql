@@ -84,10 +84,15 @@ CREATE TABLE IF NOT EXISTS services (
     duration_minutes INTEGER DEFAULT 30,
     category VARCHAR(100) DEFAULT 'Cabelo',
     image_url TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_featured BOOLEAN DEFAULT FALSE,
     active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE services ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_services_company ON services(company_id);
 

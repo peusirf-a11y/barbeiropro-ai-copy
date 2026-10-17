@@ -336,7 +336,21 @@ export async function invokeFunction(functionName, payload = {}) {
       case 'listServices': {
         const companyId = await resolveCompanyId(payload);
         const items = await Service.list('-created_at', 500);
-        const companyServices = items.filter(s => s.company_id === companyId);
+        const companyServices = items
+          .filter(s => !companyId || s.company_id === companyId)
+          .map(s => {
+            const isActive = s.is_active !== undefined ? Boolean(s.is_active) : (s.active !== undefined ? Boolean(s.active) : true);
+            const isFeatured = s.is_featured !== undefined ? Boolean(s.is_featured) : (s.featured !== undefined ? Boolean(s.featured) : false);
+            return {
+              ...s,
+              is_active: isActive,
+              active: isActive,
+              is_featured: isFeatured,
+              featured: isFeatured,
+              price: Number(s.price ?? 0),
+              duration_minutes: Number(s.duration_minutes ?? 30),
+            };
+          });
 
         return {
           data: {
