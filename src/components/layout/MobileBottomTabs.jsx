@@ -3,35 +3,43 @@
 // - Re-clicar a aba ativa scrolla para o topo (reset da rota).
 // - Safe-area-inset aplicado para devices com gestures bar / notch.
 // - user-select: none para evitar highlight acidental ao tocar.
+// - Adaptado para o papel de barbeiro (Dashboard, Agenda, Clientes, Comissões).
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Users, Wallet, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, Wallet, Percent, MoreHorizontal } from 'lucide-react';
 
-const TABS = [
+const TABS_OWNER = [
   { key: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard, path: '/app/dashboard' },
   { key: 'agenda',     label: 'Agenda',     icon: Calendar,        path: '/app/agenda' },
   { key: 'clientes',   label: 'Clientes',   icon: Users,           path: '/app/clientes' },
   { key: 'caixa',      label: 'Caixa',      icon: Wallet,          path: '/app/caixa' },
 ];
 
-export default function MobileBottomTabs({ allowedKeys, onOpenMore }) {
+const TABS_BARBEIRO = [
+  { key: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard, path: '/app/dashboard' },
+  { key: 'agenda',     label: 'Agenda',     icon: Calendar,        path: '/app/agenda' },
+  { key: 'clientes',   label: 'Clientes',   icon: Users,           path: '/app/clientes' },
+  { key: 'comissoes',  label: 'Comissões',  icon: Percent,         path: '/app/comissoes' },
+];
+
+export default function MobileBottomTabs({ allowedKeys, isBarbeiro, onOpenMore }) {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const tabsBase = isBarbeiro ? TABS_BARBEIRO : TABS_OWNER;
+
   // Filtra abas pelo papel; se nada permitido, mantém Agenda como fallback
   const visibleTabs = allowedKeys && !allowedKeys.includes('*')
-    ? TABS.filter(t => allowedKeys.includes(t.key))
-    : TABS;
+    ? tabsBase.filter(t => allowedKeys.includes(t.key))
+    : tabsBase;
 
   const handleTabClick = (e, tab) => {
     e.preventDefault();
     const onExactRoot = location.pathname === tab.path;
     const onSubRoute = location.pathname.startsWith(tab.path + '/');
     if (onExactRoot) {
-      // Já na raiz da aba → scrolla para o topo
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (onSubRoute) {
-      // Em uma sub-rota da aba (ex: detalhe) → volta para a raiz da aba
       navigate(tab.path);
     } else {
       navigate(tab.path);
@@ -64,7 +72,7 @@ export default function MobileBottomTabs({ allowedKeys, onOpenMore }) {
             </Link>
           );
         })}
-        {/* Aba Mais — abre o drawer com todas as outras rotas */}
+        {/* Aba Mais — abre o drawer lateral */}
         <button
           type="button"
           onClick={onOpenMore}

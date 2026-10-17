@@ -80,6 +80,26 @@ export default function BarberLogin() {
 
       if (user) {
         user.is_super_admin = user.email === 'pedrojesantos@hotmail.com' || user.app_metadata?.role === 'superadmin' || user.user_metadata?.role === 'superadmin';
+
+        // Consulta team_members para carregar papel e permissões reais
+        let teamRole = null;
+        try {
+          const { data: tm } = await supabase
+            .from('team_members')
+            .select('*')
+            .ilike('email', cleanEmail)
+            .maybeSingle();
+
+          if (tm) {
+            teamRole = tm.role;
+            user.role = tm.role;
+            user.company_id = tm.company_id;
+            user.professional_id = tm.professional_id || null;
+            user.full_name = tm.name || user.user_metadata?.name || null;
+            user.isBarbeiro = tm.role === 'barbeiro';
+          }
+        } catch (_) {}
+
         setUser?.(user);
         setIsAuthenticated?.(true);
 
@@ -91,6 +111,8 @@ export default function BarberLogin() {
         // Redireciona imediatamente para o painel correspondente
         if (user.is_super_admin) {
           navigate('/master/dashboard', { replace: true });
+        } else if (user.isBarbeiro || teamRole === 'barbeiro') {
+          navigate('/app/agenda', { replace: true });
         } else {
           navigate('/app/dashboard', { replace: true });
         }

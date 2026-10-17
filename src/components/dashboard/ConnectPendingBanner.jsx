@@ -1,12 +1,19 @@
 // Banner persistente no dashboard quando a barbearia ainda não configurou
 // recebimentos (sem subaccount Asaas aprovada). Não bloqueia o sistema —
 // convida o dono a completar a configuração pra liberar o agendamento online pago.
+// 🔒 Nunca exibido para colaboradores com papel de barbeiro.
 
 import { Link } from 'react-router-dom';
 import { CreditCard, ChevronRight } from 'lucide-react';
+import { useTeamRole } from '@/lib/useTeamRole';
 
 export default function ConnectPendingBanner({ company }) {
-  if (!company) return null;
+  const { data: teamRole } = useTeamRole();
+  const isBarbeiro = teamRole?.role === 'barbeiro' || teamRole?.isBarbeiro === true;
+
+  // Barbeiros NUNCA visualizam avisos e configurações de faturamento/Asaas
+  if (isBarbeiro || !company) return null;
+
   // Subaccount ativa + PIX habilitado = nada a fazer.
   if (company.asaas_subaccount_status === 'active' && company.asaas_pix_enabled) return null;
   // Barbearias legadas em modo manual continuam funcionando — não exibimos o banner.

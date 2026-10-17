@@ -29,7 +29,7 @@ export default function AppDashboard() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
   const { activeUnitId, isMultiUnit } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
-  const isBarbeiro = teamRole?.role === 'barbeiro';
+  const isBarbeiro = teamRole?.role === 'barbeiro' || teamRole?.isBarbeiro === true;
   const myProId = teamRole?.professional_id || null;
 
   const rawUserName = teamRole?.name || user?.user_metadata?.name || user?.full_name || (user?.email ? user.email.split('@')[0] : '');

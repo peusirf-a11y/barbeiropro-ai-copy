@@ -1,5 +1,5 @@
 // Hook frontend que vincula o User logado ao seu TeamMember (papel + tenant + profissional).
-// Fonte da verdade do RBAC dentro da empresa com resolução rápida e sem timeouts bloqueantes.
+// Fonte da verdade do RBAC dentro da empresa com resolução estrita e case-insensitive.
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
@@ -8,17 +8,8 @@ import { useAuth } from '@/lib/AuthContext';
 
 export function useTeamRole() {
   const { user } = useAuth();
-  const cleanEmail = user?.email?.trim().toLowerCase();
-
-  // Cache local da sessão para hidratação instantânea
-  const cachedUser = typeof window !== 'undefined' ? (() => {
-    try {
-      const stored = localStorage.getItem('admin_logged_user');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  })() : null;
+  const rawEmail = user?.email?.trim() || '';
+  const cleanEmail = rawEmail.toLowerCase();
 
   return useQuery({
     queryKey: ['team-role', cleanEmail],
@@ -33,48 +24,69 @@ export function useTeamRole() {
         cleanEmail === 'pedrojesantos@hotmail.com';
 
       if (isSuperAdmin) {
-        return {
+        const result = {
           role: 'super_admin',
+          isBarbeiro: false,
+          isAdmin: true,
+          is_owner: false,
+          is_super_admin: true,
           company_id: null,
           professional_id: null,
-          is_super_admin: true,
+          name: user?.user_metadata?.name || 'Super Admin',
+          email: cleanEmail,
         };
+        console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+        return result;
       }
 
-      // 2. Consulta direta na tabela team_members do Supabase (prioridade máxima para RBAC)
+      // 2. Consulta direta na tabela team_members do Supabase usando ilike (case-insensitive)
       if (isSupabaseConfigured && supabase) {
         try {
-          const { data: supaTm } = await supabase
+          // Busca tanto por cleanEmail quanto por rawEmail de forma insensível a maiúsculas
+          const { data: supaTm, error: tmErr } = await supabase
             .from('team_members')
             .select('*')
-            .eq('email', cleanEmail)
+            .ilike('email', cleanEmail)
             .maybeSingle();
 
+          if (tmErr) {
+            console.warn('[useTeamRole] Erro na query ilike team_members:', tmErr.message);
+          }
+
           if (supaTm) {
+            const memberRole = String(supaTm.role || 'barbeiro').trim().toLowerCase();
+            const isBarbeiro = memberRole === 'barbeiro';
+            const isAdmin = memberRole === 'admin';
+
             let proId = supaTm.professional_id || null;
-            if (!proId && supaTm.role === 'barbeiro') {
+            if (!proId && isBarbeiro) {
               try {
                 const { data: pro } = await supabase
                   .from('professionals')
                   .select('id')
-                  .eq('email', cleanEmail)
+                  .ilike('email', cleanEmail)
                   .maybeSingle();
                 if (pro?.id) proId = pro.id;
               } catch (_) {}
             }
 
-            console.log(`[useTeamRole] Membro localizado em team_members: role = '${supaTm.role}', proId = ${proId} para ${cleanEmail}`);
-            return {
-              role: supaTm.role || 'barbeiro',
-              name: supaTm.name || null,
-              email: supaTm.email,
+            const result = {
+              role: memberRole,
+              isBarbeiro,
+              isAdmin,
+              is_owner: false,
+              is_super_admin: false,
+              name: supaTm.name || user?.user_metadata?.name || null,
+              email: supaTm.email || cleanEmail,
               company_id: supaTm.company_id,
               professional_id: proId,
               team_member_id: supaTm.id,
               cash_permissions: supaTm.cash_permissions || null,
               unit_ids: supaTm.unit_ids || [],
-              is_super_admin: false,
             };
+
+            console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+            return result;
           }
         } catch (e) {
           console.warn('[useTeamRole] Exceção ao consultar team_members no Supabase:', e);
@@ -83,21 +95,31 @@ export function useTeamRole() {
 
       // 3. Fallback no repositório base44.entities.TeamMember
       try {
-        const tm = await base44.entities.TeamMember.filter({ email: cleanEmail }, '-created_date', 1);
-        if (tm && tm.length > 0) {
-          console.log(`[useTeamRole] Membro localizado via TeamMember: role = '${tm[0].role}' para ${cleanEmail}`);
-          return {
-            role: tm[0].role || 'barbeiro',
-            name: tm[0].name || null,
-            email: tm[0].email,
-            company_id: tm[0].company_id,
-            professional_id: tm[0].professional_id || null,
-            team_member_id: tm[0].id,
+        const allTeam = await base44.entities.TeamMember.list();
+        const tm = allTeam.find(t => t.email && t.email.trim().toLowerCase() === cleanEmail);
+        if (tm) {
+          const memberRole = String(tm.role || 'barbeiro').trim().toLowerCase();
+          const isBarbeiro = memberRole === 'barbeiro';
+          const isAdmin = memberRole === 'admin';
+
+          const result = {
+            role: memberRole,
+            isBarbeiro,
+            isAdmin,
+            is_owner: false,
             is_super_admin: false,
+            name: tm.name || user?.user_metadata?.name || null,
+            email: tm.email || cleanEmail,
+            company_id: tm.company_id,
+            professional_id: tm.professional_id || null,
+            team_member_id: tm.id,
           };
+
+          console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+          return result;
         }
       } catch (tmErr) {
-        console.warn('[useTeamRole] Erro ao buscar TeamMember:', tmErr);
+        console.warn('[useTeamRole] Erro ao buscar TeamMember Base44:', tmErr);
       }
 
       // 4. Verificação estrita de Dono da Empresa (Company.owner_email === cleanEmail)
@@ -106,18 +128,23 @@ export function useTeamRole() {
           const { data: ownerComp } = await supabase
             .from('companies')
             .select('id, owner_email')
-            .eq('owner_email', cleanEmail)
+            .ilike('owner_email', cleanEmail)
             .maybeSingle();
 
           if (ownerComp) {
-            console.log(`[useTeamRole] Dono da empresa autenticado como admin: ${cleanEmail}`);
-            return {
+            const result = {
               role: 'admin',
-              company_id: ownerComp.id,
-              professional_id: null,
+              isBarbeiro: false,
+              isAdmin: true,
               is_owner: true,
               is_super_admin: false,
+              company_id: ownerComp.id,
+              professional_id: null,
+              name: user?.user_metadata?.name || 'Administrador',
+              email: cleanEmail,
             };
+            console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+            return result;
           }
         }
 
@@ -127,48 +154,48 @@ export function useTeamRole() {
         );
 
         if (ownerCompany) {
-          console.log(`[useTeamRole] Dono da empresa (base44) autenticado como admin: ${cleanEmail}`);
-          return {
+          const result = {
             role: 'admin',
-            company_id: ownerCompany.id,
-            professional_id: null,
+            isBarbeiro: false,
+            isAdmin: true,
             is_owner: true,
             is_super_admin: false,
+            company_id: ownerCompany.id,
+            professional_id: null,
+            name: user?.user_metadata?.name || 'Administrador',
+            email: cleanEmail,
           };
+          console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+          return result;
         }
       } catch (cErr) {
         console.warn('[useTeamRole] Erro ao buscar Company owner:', cErr);
       }
 
-      // 5. Se não for dono e não for localizado em team_members, assume estritamente 'barbeiro'
-      console.warn(`[useTeamRole] Usuário não identificado como dono nem membro de equipe. Assumindo estritamente role = 'barbeiro' para ${cleanEmail}`);
+      // 5. NUNCA atribui 'admin' por defeito a um utilizador que não seja dono comprovado
+      // Se não for dono e não for achado em team_members, assume estritamente 'barbeiro'
+      let fallbackCompanyId = null;
+      try {
+        const comps = await base44.entities.Company.list();
+        if (comps.length > 0) fallbackCompanyId = comps[0].id;
+      } catch (_) {}
 
-      let fallbackCompanyId = cachedUser?.company_id || null;
-      if (!fallbackCompanyId) {
-        try {
-          const comps = await base44.entities.Company.list();
-          if (comps.length > 0) fallbackCompanyId = comps[0].id;
-        } catch (_) {}
-      }
-
-      return {
-        role: cachedUser?.role || 'barbeiro',
-        name: cachedUser?.full_name || null,
-        company_id: fallbackCompanyId,
-        professional_id: null,
+      const result = {
+        role: 'barbeiro',
+        isBarbeiro: true,
+        isAdmin: false,
         is_owner: false,
         is_super_admin: false,
+        name: user?.user_metadata?.name || cleanEmail.split('@')[0],
+        email: cleanEmail,
+        company_id: fallbackCompanyId,
+        professional_id: null,
       };
+
+      console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+      return result;
     },
     enabled: !!cleanEmail,
     staleTime: 60_000,
-    initialData: cachedUser && cachedUser.email?.toLowerCase().trim() === cleanEmail ? {
-      role: cachedUser.role || 'barbeiro',
-      name: cachedUser.full_name || null,
-      email: cleanEmail,
-      company_id: cachedUser.company_id || null,
-      professional_id: null,
-      is_super_admin: false,
-    } : undefined,
   });
 }

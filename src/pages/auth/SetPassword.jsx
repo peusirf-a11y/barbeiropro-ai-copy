@@ -121,11 +121,19 @@ export default function SetPassword() {
               .eq('invite_token', tokenParam);
           }
 
+          let tmRecord = null;
           if (emailToUse) {
             await supabase
               .from('team_members')
               .update({ status: 'active', active: true })
-              .eq('email', emailToUse.toLowerCase().trim());
+              .ilike('email', emailToUse.toLowerCase().trim());
+
+            const { data: tm } = await supabase
+              .from('team_members')
+              .select('*')
+              .ilike('email', emailToUse.toLowerCase().trim())
+              .maybeSingle();
+            if (tm) tmRecord = tm;
           }
         } catch (tmErr) {
           console.warn('[SetPassword] Erro ao atualizar status team_members:', tmErr);
@@ -136,8 +144,11 @@ export default function SetPassword() {
       const finalUser = {
         id: activeUser?.id || `usr_${Date.now()}`,
         email: emailToUse,
-        full_name: activeUser?.user_metadata?.name || emailToUse.split('@')[0],
-        role: 'barbeiro',
+        full_name: tmRecord?.name || activeUser?.user_metadata?.name || emailToUse.split('@')[0],
+        role: tmRecord?.role || 'barbeiro',
+        isBarbeiro: (tmRecord?.role || 'barbeiro') === 'barbeiro',
+        company_id: tmRecord?.company_id || null,
+        professional_id: tmRecord?.professional_id || null,
       };
 
       if (typeof window !== 'undefined') {

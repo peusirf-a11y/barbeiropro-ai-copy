@@ -10,6 +10,7 @@ import BillingPastDueBanner from '@/components/billing/BillingPastDueBanner';
 import ThemeToggle from '@/components/ThemeToggle';
 import PageTransition from '@/components/layout/PageTransition';
 import { useTeamRole } from '@/lib/useTeamRole';
+import { useAuth } from '@/lib/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import { isPastDueLimited } from '@/lib/billingMode';
 import UnitSwitcher from '@/components/units/UnitSwitcher';
@@ -78,10 +79,9 @@ const navItemsAll = [
 import { ROLE_PERMISSIONS } from '@/lib/rolePermissions';
 import { NAV_KEY_FEATURE_MAP, hasFeature } from '@/lib/featureGate';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/lib/AuthContext';
 
 export default function AppLayout({ children }) {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -144,27 +144,34 @@ export default function AppLayout({ children }) {
     staleTime: 5 * 60_000,
   });
 
-  // Filtra menu por papel. Sem teamRole (super_admin/owner antigo) → mostra tudo.
-  // Calculado ANTES do early return de loadingRole para que `useMemo` abaixo
-  // respeite rules-of-hooks.
-  const allowed = teamRole?.role && ROLE_PERMISSIONS[teamRole.role]
-    ? ROLE_PERMISSIONS[teamRole.role]
-    : null;
+  const isBarbeiro = teamRole?.role === 'barbeiro' || teamRole?.isBarbeiro === true;
+
+  // Filtra menu por papel. Barbeiro tem lista restrita mandatória.
+  const allowed = isBarbeiro
+    ? ['dashboard', 'agenda', 'clientes', 'comissoes']
+    : (teamRole?.role && ROLE_PERMISSIONS[teamRole.role]
+        ? ROLE_PERMISSIONS[teamRole.role]
+        : (teamRole?.isAdmin || teamRole?.is_owner || teamRole?.is_super_admin ? ['*'] : ['dashboard', 'agenda', 'clientes', 'comissoes']));
 
   // F6 (Foundation Sprint): memoiza `navItems` para evitar recomputar o filtro
   // duplo (role + feature) em todo re-render. Multi-unit + menu grande começa
   // a pesar no mobile mid-range. Deps cobrem o que de fato muda a saída.
   // ⚠️ Hook DEVE vir ANTES de qualquer early return (rules-of-hooks).
   const navItems = useMemo(() => {
+    if (isBarbeiro) {
+      return navItemsAll.filter(i => ['dashboard', 'agenda', 'clientes', 'comissoes'].includes(i.key));
+    }
+
     const byRole = allowed && !allowed.includes('*')
       ? navItemsAll.filter(i => allowed.includes(i.key))
       : navItemsAll;
+
     return byRole.filter(item => {
       const requiredFeature = NAV_KEY_FEATURE_MAP[item.key];
       if (!requiredFeature) return true;
       return hasFeature(plan, company, requiredFeature);
     });
-  }, [allowed, plan, company]);
+  }, [allowed, plan, company, isBarbeiro]);
 
   // 🔒 Bloqueio rígido: NÃO renderizar nada até saber o role.
   // Evita flash de menu completo antes do RBAC carregar.
@@ -177,10 +184,14 @@ export default function AppLayout({ children }) {
     );
   }
 
-  // 🔒 Proteção extra contra acesso direto via URL — se a rota atual exigir uma key
-  // que o papel não possui, redireciona para o dashboard.
-  // (RoleRoute já protege, mas isso garante mesmo se alguém esquecer de envolver uma rota nova.)
-  if (allowed && !allowed.includes('*')) {
+  // 🔒 Proteção extra contra acesso direto via URL:
+  if (isBarbeiro) {
+    const BARBER_ALLOWED_KEYS = ['dashboard', 'agenda', 'clientes', 'comissoes'];
+    const current = navItemsAll.find(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'));
+    if (current && !BARBER_ALLOWED_KEYS.includes(current.key)) {
+      return <Navigate to="/app/agenda" replace />;
+    }
+  } else if (allowed && !allowed.includes('*')) {
     const current = navItemsAll.find(i => location.pathname.startsWith(i.path));
     if (current && !allowed.includes(current.key) && location.pathname !== '/app/dashboard') {
       return <Navigate to="/app/dashboard" replace />;
@@ -272,10 +283,16 @@ export default function AppLayout({ children }) {
         <UnitSwitcher />
         <div className="text-right">
           <div className="text-[11px] text-white/40 leading-none">Olá,</div>
-          <div className="text-sm font-bold text-white mt-0.5">{company?.owner_name?.split(' ')[0] || 'Bem-vindo'}</div>
+          <div className="text-sm font-bold text-white mt-0.5">
+            {isBarbeiro
+              ? (teamRole?.name?.split(' ')[0] || user?.user_metadata?.name?.split(' ')[0] || 'Barbeiro')
+              : (company?.owner_name?.split(' ')[0] || 'Bem-vindo')}
+          </div>
         </div>
         <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_16px_rgba(37,99,235,0.5)] ring-1 ring-white/20">
-          {(company?.owner_name?.[0] || company?.name?.[0] || 'B').toUpperCase()}
+          {(isBarbeiro
+            ? (teamRole?.name?.[0] || user?.user_metadata?.name?.[0] || 'B')
+            : (company?.owner_name?.[0] || company?.name?.[0] || 'B')).toUpperCase()}
         </div>
       </header>
 
@@ -283,13 +300,14 @@ export default function AppLayout({ children }) {
           No desktop (lg+) a tab bar some, então não precisamos do padding inferior. */}
       <main className="lg:ml-64 min-h-[calc(100vh-4rem)] pb-[calc(58px+env(safe-area-inset-bottom,0px))] lg:pb-0">
         <ImpersonationBanner />
-        {showPastDue && <BillingPastDueBanner />}
+        {!isBarbeiro && showPastDue && <BillingPastDueBanner />}
         <PageTransition>{children}</PageTransition>
       </main>
 
       {/* Bottom tab bar (mobile only) */}
       <MobileBottomTabs
         allowedKeys={allowed}
+        isBarbeiro={isBarbeiro}
         onOpenMore={() => setOpen(true)}
       />
     </div>
