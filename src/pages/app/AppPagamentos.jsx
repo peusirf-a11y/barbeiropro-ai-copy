@@ -228,12 +228,16 @@ export default function AppPagamentos() {
   };
 
   // 3. Botão "Testar Conexão com Asaas":
-  // Certifique-se de que o teste faz uma requisição para a API (/v3/finance/balance ou /v3/customers) usando a chave informada para validar se ela está ativa antes de salvar.
+  // Chama a rota de proxy serverless /api/asaas/test-connection via POST para evitar bloqueios de CORS
   const handleTestConnection = async () => {
-    const cleanKey = apiKey.trim();
-    if (!cleanKey) {
+    const rawKey = apiKey.trim();
+    const activeCompanyId = await resolveActiveCompanyId();
+
+    const isMasked = /^[•*]+$/.test(rawKey) || rawKey.includes('••••') || rawKey.includes('****');
+
+    if (!rawKey && !activeCompanyId && !company?.asaas_api_key) {
       const msg = 'Digite uma chave de API antes de testar.';
-      setTestResult({ success: false, error: msg });
+      setTestResult({ success: false, error: msg, message: msg });
       toast({
         title: 'Chave obrigatória',
         description: msg,
@@ -244,22 +248,44 @@ export default function AppPagamentos() {
 
     setTestingKey(true);
     setTestResult(null);
-    try {
-      const res = await base44.functions.invoke('testAsaasDirectKey', {
-        asaas_api_key: cleanKey,
-      });
-      const data = res?.data;
 
-      if (data?.success) {
-        setTestResult(data);
+    try {
+      const payload = {
+        companyId: activeCompanyId || company?.id,
+      };
+
+      // Se a chave não for a máscara pontilhada, envia o valor digitado
+      if (!isMasked && rawKey) {
+        payload.apiKey = rawKey;
+      }
+
+      const res = await fetch('/api/asaas/test-connection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data?.success) {
+        setTestResult({
+          success: true,
+          message: data.message || 'Conexão estabelecida com sucesso!',
+        });
         toast({
           title: 'Conexão bem-sucedida!',
-          description: data.message || 'Chave validada com sucesso junto ao Asaas.',
+          description: data.message || 'Conexão estabelecida com sucesso!',
           className: 'bg-emerald-600 text-white border-none',
         });
       } else {
-        const errorMsg = data?.error || 'Chave de API inválida ou sem permissão de acesso no Asaas.';
-        setTestResult({ success: false, error: errorMsg });
+        const errorMsg = data?.message || data?.error || (res.status === 401 ? 'Chave de API inválida ou expirada no Asaas.' : 'Falha ao validar chave com o Asaas.');
+        setTestResult({
+          success: false,
+          error: errorMsg,
+          message: errorMsg,
+        });
         toast({
           title: 'Falha na validação',
           description: errorMsg,
@@ -271,6 +297,7 @@ export default function AppPagamentos() {
       setTestResult({
         success: false,
         error: errorMsg,
+        message: errorMsg,
       });
       toast({
         title: 'Erro de conexão',
@@ -408,7 +435,7 @@ export default function AppPagamentos() {
               <button
                 type="button"
                 onClick={handleTestConnection}
-                disabled={testingKey || !apiKey.trim()}
+                disabled={testingKey || (!apiKey.trim() && !company?.asaas_api_key)}
                 className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.99] border border-white/10 text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {testingKey ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" /> : <Zap className="w-3.5 h-3.5 text-blue-400" />}

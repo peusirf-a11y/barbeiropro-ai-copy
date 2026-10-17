@@ -1013,43 +1013,9 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'testAsaasDirectKey': {
-        const apiKey = String(payload.asaas_api_key || '').trim();
-        if (!apiKey) {
-          return { data: { success: false, error: 'Informe a Chave de API do Asaas.' } };
-        }
-
-        try {
-          let res;
-          let balance = null;
-          try {
-            res = await asaasRequest('GET', '/finance/balance', { apiKey });
-            balance = res?.data?.totalBalance ?? 0;
-          } catch (balanceErr) {
-            console.warn('[testAsaasDirectKey] /finance/balance falhou, tentando /customers:', balanceErr?.message);
-            res = await asaasRequest('GET', '/customers', { apiKey, query: { limit: 1 } });
-          }
-
-          const isProd = apiKey.startsWith('$aact_prod_') || apiKey.startsWith('prod_');
-          const balanceMsg = balance !== null ? ` Saldo atual: R$ ${Number(balance).toFixed(2).replace('.', ',')}` : '';
-          return {
-            data: {
-              success: true,
-              valid: true,
-              balance,
-              environment: isProd ? 'production' : 'sandbox',
-              message: `Conexão bem-sucedida com o Asaas (${isProd ? 'Produção' : 'Ambiente de Testes'})!${balanceMsg}`,
-            },
-          };
-        } catch (err) {
-          console.warn('[testAsaasDirectKey] Erro ao validar chave no Asaas:', err?.message || err);
-          return {
-            data: {
-              success: false,
-              valid: false,
-              error: err?.message || 'Chave de API inválida ou sem permissão de acesso no Asaas.',
-            },
-          };
-        }
+        const { handleTestConnection } = await import('../server/asaasTestConnectionHandler.js');
+        const res = await handleTestConnection(payload);
+        return { data: res.body };
       }
 
       // ==========================================

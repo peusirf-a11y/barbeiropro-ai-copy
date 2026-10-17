@@ -100,6 +100,23 @@ function asaasApiDevPlugin() {
           }
         }
 
+        if (url === '/api/asaas/test-connection' && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsedBody = {};
+            try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
+            const { handleTestConnection } = await import('./src/server/asaasTestConnectionHandler.js');
+            const result = await handleTestConnection(parsedBody);
+            res.writeHead(result.status, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            });
+            res.end(JSON.stringify(result.body));
+          });
+          return;
+        }
+
         next();
       });
     },
@@ -156,6 +173,20 @@ function asaasApiDevPlugin() {
             return;
           }
         }
+        if (url === '/api/asaas/test-connection' && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsedBody = {};
+            try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
+            const { handleTestConnection } = await import('./src/server/asaasTestConnectionHandler.js');
+            const result = await handleTestConnection(parsedBody);
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result.body));
+          });
+          return;
+        }
+
         next();
       });
     },
