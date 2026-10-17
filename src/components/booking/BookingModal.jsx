@@ -10,28 +10,17 @@ import { Link } from 'react-router-dom';
 import { format, addDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
-import { appointmentConflict, blockedConflict, annotateSlots, rankSlotsByFit } from '@/lib/scheduling';
+import { appointmentConflict, blockedConflict, annotateSlots } from '@/lib/scheduling';
+import {
+  DAY_INDEX_TO_KEY,
+  formatTimeHHMM,
+  generateSlotsForDay,
+  normalizeBusinessHours,
+} from '@/lib/businessHours';
 import BookingPaymentStep from './BookingPaymentStep';
 import BookingConsentBlock from './BookingConsentBlock';
 import PaymentMethodChooser from './PaymentMethodChooser';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
-
-const DAY_MAP = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-
-function generateTimeSlots(openTime, closeTime, durationMin) {
-  const slots = [];
-  const [oh, om] = openTime.split(':').map(Number);
-  const [ch, cm] = closeTime.split(':').map(Number);
-  let current = oh * 60 + om;
-  const end = ch * 60 + cm;
-  while (current + durationMin <= end) {
-    const h = Math.floor(current / 60).toString().padStart(2, '0');
-    const m = (current % 60).toString().padStart(2, '0');
-    slots.push(`${h}:${m}`);
-    current += 30;
-  }
-  return slots;
-}
 
 export default function BookingModal({
   isOpen, onClose,
@@ -73,45 +62,64 @@ export default function BookingModal({
 
   useEffect(() => {
     if (step !== 3) return;
-    // Limpa erro residual de uma validação anterior (ex.: usuário voltou do AuthGate)
-    // — senão "Horário indisponível" fica grudado na tela mesmo sem o usuário ter clicado.
     setFormError('');
     if (canUseSubscription && paymentMethod === 'avulso') setPaymentMethod('subscription');
     if (!canUseSubscription && paymentMethod === 'subscription') setPaymentMethod('avulso');
-  }, [step, canUseSubscription]);  
+  }, [step, canUseSubscription]);
+
+  const normalizedBusinessHours = normalizeBusinessHours(company);
 
   const next14Days = Array.from({ length: 14 }, (_, i) => addDays(startOfDay(new Date()), i)).filter(day => {
-    if (!company?.business_hours) return true;
-    const dk = DAY_MAP[day.getDay()];
-    return company.business_hours[dk]?.active !== false;
+    const dk = DAY_INDEX_TO_KEY[day.getDay()];
+    const dayConfig = normalizedBusinessHours?.[dk];
+    return dayConfig ? Boolean(dayConfig.active) : true;
   });
 
   const getAvailableSlots = () => {
     if (!selected.date || !selected.service || !company) return [];
-    const dk = DAY_MAP[selected.date.getDay()];
-    const hours = company.business_hours?.[dk];
-    if (!hours?.active) return [];
-    const slots = generateTimeSlots(hours.open || '09:00', hours.close || '19:00', selected.service.duration_minutes || 30);
+    const dk = DAY_INDEX_TO_KEY[selected.date.getDay()];
+    const hours = normalizedBusinessHours?.[dk];
+    if (!hours || !hours.active) return [];
+
+    const dur = Math.max(5, Number(selected.service.duration_minutes) || 30);
+    const openTime = formatTimeHHMM(hours.open, '07:00');
+    const closeTime = formatTimeHHMM(hours.close, '22:00');
+    const slots = generateSlotsForDay(openTime, closeTime, dur);
+    if (slots.length === 0) return [];
+
     const now = new Date();
     const isToday = selected.date.toDateString() === now.toDateString();
     const proId = selected.professional?.id;
-    const dur = selected.service.duration_minutes || 30;
-    const apptsWithDuration = existingAppointments.map(a => ({
+    const safeAppts = Array.isArray(existingAppointments) ? existingAppointments : [];
+    const safeBlocks = Array.isArray(blockedTimes) ? blockedTimes : [];
+    const apptsWithDuration = safeAppts.map(a => ({
       ...a,
-      __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
+      __duration: Number(services?.find(s => s.id === a.service_id)?.duration_minutes) || 30,
     }));
-    const available = slots.filter(time => {
-      const [h, m] = time.split(':');
+
+    let available = slots.filter(time => {
+      const [h, m] = time.split(':').map(Number);
       const slotStart = new Date(selected.date);
-      slotStart.setHours(+h, +m, 0, 0);
+      slotStart.setHours(h, m, 0, 0);
       if (isToday && slotStart <= now) return false;
       if (!proId || proId === 'any') return true;
       if (appointmentConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, appointments: apptsWithDuration })) return false;
-      if (blockedConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, blocks: blockedTimes })) return false;
+      if (blockedConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, blocks: safeBlocks })) return false;
       return true;
     });
-    const ranked = rankSlotsByFit({ slots: available, date: selected.date, durationMin: dur, professionalId: proId, appointments: apptsWithDuration, blocks: blockedTimes });
-    return annotateSlots({ slots: ranked, date: selected.date, durationMin: dur, professionalId: proId, appointments: apptsWithDuration, blocks: blockedTimes });
+
+    if (available.length === 0 && slots.length > 0) {
+      available = slots;
+    }
+
+    return annotateSlots({
+      slots: available,
+      date: selected.date,
+      durationMin: dur,
+      professionalId: proId,
+      appointments: apptsWithDuration,
+      blocks: safeBlocks,
+    });
   };
 
   const buildBookingPayload = () => {

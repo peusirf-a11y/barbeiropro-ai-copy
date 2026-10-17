@@ -11,6 +11,7 @@ import BookingModal from '@/components/booking/BookingModal';
 import AuthGateModal from '@/components/public/AuthGateModal';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { useBookingSession } from '@/contexts/BookingSessionContext';
+import { normalizeBusinessHours } from '@/lib/businessHours';
 
 export default function PublicBooking() {
   const { slug } = useParams();
@@ -33,7 +34,13 @@ export default function PublicBooking() {
     queryFn: () => base44.entities.Company.filter({ slug }),
     enabled: !!slug,
   });
-  const company = companies[0] || null;
+  const rawCompany = companies[0] || null;
+  const company = rawCompany
+    ? {
+        ...rawCompany,
+        business_hours: normalizeBusinessHours(rawCompany),
+      }
+    : null;
   const primaryColor = company?.primary_color || '#2563EB';
 
   // Modelo A: A barbearia aceita pagamentos online se configurou sua chave do Asaas
@@ -66,7 +73,20 @@ export default function PublicBooking() {
 
   const { data: services = [] } = useQuery({
     queryKey: ['public-services', company?.id],
-    queryFn: () => base44.entities.Service.filter({ company_id: company.id, active: true }),
+    queryFn: async () => {
+      const list = await base44.entities.Service.filter({ company_id: company.id });
+      return list
+        .filter(s => (s.is_active ?? s.active ?? true) !== false)
+        .map(s => ({
+          ...s,
+          active: Boolean(s.is_active ?? s.active ?? true),
+          is_active: Boolean(s.is_active ?? s.active ?? true),
+          featured: Boolean(s.is_featured ?? s.featured ?? false),
+          is_featured: Boolean(s.is_featured ?? s.featured ?? false),
+          price: Number(s.price ?? 0),
+          duration_minutes: Number(s.duration_minutes ?? 30),
+        }));
+    },
     enabled: !!company?.id,
   });
 
@@ -79,7 +99,10 @@ export default function PublicBooking() {
 
   const { data: allProfessionals = [] } = useQuery({
     queryKey: ['public-professionals', company?.id],
-    queryFn: () => base44.entities.Professional.filter({ company_id: company.id, active: true }),
+    queryFn: async () => {
+      const list = await base44.entities.Professional.filter({ company_id: company.id });
+      return list.filter(p => (p.is_active ?? p.active ?? true) !== false);
+    },
     enabled: !!company?.id,
   });
 

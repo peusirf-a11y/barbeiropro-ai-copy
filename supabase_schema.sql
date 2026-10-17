@@ -46,11 +46,16 @@ CREATE TABLE IF NOT EXISTS companies (
     pix_key VARCHAR(255),
     pix_key_type VARCHAR(50),
     default_repasse NUMERIC(10, 2) DEFAULT 50.00,
+    business_hours JSONB,
+    opening_hours JSONB,
     active BOOLEAN DEFAULT TRUE,
     owner_email VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS business_hours JSONB;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS opening_hours JSONB;
 
 CREATE INDEX IF NOT EXISTS idx_companies_slug ON companies(slug);
 CREATE INDEX IF NOT EXISTS idx_companies_active ON companies(active);

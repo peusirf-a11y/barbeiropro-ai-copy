@@ -1,46 +1,130 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { resolveCompanyId } from '@/api/functions';
+import { supabase } from '@/lib/supabaseClient';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
-import { useState, useEffect } from 'react';
-import { Save, Globe, Copy, CheckCircle, Settings, CreditCard, Upload, Loader2 } from 'lucide-react';
+import { useCompany } from '@/hooks/useCompany';
+import { useState, useEffect, useCallback } from 'react';
+import { Save, Globe, Copy, CheckCircle, Settings, CreditCard, Upload, Loader2, Building2, Sparkles, Shield, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import DeleteAccountSection from '@/components/configuracoes/DeleteAccountSection';
-import { Building2, Sparkles, Shield, ShieldAlert } from 'lucide-react';
 import { useFeatures } from '@/hooks/useFeatures';
 import SettingsShortcutCard, { ActiveBadge } from '@/components/configuracoes/SettingsShortcutCard';
+import {
+  BUSINESS_DAYS,
+  formatTimeHHMM,
+  getDefaultBusinessHours,
+  normalizeBusinessHours,
+} from '@/lib/businessHours';
 
-const DAYS = [
-  { key: 'seg', label: 'Segunda' }, { key: 'ter', label: 'Terça' }, { key: 'qua', label: 'Quarta' },
-  { key: 'qui', label: 'Quinta' }, { key: 'sex', label: 'Sexta' }, { key: 'sab', label: 'Sábado' },
-  { key: 'dom', label: 'Domingo' },
-];
-
-const defaultHours = Object.fromEntries(DAYS.map(d => [d.key, { open: '09:00', close: '19:00', active: d.key !== 'dom' }]));
+const defaultHours = getDefaultBusinessHours();
 
 export default function AppConfiguracoes() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { company: activeHookCompany, companyId: activeHookCompanyId } = useCompany();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const resolveActiveCompanyId = useCallback(async () => {
+    if (activeHookCompanyId && activeHookCompanyId !== 'comp_demo_01') return activeHookCompanyId;
+    if (activeHookCompany?.id && activeHookCompany.id !== 'comp_demo_01') return activeHookCompany.id;
+
+    try {
+      const rawAdmin = localStorage.getItem('admin_logged_user');
+      if (rawAdmin) {
+        const parsed = JSON.parse(rawAdmin);
+        if (parsed?.company_id && parsed.company_id !== 'comp_demo_01') {
+          return parsed.company_id;
+        }
+        if (parsed?.email && supabase) {
+          const { data: compByEmail } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('owner_email', parsed.email.trim().toLowerCase())
+            .maybeSingle();
+          if (compByEmail?.id) return compByEmail.id;
+        }
+      }
+    } catch (_) {}
+
+    try {
+      if (supabase) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const sessionEmail = sessionData?.session?.user?.email || user?.email;
+        if (sessionEmail) {
+          const { data: compBySession } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('owner_email', sessionEmail.trim().toLowerCase())
+            .maybeSingle();
+          if (compBySession?.id) return compBySession.id;
+        }
+      }
+    } catch (_) {}
+
+    const resolved = await resolveCompanyId({ company_id: activeHookCompanyId });
+    if (resolved && resolved !== 'comp_demo_01') return resolved;
+
+    try {
+      if (supabase) {
+        const { data: firstComp } = await supabase
+          .from('companies')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+        if (firstComp?.id) return firstComp.id;
+      }
+    } catch (_) {}
+
+    return activeHookCompanyId || resolved || null;
+  }, [activeHookCompanyId, activeHookCompany, user?.email]);
 
   const { data: companies = [] } = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => base44.entities.Company.list(),
+    queryKey: ['companies', activeHookCompanyId, user?.email],
+    queryFn: async () => {
+      const cid = await resolveActiveCompanyId();
+      if (supabase && cid) {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', cid);
+        if (!error && Array.isArray(data) && data.length > 0) {
+          return data;
+        }
+      }
+      return base44.entities.Company.list();
+    },
   });
 
-  const company = companies.find(c => c.owner_email === user?.email) || companies[0];
+  const company =
+    companies.find(c => c.id === activeHookCompanyId) ||
+    companies.find(c => user?.email && c.owner_email?.toLowerCase() === user.email.toLowerCase()) ||
+    activeHookCompany ||
+    companies[0] ||
+    null;
+
   const { has } = useFeatures();
 
   const [form, setForm] = useState({
-    name: '', slug: '', phone: '', whatsapp: '', address: '', primary_color: '#2563EB', business_hours: defaultHours, logo_url: '',
+    name: '',
+    slug: '',
+    phone: '',
+    whatsapp: '',
+    address: '',
+    primary_color: '#2563EB',
+    business_hours: defaultHours,
+    logo_url: '',
   });
 
   useEffect(() => {
     if (company) {
+      const normalizedHours = normalizeBusinessHours(company);
       setForm({
         name: company.name || '',
         slug: company.slug || '',
@@ -48,11 +132,11 @@ export default function AppConfiguracoes() {
         whatsapp: company.whatsapp || '',
         address: company.address || '',
         primary_color: company.primary_color || '#2563EB',
-        business_hours: company.business_hours || defaultHours,
+        business_hours: normalizedHours,
         logo_url: company.logo_url || '',
       });
     }
-  }, [company]);
+  }, [company?.id, company?.business_hours, company?.opening_hours]);
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -61,24 +145,186 @@ export default function AppConfiguracoes() {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setForm(p => ({ ...p, logo_url: file_url }));
+    } catch (err) {
+      toast({
+        title: 'Erro ao enviar logo',
+        description: err?.message || 'Não foi possível enviar a imagem.',
+        variant: 'destructive',
+      });
     } finally {
       setUploadingLogo(false);
     }
   };
 
-  const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Company.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['companies'] }); toast({ title: 'Configurações salvas!' }); },
-  });
+  const setHour = (day, field, val) => {
+    setForm(p => {
+      const currentDay = p.business_hours?.[day] || { open: '08:00', close: '20:00', active: day !== 'dom' };
+      const nextVal = field === 'active' ? Boolean(val) : val;
+      return {
+        ...p,
+        business_hours: {
+          ...p.business_hours,
+          [day]: {
+            ...currentDay,
+            [field]: nextVal,
+          },
+        },
+      };
+    });
+  };
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Company.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['companies'] }); toast({ title: 'Configurações salvas!' }); },
-  });
+  const normalizeHourOnBlur = (day, field, fallback) => {
+    setForm(p => {
+      const currentDay = p.business_hours?.[day] || { open: '08:00', close: '20:00', active: day !== 'dom' };
+      const formatted = formatTimeHHMM(currentDay[field], fallback);
+      return {
+        ...p,
+        business_hours: {
+          ...p.business_hours,
+          [day]: {
+            ...currentDay,
+            [field]: formatted,
+          },
+        },
+      };
+    });
+  };
 
-  const handleSave = () => {
-    if (company) updateMutation.mutate({ id: company.id, data: form });
-    else createMutation.mutate(form);
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const activeCompanyId = company?.id || await resolveActiveCompanyId();
+
+      // Serializa garantindo o formato padrão 'HH:mm' (ex: '07:00' até '22:00') em todos os dias
+      const serializedHours = {};
+      for (const { key } of BUSINESS_DAYS) {
+        const dayEntry = form.business_hours?.[key] || defaultHours[key];
+        const openFormatted = formatTimeHHMM(dayEntry?.open, '07:00');
+        let closeFormatted = formatTimeHHMM(dayEntry?.close, '22:00');
+
+        const [oh, om] = openFormatted.split(':').map(Number);
+        const [ch, cm] = closeFormatted.split(':').map(Number);
+        if (ch * 60 + cm <= oh * 60 + om && closeFormatted !== '00:00') {
+          closeFormatted = '22:00';
+        }
+
+        serializedHours[key] = {
+          open: openFormatted,
+          close: closeFormatted,
+          active: Boolean(dayEntry?.active),
+        };
+      }
+
+      setForm(p => ({ ...p, business_hours: serializedHours }));
+
+      const basePayload = {
+        name: (form.name || '').trim(),
+        slug: (form.slug || '').trim(),
+        phone: (form.phone || '').trim(),
+        whatsapp: (form.whatsapp || '').trim(),
+        address: (form.address || '').trim(),
+        primary_color: form.primary_color || '#2563EB',
+        logo_url: form.logo_url || '',
+        business_hours: serializedHours,
+        opening_hours: serializedHours,
+      };
+
+      if (activeCompanyId) {
+        let updateResult = await supabase
+          .from('companies')
+          .update(basePayload)
+          .eq('id', activeCompanyId)
+          .select();
+
+        // Se a coluna opening_hours não existir no schema cache de uma instância específica, tenta gravar business_hours
+        if (updateResult.error && String(updateResult.error.message || '').includes('opening_hours')) {
+          const { opening_hours, ...fallbackPayload } = basePayload;
+          updateResult = await supabase
+            .from('companies')
+            .update(fallbackPayload)
+            .eq('id', activeCompanyId)
+            .select();
+        } else if (updateResult.error && String(updateResult.error.message || '').includes('business_hours')) {
+          const { business_hours, ...fallbackPayload } = basePayload;
+          updateResult = await supabase
+            .from('companies')
+            .update(fallbackPayload)
+            .eq('id', activeCompanyId)
+            .select();
+        }
+
+        if (updateResult.error) {
+          console.error('[AppConfiguracoes] Erro ao atualizar empresa no Supabase:', updateResult.error);
+          toast({
+            title: 'Erro ao salvar configurações',
+            description: updateResult.error.message,
+            variant: 'destructive',
+          });
+          setIsSaving(false);
+          return;
+        }
+
+        // Sincroniza cache local
+        try {
+          const rawLocal = localStorage.getItem('barberpass_local_companies');
+          const localList = rawLocal ? JSON.parse(rawLocal) : [];
+          const savedRecord = (updateResult.data && updateResult.data[0]) || { ...company, ...basePayload, id: activeCompanyId };
+          const exists = localList.some(item => item.id === activeCompanyId);
+          const nextLocal = exists
+            ? localList.map(item => (item.id === activeCompanyId ? { ...item, ...savedRecord } : item))
+            : [savedRecord, ...localList];
+          localStorage.setItem('barberpass_local_companies', JSON.stringify(nextLocal));
+        } catch (_) {}
+      } else {
+        const insertPayload = {
+          ...basePayload,
+          owner_email: user?.email || '',
+          active: true,
+          status: 'active',
+        };
+        let insertResult = await supabase
+          .from('companies')
+          .insert([insertPayload])
+          .select();
+
+        if (insertResult.error && String(insertResult.error.message || '').includes('opening_hours')) {
+          const { opening_hours, ...fallbackPayload } = insertPayload;
+          insertResult = await supabase
+            .from('companies')
+            .insert([fallbackPayload])
+            .select();
+        }
+
+        if (insertResult.error) {
+          console.error('[AppConfiguracoes] Erro ao criar empresa no Supabase:', insertResult.error);
+          toast({
+            title: 'Erro ao salvar configurações',
+            description: insertResult.error.message,
+            variant: 'destructive',
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['companies'] });
+      await queryClient.invalidateQueries({ queryKey: ['my-company'] });
+      await queryClient.invalidateQueries({ queryKey: ['company-by-slug'] });
+
+      toast({
+        title: 'Configurações salvas!',
+        description: 'Os horários de funcionamento e dados da barbearia foram atualizados.',
+      });
+    } catch (err) {
+      console.error('[AppConfiguracoes] Exceção ao salvar configurações:', err);
+      toast({
+        title: 'Erro ao salvar configurações',
+        description: err?.message || 'Erro inesperado ao salvar configurações.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const publicLink = `${window.location.origin}/agendar/${form.slug || 'sua-barbearia'}`;
@@ -87,10 +333,6 @@ export default function AppConfiguracoes() {
     navigator.clipboard.writeText(publicLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const setHour = (day, field, val) => {
-    setForm(p => ({ ...p, business_hours: { ...p.business_hours, [day]: { ...p.business_hours[day], [field]: val } } }));
   };
 
   return (
@@ -184,22 +426,45 @@ export default function AppConfiguracoes() {
           {/* Business hours */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-4 sm:p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
             <h2 className="font-bold text-white mb-4">Horários de funcionamento</h2>
-            <div className="space-y-1">
-              {DAYS.map(({ key, label }) => {
-                const h = form.business_hours[key] || { open: '09:00', close: '19:00', active: false };
+            <div className="space-y-1.5">
+              {BUSINESS_DAYS.map(({ key, label }) => {
+                const rawH = form.business_hours?.[key] || defaultHours[key];
+                const isActive = Boolean(rawH?.active);
+                const openVal = formatTimeHHMM(rawH?.open, '07:00');
+                const closeVal = formatTimeHHMM(rawH?.close, '22:00');
+
                 return (
-                  <div key={key} className="grid grid-cols-[88px_1fr_auto_1fr] items-center gap-2 py-1.5 border-b border-white/6 last:border-b-0">
-                    <label className="flex items-center gap-1.5 min-w-0">
-                      <input type="checkbox" checked={h.active} onChange={e => setHour(key, 'active', e.target.checked)} className="flex-shrink-0 accent-[#2563EB]" />
-                      <span className={`text-sm font-semibold truncate ${h.active ? 'text-white' : 'text-white/40'}`}>{label}</span>
+                  <div key={key} className="grid grid-cols-[96px_1fr_auto_1fr] items-center gap-2 sm:gap-3 py-2 border-b border-white/6 last:border-b-0">
+                    <label className="flex items-center gap-2 min-w-0 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isActive}
+                        onChange={e => setHour(key, 'active', e.target.checked)}
+                        className="flex-shrink-0 accent-[#2563EB]"
+                      />
+                      <span className={`text-sm font-semibold truncate ${isActive ? 'text-white' : 'text-white/40'}`}>
+                        {label}
+                      </span>
                     </label>
-                    {h.active ? (
+                    {isActive ? (
                       <>
-                        <input type="time" value={h.open} onChange={e => setHour(key, 'open', e.target.value)}
-                          className="w-full min-w-0 px-2 py-1.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white" />
+                        <input
+                          type="time"
+                          step="60"
+                          value={openVal}
+                          onChange={e => setHour(key, 'open', formatTimeHHMM(e.target.value, openVal))}
+                          onBlur={() => normalizeHourOnBlur(key, 'open', '07:00')}
+                          className="w-full min-w-[104px] px-3 py-2 border border-white/10 bg-white/[0.04] rounded-lg text-sm font-mono text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA]"
+                        />
                         <span className="text-white/40 text-xs px-1">até</span>
-                        <input type="time" value={h.close} onChange={e => setHour(key, 'close', e.target.value)}
-                          className="w-full min-w-0 px-2 py-1.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white" />
+                        <input
+                          type="time"
+                          step="60"
+                          value={closeVal}
+                          onChange={e => setHour(key, 'close', formatTimeHHMM(e.target.value, closeVal))}
+                          onBlur={() => normalizeHourOnBlur(key, 'close', '22:00')}
+                          className="w-full min-w-[104px] px-3 py-2 border border-white/10 bg-white/[0.04] rounded-lg text-sm font-mono text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA]"
+                        />
                       </>
                     ) : (
                       <span className="text-sm text-white/35 col-span-3">Fechado</span>
@@ -212,10 +477,13 @@ export default function AppConfiguracoes() {
         </div>
 
         <div className="mt-6">
-          <button onClick={handleSave}
-            className="flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white px-6 py-3 rounded-xl font-semibold ring-1 ring-white/15 hover:brightness-110 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] active:scale-[0.98]">
-            <Save className="w-4 h-4" />
-            Salvar configurações
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white px-6 py-3 rounded-xl font-semibold ring-1 ring-white/15 hover:brightness-110 disabled:opacity-50 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] active:scale-[0.98]"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? 'Salvando...' : 'Salvar configurações'}
           </button>
         </div>
 
