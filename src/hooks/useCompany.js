@@ -1,8 +1,5 @@
 // useCompany — resolve a empresa do usuário logado SEM expor Company.list() ao frontend.
-//
-// Suporta modo impersonação: quando o Master está impersonando uma barbearia,
-// passa o impersonation_token para getMyCompany, que retorna a empresa alvo.
-// O resto da UI não precisa saber: useCompany sempre retorna a "empresa corrente".
+// Suporta modo impersonação e hidratação imediata para colaboradores e barbeiros.
 
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -11,28 +8,45 @@ import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 import { useEffect } from 'react';
 
 export function useCompany() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { isImpersonating, impersonationToken } = useImpersonationContext();
 
-  const { logout } = useAuth();
+  // Recupera company_id armazenado no login/sessão para hidratação imediata sem flash
+  const cachedAdmin = typeof window !== 'undefined' ? (() => {
+    try {
+      const stored = localStorage.getItem('admin_logged_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })() : null;
+
+  const cachedCompanyId = cachedAdmin?.company_id || null;
 
   const { data, isLoading, error } = useQuery({
-    // Inclui isImpersonating+token na queryKey para que a cache invalide
-    // quando o Master inicia ou encerra uma sessão de impersonação.
     queryKey: ['my-company', user?.email, isImpersonating ? impersonationToken : null],
     queryFn: async () => {
-      const payload = isImpersonating && impersonationToken
-        ? { impersonation_token: impersonationToken }
-        : {};
-      const res = await base44.functions.invoke('getMyCompany', payload);
-      if (res?.data?.error === 'COMPANY_BLOCKED') {
-        throw Object.assign(new Error('COMPANY_BLOCKED'), { code: 'COMPANY_BLOCKED' });
+      try {
+        const payload = isImpersonating && impersonationToken
+          ? { impersonation_token: impersonationToken }
+          : {};
+        const res = await base44.functions.invoke('getMyCompany', payload);
+        if (res?.data?.error === 'COMPANY_BLOCKED') {
+          throw Object.assign(new Error('COMPANY_BLOCKED'), { code: 'COMPANY_BLOCKED' });
+        }
+        return res?.data || { company: null, role: null };
+      } catch (err) {
+        if (err?.code === 'COMPANY_BLOCKED') throw err;
+        console.warn('[useCompany] Falha ao obter empresa remota, usando fallback:', err);
+        return {
+          company: cachedCompanyId ? { id: cachedCompanyId, name: 'Minha Barbearia', active: true } : null,
+          role: cachedAdmin?.role || null,
+        };
       }
-      return res?.data || { company: null, role: null };
     },
     enabled: !!user,
     staleTime: 60_000,
-    retry: false,
+    retry: 1,
   });
 
   // Se empresa bloqueada, desloga imediatamente
@@ -41,13 +55,14 @@ export function useCompany() {
       logout(false);
       base44.auth.logout();
     }
-  }, [error]);
+  }, [error, logout]);
 
-  const company = data?.company || null;
+  const company = data?.company || (cachedCompanyId ? { id: cachedCompanyId, name: 'Minha Barbearia', active: true } : null);
+
   return {
     company,
-    companyId: company?.id || null,
-    role: data?.role || null,
-    isLoading,
+    companyId: company?.id || cachedCompanyId || null,
+    role: data?.role || cachedAdmin?.role || null,
+    isLoading: isLoading && !company,
   };
 }

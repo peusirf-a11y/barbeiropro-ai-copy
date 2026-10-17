@@ -71,7 +71,7 @@ export default function AppAgenda() {
       });
       return res?.data?.appointments ?? res?.data ?? [];
     },
-    enabled: !!companyId && (!isBarbeiro || !!myProId),
+    enabled: !!companyId,
   });
   const appointments = safeArray(appointmentsRaw);
 
@@ -426,7 +426,7 @@ export default function AppAgenda() {
     });
   };
 
-  if (loadingCompany) {
+  if (loadingCompany && !companyId) {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">

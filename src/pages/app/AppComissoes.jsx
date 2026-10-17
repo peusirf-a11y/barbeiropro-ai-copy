@@ -43,7 +43,7 @@ export default function AppComissoes() {
       });
       return res?.data?.commissions || [];
     },
-    enabled: !!companyId && (!isBarbeiro || !!myProId),
+    enabled: !!companyId,
   });
 
   const { data: professionals = [] } = useQuery({
@@ -104,7 +104,7 @@ export default function AppComissoes() {
   const grandTotal = filtered.reduce((s, c) => s + (c.amount || 0), 0);
   const grandPending = filtered.filter(c => c.status === 'pendente').reduce((s, c) => s + (c.amount || 0), 0);
 
-  if (loadingCompany || isLoading) {
+  if (loadingCompany && !companyId) {
     return <AppLayout><SkeletonPage /></AppLayout>;
   }
 

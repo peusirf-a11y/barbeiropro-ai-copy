@@ -55,60 +55,105 @@ export default function AppDashboard() {
   const impPatch = useImpersonationPatch();
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
-    queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? myProId : 'all'],
+    queryKey: ['appointments', companyId, activeUnitId, isBarbeiro ? (myProId || 'me') : 'all'],
     queryFn: async () => {
-      const res = await base44.functions.invoke('listAppointments', {
-        company_id: companyId,
-        active_unit_id: activeUnitId,
-        limit: 200,
-        ...impPatch,
-      });
-      return res?.data?.appointments || [];
+      try {
+        const res = await base44.functions.invoke('listAppointments', {
+          company_id: companyId,
+          active_unit_id: activeUnitId,
+          limit: 200,
+          ...impPatch,
+        });
+        return res?.data?.appointments || [];
+      } catch (err) {
+        console.warn('[Dashboard] Erro ao buscar agendamentos:', err);
+        return [];
+      }
     },
-    enabled: !!companyId && (!isBarbeiro || !!myProId),
+    enabled: !!companyId,
+    staleTime: 30_000,
   });
 
-  // BFF Fase 5: customers via listCustomers (tenant + unit scope server-side).
+  // Clientes: apenas carrega se não for barbeiro (barbeiro foca em agendamentos)
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', companyId, activeUnitId],
     queryFn: async () => {
-      const res = await base44.functions.invoke('listCustomers', {
-        company_id: companyId,
-        active_unit_id: activeUnitId,
-        limit: 500,
-        ...impPatch,
-      });
-      return res?.data?.customers || [];
+      try {
+        const res = await base44.functions.invoke('listCustomers', {
+          company_id: companyId,
+          active_unit_id: activeUnitId,
+          limit: 500,
+          ...impPatch,
+        });
+        return res?.data?.customers || [];
+      } catch {
+        return [];
+      }
     },
-    enabled: !!companyId,
+    enabled: !!companyId && !isBarbeiro,
+    staleTime: 60_000,
   });
+
+  // Comissões do barbeiro para exibição direta no painel
+  const { data: commissions = [] } = useQuery({
+    queryKey: ['commissions', companyId, isBarbeiro ? myProId : null],
+    queryFn: async () => {
+      try {
+        const res = await base44.functions.invoke('listCommissions', {
+          company_id: companyId,
+          professional_id: myProId,
+        });
+        return res?.data?.commissions || [];
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!companyId && isBarbeiro,
+    staleTime: 30_000,
+  });
+
+  const barberMonthEarnings = useMemo(() => {
+    return commissions
+      .filter(c => c.status === 'paid' || c.status === 'pending')
+      .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  }, [commissions]);
 
   // Barbeiro não acessa financeiro — query disabled.
   const { data: financial = [] } = useQuery({
     queryKey: ['financial', companyId, activeUnitId],
     queryFn: async () => {
-      const res = await base44.functions.invoke('listFinancialEntries', {
-        company_id: companyId,
-        active_unit_id: activeUnitId,
-        ...impPatch,
-      });
-      return res?.data?.entries || res?.data?.financial || [];
+      try {
+        const res = await base44.functions.invoke('listFinancialEntries', {
+          company_id: companyId,
+          active_unit_id: activeUnitId,
+          ...impPatch,
+        });
+        return res?.data?.entries || res?.data?.financial || [];
+      } catch {
+        return [];
+      }
     },
     enabled: !!companyId && showFinance,
+    staleTime: 60_000,
   });
 
   // Assinaturas ativas — KPIs de receita recorrente (BFF Fase 4)
   const { data: activeSubs = [] } = useQuery({
     queryKey: ['customer-subscriptions-active', companyId, activeUnitId],
     queryFn: async () => {
-      const res = await base44.functions.invoke('listSubscriptions', {
-        active_unit_id: activeUnitId,
-        status: 'active',
-        ...impPatch,
-      });
-      return res?.data?.subscriptions || [];
+      try {
+        const res = await base44.functions.invoke('listSubscriptions', {
+          active_unit_id: activeUnitId,
+          status: 'active',
+          ...impPatch,
+        });
+        return res?.data?.subscriptions || [];
+      } catch {
+        return [];
+      }
     },
     enabled: !!companyId && showFinance,
+    staleTime: 60_000,
   });
   const mrr = useMemo(() => activeSubs.reduce((s, sub) => s + (sub.plan_price_snapshot || 0), 0), [activeSubs]);
   const overdueSubs = useMemo(() => activeSubs.filter(s => s.last_payment_status === 'atrasado').length, [activeSubs]);
@@ -274,7 +319,7 @@ export default function AppDashboard() {
     return detected;
   }, [apptsScoped, todayAppts, customers, loadingAppts, now]);
 
-  const isLoading = loadingCompany || loadingAppts;
+  const isLoading = loadingCompany && !companyId;
 
   if (isLoading) {
     return (
@@ -323,6 +368,15 @@ export default function AppDashboard() {
               tone="green"
             />
           )}
+          {isBarbeiro && (
+            <KpiCard
+              label="Minhas comissões"
+              value={`R$ ${barberMonthEarnings.toFixed(2).replace('.', ',')}`}
+              sub="Total comissões"
+              icon={DollarSign}
+              tone="green"
+            />
+          )}
           <KpiCard
             label="Agendamentos (hoje)"
             value={todayAppts.length}
@@ -346,7 +400,7 @@ export default function AppDashboard() {
               tone="amber"
             />
           )}
-          {!showFinance && (
+          {!showFinance && !isBarbeiro && (
             <KpiCard
               label="Total clientes"
               value={customers.length}

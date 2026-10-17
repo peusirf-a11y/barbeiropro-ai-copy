@@ -37,6 +37,19 @@ export async function resolveCompanyId(payload = {}) {
           const companies = await Company.list();
           const found = companies.find((c) => c.owner_email?.toLowerCase().trim() === emailClean);
           if (found) return found.id;
+
+          try {
+            if (isSupabaseConfigured && supabase) {
+              const { data: tm } = await supabase
+                .from('team_members')
+                .select('company_id')
+                .eq('email', emailClean)
+                .maybeSingle();
+              if (tm?.company_id) return tm.company_id;
+            }
+            const tms = await TeamMember.filter({ email: emailClean });
+            if (tms?.[0]?.company_id) return tms[0].company_id;
+          } catch (_) {}
         }
       }
     } catch (_) {}

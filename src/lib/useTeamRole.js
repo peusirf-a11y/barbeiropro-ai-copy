@@ -1,5 +1,5 @@
 // Hook frontend que vincula o User logado ao seu TeamMember (papel + tenant + profissional).
-// Fonte da verdade do RBAC dentro da empresa.
+// Fonte da verdade do RBAC dentro da empresa com resolução rápida e sem timeouts bloqueantes.
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
@@ -8,18 +8,28 @@ import { useAuth } from '@/lib/AuthContext';
 
 export function useTeamRole() {
   const { user } = useAuth();
+  const cleanEmail = user?.email?.trim().toLowerCase();
+
+  // Cache local da sessão para hidratação instantânea
+  const cachedUser = typeof window !== 'undefined' ? (() => {
+    try {
+      const stored = localStorage.getItem('admin_logged_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })() : null;
 
   return useQuery({
-    queryKey: ['team-role', user?.email],
+    queryKey: ['team-role', cleanEmail],
     queryFn: async () => {
-      if (!user?.email) return null;
-      const cleanEmail = user.email.trim().toLowerCase();
+      if (!cleanEmail) return null;
 
       // 1. Super Admin Check
       const isSuperAdmin =
-        user.is_super_admin ||
-        user.app_metadata?.role === 'superadmin' ||
-        user.user_metadata?.role === 'superadmin' ||
+        user?.is_super_admin ||
+        user?.app_metadata?.role === 'superadmin' ||
+        user?.user_metadata?.role === 'superadmin' ||
         cleanEmail === 'pedrojesantos@hotmail.com';
 
       if (isSuperAdmin) {
@@ -41,13 +51,25 @@ export function useTeamRole() {
             .maybeSingle();
 
           if (supaTm) {
-            console.log(`[useTeamRole] Membro localizado em team_members: role = '${supaTm.role}' para ${cleanEmail}`);
+            let proId = supaTm.professional_id || null;
+            if (!proId && supaTm.role === 'barbeiro') {
+              try {
+                const { data: pro } = await supabase
+                  .from('professionals')
+                  .select('id')
+                  .eq('email', cleanEmail)
+                  .maybeSingle();
+                if (pro?.id) proId = pro.id;
+              } catch (_) {}
+            }
+
+            console.log(`[useTeamRole] Membro localizado em team_members: role = '${supaTm.role}', proId = ${proId} para ${cleanEmail}`);
             return {
               role: supaTm.role || 'barbeiro',
               name: supaTm.name || null,
               email: supaTm.email,
               company_id: supaTm.company_id,
-              professional_id: supaTm.professional_id || null,
+              professional_id: proId,
               team_member_id: supaTm.id,
               cash_permissions: supaTm.cash_permissions || null,
               unit_ids: supaTm.unit_ids || [],
@@ -121,21 +143,32 @@ export function useTeamRole() {
       // 5. Se não for dono e não for localizado em team_members, assume estritamente 'barbeiro'
       console.warn(`[useTeamRole] Usuário não identificado como dono nem membro de equipe. Assumindo estritamente role = 'barbeiro' para ${cleanEmail}`);
 
-      let fallbackCompanyId = null;
-      try {
-        const comps = await base44.entities.Company.list();
-        if (comps.length > 0) fallbackCompanyId = comps[0].id;
-      } catch (_) {}
+      let fallbackCompanyId = cachedUser?.company_id || null;
+      if (!fallbackCompanyId) {
+        try {
+          const comps = await base44.entities.Company.list();
+          if (comps.length > 0) fallbackCompanyId = comps[0].id;
+        } catch (_) {}
+      }
 
       return {
-        role: 'barbeiro',
+        role: cachedUser?.role || 'barbeiro',
+        name: cachedUser?.full_name || null,
         company_id: fallbackCompanyId,
         professional_id: null,
         is_owner: false,
         is_super_admin: false,
       };
     },
-    enabled: !!user?.email,
+    enabled: !!cleanEmail,
     staleTime: 60_000,
+    initialData: cachedUser && cachedUser.email?.toLowerCase().trim() === cleanEmail ? {
+      role: cachedUser.role || 'barbeiro',
+      name: cachedUser.full_name || null,
+      email: cleanEmail,
+      company_id: cachedUser.company_id || null,
+      professional_id: null,
+      is_super_admin: false,
+    } : undefined,
   });
 }

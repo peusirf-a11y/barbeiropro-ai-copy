@@ -148,7 +148,7 @@ export default function AppClientes() {
     return acc;
   }, { vip: 0, primeira_visita: 0, fiel: 0, em_risco: 0, inativo: 0, perdido: 0 });
 
-  if (loadingCompany || isLoading) {
+  if ((loadingCompany && !companyId) || (isLoading && customers.length === 0)) {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
