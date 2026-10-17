@@ -190,11 +190,14 @@ CREATE POLICY "Leitura pública de barbearias ativas" ON companies
 CREATE POLICY "Gestão total de barbearias para donos/admins" ON companies
     FOR ALL USING (true) WITH CHECK (true);
 
--- Políticas para Plans: Leitura pública, escrita restrita
-CREATE POLICY "Leitura pública de planos" ON plans
-    FOR SELECT USING (active = true);
+-- Políticas para Plans: Leitura pública e autenticada, gestão total para administradores/autenticados
+DROP POLICY IF EXISTS "Leitura pública de planos" ON plans;
+DROP POLICY IF EXISTS "Gestão de planos para barbearias" ON plans;
 
-CREATE POLICY "Gestão de planos para barbearias" ON plans
+CREATE POLICY "Leitura pública de planos" ON plans
+    FOR SELECT USING (true);
+
+CREATE POLICY "Gestão de planos para administradores" ON plans
     FOR ALL USING (true) WITH CHECK (true);
 
 -- Políticas para Services: Leitura pública

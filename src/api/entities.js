@@ -59,6 +59,7 @@ export class EntityRepository {
         query = query.limit(limit);
       }
       const { data, error } = await query;
+      console.log(`[Supabase Debug] Listagem de ${this.name} [${this.tableName}]:`, { data, error });
       if (error) throw error;
       return data || [];
     } catch (err) {
@@ -122,15 +123,14 @@ export class EntityRepository {
       id: data.id || crypto.randomUUID(),
       created_at: data.created_at || new Date().toISOString(),
       updated_at: data.updated_at || new Date().toISOString(),
+      active: data.active !== undefined ? data.active : true,
       ...data,
     };
 
-    // Salvar sempre no fallback local para garantir persistência imediata
-    const localItems = getLocalTable(this.tableName);
-    localItems.unshift(newItem);
-    saveLocalTable(this.tableName, localItems);
-
     if (!isSupabaseConfigured || !supabase) {
+      const localItems = getLocalTable(this.tableName);
+      localItems.unshift(newItem);
+      saveLocalTable(this.tableName, localItems);
       console.log(`[LocalFallback] ${this.name} criado localmente:`, newItem);
       return newItem;
     }
@@ -138,14 +138,21 @@ export class EntityRepository {
     try {
       console.log(`[Supabase] Inserindo ${this.name} em [${this.tableName}]:`, newItem);
       const { data: inserted, error } = await supabase.from(this.tableName).insert([newItem]).select();
-      if (error) throw error;
-      if (inserted && inserted[0]) {
-        return inserted[0];
+      if (error) {
+        console.error(`[Supabase Error] Falha ao inserir ${this.name}:`, error);
+        throw error;
       }
-      return newItem;
+
+      // Sincroniza localmente com o registro inserido com sucesso
+      const localItems = getLocalTable(this.tableName);
+      const savedItem = inserted && inserted[0] ? inserted[0] : newItem;
+      localItems.unshift(savedItem);
+      saveLocalTable(this.tableName, localItems);
+
+      return savedItem;
     } catch (err) {
-      console.warn(`[Supabase Warning] Falha ao inserir ${this.name} no Supabase (usando versão local):`, err.message);
-      return newItem;
+      console.error(`[Supabase Exception] Erro crítico ao inserir ${this.name} no Supabase:`, err.message || err);
+      throw err;
     }
   }
 
