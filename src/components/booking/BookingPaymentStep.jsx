@@ -59,29 +59,97 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
           payment_method: method,
         });
       }
-      const res = await base44.functions.invoke('createAsaasBookingPayment', {
-        ...payload,
-        customer_cpf: cpfDigits,
-        payment_method: method,
-        idempotency_key: idemKeyRef.current,
-      });
-      const data = res?.data;
+
+      let data = null;
+
+      // 1. Criação do Agendamento e Cobrança Pix (/api/appointments/create-pix)
+      try {
+        const fetchRes = await fetch('/api/appointments/create-pix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...payload,
+            company_id: payload.company_id,
+            service_id: payload.service_id,
+            professional_id: payload.professional_id,
+            client_name: payload.customer_name || payload.client_name,
+            client_phone: payload.customer_phone || payload.client_phone,
+            client_email: payload.customer_email || payload.client_email,
+            client_cpf: cpfDigits,
+            price: payload.price,
+            start_time: payload.scheduled_at,
+            end_time: payload.end_time || payload.scheduled_at,
+            date: payload.date,
+            time: payload.time,
+            notes: payload.notes,
+            idempotency_key: idemKeyRef.current,
+          }),
+        });
+
+        if (fetchRes.ok) {
+          const jsonRes = await fetchRes.json();
+          if (jsonRes && (jsonRes.encodedImage || jsonRes.paymentId || jsonRes.success)) {
+            data = {
+              success: true,
+              appointment_id: jsonRes.appointmentId || jsonRes.appointment_id,
+              payment_id: jsonRes.paymentId || jsonRes.payment_id,
+              pix: {
+                encodedImage: jsonRes.encodedImage,
+                payload: jsonRes.payload,
+                paymentId: jsonRes.paymentId,
+                copy_paste: jsonRes.payload,
+                qr_code_base64: jsonRes.encodedImage,
+              },
+              expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            };
+          }
+        }
+      } catch (fErr) {
+        console.warn('[BookingPaymentStep] Aviso ao chamar /api/appointments/create-pix, tentando fallback:', fErr);
+      }
+
+      // Fallback via invoke caso o endpoint HTTP direto falhe
+      if (!data) {
+        const res = await base44.functions.invoke('createAsaasBookingPayment', {
+          ...payload,
+          client_name: payload.customer_name || payload.client_name,
+          client_phone: payload.customer_phone || payload.client_phone,
+          client_email: payload.customer_email || payload.client_email,
+          customer_cpf: cpfDigits,
+          client_cpf: cpfDigits,
+          payment_method: method,
+          idempotency_key: idemKeyRef.current,
+        });
+        data = res?.data;
+      }
+
       if (data?.error) {
         setErrorMsg(data?.message || 'Não foi possível iniciar o pagamento. Tente novamente.');
         setStage('error');
         return;
       }
-      if (!data?.pix) {
+      if (!data?.pix && !data?.encodedImage) {
         setErrorMsg('Não foi possível gerar o PIX. Tente novamente.');
         setStage('error');
         return;
       }
-      setIntentData(data);
+
+      const normalizedIntent = {
+        ...data,
+        appointment_id: data.appointment_id || data.appointmentId,
+        payment_id: data.payment_id || data.paymentId,
+        pix: data.pix || {
+          encodedImage: data.encodedImage,
+          payload: data.payload,
+          paymentId: data.paymentId || data.payment_id,
+          copy_paste: data.payload,
+          qr_code_base64: data.encodedImage,
+        },
+      };
+
+      setIntentData(normalizedIntent);
       setStage('pix');
     } catch (err) {
-      // Axios encapsula 4xx em err.response.data — a função sempre devolve
-      // { error, message } amigável. Sem isto o usuário vê apenas
-      // "Request failed with status code 400" sem nenhuma pista.
       const body = err?.response?.data;
       const friendly = body?.message || body?.error || err.message || 'Erro de comunicação. Tente novamente.';
       setErrorMsg(friendly);
@@ -175,6 +243,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
       {stage === 'pix' && intentData && (
         <PixPaymentBox
           appointmentId={intentData.appointment_id}
+          paymentId={intentData.payment_id}
           pixData={intentData.pix}
           expiresAt={intentData.expires_at}
           primaryColor={primaryColor}

@@ -56,6 +56,11 @@ CREATE TABLE IF NOT EXISTS companies (
 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS business_hours JSONB;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS opening_hours JSONB;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS asaas_api_key TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS asaas_pix_enabled BOOLEAN DEFAULT TRUE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS asaas_credit_card_enabled BOOLEAN DEFAULT TRUE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS booking_payment_mode VARCHAR(50) DEFAULT 'optional';
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS booking_deposit_amount NUMERIC(10, 2) DEFAULT 20.00;
 
 CREATE INDEX IF NOT EXISTS idx_companies_slug ON companies(slug);
 CREATE INDEX IF NOT EXISTS idx_companies_active ON companies(active);
@@ -232,8 +237,21 @@ CREATE POLICY "Acesso de clientes aos próprios dados" ON customers
 CREATE POLICY "Acesso a assinaturas" ON customer_subscriptions
     FOR ALL USING (true) WITH CHECK (true);
 
--- Políticas para Appointments
-CREATE POLICY "Acesso a agendamentos" ON appointments
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_name VARCHAR(255);
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_phone VARCHAR(50);
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS start_time TIMESTAMPTZ;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS end_time TIMESTAMPTZ;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS asaas_payment_id VARCHAR(100);
+
+-- Políticas para Appointments: Leitura, inserção e atualização públicas/anônimas para agendamento online via checkout
+DROP POLICY IF EXISTS "Acesso a agendamentos" ON appointments;
+DROP POLICY IF EXISTS "Permitir insercao publica de agendamentos" ON appointments;
+DROP POLICY IF EXISTS "Permitir consulta e atualizacao publica de agendamentos" ON appointments;
+
+CREATE POLICY "Permitir insercao publica de agendamentos" ON appointments
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Permitir consulta e atualizacao publica de agendamentos" ON appointments
     FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================================================

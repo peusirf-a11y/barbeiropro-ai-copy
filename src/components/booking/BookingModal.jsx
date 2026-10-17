@@ -606,7 +606,7 @@ export default function BookingModal({
                 <BookingPaymentStep
                   payload={buildBookingPayload()}
                   primaryColor={primaryColor}
-                  pixEnabled={false}
+                  pixEnabled={company?.asaas_pix_enabled !== false}
                   onBack={() => setStep(3)}
                   onSucceeded={(intent) => onBookingDone({ appointment_id: intent.appointment_id, paid_online: true, selected, form })}
                 />

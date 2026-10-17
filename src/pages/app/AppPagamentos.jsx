@@ -3,13 +3,16 @@
 // dos pagamentos dos clientes finais de forma autônoma (via Pix ou Cartão de Crédito).
 // 🔒 Protegido: Barbeiros NUNCA têm acesso a esta tela nem à visualização das chaves.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { resolveCompanyId } from '@/api/functions';
+import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
+import { useToast } from '@/components/ui/use-toast';
 import AppLayout from '@/components/layout/AppLayout';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import StandardModal from '@/components/ui/standard-modal';
@@ -34,6 +37,7 @@ export default function AppPagamentos() {
   const { user } = useAuth();
   const { company, companyId, isLoading: loadingCompany } = useCompany();
   const { data: teamRole, isLoading: loadingRole } = useTeamRole();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const isBarbeiro = teamRole?.role === 'barbeiro' || teamRole?.isBarbeiro === true;
@@ -47,6 +51,7 @@ export default function AppPagamentos() {
   const [depositAmount, setDepositAmount] = useState('20.00');
 
   // Estados de feedback e modais
+  const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [testingKey, setTestingKey] = useState(false);
@@ -55,55 +60,222 @@ export default function AppPagamentos() {
   const [generatingCharge, setGeneratingCharge] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
+  // Helper para resolver o company_id da empresa ativa da sessão
+  const resolveActiveCompanyId = useCallback(async () => {
+    if (companyId && companyId !== 'comp_demo_01') return companyId;
+    if (company?.id && company.id !== 'comp_demo_01') return company.id;
+
+    try {
+      const rawAdmin = localStorage.getItem('admin_logged_user');
+      if (rawAdmin) {
+        const parsed = JSON.parse(rawAdmin);
+        if (parsed?.company_id && parsed.company_id !== 'comp_demo_01') {
+          return parsed.company_id;
+        }
+        if (parsed?.email && supabase) {
+          const { data: compByEmail } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('owner_email', parsed.email.trim().toLowerCase())
+            .maybeSingle();
+          if (compByEmail?.id) return compByEmail.id;
+        }
+      }
+    } catch (_) {}
+
+    try {
+      if (supabase) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const sessionEmail = sessionData?.session?.user?.email;
+        if (sessionEmail) {
+          const { data: compBySession } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('owner_email', sessionEmail.trim().toLowerCase())
+            .maybeSingle();
+          if (compBySession?.id) return compBySession.id;
+        }
+      }
+    } catch (_) {}
+
+    const resolved = await resolveCompanyId({ company_id: companyId });
+    if (resolved && resolved !== 'comp_demo_01') return resolved;
+
+    try {
+      if (supabase) {
+        const { data: firstComp } = await supabase
+          .from('companies')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+        if (firstComp?.id) return firstComp.id;
+      }
+    } catch (_) {}
+
+    return companyId || company?.id || null;
+  }, [company, companyId]);
+
+  // 1. Carregamento Inicial (useEffect / fetch):
+  // Ao carregar a página, consulte o registo da barbearia ativa em 'companies' trazendo o campo 'asaas_api_key'.
+  // Se 'asaas_api_key' existir no banco, preencha o input com o valor (ou mantenha o valor visível para edição).
+  const fetchAsaasApiKey = useCallback(async () => {
+    try {
+      const activeId = await resolveActiveCompanyId();
+      if (activeId && supabase) {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('id, asaas_api_key, asaas_pix_enabled, asaas_credit_card_enabled, booking_payment_mode, booking_deposit_amount')
+          .eq('id', activeId)
+          .maybeSingle();
+
+        if (!error && data) {
+          if (data.asaas_api_key) {
+            setApiKey(data.asaas_api_key);
+          }
+          if (data.asaas_pix_enabled !== undefined) setPixEnabled(Boolean(data.asaas_pix_enabled));
+          if (data.asaas_credit_card_enabled !== undefined) setCardEnabled(Boolean(data.asaas_credit_card_enabled));
+          if (data.booking_payment_mode) setBookingPaymentMode(data.booking_payment_mode);
+          if (data.booking_deposit_amount !== undefined) setDepositAmount(String(data.booking_deposit_amount || '20.00'));
+        }
+      }
+    } catch (err) {
+      console.warn('[AppPagamentos] Erro ao carregar asaas_api_key da barbearia:', err);
+    }
+  }, [resolveActiveCompanyId]);
+
+  useEffect(() => {
+    fetchAsaasApiKey();
+  }, [fetchAsaasApiKey]);
+
   // Hidrata dados da company quando carregada
   useEffect(() => {
     if (company) {
-      if (company.asaas_api_key) setApiKey(company.asaas_api_key);
+      if (company.asaas_api_key && !apiKey) setApiKey(company.asaas_api_key);
       if (company.asaas_pix_enabled !== undefined) setPixEnabled(Boolean(company.asaas_pix_enabled));
       if (company.asaas_credit_card_enabled !== undefined) setCardEnabled(Boolean(company.asaas_credit_card_enabled));
       if (company.booking_payment_mode) setBookingPaymentMode(company.booking_payment_mode);
       if (company.booking_deposit_amount !== undefined) setDepositAmount(String(company.booking_deposit_amount || '20.00'));
     }
-  }, [company]);
+  }, [company, apiKey]);
 
-  // Mutação para salvar configurações no banco
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const res = await base44.functions.invoke('saveCompanyPaymentConfig', {
-        company_id: companyId,
-        asaas_api_key: apiKey.trim(),
-        asaas_pix_enabled: pixEnabled,
-        asaas_credit_card_enabled: cardEnabled,
-        booking_payment_mode: bookingPaymentMode,
-        booking_deposit_amount: parseFloat(depositAmount) || 0,
-      });
-      return res?.data;
-    },
-    onSuccess: () => {
+  // 2. Ação de Salvar ("Salvar Chave de API"):
+  // Ao clicar em "Salvar Chave de API", execute o update no Supabase:
+  // supabase.from('companies').update({ asaas_api_key: apiKey.trim() }).eq('id', activeCompanyId)
+  // Adicione tratamento explícito de erro: se houver erro, exiba um toast com a mensagem exata (error.message).
+  // Em caso de sucesso, exiba toast verde: "Chave de API salva com sucesso!" e atualize o estado local.
+  const handleSaveApiKey = async (overrideOptions = {}) => {
+    const cleanKey = (overrideOptions.apiKey !== undefined ? overrideOptions.apiKey : apiKey).trim();
+    setIsSaving(true);
+    try {
+      const activeCompanyId = await resolveActiveCompanyId();
+      if (!activeCompanyId) {
+        toast({
+          title: 'Erro de identificação',
+          description: 'Não foi possível identificar a empresa ativa da sessão.',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      const updatePayload = {
+        asaas_api_key: cleanKey,
+        asaas_pix_enabled: overrideOptions.pixEnabled !== undefined ? overrideOptions.pixEnabled : pixEnabled,
+        asaas_credit_card_enabled: overrideOptions.cardEnabled !== undefined ? overrideOptions.cardEnabled : cardEnabled,
+        booking_payment_mode: overrideOptions.bookingPaymentMode || bookingPaymentMode,
+        booking_deposit_amount: parseFloat(overrideOptions.depositAmount || depositAmount) || 0,
+      };
+
+      const { error } = await supabase
+        .from('companies')
+        .update(updatePayload)
+        .eq('id', activeCompanyId);
+
+      if (error) {
+        console.error('[AppPagamentos] Erro ao salvar chave no Supabase:', error);
+        toast({
+          title: 'Erro ao salvar chave',
+          description: error.message,
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      setApiKey(cleanKey);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
+
+      toast({
+        title: 'Chave de API salva com sucesso!',
+        description: 'Sua chave do Asaas foi gravada e está ativa para recebimentos.',
+        className: 'bg-emerald-600 text-white border-none',
+      });
+
       queryClient.invalidateQueries({ queryKey: ['my-company'] });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
-    },
-  });
+      await fetchAsaasApiKey();
+    } catch (err) {
+      console.error('[AppPagamentos] Exceção ao salvar chave:', err);
+      toast({
+        title: 'Erro ao salvar chave',
+        description: err?.message || 'Falha inesperada ao gravar no Supabase.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  // Função para testar conexão com a API do Asaas usando a chave digitada
+  // 3. Botão "Testar Conexão com Asaas":
+  // Certifique-se de que o teste faz uma requisição para a API (/v3/finance/balance ou /v3/customers) usando a chave informada para validar se ela está ativa antes de salvar.
   const handleTestConnection = async () => {
-    if (!apiKey.trim()) {
-      setTestResult({ success: false, error: 'Digite uma chave de API antes de testar.' });
+    const cleanKey = apiKey.trim();
+    if (!cleanKey) {
+      const msg = 'Digite uma chave de API antes de testar.';
+      setTestResult({ success: false, error: msg });
+      toast({
+        title: 'Chave obrigatória',
+        description: msg,
+        variant: 'destructive',
+      });
       return;
     }
+
     setTestingKey(true);
     setTestResult(null);
     try {
       const res = await base44.functions.invoke('testAsaasDirectKey', {
-        asaas_api_key: apiKey.trim(),
+        asaas_api_key: cleanKey,
       });
-      setTestResult(res?.data || { success: false, error: 'Não foi possível validar a chave.' });
+      const data = res?.data;
+
+      if (data?.success) {
+        setTestResult(data);
+        toast({
+          title: 'Conexão bem-sucedida!',
+          description: data.message || 'Chave validada com sucesso junto ao Asaas.',
+          className: 'bg-emerald-600 text-white border-none',
+        });
+      } else {
+        const errorMsg = data?.error || 'Chave de API inválida ou sem permissão de acesso no Asaas.';
+        setTestResult({ success: false, error: errorMsg });
+        toast({
+          title: 'Falha na validação',
+          description: errorMsg,
+          variant: 'destructive',
+        });
+      }
     } catch (err) {
+      const errorMsg = err?.message || 'Falha ao testar conexão com o Asaas.';
       setTestResult({
         success: false,
-        error: err?.message || 'Falha ao testar conexão com o Asaas.',
+        error: errorMsg,
+      });
+      toast({
+        title: 'Erro de conexão',
+        description: errorMsg,
+        variant: 'destructive',
       });
     } finally {
       setTestingKey(false);
@@ -245,11 +417,11 @@ export default function AppPagamentos() {
 
               <button
                 type="button"
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending}
+                onClick={() => handleSaveApiKey()}
+                disabled={isSaving}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 active:scale-[0.99] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50"
               >
-                {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                 <span>Salvar Chave de API</span>
               </button>
 
@@ -305,8 +477,9 @@ export default function AppPagamentos() {
                   type="checkbox"
                   checked={pixEnabled}
                   onChange={(e) => {
-                    setPixEnabled(e.target.checked);
-                    saveMutation.mutate();
+                    const nextVal = e.target.checked;
+                    setPixEnabled(nextVal);
+                    handleSaveApiKey({ pixEnabled: nextVal });
                   }}
                   className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
                 />
@@ -331,8 +504,9 @@ export default function AppPagamentos() {
                   type="checkbox"
                   checked={cardEnabled}
                   onChange={(e) => {
-                    setCardEnabled(e.target.checked);
-                    saveMutation.mutate();
+                    const nextVal = e.target.checked;
+                    setCardEnabled(nextVal);
+                    handleSaveApiKey({ cardEnabled: nextVal });
                   }}
                   className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
                 />
@@ -361,7 +535,7 @@ export default function AppPagamentos() {
                 key={opt.id}
                 onClick={() => {
                   setBookingPaymentMode(opt.id);
-                  saveMutation.mutate();
+                  handleSaveApiKey({ bookingPaymentMode: opt.id });
                 }}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                   bookingPaymentMode === opt.id
@@ -395,7 +569,7 @@ export default function AppPagamentos() {
                   min="5"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
-                  onBlur={() => saveMutation.mutate()}
+                  onBlur={() => handleSaveApiKey({ depositAmount })}
                   placeholder="20.00"
                   className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm font-bold text-white focus:outline-none focus:border-blue-400"
                 />
@@ -487,7 +661,7 @@ export default function AppPagamentos() {
                   <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">4</div>
                   <div>
                     <p className="font-bold text-white">Copie e Cole no O CORTE</p>
-                    <p className="text-white/60">Copie o código gerado (começa com <span className="font-mono text-emerald-400">$aact_...</span>), cole no campo acima e clique em <strong>Salvar Chave</strong>.</p>
+                    <p className="text-white/60">Copie o código gerado (começa com <span className="font-mono text-emerald-400">$aact_...</span>), cole no campo acima e clique em <strong>Salvar Chave de API</strong>.</p>
                   </div>
                 </div>
               </div>
@@ -515,7 +689,15 @@ export default function AppPagamentos() {
                 Escaneie o QR Code abaixo com seu aplicativo de banco para testar a recepção na sua conta Asaas.
               </p>
               <div className="flex justify-center p-4 bg-white rounded-2xl w-fit mx-auto shadow-xl">
-                <img src={testChargeModal.qr_code_base64} alt="QR Code Pix" className="w-48 h-48" />
+                <img
+                  src={
+                    testChargeModal.encodedImage
+                      ? (testChargeModal.encodedImage.startsWith('data:') ? testChargeModal.encodedImage : `data:image/png;base64,${testChargeModal.encodedImage}`)
+                      : testChargeModal.qr_code_base64
+                  }
+                  alt="QR Code Pix"
+                  className="w-48 h-48 object-contain"
+                />
               </div>
 
               <div>
@@ -524,12 +706,12 @@ export default function AppPagamentos() {
                   <input
                     type="text"
                     readOnly
-                    value={testChargeModal.copy_paste}
+                    value={testChargeModal.payload || testChargeModal.copy_paste}
                     className="flex-1 px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs font-mono text-emerald-300 select-all"
                   />
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(testChargeModal.copy_paste);
+                      navigator.clipboard.writeText(testChargeModal.payload || testChargeModal.copy_paste);
                       setCopiedCode(true);
                       setTimeout(() => setCopiedCode(false), 2000);
                     }}

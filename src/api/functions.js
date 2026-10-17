@@ -1032,22 +1032,11 @@ export async function invokeFunction(functionName, payload = {}) {
             },
           };
         } catch (err) {
-          console.warn('[testAsaasDirectKey] Erro ao validar chave:', err);
-          if (apiKey.startsWith('$aact_') || apiKey.length > 25) {
-            const isProd = apiKey.startsWith('$aact_prod_');
-            return {
-              data: {
-                success: true,
-                valid: true,
-                balance: 0,
-                environment: isProd ? 'production' : 'sandbox',
-                message: `Chave válida no formato oficial Asaas (${isProd ? 'Produção' : 'Sandbox'}). Pronta para receber!`,
-              },
-            };
-          }
+          console.warn('[testAsaasDirectKey] Erro ao validar chave no Asaas:', err?.message || err);
           return {
             data: {
               success: false,
+              valid: false,
               error: err?.message || 'Chave de API inválida ou sem permissão de acesso no Asaas.',
             },
           };
@@ -1057,76 +1046,38 @@ export async function invokeFunction(functionName, payload = {}) {
       // ==========================================
       // MODELO A: COBRANÇA DIRETA NO AGENDAMENTO (100% PARA A BARBEARIA)
       // ==========================================
+      case 'createAppointmentPix':
       case 'createAsaasBookingPayment': {
-        const companyId = payload.company_id || (await resolveCompanyId(payload));
-        const company = companyId ? await Company.get(companyId) : null;
-        const barberApiKey = company?.asaas_api_key?.trim();
-
-        const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-        const amount = Number(payload.price || payload.amount || 35);
-
-        let pix = null;
-
-        // Se a barbearia configurou sua própria chave de API, cria a cobrança na conta dela
-        if (barberApiKey) {
-          try {
-            console.log('[createAsaasBookingPayment] Criando cobrança na conta Asaas da própria barbearia:', company?.name);
-            const paymentRes = await asaasRequest('POST', '/payments', {
-              apiKey: barberApiKey,
-              body: {
-                billingType: 'PIX',
-                value: amount,
-                dueDate: new Date().toISOString().split('T')[0],
-                description: `Agendamento Barbearia - ${payload.customer_name || 'Cliente'}`,
-              },
-            });
-
-            if (paymentRes?.data?.id) {
-              const qrRes = await asaasRequest('GET', `/payments/${paymentRes.data.id}/pixQrCode`, { apiKey: barberApiKey });
-              if (qrRes?.data?.encodedImage) {
-                pix = {
-                  qr_code_base64: `data:image/png;base64,${qrRes.data.encodedImage}`,
-                  copy_paste: qrRes.data.payload,
-                  expires_at: qrRes.data.expirationDate || expiresAt,
-                };
-              }
-            }
-          } catch (err) {
-            console.warn('[createAsaasBookingPayment] Aviso ao chamar API direta da barbearia:', err?.message);
-          }
-        }
-
-        if (!pix) {
-          const cleanBarberName = (company?.name || 'BARBEARIA').normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 13).toUpperCase();
-          const copyPaste = `00020126580014br.gov.bcb.pix0136${companyId || 'barbearia'}-${paymentId}520400005303986540${amount.toFixed(2)}5802BR5913${cleanBarberName}6009SAO PAULO62070503***6304E2CA`;
-          pix = {
-            qr_code_base64: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(copyPaste)}`,
-            copy_paste: copyPaste,
-            expires_at: expiresAt,
-          };
-        }
-
+        const { handleCreatePix } = await import('../server/appointmentsPixHandler.js');
+        const result = await handleCreatePix(payload);
+        const b = result.body;
         return {
           data: {
-            success: true,
-            payment_id: paymentId,
-            appointment_id: payload.appointment_id || `appt_${Date.now()}`,
-            pix,
-            expires_at: expiresAt,
-            direct_to_barber: !!barberApiKey,
+            ...b,
+            appointment_id: b.appointmentId,
+            payment_id: b.paymentId,
+            pix: {
+              encodedImage: b.encodedImage,
+              payload: b.payload,
+              paymentId: b.paymentId,
+              copy_paste: b.payload,
+              qr_code_base64: b.encodedImage,
+              qr_code_url: b.encodedImage ? (b.encodedImage.startsWith('data:') ? b.encodedImage : `data:image/png;base64,${b.encodedImage}`) : '',
+              expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            },
           },
         };
       }
 
+      case 'getPaymentStatus':
       case 'getAsaasBookingStatus': {
-        return {
-          data: {
-            payment_status: 'succeeded',
-            succeeded: true,
-            status: 'RECEIVED',
-          },
-        };
+        const { handlePaymentStatus } = await import('../server/appointmentsPixHandler.js');
+        const paymentId = payload.payment_id || payload.paymentId || payload.asaas_payment_id;
+        const appointmentId = payload.appointment_id || payload.appointmentId;
+        const companyId = payload.company_id || payload.companyId;
+
+        const result = await handlePaymentStatus(paymentId, appointmentId, companyId);
+        return { data: result.body };
       }
 
       case 'chargeBookingWithCard': {
