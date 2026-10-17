@@ -67,19 +67,35 @@ export default function PlansManager() {
       setShowForm(false);
       setEditing(null);
       setForm(emptyForm);
-      toast({ title: editing ? 'Plano atualizado' : 'Plano criado' });
+      toast({
+        title: editing ? 'Plano atualizado com sucesso!' : 'Plano criado com sucesso!',
+        description: editing ? 'As alterações foram salvas na base de dados.' : 'O novo plano foi cadastrado e já está disponível.',
+      });
     },
-    onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e) => {
+      console.error('Erro ao salvar plano no Supabase:', e);
+      toast({
+        title: 'Erro ao salvar plano',
+        description: e?.message || 'Ocorreu um erro ao persistir o plano no banco de dados. Verifique as permissões (RLS) e a conexão.',
+        variant: 'destructive',
+      });
+    },
   });
 
   const toggle = useMutation({
     mutationFn: ({ id, active }) => base44.entities.Plan.update(id, { active }),
     onSuccess: invalidate,
+    onError: (e) => {
+      toast({ title: 'Erro ao alterar status', description: e?.message, variant: 'destructive' });
+    },
   });
 
   const remove = useMutation({
     mutationFn: (id) => base44.entities.Plan.delete(id),
     onSuccess: invalidate,
+    onError: (e) => {
+      toast({ title: 'Erro ao excluir plano', description: e?.message, variant: 'destructive' });
+    },
   });
 
   const openCreate = () => {
@@ -94,12 +110,12 @@ export default function PlansManager() {
       name: p.name || '',
       price_monthly: p.price_monthly || 0,
       active: p.active !== false,
-      sort_order: p.sort_order || 0,
+      sort_order: p.sort_order || p.display_order || 0,
       // Migra keys legadas para as canônicas ao abrir
       features: (Array.isArray(p.features) ? p.features : []).map(canonicalFeatureKey),
       limits: {
-        barbers: p.limits?.barbers || 0,
-        appointments_month: p.limits?.appointments_month || 0,
+        barbers: p.limits?.barbers || p.limits?.max_barbers || 0,
+        appointments_month: p.limits?.appointments_month || p.limits?.max_appointments || 0,
         storage_mb: p.limits?.storage_mb || 0,
       },
       visibility: p.visibility || 'public',
@@ -109,20 +125,35 @@ export default function PlansManager() {
   };
 
   const handleSave = () => {
-    if (!form.name.trim()) {
-      toast({ title: 'Nome obrigatório', variant: 'destructive' });
+    if (!form.name || !form.name.trim()) {
+      toast({ title: 'Nome obrigatório', description: 'Por favor, informe o nome do plano.', variant: 'destructive' });
       return;
     }
-    upsert.mutate({
-      ...form,
-      price_monthly: Number(form.price_monthly) || 0,
+    const price = Number(form.price_monthly);
+    if (isNaN(price) || price <= 0) {
+      toast({ title: 'Preço inválido', description: 'O preço mensal (R$) deve ser um valor numérico maior que zero.', variant: 'destructive' });
+      return;
+    }
+
+    const payload = {
+      name: form.name.trim(),
+      price_monthly: price,
+      active: form.active,
       sort_order: Number(form.sort_order) || 0,
+      display_order: Number(form.sort_order) || 0,
+      features: Array.isArray(form.features) ? form.features : [],
       limits: {
         barbers: Number(form.limits.barbers) || 0,
         appointments_month: Number(form.limits.appointments_month) || 0,
         storage_mb: Number(form.limits.storage_mb) || 0,
+        max_barbers: Number(form.limits.barbers) || 0,
+        max_appointments: Number(form.limits.appointments_month) || 0,
       },
-    });
+      visibility: form.visibility || 'public',
+      allowed_company_ids: Array.isArray(form.allowed_company_ids) ? form.allowed_company_ids : [],
+    };
+
+    upsert.mutate(payload);
   };
 
   return (
