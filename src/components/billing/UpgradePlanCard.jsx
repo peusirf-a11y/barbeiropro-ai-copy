@@ -49,7 +49,7 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
                 {highlight ? 'Faça upgrade para liberar todos os recursos' : 'Planos de Assinatura O CORTE'}
               </h2>
               <p className="text-xs text-white/55 mt-0.5">
-                Escolha o plano ideal para a sua barbearia e pague com Pix ou Cartão via Asaas.
+                Escolha o plano ideal para a sua barbearia. 7 dias grátis no cartão de crédito via Asaas.
               </p>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
                   className="w-full mt-4 bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white font-bold py-2.5 rounded-xl text-xs ring-1 ring-white/15 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all shadow-[0_4px_12px_rgba(37,99,235,0.35)] cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  <span>{isCurrent ? 'Seu Plano Atual' : `Assinar ${p.name}`}</span>
+                  <span>{isCurrent ? 'Seu Plano Atual' : `7 Dias Grátis · ${p.name}`}</span>
                 </button>
               </div>
             );

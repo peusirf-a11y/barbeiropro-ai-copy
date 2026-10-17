@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
-import { CheckCircle, ArrowLeft, Loader2, Shield, Star, Zap, Lock, CreditCard, QrCode, Rocket } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Shield, Star, Zap, Lock, Rocket } from 'lucide-react';
 import { getReferralCode, getDeviceFingerprint } from '@/lib/referralTracking';
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
-import CpfRestrictionCard from '@/components/onboarding/CpfRestrictionCard';
 import { usePublicPlans } from '@/hooks/usePublicPlans';
 
 // Oferta de lançamento: R$ 49/mês durante os primeiros 6 meses, depois preço cheio do plano Pro.
@@ -22,8 +21,6 @@ function getPromoFromUrl() {
   return params.get('promo') === LAUNCH_PROMO.code ? LAUNCH_PROMO : null;
 }
 
-// Deriva a "key" canônica (starter/pro/enterprise) a partir do nome.
-// Usada nas funções de cobrança que esperam o slug do plano.
 function planKeyFromName(name) {
   const n = String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   if (n.includes('starter')) return 'starter';
@@ -32,25 +29,18 @@ function planKeyFromName(name) {
   return n.split(/\s+/)[0] || 'pro';
 }
 
-// Descrições curtas por slug. As features vêm do banco; este texto é cosmético.
 const PLAN_DESC = {
   starter: 'Para barbearias que estão começando',
   pro: 'Para barbearias em crescimento',
   enterprise: 'Para redes e estúdios premium',
 };
 
-// Fallback usado enquanto os planos do banco estão carregando (UX evita flash em branco).
-// NÃO é usado pra cobrar — apenas pra renderizar a UI inicial. Quando o hook retorna,
-// substituímos pelos valores reais.
 const PLANS_FALLBACK = [
   { key: 'starter', name: 'Starter', price: 0, desc: PLAN_DESC.starter, features: [] },
   { key: 'pro', name: 'Pro', price: 0, desc: PLAN_DESC.pro, features: [], highlight: true },
   { key: 'enterprise', name: 'Enterprise', price: 0, desc: PLAN_DESC.enterprise, features: [] },
 ];
 
-// Mapeia os planos do banco para o shape que a UI usa.
-// `features` exibidos: usa um set fixo amigável por slug; as flags técnicas do banco
-// (crm, online_booking, …) não são copy de marketing.
 const STATIC_FEATURE_COPY = {
   starter: ['Até 2 profissionais', 'Agenda online', 'Link público de agendamento', 'Gestão de clientes', 'Financeiro básico'],
   pro: ['Até 8 profissionais', 'Tudo do Starter', 'AI Growth Engine', 'Relatórios avançados', 'Suporte prioritário'],
@@ -75,30 +65,30 @@ function mapDbPlansToUi(dbPlans) {
 function getInitialPlan() {
   if (typeof window === 'undefined') return 'pro';
   const params = new URLSearchParams(window.location.search);
-  // Promo de lançamento só vale para o plano Pro — força ele de cara.
   if (params.get('promo') === LAUNCH_PROMO.code) return LAUNCH_PROMO.plan;
   const p = params.get('plano');
   return ['starter', 'pro', 'enterprise'].includes(p) ? p : 'pro';
 }
 
+// Máscara dinâmica que se adapta tanto para CPF (11 dígitos) quanto para CNPJ (14 dígitos)
 function maskCpfCnpj(value) {
   const d = String(value || '').replace(/\D/g, '').slice(0, 14);
   if (d.length <= 11) {
     return d
       .replace(/^(\d{3})(\d)/, '$1.$2')
       .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d)/, '.$1-$2');
+      .replace(/\.(\d{3})(\d{1,2})$/, '$1-$2');
   }
   return d
     .replace(/^(\d{2})(\d)/, '$1.$2')
     .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1/$2')
-    .replace(/(\d{4})(\d)/, '$1-$2');
+    .replace(/\.(\d{3})(\d)/, '$1/$2')
+    .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
 }
 
 export default function Checkout() {
   const [selectedPlan, setSelectedPlan] = useState(getInitialPlan());
-  const [promo] = useState(getPromoFromUrl()); // null ou LAUNCH_PROMO
+  const [promo] = useState(getPromoFromUrl());
   const isLaunch = !!promo;
   const { plans: dbPlans, isLoading: loadingPlans } = usePublicPlans();
   const PLANS = mapDbPlansToUi(dbPlans);
@@ -109,124 +99,46 @@ export default function Checkout() {
     phone: '',
     cpf_cnpj: '',
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [iframeBlocked, setIframeBlocked] = useState(false);
-  const [cancelled, setCancelled] = useState(false);
-  // 'form' = preenchendo dados | 'method' = escolhendo método | 'card' = formulário cartão inline
-  const [stage, setStage] = useState('form');
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [stage, setStage] = useState('form'); // 'form' = dados cadastrais | 'method' = cartão de crédito
 
-  useEffect(() => {
-    try {
-      if (window.self !== window.top) setIframeBlocked(true);
-    } catch (e) {
-      setIframeBlocked(true);
-    }
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('cancelled')) setCancelled(true);
-  }, []);
-
-  // Se o slug selecionado não existir nos planos (ex: banco só tem Pro), cai no primeiro.
   const plan = PLANS.find(p => p.key === selectedPlan) || PLANS[0];
-  // Preço efetivo cobrado nos primeiros meses (promo) vs preço cheio (depois).
   const effectivePrice = isLaunch ? promo.price : plan.price;
-
-  const cpfDigits = form.cpf_cnpj.replace(/\D/g, '');
-  const isPF = cpfDigits.length === 11;
 
   const validate = () => {
     if (!form.business_name.trim()) return 'Informe o nome da barbearia';
     if (!form.owner_name.trim()) return 'Informe o nome do responsável';
     if (!form.email.trim() || !form.email.includes('@')) return 'Informe um email válido';
     if (!form.phone.trim()) return 'Informe o WhatsApp';
-    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) return 'Informe um CPF ou CNPJ válido (11 ou 14 dígitos)';
+    const cleanDoc = form.cpf_cnpj.replace(/\D/g, '');
+    if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
+      return 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.';
+    }
     return null;
   };
 
-  // Observabilidade local: registra tentativa bloqueada (PJ-first policy).
-  // No /checkout (rota pública), trackEvent retorna 401 — ignoramos silenciosamente.
-  useEffect(() => {
-    if (isPF) {
-       
-      console.info('[pj-first] pf_attempt', { stage });
-    }
-  }, [isPF, stage]);
-
-  // Avança do form de dados → escolha de método.
   const handleContinue = (e) => {
     e?.preventDefault();
     setError('');
     const err = validate();
-    if (err) { setError(err); return; }
+    if (err) {
+      setError(err);
+      return;
+    }
     setStage('method');
   };
 
-  // PIX / Boleto: continua usando checkout hospedado do Asaas (não tem como
-  // tokenizar PIX inline). Cartão tem fluxo próprio em handleCardSubmit.
-  const handleHostedCheckout = async (billingType) => {
-    setError('');
-    setLoading(true);
-
-    const checkoutData = {
-      business_name: form.business_name.trim(),
-      owner_name: form.owner_name.trim(),
-      email: form.email.trim().toLowerCase(),
-      phone: form.phone.trim(),
-      cnpj: form.cpf_cnpj.replace(/\D/g, ''),
-      plan: selectedPlan,
-      payment_method: billingType,
-    };
-    try {
-      localStorage.setItem('barberpass_checkout_data', JSON.stringify(checkoutData));
-      localStorage.setItem('barberpass_auth_email', form.email.trim().toLowerCase());
-    } catch (_) {}
-
-    const queryParams = new URLSearchParams({
-      email: form.email.trim().toLowerCase(),
-      plano: selectedPlan,
-      business: form.business_name.trim(),
-      owner: form.owner_name.trim(),
-      phone: form.phone.trim(),
-      cnpj: form.cpf_cnpj.replace(/\D/g, ''),
-    }).toString();
-
-    try {
-      const referral_code = getReferralCode();
-      const fingerprint = getDeviceFingerprint();
-      const res = await base44.functions.invoke('createAsaasSaasCheckout', {
-        plan: selectedPlan,
-        business_name: form.business_name.trim(),
-        owner_name: form.owner_name.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim(),
-        cpf_cnpj: form.cpf_cnpj.replace(/\D/g, ''),
-        payment_method: billingType, // 'PIX' | 'BOLETO'
-        referral_code: referral_code || undefined,
-        referral_fingerprint: fingerprint || undefined,
-        promo: isLaunch ? promo.code : undefined,
-      }).catch((e) => ({ data: { success: true } }));
-
-      const data = res?.data;
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        window.location.href = `/checkout/sucesso?${queryParams}`;
-      }
-    } catch (err2) {
-      console.warn('[Checkout] Redirecionando para tela de sucesso pós-PIX:', err2);
-      window.location.href = `/checkout/sucesso?${queryParams}`;
-    }
-  };
-
-  // Cartão nativo: tokeniza pelo backend e cria a Subscription com o token.
+  // Processamento exclusivo com Cartão de Crédito e Bloqueio Rigoroso de Segurança
   const handleCardSubmit = async (card) => {
+    setError('');
+    const cleanCpfCnpj = form.cpf_cnpj.replace(/\D/g, '');
+
     const checkoutData = {
       business_name: form.business_name.trim(),
       owner_name: form.owner_name.trim(),
       email: form.email.trim().toLowerCase(),
       phone: form.phone.trim(),
-      cnpj: form.cpf_cnpj.replace(/\D/g, ''),
+      cnpj: cleanCpfCnpj,
       plan: selectedPlan,
       payment_method: 'card',
     };
@@ -235,40 +147,75 @@ export default function Checkout() {
       localStorage.setItem('barberpass_auth_email', form.email.trim().toLowerCase());
     } catch (_) {}
 
+    const payload = {
+      customer: {
+        name: form.owner_name.trim(),
+        email: form.email.trim().toLowerCase(),
+        cpfCnpj: cleanCpfCnpj,
+        phone: form.phone.trim(),
+      },
+      plan: {
+        name: plan.name,
+        value: effectivePrice,
+      },
+      creditCard: {
+        holderName: card.holderName,
+        number: card.number,
+        expiryMonth: card.expiryMonth,
+        expiryYear: card.expiryYear,
+        ccv: card.ccv,
+      },
+      creditCardHolderInfo: {
+        name: card.holderName || form.owner_name.trim(),
+        email: card.email || form.email.trim().toLowerCase(),
+        cpfCnpj: card.cpfCnpj ? card.cpfCnpj.replace(/\D/g, '') : cleanCpfCnpj,
+        postalCode: card.postalCode ? card.postalCode.replace(/\D/g, '') : '01310100',
+        addressNumber: card.addressNumber || '100',
+        phone: card.phone ? card.phone.replace(/\D/g, '') : form.phone.trim(),
+      },
+      business_name: form.business_name.trim(),
+      owner_name: form.owner_name.trim(),
+      email: form.email.trim().toLowerCase(),
+      phone: form.phone.trim(),
+      cpf_cnpj: cleanCpfCnpj,
+      plan_name: plan.name,
+      value: effectivePrice,
+      promo: isLaunch ? promo.code : undefined,
+    };
+
+    console.info('[Checkout] Submetendo ao endpoint real do Asaas /api/subscribe...');
+
+    // 🔒 Chamada HTTP REAL ao endpoint backend
+    const res = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    // 🔒 NUNCA avança se a resposta não for status 200 do Asaas
+    if (!res.ok || !data.success) {
+      const errorMsg = data?.error || data?.message || 'Cartão não autorizado ou dados inválidos no Asaas.';
+      console.error('[Checkout] Erro retornado pela API Asaas:', errorMsg);
+      setError(errorMsg);
+      throw new Error(errorMsg);
+    }
+
     const queryParams = new URLSearchParams({
       email: form.email.trim().toLowerCase(),
       plano: selectedPlan,
       business: form.business_name.trim(),
       owner: form.owner_name.trim(),
       phone: form.phone.trim(),
-      cnpj: form.cpf_cnpj.replace(/\D/g, ''),
+      cnpj: cleanCpfCnpj,
     }).toString();
 
-    try {
-      const referral_code = getReferralCode();
-      const fingerprint = getDeviceFingerprint();
-      await base44.functions.invoke('chargeAsaasSaasWithCard', {
-        plan: selectedPlan,
-        business_name: form.business_name.trim(),
-        owner_name: form.owner_name.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim(),
-        cpf_cnpj: form.cpf_cnpj.replace(/\D/g, ''),
-        card,
-        referral_code: referral_code || undefined,
-        referral_fingerprint: fingerprint || undefined,
-        promo: isLaunch ? promo.code : undefined,
-      }).catch(() => ({ data: { success: true } }));
-      
-      window.location.href = `/checkout/sucesso?${queryParams}`;
-    } catch (err) {
-      console.warn('[Checkout Card] Redirecionando para ativação:', err);
-      window.location.href = `/checkout/sucesso?${queryParams}`;
-    }
+    // Somente com cartão validado e assinatura confirmada, redireciona para a tela final de acesso
+    window.location.href = data?.url || `/checkout/sucesso?${queryParams}`;
   };
-
-  // Mantido para o submit do form principal (etapa de dados).
-  const handleSubmit = handleContinue;
 
   return (
     <div className="min-h-screen bg-[#F8F7F3] font-inter">
@@ -278,7 +225,7 @@ export default function Checkout() {
           <Link to="/landing">
             <Logo size={32} />
           </Link>
-          <Link to="/landing" className="text-xs text-gray-500 hover:text-[#2563EB] flex items-center gap-1">
+          <Link to="/landing" className="text-xs text-gray-500 hover:text-[#2563EB] flex items-center gap-1 cursor-pointer">
             <ArrowLeft className="w-3 h-3" /> Voltar
           </Link>
         </div>
@@ -305,7 +252,7 @@ export default function Checkout() {
               {isLaunch ? (
                 <>Plano <strong>Pro completo</strong> por <strong>R$ {promo.price}/mês durante os primeiros {promo.durationMonths} meses</strong>. Depois desse período, migra automaticamente para o preço oficial vigente.</>
               ) : (
-                <>Cadastre sua barbearia, escolha o plano e ganhe <strong>7 dias grátis</strong>. Você só é cobrado depois desse período.</>
+                <>Cadastre sua barbearia, escolha o plano e ganhe <strong>7 dias grátis</strong>. A primeira fatura só será debitada em 7 dias.</>
               )}
             </p>
 
@@ -344,13 +291,13 @@ export default function Checkout() {
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t border-black/5 flex items-center justify-between text-sm">
-                <span className="text-gray-500">Cobrança hoje</span>
-                <span className="font-bold text-green-600">R$ 0,00</span>
+                <span className="text-gray-500 font-medium">Cobrança hoje (Trial)</span>
+                <span className="font-bold text-emerald-600">R$ 0,00</span>
               </div>
               <div className="text-xs text-gray-400 mt-1">
                 {isLaunch
-                  ? `Após 7 dias: R$${promo.price}/mês pelos próximos ${promo.durationMonths} meses. Depois, R$${plan.price}/mês.`
-                  : `Após 7 dias: R$${plan.price}/mês`}
+                  ? `Após 7 dias grátis: R$${promo.price}/mês pelos primeiros ${promo.durationMonths} meses.`
+                  : `Após 7 dias grátis: R$${plan.price}/mês`}
               </div>
             </div>
 
@@ -358,7 +305,7 @@ export default function Checkout() {
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div className="bg-white rounded-xl border border-black/8 p-3 text-center">
                 <Shield className="w-5 h-5 text-[#2563EB] mx-auto mb-1" />
-                <div className="text-[11px] font-semibold text-gray-700">Pagamento seguro</div>
+                <div className="text-[11px] font-semibold text-gray-700">Validação segura</div>
               </div>
               <div className="bg-white rounded-xl border border-black/8 p-3 text-center">
                 <Star className="w-5 h-5 text-[#2563EB] mx-auto mb-1" />
@@ -371,14 +318,14 @@ export default function Checkout() {
             </div>
 
             <p className="text-xs text-gray-400 leading-relaxed">
-              Pagamento processado de forma segura via Asaas — escolha PIX, boleto ou cartão de crédito na próxima tela. Cancele a qualquer momento direto no painel, sem multas, sem burocracia.
+              Processamento seguro no cartão de crédito via Asaas. 7 dias grátis com cancelamento a qualquer momento direto no painel, sem multas e sem burocracia.
             </p>
           </div>
 
           {/* RIGHT — Form */}
           <div className="order-1 lg:order-2">
             <div className="bg-white rounded-2xl border border-black/8 p-5 sm:p-7 shadow-card">
-              {/* Plan picker — escondido durante a promo de lançamento (oferta só vale para o Pro) */}
+              {/* Plan picker */}
               {!isLaunch && (
                 <div className="mb-6">
                   <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Escolha seu plano</div>
@@ -388,7 +335,7 @@ export default function Checkout() {
                         key={p.key}
                         type="button"
                         onClick={() => setSelectedPlan(p.key)}
-                        className={`relative text-center px-2 py-3 rounded-xl border-2 transition-all ${
+                        className={`relative text-center px-2 py-3 rounded-xl border-2 transition-all cursor-pointer ${
                           selectedPlan === p.key
                             ? 'border-[#2563EB] bg-[#2563EB]/5'
                             : 'border-black/8 hover:border-black/20'
@@ -410,7 +357,7 @@ export default function Checkout() {
                 </div>
               )}
 
-              {/* Banner de promo travada — substitui o plan picker durante o lançamento */}
+              {/* Banner de promoção de lançamento */}
               {isLaunch && (
                 <div className="mb-6 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-300 p-4">
                   <div className="flex items-start gap-3">
@@ -429,7 +376,7 @@ export default function Checkout() {
                 </div>
               )}
 
-              {/* Etapa 1: dados */}
+              {/* ETAPA 1: SEUS DADOS */}
               {stage === 'form' && (
                 <form onSubmit={handleContinue} className="space-y-3.5">
                   <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Seus dados</div>
@@ -460,51 +407,28 @@ export default function Checkout() {
                     placeholder="(11) 99999-9999"
                   />
                   <Field
-                    label="CNPJ da barbearia"
+                    label="CPF ou CNPJ"
                     value={form.cpf_cnpj}
                     onChange={v => setForm(f => ({ ...f, cpf_cnpj: maskCpfCnpj(v) }))}
-                    placeholder="00.000.000/0000-00"
-                    helpText="Aceitamos CNPJ ou MEI. Sem CNPJ? Veja abaixo como ativar."
+                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                    helpText="Aceitamos CPF, MEI ou CNPJ. Profissionais autônomos podem se cadastrar com CPF."
                   />
 
-                  {isPF && (
-                    <div className="pt-2">
-                      <CpfRestrictionCard
-                        origin="checkout"
-                        formData={{
-                          name: form.owner_name,
-                          email: form.email,
-                          phone: form.phone,
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {cancelled && !isPF && (
-                    <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg">
-                      Pagamento cancelado. Tente novamente quando quiser.
-                    </div>
-                  )}
                   {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg font-medium">
                       {error}
-                    </div>
-                  )}
-                  {iframeBlocked && (
-                    <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg">
-                      Para finalizar o pagamento, abra esta página em uma nova aba.
                     </div>
                   )}
 
                   <button
                     type="submit"
-                    className="hidden lg:flex w-full items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand active:scale-[0.99] cursor-pointer"
                   >
                     <Lock className="w-4 h-4" />
-                    Continuar para o pagamento
+                    <span>Continuar para o pagamento</span>
                   </button>
 
-                  <p className="hidden lg:block text-[11px] text-gray-400 text-center leading-relaxed">
+                  <p className="text-[11px] text-gray-400 text-center leading-relaxed">
                     Você não será cobrado nos primeiros 7 dias. Cancele a qualquer momento.<br />
                     Ao continuar, você concorda com os{' '}
                     <Link to="/termos-de-uso" className="underline hover:text-[#2563EB]">Termos de Uso</Link>
@@ -514,76 +438,47 @@ export default function Checkout() {
                 </form>
               )}
 
-              {/* Etapa 2: escolha do método */}
+              {/* ETAPA 2: COMO DESEJA PAGAR? (EXCLUSIVO CARTÃO DE CRÉDITO) */}
               {stage === 'method' && (
                 <div className="space-y-4">
                   <button
                     type="button"
                     onClick={() => { setStage('form'); setError(''); }}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#2563EB]"
+                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#2563EB] cursor-pointer font-medium"
                   >
-                    <ArrowLeft className="w-3 h-3" /> Editar dados
+                    <ArrowLeft className="w-3.5 h-3.5" /> Editar meus dados
                   </button>
-                  <div>
-                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Como deseja pagar?</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <MethodOption
-                        active={paymentMethod === 'card'}
-                        onClick={() => setPaymentMethod('card')}
-                        icon={CreditCard}
-                        title="Cartão de crédito"
-                        subtitle="Cobrança automática todo mês"
-                      />
-                      <MethodOption
-                        active={paymentMethod === 'pix'}
-                        onClick={() => setPaymentMethod('pix')}
-                        icon={QrCode}
-                        title="PIX"
-                        subtitle="Pague na fatura mensal"
-                      />
-                    </div>
+
+                  <div className="border-b border-black/5 pb-2">
+                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Como deseja pagar?</div>
+                    <h2 className="text-base font-black text-[#0F172A]">Cartão de Crédito</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      7 dias grátis. Cancele quando quiser. A primeira fatura só será debitada em 7 dias.
+                    </p>
                   </div>
 
                   {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg">
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3.5 rounded-xl font-medium">
                       {error}
                     </div>
                   )}
 
-                  {paymentMethod === 'card' && (
-                    <CardPaymentFormAsaas
-                      primaryColor="#2563EB"
-                      amountLabel={
-                        isLaunch
-                          ? `Iniciar 7 dias grátis — depois R$${promo.price}/mês por ${promo.durationMonths} meses`
-                          : `Iniciar 7 dias grátis — depois R$${plan.price}/mês`
-                      }
-                      defaultName={form.owner_name}
-                      defaultEmail={form.email}
-                      defaultPhone={form.phone}
-                      defaultCpf={form.cpf_cnpj}
-                      onSubmit={handleCardSubmit}
-                    />
-                  )}
-
-                  {paymentMethod === 'pix' && (
-                    <div className="space-y-3">
-                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-[12px] text-blue-900 leading-relaxed">
-                        Você será redirecionado para a fatura segura do Asaas para gerar o QR Code PIX. A primeira fatura sai em 7 dias.
-                      </div>
-                      <button
-                        onClick={() => handleHostedCheckout('PIX')}
-                        disabled={loading}
-                        className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-brand active:scale-[0.99] disabled:opacity-60"
-                      >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
-                        {loading ? 'Processando…' : 'Continuar com PIX'}
-                      </button>
-                    </div>
-                  )}
+                  <CardPaymentFormAsaas
+                    primaryColor="#2563EB"
+                    amountLabel={
+                      isLaunch
+                        ? `Iniciar 7 dias grátis — depois R$${promo.price}/mês por ${promo.durationMonths} meses`
+                        : `Iniciar 7 dias grátis — depois R$${plan.price}/mês`
+                    }
+                    defaultName={form.owner_name}
+                    defaultEmail={form.email}
+                    defaultPhone={form.phone}
+                    defaultCpf={form.cpf_cnpj}
+                    onSubmit={handleCardSubmit}
+                  />
 
                   <p className="text-[11px] text-gray-400 text-center leading-relaxed">
-                    Você não será cobrado nos primeiros 7 dias. Cancele a qualquer momento.<br />
+                    Você não será cobrado hoje. Período de teste de 7 dias grátis.<br />
                     Ao continuar, você concorda com os{' '}
                     <Link to="/termos-de-uso" className="underline hover:text-[#2563EB]">Termos de Uso</Link>
                     {' '}e a{' '}
@@ -595,37 +490,7 @@ export default function Checkout() {
           </div>
         </div>
       </div>
-
-      {/* Mobile sticky CTA — visible only on the data step. On the method step,
-          each method already has its own primary action button.
-          Hidden when CPF is detected (PJ-first policy). */}
-      {stage === 'form' && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/8 p-3 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-          <button
-            onClick={handleContinue}
-            className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold py-3.5 rounded-xl text-sm transition-all active:scale-[0.99]"
-          >
-            <Lock className="w-4 h-4" />
-            Continuar
-          </button>
-          <p className="text-[10px] text-gray-400 text-center mt-1.5">7 dias grátis · Cancele quando quiser</p>
-        </div>
-      )}
     </div>
-  );
-}
-
-function MethodOption({ active, onClick, icon: Icon, title, subtitle }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-left px-4 py-3 rounded-xl border transition-all ${active ? 'border-2 border-[#2563EB] bg-[#2563EB]/5 shadow-sm' : 'border-black/10 hover:border-gray-300'}`}
-    >
-      <Icon className={`w-5 h-5 mb-1.5 ${active ? 'text-[#2563EB]' : 'text-gray-500'}`} />
-      <div className="font-bold text-sm text-[#0F172A]">{title}</div>
-      <div className="text-[11px] text-gray-500 mt-0.5">{subtitle}</div>
-    </button>
   );
 }
 
@@ -639,9 +504,9 @@ function Field({ label, value, onChange, placeholder, type = 'text', helpText })
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
-        className="w-full px-3.5 py-2.5 text-sm border border-black/10 rounded-lg placeholder:text-gray-400"
+        className="w-full px-3.5 py-2.5 text-sm border border-black/10 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
       />
-      {helpText && <p className="text-[11px] text-gray-400 mt-1">{helpText}</p>}
+      {helpText && <p className="text-[11px] text-gray-500 mt-1">{helpText}</p>}
     </div>
   );
 }

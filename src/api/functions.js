@@ -1353,36 +1353,180 @@ export async function invokeFunction(functionName, payload = {}) {
         const businessName = String(payload.business_name || 'Barbearia O CORTE').trim();
         const ownerName = String(payload.owner_name || 'Proprietário').trim();
         const phone = String(payload.phone || '').trim();
-        const cpfCnpj = String(payload.cpf_cnpj || '').trim();
-        const plan = String(payload.plan || 'pro').toLowerCase();
+        const cleanCpfCnpj = String(payload.cpf_cnpj || payload.card?.cpfCnpj || '').replace(/\D/g, '');
+        const planKey = String(payload.plan || 'pro').toLowerCase();
+        const card = payload.card || {};
 
+        // 1. Validação de documento (CPF = 11 dígitos, CNPJ = 14 dígitos)
+        if (cleanCpfCnpj.length !== 11 && cleanCpfCnpj.length !== 14) {
+          return {
+            data: {
+              success: false,
+              error: 'Documento inválido. Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.',
+            },
+          };
+        }
+
+        // 2. Validação dos dados do cartão de crédito
+        const cardNum = String(card.number || '').replace(/\D/g, '');
+        if (!cardNum || cardNum.length < 13 || !card.holderName || !card.expiryMonth || !card.expiryYear || !card.ccv) {
+          return {
+            data: {
+              success: false,
+              error: 'Dados do cartão de crédito incompletos. Verifique o número, nome impresso, validade e CVV.',
+            },
+          };
+        }
+
+        // Simulação / Teste: cartão recusado (inicia com 9999)
+        if (cardNum.startsWith('9999')) {
+          console.warn('[Asaas] Cartão com início 9999 recusado (bloqueio de teste):', email);
+          return {
+            data: {
+              success: false,
+              error: 'Cartão não autorizado ou dados inválidos. Verifique as informações ou utilize outro cartão.',
+            },
+          };
+        }
+
+        // 3. Regra dos 7 Dias Grátis: nextDueDate = hoje + 7 dias
+        const trialDays = 7;
+        const trialDateObj = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+        const nextDueDate = trialDateObj.toISOString().split('T')[0];
+
+        // Determina preço do plano
+        const plans = await Plan.list();
+        const targetPlan = plans.find((p) => String(p.id).toLowerCase() === planKey || String(p.name).toLowerCase().includes(planKey)) || {
+          id: planKey,
+          name: planKey.toUpperCase(),
+          price_monthly: payload.promo ? 49 : 89,
+        };
+        const planPrice = Number(payload.promo ? 49 : (targetPlan.price_monthly || targetPlan.price || 89));
+
+        const asaasConfig = getAsaasConfig();
+        let asaasCustomerId = null;
+        let asaasSubscriptionId = null;
+
+        // 4. Integração real com API Asaas usando chave mestra (ASAAS_API_KEY)
+        if (asaasConfig.isConfigured) {
+          try {
+            console.log('[Asaas Master] Buscando ou registrando cliente no Asaas para:', email);
+
+            // Busca cliente existente pelo e-mail
+            try {
+              const searchRes = await asaasRequest('GET', '/customers', {
+                query: { email },
+              });
+              if (searchRes?.data?.data && searchRes.data.data.length > 0) {
+                asaasCustomerId = searchRes.data.data[0].id;
+              }
+            } catch (_) {}
+
+            // Se não encontrou, cria novo cliente com CPF ou CNPJ limpo
+            if (!asaasCustomerId) {
+              const custRes = await asaasRequest('POST', '/customers', {
+                body: {
+                  name: ownerName || businessName,
+                  email,
+                  phone: phone.replace(/\D/g, '') || undefined,
+                  mobilePhone: phone.replace(/\D/g, '') || undefined,
+                  cpfCnpj: cleanCpfCnpj,
+                  notificationDisabled: false,
+                },
+              });
+              asaasCustomerId = custRes?.data?.id;
+              if (!asaasCustomerId) {
+                throw new Error('Não foi possível registrar o cliente no Asaas.');
+              }
+            }
+
+            console.log('[Asaas Master] Criando assinatura com cartão (Trial 7 dias) para cliente:', asaasCustomerId);
+
+            const expYearFull = String(card.expiryYear).length === 2 ? `20${card.expiryYear}` : String(card.expiryYear);
+
+            // Cria assinatura recorrente no Asaas com cartão de crédito validado
+            const subRes = await asaasRequest('POST', '/subscriptions', {
+              body: {
+                customer: asaasCustomerId,
+                billingType: 'CREDIT_CARD',
+                value: planPrice,
+                nextDueDate,
+                cycle: 'MONTHLY',
+                description: `Assinatura O CORTE - Plano ${targetPlan.name} (7 dias grátis)`,
+                creditCard: {
+                  holderName: card.holderName,
+                  number: cardNum,
+                  expiryMonth: String(card.expiryMonth).padStart(2, '0'),
+                  expiryYear: expYearFull,
+                  ccv: String(card.ccv).trim(),
+                },
+                creditCardHolderInfo: {
+                  name: card.holderName || ownerName,
+                  email: card.email || email,
+                  cpfCnpj: card.cpfCnpj ? card.cpfCnpj.replace(/\D/g, '') : cleanCpfCnpj,
+                  postalCode: card.postalCode ? card.postalCode.replace(/\D/g, '') : '01310100',
+                  addressNumber: card.addressNumber || '100',
+                  phone: card.phone ? card.phone.replace(/\D/g, '') : (phone.replace(/\D/g, '') || '11999999999'),
+                },
+              },
+            });
+
+            asaasSubscriptionId = subRes?.data?.id;
+            console.log('[Asaas Master] Assinatura criada com sucesso! ID:', asaasSubscriptionId);
+          } catch (asErr) {
+            console.error('[Asaas Master] Cartão recusado ou erro na criação da assinatura:', asErr?.message);
+            // 🔒 Bloqueio de segurança: NUNCA cria a conta caso o cartão seja recusado ou inválido
+            return {
+              data: {
+                success: false,
+                error: asErr?.message || 'Cartão não autorizado ou dados inválidos. Verifique as informações ou utilize outro cartão.',
+              },
+            };
+          }
+        } else {
+          // Fallback caso ASAAS_API_KEY não esteja injetada no ambiente local
+          console.warn('[Asaas] ASAAS_API_KEY não configurada no ambiente. Utilizando validação de sandbox local.');
+          asaasCustomerId = `cust_dev_${Date.now()}`;
+          asaasSubscriptionId = `sub_dev_${Date.now()}`;
+        }
+
+        // 5. Somente após validação e sucesso na criação da assinatura: cria ou atualiza a empresa
         let companyList = await Company.filter({ owner_email: email });
         let company = companyList[0];
 
-        if (!company) {
-          const slugStr = (businessName || 'barbearia')
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
+        const slugStr = (businessName || 'barbearia')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
 
-          company = await Company.create({
-            name: businessName,
-            owner_name: ownerName,
-            owner_email: email,
-            phone,
-            whatsapp: phone,
-            address: 'Endereço Principal',
-            owner_cpf_cnpj: cpfCnpj,
-            plan_id: plan,
-            status: 'active',
-            billing_status: 'ACTIVE',
-            slug: slugStr || `barbearia-${Date.now().toString().slice(-4)}`,
-            primary_color: '#2563EB',
-            onboarding_completed: false,
-            onboarding_step: 1,
-          });
+        const companyPayload = {
+          name: businessName,
+          owner_name: ownerName,
+          owner_email: email,
+          phone,
+          whatsapp: phone,
+          address: 'Endereço Principal',
+          owner_cpf_cnpj: cleanCpfCnpj,
+          plan_id: planKey,
+          plan_name: targetPlan.name,
+          status: 'active',
+          billing_status: 'ACTIVE',
+          subscription_status: 'trialing',
+          asaas_customer_id: asaasCustomerId,
+          asaas_subscription_id: asaasSubscriptionId,
+          trial_ends_at: trialDateObj.toISOString(),
+          current_period_end: trialDateObj.toISOString(),
+          slug: company?.slug || slugStr || `barbearia-${Date.now().toString().slice(-4)}`,
+          primary_color: company?.primary_color || '#2563EB',
+          onboarding_completed: false,
+          onboarding_step: 1,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (!company) {
+          company = await Company.create(companyPayload);
 
           const userCreds = await BarberCredential.filter({ email });
           if (userCreds.length === 0) {
@@ -1393,9 +1537,18 @@ export async function invokeFunction(functionName, payload = {}) {
               company_id: company.id,
             });
           }
-
-          // Novas empresas são criadas com cadastro limpo (sem dados de demonstração)
+        } else {
+          await Company.update(company.id, companyPayload);
         }
+
+        try {
+          if (isSupabaseConfigured && supabase) {
+            await supabase.from('companies').upsert({
+              id: company.id,
+              ...companyPayload,
+            });
+          }
+        } catch (_) {}
 
         if (typeof window !== 'undefined') {
           const userObj = {
@@ -1407,13 +1560,26 @@ export async function invokeFunction(functionName, payload = {}) {
           };
           localStorage.setItem('admin_logged_user', JSON.stringify(userObj));
           localStorage.setItem('barberpass_auth_token', `token_${company.id}_${Date.now()}`);
+          localStorage.setItem('barberpass_auth_email', company.owner_email);
         }
+
+        const successParams = new URLSearchParams({
+          email,
+          plano: planKey,
+          business: businessName,
+          owner: ownerName,
+          phone,
+          cnpj: cleanCpfCnpj,
+        }).toString();
 
         return {
           data: {
             success: true,
             ok: true,
-            url: `/checkout/sucesso?email=${encodeURIComponent(email)}&plano=${encodeURIComponent(plan)}`,
+            company_id: company.id,
+            asaas_customer_id: asaasCustomerId,
+            asaas_subscription_id: asaasSubscriptionId,
+            url: `/checkout/sucesso?${successParams}`,
           },
         };
       }
