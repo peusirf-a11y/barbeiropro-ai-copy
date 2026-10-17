@@ -145,6 +145,12 @@ export default function AppEquipe() {
                 name: cleanName,
                 email: cleanEmail,
                 specialty: 'Barbeiro / Corte e Barba',
+                commission_type: 'percent',
+                commission_rate: 50,
+                is_active: true,
+                bio: '',
+                specialties: ['Corte', 'Barba'],
+                services: [],
                 active: true,
                 created_at: new Date().toISOString(),
               })
