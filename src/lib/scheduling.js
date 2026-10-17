@@ -36,7 +36,7 @@ export function appointmentConflict({ professionalId, dateTime, durationMin, app
 
     // Status que NÃO causam colisão / bloqueio na agenda
     const status = String(a.status || '').toLowerCase().trim();
-    if (['cancelado', 'faltou', 'cancelled', 'rejeitado', 'failed', 'expired'].includes(status)) {
+    if (['cancelado', 'faltou', 'cancelled', 'rejeitado', 'failed', 'expired', 'pending_payment'].includes(status)) {
       return false;
     }
 

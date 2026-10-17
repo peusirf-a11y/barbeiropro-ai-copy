@@ -1,7 +1,8 @@
 // Caixa de pagamento Pix — QR code + copia-e-cola + timer + "Já paguei".
-// Faz polling a cada 5s no status real do Asaas e validação estrita no "Já paguei".
+// Permanece estático no ecrã do Pix; só avança se e somente se /api/payments/status
+// retornar explicitamente { status: 'RECEIVED' } ou { status: 'CONFIRMED' } da API oficial do Asaas.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Copy, Check, Clock, Loader2, AlertCircle } from 'lucide-react';
 
@@ -19,8 +20,10 @@ export default function PixPaymentBox({
   const [timeLeft, setTimeLeft] = useState(() =>
     Math.max(0, Math.floor((new Date(expiresAt || Date.now() + 15 * 60 * 1000) - Date.now()) / 1000))
   );
-  const [checking, setChecking] = useState(false);
+  const [manualChecking, setManualChecking] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const isCheckingRef = useRef(false);
+  const hasConfirmedRef = useRef(false);
 
   const targetPaymentId = propPaymentId || pixData?.paymentId || pixData?.payment_id || '';
   const targetApptId = appointmentId || pixData?.appointmentId || pixData?.appointment_id || '';
@@ -49,13 +52,14 @@ export default function PixPaymentBox({
     return () => clearInterval(interval);
   }, [expiresAt, onExpired]);
 
-  // Consulta de status real do pagamento no Asaas (GET /v3/payments/{id} via /api/payments/status)
+  // Consulta de status real do pagamento no Asaas via /api/payments/status
   const checkStatus = useCallback(async (isManualClick = false) => {
-    if (!hasRealPaymentId || checking) return;
-    setChecking(true);
+    if (!hasRealPaymentId || isCheckingRef.current || hasConfirmedRef.current) return;
+    isCheckingRef.current = true;
 
     if (isManualClick) {
-      setFeedback('Verificando pagamento no banco...');
+      setManualChecking(true);
+      setFeedback('');
     }
 
     try {
@@ -67,10 +71,13 @@ export default function PixPaymentBox({
       const res = await fetch(`/api/payments/status?${queryParams.toString()}`);
       const data = await res.json().catch(() => null);
 
-      // NUNCA altera o estado para "Agendado" sem uma resposta HTTP 200 contendo status 'RECEIVED' ou 'CONFIRMED' do Asaas
-      const isPaid = res.status === 200 && (data?.status === 'RECEIVED' || data?.status === 'CONFIRMED');
+      // Bloqueio estrito: NUNCA avança a menos que /api/payments/status retorne HTTP 200 com status 'RECEIVED' ou 'CONFIRMED'
+      const isPaid =
+        res.status === 200 &&
+        (data?.status === 'RECEIVED' || data?.status === 'CONFIRMED');
 
       if (isPaid) {
+        hasConfirmedRef.current = true;
         setFeedback('Pagamento confirmado com sucesso!');
 
         try {
@@ -94,25 +101,28 @@ export default function PixPaymentBox({
         }
 
         onPaid?.();
-      } else {
-        if (isManualClick) {
-          setFeedback('Pagamento ainda não detectado pelo banco. Aguarde alguns instantes.');
-        }
+      } else if (isManualClick) {
+        setFeedback('Pagamento pendente. Se já transferiu, aguarde alguns instantes e tente novamente.');
       }
     } catch (err) {
       console.warn('[PixPaymentBox] Erro ao consultar status:', err);
       if (isManualClick) {
-        setFeedback('Pagamento ainda não detectado pelo banco. Aguarde alguns instantes.');
+        setFeedback('Pagamento pendente. Se já transferiu, aguarde alguns instantes e tente novamente.');
       }
     } finally {
-      setChecking(false);
+      isCheckingRef.current = false;
+      if (isManualClick) {
+        setManualChecking(false);
+      }
     }
-  }, [hasRealPaymentId, checking, targetPaymentId, targetApptId, companyId, onPaid]);
+  }, [hasRealPaymentId, targetPaymentId, targetApptId, companyId, onPaid]);
 
   // Polling periódico a cada 5 segundos chamando o endpoint de verificação real no Asaas
   useEffect(() => {
     if (!hasRealPaymentId) return;
-    const poll = setInterval(() => checkStatus(false), 5000);
+    const poll = setInterval(() => {
+      checkStatus(false);
+    }, 5000);
     return () => clearInterval(poll);
   }, [hasRealPaymentId, checkStatus]);
 
@@ -194,13 +204,13 @@ export default function PixPaymentBox({
       <button
         type="button"
         onClick={() => checkStatus(true)}
-        disabled={!hasRealPaymentId || checking || timeLeft === 0}
+        disabled={!hasRealPaymentId || manualChecking || timeLeft === 0}
         className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-md"
         style={{ backgroundColor: primaryColor }}
       >
-        {checking ? (
-          <span className="inline-flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" /> Verificando pagamento no banco...
+        {manualChecking ? (
+          <span className="inline-flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" /> A verificar com o banco...
           </span>
         ) : (
           'Já paguei'

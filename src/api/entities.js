@@ -69,6 +69,11 @@ export class EntityRepository {
   }
 
   async filter(criteria = {}, sort = '-created_at', limit = 100) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (this.tableName === 'customer_subscriptions' && criteria.customer_id && !uuidRegex.test(String(criteria.customer_id))) {
+      return [];
+    }
+
     if (!isSupabaseConfigured || !supabase) {
       const items = getLocalTable(this.tableName);
       return items.filter(item => {
@@ -78,13 +83,22 @@ export class EntityRepository {
     try {
       let query = supabase.from(this.tableName).select('*');
       Object.entries(criteria).forEach(([key, val]) => {
-        if (val !== undefined && val !== null) {
+        if (val === undefined || val === null) return;
+        if (this.tableName === 'appointments' && key === 'scheduled_at') return;
+        if (typeof val === 'object' && !Array.isArray(val)) {
+          if (val.$ne !== undefined) query = query.neq(key, val.$ne);
+          if (val.$gte !== undefined) query = query.gte(key, val.$gte);
+          if (val.$lte !== undefined) query = query.lte(key, val.$lte);
+        } else {
           query = query.eq(key, val);
         }
       });
       if (sort) {
         const isDesc = sort.startsWith('-');
-        const field = isDesc ? sort.substring(1) : sort;
+        let field = isDesc ? sort.substring(1) : sort;
+        if (this.tableName === 'appointments' && field === 'scheduled_at') {
+          field = 'date';
+        }
         query = query.order(field, { ascending: !isDesc });
       }
       if (limit && limit > 0) {
@@ -97,7 +111,10 @@ export class EntityRepository {
       console.warn(`[Supabase Warning] Falha ao filtrar ${this.name}, usando fallback local.`, err);
       const items = getLocalTable(this.tableName);
       return items.filter(item => {
-        return Object.entries(criteria).every(([k, v]) => item[k] === v);
+        return Object.entries(criteria).every(([k, v]) => {
+          if (typeof v === 'object' && v !== null) return true;
+          return item[k] === v;
+        });
       });
     }
   }
