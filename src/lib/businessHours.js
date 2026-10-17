@@ -225,3 +225,111 @@ export function generateSlotsForDay(openTime, closeTime, durationMinutes = 30) {
 
   return slots;
 }
+
+/**
+ * Extrai ano, mês e dia no fuso de Brasília (UTC-3), imune a shifts UTC do browser/servidor.
+ */
+function extractBrasiliaYMD(dateInput) {
+  if (typeof dateInput === 'string') {
+    const clean = dateInput.split('T')[0].trim();
+    const parts = clean.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return { y: parts[0], m: parts[1].padStart(2, '0'), d: parts[2].padStart(2, '0') };
+    }
+  }
+  const dt = dateInput instanceof Date ? dateInput : new Date(dateInput || Date.now());
+  if (isNaN(dt.getTime())) {
+    const now = new Date();
+    return {
+      y: String(now.getFullYear()),
+      m: String(now.getMonth() + 1).padStart(2, '0'),
+      d: String(now.getDate()).padStart(2, '0'),
+    };
+  }
+  try {
+    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' });
+    const formatted = fmt.format(dt);
+    const parts = formatted.split('-');
+    if (parts.length === 3) {
+      return { y: parts[0], m: parts[1].padStart(2, '0'), d: parts[2].padStart(2, '0') };
+    }
+  } catch (_) {}
+  return {
+    y: String(dt.getFullYear()),
+    m: String(dt.getMonth() + 1).padStart(2, '0'),
+    d: String(dt.getDate()).padStart(2, '0'),
+  };
+}
+
+/**
+ * Converte data e hora para timestamp milissegundos considerando o fuso de Brasília (UTC-3).
+ */
+export function parseBrasiliaDateTime(dateVal, timeVal) {
+  if (!dateVal) return null;
+
+  if (typeof dateVal === 'number' && !isNaN(dateVal)) {
+    return dateVal;
+  }
+
+  if (timeVal && typeof timeVal === 'string') {
+    const { y, m, d } = extractBrasiliaYMD(dateVal);
+    const [h, min] = timeVal.split(':');
+    const hh = String(parseInt(h, 10) || 0).padStart(2, '0');
+    const mm = String(parseInt(min, 10) || 0).padStart(2, '0');
+    return new Date(`${y}-${m}-${d}T${hh}:${mm}:00-03:00`).getTime();
+  }
+
+  if (dateVal instanceof Date) {
+    return dateVal.getTime();
+  }
+
+  const str = String(dateVal).trim();
+  if (str.includes('T') && (str.endsWith('Z') || /[+-]\d{2}(:?\d{2})?$/.test(str))) {
+    const t = new Date(str).getTime();
+    if (!isNaN(t)) return t;
+  }
+
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  if (match) {
+    const [, y, m, d, hh, mm] = match;
+    return new Date(`${y}-${m}-${d}T${hh}:${mm}:00-03:00`).getTime();
+  }
+
+  const dateOnlyMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, y, m, d] = dateOnlyMatch;
+    return new Date(`${y}-${m}-${d}T09:00:00-03:00`).getTime();
+  }
+
+  const parsed = new Date(str).getTime();
+  return isNaN(parsed) ? null : parsed;
+}
+
+/**
+ * Extrai componentes de data e hora com offset explícito de Brasília (-03:00).
+ */
+export function toBrasiliaDateParts(dateInput, timeStr = '09:00') {
+  const { y, m, d } = extractBrasiliaYMD(dateInput);
+
+  const [hStr, minStr] = (timeStr || '09:00').split(':');
+  const hh = String(parseInt(hStr, 10) || 0).padStart(2, '0');
+  const mm = String(parseInt(minStr, 10) || 0).padStart(2, '0');
+
+  const dateStr = `${y}-${m}-${d}`;
+  const timeFormatted = `${hh}:${mm}`;
+  const isoBrasilia = `${dateStr}T${timeFormatted}:00-03:00`;
+  const timestamp = new Date(isoBrasilia).getTime();
+
+  // Dia da semana local de Brasília (0=Dom, 1=Seg, ..., 6=Sáb)
+  const [yNum, mNum, dNum] = [parseInt(y, 10), parseInt(m, 10), parseInt(d, 10)];
+  const dayOfWeek = new Date(Date.UTC(yNum, mNum - 1, dNum, 12, 0, 0)).getUTCDay();
+
+  return {
+    dateStr,
+    timeFormatted,
+    isoBrasilia,
+    timestamp,
+    dayOfWeek,
+  };
+}
+

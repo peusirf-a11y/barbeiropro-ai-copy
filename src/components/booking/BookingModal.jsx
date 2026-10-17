@@ -16,6 +16,7 @@ import {
   formatTimeHHMM,
   generateSlotsForDay,
   normalizeBusinessHours,
+  toBrasiliaDateParts,
 } from '@/lib/businessHours';
 import BookingPaymentStep from './BookingPaymentStep';
 import BookingConsentBlock from './BookingConsentBlock';
@@ -70,14 +71,16 @@ export default function BookingModal({
   const normalizedBusinessHours = normalizeBusinessHours(company);
 
   const next14Days = Array.from({ length: 14 }, (_, i) => addDays(startOfDay(new Date()), i)).filter(day => {
-    const dk = DAY_INDEX_TO_KEY[day.getDay()];
+    const { dayOfWeek } = toBrasiliaDateParts(day);
+    const dk = DAY_INDEX_TO_KEY[dayOfWeek];
     const dayConfig = normalizedBusinessHours?.[dk];
     return dayConfig ? Boolean(dayConfig.active) : true;
   });
 
   const getAvailableSlots = () => {
     if (!selected.date || !selected.service || !company) return [];
-    const dk = DAY_INDEX_TO_KEY[selected.date.getDay()];
+    const { dateStr, dayOfWeek } = toBrasiliaDateParts(selected.date, '12:00');
+    const dk = DAY_INDEX_TO_KEY[dayOfWeek];
     const hours = normalizedBusinessHours?.[dk];
     if (!hours || !hours.active) return [];
 
@@ -88,8 +91,11 @@ export default function BookingModal({
     if (slots.length === 0) return [];
 
     const now = new Date();
-    const isToday = selected.date.toDateString() === now.toDateString();
+    const todayStr = toBrasiliaDateParts(now).dateStr;
+    const isToday = dateStr === todayStr;
     const proId = selected.professional?.id;
+    const isAny = !proId || proId === 'any';
+    const activePros = (professionals || []).filter(p => (p.is_active ?? p.active ?? true) !== false);
     const safeAppts = Array.isArray(existingAppointments) ? existingAppointments : [];
     const safeBlocks = Array.isArray(blockedTimes) ? blockedTimes : [];
     const apptsWithDuration = safeAppts.map(a => ({
@@ -98,17 +104,31 @@ export default function BookingModal({
     }));
 
     let available = slots.filter(time => {
-      const [h, m] = time.split(':').map(Number);
-      const slotStart = new Date(selected.date);
-      slotStart.setHours(h, m, 0, 0);
-      if (isToday && slotStart <= now) return false;
-      if (!proId || proId === 'any') return true;
-      if (appointmentConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, appointments: apptsWithDuration })) return false;
-      if (blockedConflict({ professionalId: proId, dateTime: slotStart, durationMin: dur, blocks: safeBlocks })) return false;
+      const { isoBrasilia, timestamp } = toBrasiliaDateParts(selected.date, time);
+      if (isToday && timestamp <= now.getTime()) return false;
+
+      // 1. Tratamento de "Sem Preferência"
+      if (isAny) {
+        // Se ainda não houver nenhum profissional cadastrado, permite o agendamento sem travar
+        if (activePros.length === 0) return true;
+        // Se houver profissionais, verifica se pelo menos um profissional ativo está livre
+        return activePros.some(p => {
+          if (Array.isArray(p.service_ids) && p.service_ids.length > 0 && selected.service?.id) {
+            if (!p.service_ids.includes(selected.service.id)) return false;
+          }
+          const apptBusy = appointmentConflict({ professionalId: p.id, dateTime: isoBrasilia, durationMin: dur, appointments: apptsWithDuration });
+          const blockBusy = blockedConflict({ professionalId: p.id, dateTime: isoBrasilia, durationMin: dur, blocks: safeBlocks });
+          return !apptBusy && !blockBusy;
+        });
+      }
+
+      // Profissional específico
+      if (appointmentConflict({ professionalId: proId, dateTime: isoBrasilia, durationMin: dur, appointments: apptsWithDuration })) return false;
+      if (blockedConflict({ professionalId: proId, dateTime: isoBrasilia, durationMin: dur, blocks: safeBlocks })) return false;
       return true;
     });
 
-    if (available.length === 0 && slots.length > 0) {
+    if (available.length === 0 && slots.length > 0 && activePros.length === 0) {
       available = slots;
     }
 
@@ -123,28 +143,56 @@ export default function BookingModal({
   };
 
   const buildBookingPayload = () => {
-    const [h, m] = selected.time.split(':');
-    const dt = new Date(selected.date);
-    dt.setHours(+h, +m, 0, 0);
-    const isAny = selected.professional?.id === 'any';
-    // Em "Sem Preferência", pega o primeiro profissional que atende ESTE serviço.
-    // Antes pegava professionals[0] cego — se o serviço não estivesse vinculado
-    // a esse barbeiro, o backend rejeitava com service_not_offered_by_professional.
-    const eligible = isAny
-      ? professionals.find(p => !p.service_ids?.length || p.service_ids.includes(selected.service.id))
-      : null;
-    const proId = isAny ? (eligible?.id || professionals[0]?.id) : selected.professional?.id;
+    const { dateStr, timeFormatted, isoBrasilia } = toBrasiliaDateParts(selected.date, selected.time);
+    const isAny = !selected.professional?.id || selected.professional?.id === 'any';
+    const activePros = (professionals || []).filter(p => (p.is_active ?? p.active ?? true) !== false);
+    const safeAppts = Array.isArray(existingAppointments) ? existingAppointments : [];
+    const safeBlocks = Array.isArray(blockedTimes) ? blockedTimes : [];
+    const apptsWithDuration = safeAppts.map(a => ({
+      ...a,
+      __duration: Number(services?.find(s => s.id === a.service_id)?.duration_minutes) || 30,
+    }));
+    const dur = Math.max(5, Number(selected.service?.duration_minutes) || 30);
+
+    let proId = selected.professional?.id;
+    let proName = selected.professional?.name;
+
+    if (isAny) {
+      // 1. Tratamento de "Sem Preferência" (Profissional):
+      // Busque qualquer profissional ativo da barbearia que tenha o horário livre nesse intervalo.
+      const availablePro = activePros.find(p => {
+        if (Array.isArray(p.service_ids) && p.service_ids.length > 0 && selected.service?.id) {
+          if (!p.service_ids.includes(selected.service.id)) return false;
+        }
+        const apptBusy = appointmentConflict({ professionalId: p.id, dateTime: isoBrasilia, durationMin: dur, appointments: apptsWithDuration });
+        const blockBusy = blockedConflict({ professionalId: p.id, dateTime: isoBrasilia, durationMin: dur, blocks: safeBlocks });
+        return !apptBusy && !blockBusy;
+      }) || activePros.find(p => !p.service_ids?.length || p.service_ids.includes(selected.service?.id)) || activePros[0];
+
+      if (availablePro) {
+        proId = availablePro.id;
+        proName = availablePro.name;
+      } else {
+        // Se ainda não houver nenhum profissional/barbeiro cadastrado na tabela de profissionais,
+        // permita o agendamento vinculando diretamente ao dono/empresa (company_id) sem travar a reserva.
+        proId = company?.owner_id || company?.id || 'barbearia';
+        proName = company?.name || 'Barbearia';
+      }
+    }
+
     return {
-      company_id: company.id,
+      company_id: company?.id,
       unit_id: unitId || undefined,
       professional_id: proId,
       service_id: selected.service.id,
       service_name: selected.service.name,
-      professional_name: isAny ? 'Qualquer disponível' : selected.professional?.name,
+      professional_name: isAny ? (proName || 'Qualquer disponível') : selected.professional?.name,
       customer_name: loggedCustomer?.name || '',
       customer_phone: loggedCustomer?.phone || '',
       customer_email: loggedCustomer?.email?.trim() || undefined,
-      scheduled_at: dt.toISOString(),
+      date: dateStr,
+      time: timeFormatted,
+      scheduled_at: isoBrasilia,
       notes: form.notes,
       price: selected.service.price,
       source: 'online',
@@ -194,32 +242,98 @@ export default function BookingModal({
   });
 
   const validateBeforeSubmit = () => {
-    const [h, m] = selected.time.split(':');
-    const dt = new Date(selected.date);
-    dt.setHours(+h, +m, 0, 0);
-    const isAny = selected.professional?.id === 'any';
-    const dur = selected.service.duration_minutes || 30;
-    const apptsWithDuration = existingAppointments.map(a => ({
+    if (!selected.date || !selected.time || !selected.service) {
+      setFormError('Selecione data, horário e serviço para continuar.');
+      return false;
+    }
+
+    const { dateStr, timeFormatted, isoBrasilia, dayOfWeek } = toBrasiliaDateParts(selected.date, selected.time);
+    const dur = Math.max(5, Number(selected.service.duration_minutes) || 30);
+    const safeAppts = Array.isArray(existingAppointments) ? existingAppointments : [];
+    const safeBlocks = Array.isArray(blockedTimes) ? blockedTimes : [];
+    const apptsWithDuration = safeAppts.map(a => ({
       ...a,
-      __duration: services.find(s => s.id === a.service_id)?.duration_minutes || 30,
+      __duration: Number(services?.find(s => s.id === a.service_id)?.duration_minutes) || 30,
     }));
 
-    // Quando o cliente escolheu "Sem Preferência", o slot só é inválido se TODOS
-    // os profissionais estiverem ocupados ou bloqueados. A validação anterior
-    // checava apenas o primeiro profissional da lista, o que gerava falsos negativos
-    // (ex.: bloqueio no Barbeiro 1, mas o Barbeiro 2 está livre).
-    // O backend (createPublicAppointment) é a fonte da verdade e refaz a escolha.
-    const candidates = isAny ? professionals : [selected.professional];
-    const allBusy = candidates.every(p => {
-      if (!p?.id) return true;
-      const apptBusy = appointmentConflict({ professionalId: p.id, dateTime: dt, durationMin: dur, appointments: apptsWithDuration });
-      const blockBusy = blockedConflict({ professionalId: p.id, dateTime: dt, durationMin: dur, blocks: blockedTimes });
-      return apptBusy || blockBusy;
+    // 3. Parsing de Data e Fuso Horário:
+    // Garante que o horário é validado estritamente no fuso de Brasília (UTC-3),
+    // sem conversões em UTC que desloquem o horário para fora do expediente comercial.
+    const dk = DAY_INDEX_TO_KEY[dayOfWeek];
+    const hours = normalizedBusinessHours?.[dk];
+    if (hours && hours.active) {
+      const openTime = formatTimeHHMM(hours.open, '07:00');
+      const closeTime = formatTimeHHMM(hours.close, '22:00');
+      if (timeFormatted < openTime || timeFormatted > closeTime) {
+        setFormError('Horário fora do expediente comercial.');
+        return false;
+      }
+    }
+
+    const isAny = !selected.professional?.id || selected.professional?.id === 'any';
+    const activePros = (professionals || []).filter(p => (p.is_active ?? p.active ?? true) !== false);
+
+    // 1. Tratamento de "Sem Preferência" (Profissional):
+    // Se o cliente escolher "Sem Preferência" (professional_id = null ou 'any'):
+    // * Busque qualquer profissional ativo da barbearia que tenha o horário livre nesse intervalo.
+    // * Se ainda não houver nenhum profissional/barbeiro cadastrado na tabela de profissionais,
+    //   permita o agendamento vinculando diretamente ao dono/empresa (company_id) sem travar a reserva.
+    if (isAny) {
+      if (activePros.length === 0) {
+        setFormError('');
+        return true;
+      }
+
+      const hasFreePro = activePros.some(p => {
+        if (Array.isArray(p.service_ids) && p.service_ids.length > 0 && selected.service?.id) {
+          if (!p.service_ids.includes(selected.service.id)) return false;
+        }
+        const apptBusy = appointmentConflict({
+          professionalId: p.id,
+          dateTime: isoBrasilia,
+          durationMin: dur,
+          appointments: apptsWithDuration,
+        });
+        const blockBusy = blockedConflict({
+          professionalId: p.id,
+          dateTime: isoBrasilia,
+          durationMin: dur,
+          blocks: safeBlocks,
+        });
+        return !apptBusy && !blockBusy;
+      });
+
+      if (!hasFreePro) {
+        setFormError('Horário indisponível. Escolha outro.');
+        return false;
+      }
+
+      setFormError('');
+      return true;
+    }
+
+    // 2. Verificação de Conflitos na Tabela 'appointments':
+    // Apenas marque o horário como indisponível se JÁ EXISTIR um agendamento confirmado no banco
+    // para o mesmo profissional exatamente no mesmo intervalo de data/hora (start_time até end_time).
+    // Se não houver agendamento colidindo, libere o avanço para a etapa seguinte sem disparar o erro "Horário indisponível".
+    const apptBusy = appointmentConflict({
+      professionalId: selected.professional.id,
+      dateTime: isoBrasilia,
+      durationMin: dur,
+      appointments: apptsWithDuration,
     });
-    if (allBusy) {
+    const blockBusy = blockedConflict({
+      professionalId: selected.professional.id,
+      dateTime: isoBrasilia,
+      durationMin: dur,
+      blocks: safeBlocks,
+    });
+
+    if (apptBusy || blockBusy) {
       setFormError('Horário indisponível. Escolha outro.');
       return false;
     }
+
     setFormError('');
     return true;
   };

@@ -1169,12 +1169,43 @@ export async function invokeFunction(functionName, payload = {}) {
           }
         }
 
+        let appointmentId = `apt_${Date.now()}`;
+        if (payload.booking) {
+          try {
+            const b = payload.booking;
+            const dateVal = b.date || (b.scheduled_at ? b.scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0]);
+            const timeVal = b.time || (b.scheduled_at && b.scheduled_at.includes('T') ? b.scheduled_at.split('T')[1].slice(0, 5) : '09:00');
+            const created = await Appointment.create({
+              company_id: companyId,
+              customer_id: b.customer_id || null,
+              customer_name: b.customer_name || customerName,
+              customer_phone: b.customer_phone || '',
+              customer_email: b.customer_email || null,
+              service_id: b.service_id || null,
+              service_name: b.service_name || 'Serviço',
+              professional_id: b.professional_id || companyId,
+              professional_name: b.professional_name || 'Profissional',
+              date: dateVal,
+              time: timeVal,
+              scheduled_at: b.scheduled_at || `${dateVal}T${timeVal}:00-03:00`,
+              price: price,
+              status: 'agendado',
+              payment_status: 'paid',
+              payment_id: `pay_card_${Date.now()}`,
+              notes: b.notes || '',
+            });
+            if (created?.id) appointmentId = created.id;
+          } catch (e) {
+            console.warn('[chargeBookingWithCard] Aviso ao gravar appointment:', e);
+          }
+        }
+
         return {
           data: {
             success: true,
             status: 'CONFIRMED',
             payment_id: `pay_card_${Date.now()}`,
-            appointment_id: `apt_${Date.now()}`,
+            appointment_id: appointmentId,
           },
         };
       }
@@ -2193,6 +2224,64 @@ export async function invokeFunction(functionName, payload = {}) {
         }
 
         return { data: { success: true, ok: true } };
+      }
+
+      case 'createPublicAppointment': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const apptId = payload.id || crypto.randomUUID();
+        const dateVal = payload.date || (payload.scheduled_at ? payload.scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0]);
+        const timeVal = payload.time || (payload.scheduled_at && payload.scheduled_at.includes('T') ? payload.scheduled_at.split('T')[1].slice(0, 5) : '09:00');
+
+        let proId = payload.professional_id;
+        let proName = payload.professional_name;
+
+        // Se professional_id for 'any' ou nulo, busca primeiro profissional ativo ou fallback para empresa
+        if (!proId || proId === 'any') {
+          try {
+            const pros = await Professional.filter({ company_id: companyId });
+            const activePros = (pros || []).filter(p => (p.is_active ?? p.active ?? true) !== false);
+            if (activePros.length > 0) {
+              const chosen = activePros.find(p => !p.service_ids?.length || p.service_ids.includes(payload.service_id)) || activePros[0];
+              proId = chosen.id;
+              proName = chosen.name;
+            } else {
+              proId = companyId;
+              proName = 'Barbearia';
+            }
+          } catch (_) {
+            proId = companyId;
+            proName = 'Barbearia';
+          }
+        }
+
+        const apptData = {
+          id: apptId,
+          company_id: companyId,
+          customer_id: payload.customer_id || null,
+          customer_name: payload.customer_name || 'Cliente',
+          customer_phone: payload.customer_phone || '',
+          customer_email: payload.customer_email || null,
+          service_id: payload.service_id || null,
+          service_name: payload.service_name || 'Serviço',
+          professional_id: proId,
+          professional_name: proName || 'Profissional',
+          date: dateVal,
+          time: timeVal,
+          scheduled_at: payload.scheduled_at || `${dateVal}T${timeVal}:00-03:00`,
+          price: Number(payload.price || 0),
+          status: payload.status || 'agendado',
+          payment_status: payload.payment_status || (payload.paid_online ? 'paid' : 'pending'),
+          notes: payload.notes || '',
+        };
+
+        const created = await Appointment.create(apptData);
+        return {
+          data: {
+            success: true,
+            appointment_id: created?.id || apptId,
+            appointment: created || apptData,
+          },
+        };
       }
 
       case 'runSystemCheck': {

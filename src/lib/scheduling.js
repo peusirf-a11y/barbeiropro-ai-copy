@@ -1,107 +1,146 @@
 // Validação de conflitos e bloqueios — usada em AppAgenda e PublicBooking.
 // Centralizar aqui evita que regras divirjam entre frontend e diferentes telas.
+// Totalmente compatível com o fuso horário oficial de Brasília (UTC-3).
 
+import { parseBrasiliaDateTime, toBrasiliaDateParts } from './businessHours';
+
+export function getAppointmentTimestamp(a) {
+  if (!a) return null;
+  if (a.scheduled_at) {
+    return parseBrasiliaDateTime(a.scheduled_at);
+  }
+  if (a.date && a.time) {
+    return parseBrasiliaDateTime(a.date, a.time);
+  }
+  if (a.date) {
+    return parseBrasiliaDateTime(a.date, '09:00');
+  }
+  return null;
+}
+
+/**
+ * Verifica se já existe um agendamento ocupando o mesmo intervalo de data/hora para o profissional.
+ * Apenas agendamentos confirmados/ativos causam colisão; agendamentos cancelados, faltas ou expirados são ignorados.
+ */
 export function appointmentConflict({ professionalId, dateTime, durationMin, appointments, excludeId = null }) {
-  if (!professionalId || !dateTime) return false;
-  const start = new Date(dateTime);
-  const end = new Date(start.getTime() + (durationMin || 30) * 60000);
+  if (!professionalId || !dateTime || !Array.isArray(appointments) || appointments.length === 0) return false;
+
+  const startMs = parseBrasiliaDateTime(dateTime);
+  if (!startMs || isNaN(startMs)) return false;
+  const dur = Math.max(5, Number(durationMin) || 30);
+  const endMs = startMs + dur * 60000;
+
   return appointments.some(a => {
-    if (a.id === excludeId) return false;
-    if (a.professional_id !== professionalId) return false;
-    if (['cancelado', 'faltou'].includes(a.status)) return false;
-    const aStart = new Date(a.scheduled_at);
-    const aDur = a.__duration || 30;
-    const aEnd = new Date(aStart.getTime() + aDur * 60000);
-    return start < aEnd && end > aStart;
+    if (!a || a.id === excludeId) return false;
+    if (a.professional_id && professionalId && a.professional_id !== professionalId) return false;
+
+    // Status que NÃO causam colisão / bloqueio na agenda
+    const status = String(a.status || '').toLowerCase().trim();
+    if (['cancelado', 'faltou', 'cancelled', 'rejeitado', 'failed', 'expired'].includes(status)) {
+      return false;
+    }
+
+    const aStartMs = getAppointmentTimestamp(a);
+    if (!aStartMs || isNaN(aStartMs)) return false;
+    const aDur = Math.max(5, Number(a.__duration || a.custom_duration_minutes || a.duration_minutes) || 30);
+    const aEndMs = aStartMs + aDur * 60000;
+
+    // Colisão exata de intervalo de tempo [startMs, endMs) vs [aStartMs, aEndMs)
+    return startMs < aEndMs && endMs > aStartMs;
   });
 }
 
-// Verifica se o horário do agendamento cai num bloqueio.
-// Bloqueios sem professional_id valem para a barbearia inteira.
-// Suporta bloqueios únicos (start_time/end_time) e recorrentes semanais
-// (recurring=true + weekday + time_start/time_end).
+/**
+ * Verifica se o horário do agendamento cai num bloqueio.
+ * Bloqueios sem professional_id valem para a barbearia inteira.
+ * Suporta bloqueios únicos (start_time/end_time) e recorrentes semanais
+ * (recurring=true + weekday + time_start/time_end) no fuso de Brasília.
+ */
 export function blockedConflict({ professionalId, dateTime, durationMin, blocks }) {
-  if (!dateTime) return false;
-  const start = new Date(dateTime);
-  const end = new Date(start.getTime() + (durationMin || 30) * 60000);
-  return blocks.some(b => {
-    if (b.professional_id && b.professional_id !== professionalId) return false;
+  if (!dateTime || !Array.isArray(blocks) || blocks.length === 0) return false;
 
-    // Bloqueio recorrente: aplica todo "weekday" entre time_start e time_end
+  const startMs = parseBrasiliaDateTime(dateTime);
+  if (!startMs || isNaN(startMs)) return false;
+  const dur = Math.max(5, Number(durationMin) || 30);
+  const endMs = startMs + dur * 60000;
+
+  const { dateStr, dayOfWeek } = toBrasiliaDateParts(dateTime);
+
+  return blocks.some(b => {
+    if (!b) return false;
+    if (b.professional_id && professionalId && b.professional_id !== professionalId) return false;
+
+    // Bloqueio recorrente: aplica todo "weekday" entre time_start e time_end no fuso de Brasília
     if (b.recurring) {
       if (typeof b.weekday !== 'number' || !b.time_start || !b.time_end) return false;
-      if (start.getDay() !== b.weekday) return false;
-      const [sh, sm] = String(b.time_start).split(':').map(Number);
-      const [eh, em] = String(b.time_end).split(':').map(Number);
-      const bStart = new Date(start); bStart.setHours(sh || 0, sm || 0, 0, 0);
-      const bEnd = new Date(start);   bEnd.setHours(eh || 0, em || 0, 0, 0);
-      return start < bEnd && end > bStart;
+      if (dayOfWeek !== b.weekday) return false;
+      const bStartMs = parseBrasiliaDateTime(dateStr, b.time_start);
+      const bEndMs = parseBrasiliaDateTime(dateStr, b.time_end);
+      if (!bStartMs || !bEndMs || isNaN(bStartMs) || isNaN(bEndMs)) return false;
+      return startMs < bEndMs && endMs > bStartMs;
     }
 
     // Bloqueio único
     if (!b.start_time || !b.end_time) return false;
-    const bStart = new Date(b.start_time);
-    const bEnd = new Date(b.end_time);
-    return start < bEnd && end > bStart;
+    const bStartMs = parseBrasiliaDateTime(b.start_time);
+    const bEndMs = parseBrasiliaDateTime(b.end_time);
+    if (!bStartMs || !bEndMs || isNaN(bStartMs) || isNaN(bEndMs)) return false;
+    return startMs < bEndMs && endMs > bStartMs;
   });
 }
 
 // ─────────────────────────────────────────────────────────────────
 // Inteligência de Agenda — pontuação de slots para minimizar buracos.
-//
-// Filosofia (do roteiro): "a agenda procura blocos do tamanho certo,
-// preenche encaixes e não deixa lacunas inúteis".
-//
-// Para cada slot candidato, calculamos um score:
-//   • +PESO se o slot encosta no FIM de um agendamento/bloqueio existente
-//     (preenche buraco "à direita")
-//   • +PESO se o slot encosta no INÍCIO de um agendamento/bloqueio existente
-//     (preenche buraco "à esquerda")
-//   • +PESO_EXTRA se faz as DUAS coisas (encaixe perfeito entre dois agendamentos)
-//   • penalidade leve por horários muito tarde se o dia ainda está vazio,
-//     priorizando concentrar os atendimentos cedo.
-//
-// Importante: NÃO removemos nenhum slot — apenas reordenamos. O cliente
-// continua podendo escolher qualquer horário disponível. Isso evita
-// "esconder" agenda e quebrar fluxos existentes.
 // ─────────────────────────────────────────────────────────────────
 
 const ADJ_TOLERANCE_MIN = 5; // considera "encostado" se a folga for ≤ 5min
 
-function minutesBetween(a, b) {
-  return Math.abs((new Date(a).getTime() - new Date(b).getTime()) / 60000);
-}
-
 export function scoreSlot({ slotStart, durationMin, professionalId, appointments = [], blocks = [] }) {
-  const start = new Date(slotStart);
-  const end = new Date(start.getTime() + (durationMin || 30) * 60000);
+  const startMs = parseBrasiliaDateTime(slotStart);
+  if (!startMs || isNaN(startMs)) return 0;
+  const dur = Math.max(5, Number(durationMin) || 30);
+  const endMs = startMs + dur * 60000;
 
-  // Constrói "ocupações" do dia desse profissional (appointments + bloqueios).
   const busy = [];
 
   for (const a of appointments) {
-    if (a.professional_id !== professionalId) continue;
-    if (['cancelado', 'faltou'].includes(a.status)) continue;
-    const aStart = new Date(a.scheduled_at);
-    const aDur = a.__duration || 30;
-    busy.push({ start: aStart, end: new Date(aStart.getTime() + aDur * 60000) });
-  }
-  for (const b of blocks) {
-    if (b.professional_id && b.professional_id !== professionalId) continue;
-    busy.push({ start: new Date(b.start_time), end: new Date(b.end_time) });
+    if (!a || a.professional_id !== professionalId) continue;
+    const status = String(a.status || '').toLowerCase().trim();
+    if (['cancelado', 'faltou', 'cancelled', 'rejeitado', 'failed', 'expired'].includes(status)) continue;
+    const aStartMs = getAppointmentTimestamp(a);
+    if (!aStartMs || isNaN(aStartMs)) continue;
+    const aDur = Math.max(5, Number(a.__duration || a.custom_duration_minutes || a.duration_minutes) || 30);
+    busy.push({ start: aStartMs, end: aStartMs + aDur * 60000 });
   }
 
-  // Só consideramos ocupações no mesmo dia para não inflar pontuação.
-  const sameDay = busy.filter(x =>
-    x.start.toDateString() === start.toDateString() ||
-    x.end.toDateString() === start.toDateString()
-  );
+  const { dateStr, dayOfWeek, timeFormatted } = toBrasiliaDateParts(slotStart);
+
+  for (const b of blocks) {
+    if (!b || (b.professional_id && b.professional_id !== professionalId)) continue;
+    if (b.recurring) {
+      if (dayOfWeek === b.weekday && b.time_start && b.time_end) {
+        const bStartMs = parseBrasiliaDateTime(dateStr, b.time_start);
+        const bEndMs = parseBrasiliaDateTime(dateStr, b.time_end);
+        if (bStartMs && bEndMs) busy.push({ start: bStartMs, end: bEndMs });
+      }
+    } else if (b.start_time && b.end_time) {
+      const bStartMs = parseBrasiliaDateTime(b.start_time);
+      const bEndMs = parseBrasiliaDateTime(b.end_time);
+      if (bStartMs && bEndMs) busy.push({ start: bStartMs, end: bEndMs });
+    }
+  }
+
+  // Compara ocupações do mesmo dia
+  const sameDay = busy.filter(x => {
+    const xDateStr = toBrasiliaDateParts(x.start).dateStr;
+    return xDateStr === dateStr;
+  });
 
   let touchesLeft = false;  // existe ocupação que termina no início do slot
   let touchesRight = false; // existe ocupação que começa no fim do slot
   for (const x of sameDay) {
-    if (minutesBetween(x.end, start) <= ADJ_TOLERANCE_MIN && x.end <= start) touchesLeft = true;
-    if (minutesBetween(x.start, end) <= ADJ_TOLERANCE_MIN && x.start >= end) touchesRight = true;
+    if (Math.abs(x.end - startMs) / 60000 <= ADJ_TOLERANCE_MIN && x.end <= startMs) touchesLeft = true;
+    if (Math.abs(x.start - endMs) / 60000 <= ADJ_TOLERANCE_MIN && x.start >= endMs) touchesRight = true;
   }
 
   let score = 0;
@@ -111,7 +150,7 @@ export function scoreSlot({ slotStart, durationMin, professionalId, appointments
 
   // Se o dia inteiro está vazio, leve preferência por horários mais cedo.
   if (sameDay.length === 0) {
-    const hour = start.getHours();
+    const hour = parseInt(timeFormatted.split(':')[0], 10) || 9;
     score -= Math.max(0, hour - 9) * 0.2;
   }
 
@@ -119,34 +158,28 @@ export function scoreSlot({ slotStart, durationMin, professionalId, appointments
 }
 
 // Reordena slots disponíveis priorizando os que preenchem buracos.
-// Mantém ordem cronológica como desempate para não embaralhar a UI.
 export function rankSlotsByFit({ slots, date, durationMin, professionalId, appointments = [], blocks = [] }) {
   if (!professionalId || professionalId === 'any') return slots;
   const enriched = slots.map(time => {
-    const [h, m] = time.split(':').map(Number);
-    const slotStart = new Date(date);
-    slotStart.setHours(h, m, 0, 0);
-    const score = scoreSlot({ slotStart, durationMin, professionalId, appointments, blocks });
-    return { time, slotStart, score };
+    const { isoBrasilia, timestamp } = toBrasiliaDateParts(date, time);
+    const score = scoreSlot({ slotStart: isoBrasilia, durationMin, professionalId, appointments, blocks });
+    return { time, timestamp, score };
   });
   enriched.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
-    return a.slotStart - b.slotStart;
+    return a.timestamp - b.timestamp;
   });
   return enriched.map(e => e.time);
 }
 
-// Marca quais slots são "encaixe inteligente" — para o frontend destacar
-// visualmente sem reordenar (alternativa ao rankSlotsByFit).
+// Marca quais slots são "encaixe inteligente"
 export function annotateSlots({ slots, date, durationMin, professionalId, appointments = [], blocks = [] }) {
   if (!professionalId || professionalId === 'any') {
     return slots.map(time => ({ time, smart: false, score: 0 }));
   }
   return slots.map(time => {
-    const [h, m] = time.split(':').map(Number);
-    const slotStart = new Date(date);
-    slotStart.setHours(h, m, 0, 0);
-    const score = scoreSlot({ slotStart, durationMin, professionalId, appointments, blocks });
+    const { isoBrasilia } = toBrasiliaDateParts(date, time);
+    const score = scoreSlot({ slotStart: isoBrasilia, durationMin, professionalId, appointments, blocks });
     return { time, smart: score >= 10, score };
   });
 }

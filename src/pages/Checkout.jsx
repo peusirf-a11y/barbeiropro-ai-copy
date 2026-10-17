@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 import { CheckCircle, ArrowLeft, Shield, Star, Zap, Lock, Rocket } from 'lucide-react';
-import { getReferralCode, getDeviceFingerprint } from '@/lib/referralTracking';
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
 import { usePublicPlans } from '@/hooks/usePublicPlans';
 
