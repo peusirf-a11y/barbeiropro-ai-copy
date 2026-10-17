@@ -55,10 +55,11 @@ function backoffDelay(attempt) {
  */
 export async function asaasRequest(method, path, options = {}) {
   const cfg = getAsaasConfig();
-  if (!cfg.isConfigured) {
+  const activeApiKey = options.apiKey || cfg.apiKey;
+  if (!activeApiKey) {
     throw new AsaasError({
       code: AsaasErrorCodes.NOT_CONFIGURED,
-      message: 'ASAAS_API_KEY não configurada.',
+      message: 'Chave de API do Asaas não configurada.',
       status: 503,
     });
   }
@@ -67,8 +68,11 @@ export async function asaasRequest(method, path, options = {}) {
   const timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
   const maxRetries = Number.isInteger(options.maxRetries) ? options.maxRetries : DEFAULT_MAX_RETRIES;
 
+  const isProd = activeApiKey.startsWith('$aact_prod_') || activeApiKey.startsWith('prod_');
+  const baseUrl = options.baseUrl || (isProd ? 'https://api.asaas.com/v3' : cfg.baseUrl);
+
   // Monta URL com query params.
-  let url = `${cfg.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  let url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
   if (options.query && typeof options.query === 'object') {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(options.query)) {
@@ -81,8 +85,8 @@ export async function asaasRequest(method, path, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'access_token': cfg.apiKey,
-    'User-Agent': 'OCorte-SaaS/1.0 (+asaas-migration)',
+    'access_token': activeApiKey,
+    'User-Agent': 'OCorte-SaaS/1.0 (+asaas-direct)',
     'X-Correlation-Id': correlationId,
   };
   if (options.idempotencyKey) {

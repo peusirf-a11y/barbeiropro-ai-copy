@@ -2,6 +2,7 @@
 // Trata eventos de pagamento, cobrança gerada, vencida, confirmada e estornada de forma autônoma.
 
 import { Company, FinancialEntry } from './entities';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
 function constantTimeEquals(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
@@ -61,11 +62,18 @@ export async function handleAsaasWebhook(req, res) {
         const targetCompany = companies.find(c => c.id === externalRef || c.asaas_customer_id === customerId) || companies[0];
 
         if (targetCompany) {
-          await Company.update(targetCompany.id, {
+          const updateData = {
             billing_status: 'ACTIVE',
             status: 'active',
+            subscription_status: 'active',
             last_payment_at: new Date().toISOString(),
-          });
+          };
+          try {
+            if (isSupabaseConfigured && supabase) {
+              await supabase.from('companies').update(updateData).eq('id', targetCompany.id);
+            }
+          } catch (_) {}
+          await Company.update(targetCompany.id, updateData);
         }
 
         // Registra entrada financeira

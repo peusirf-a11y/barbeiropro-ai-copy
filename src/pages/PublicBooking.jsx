@@ -36,11 +36,10 @@ export default function PublicBooking() {
   const company = companies[0] || null;
   const primaryColor = company?.primary_color || '#2563EB';
 
-  // Gate Asaas: O CORTE opera exclusivamente com split automático (CNPJ/MEI).
-  // Barbearias PF legadas (cadastradas antes desta política) mantêm acesso enquanto
-  // asaas_pix_enabled=true. Novos cadastros exigem subaccount ativa.
+  // Modelo A: A barbearia aceita pagamentos online se configurou sua chave do Asaas
+  // ou se o método Pix/Cartão estiver habilitado
   const loadingConnect = false;
-  const canAcceptPayments = !!company?.asaas_pix_enabled;
+  const canAcceptPayments = !!company?.asaas_api_key || company?.asaas_pix_enabled !== false;
 
   const { customer: loggedCustomer, token: customerToken, loading: loadingCustomerAuth, logout: logoutCustomer, login } = useCustomerAuth(company?.id);
   const [isAuthenticatedCustomer, setIsAuthenticatedCustomer] = useState(false);

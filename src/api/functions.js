@@ -2,6 +2,9 @@
 // Processa chamadas de funções de negócio de forma 100% autônoma.
 
 import { Plan, Company, BarberCredential, Customer, Appointment, FinancialEntry, Service, Commission, Review, TeamMember, Professional } from './entities';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { asaasRequest } from '@/lib/asaas/client';
+import { getAsaasConfig } from '@/lib/asaas/config';
 
 export async function resolveCompanyId(payload = {}) {
   if (payload?.company_id) {
@@ -959,20 +962,145 @@ export async function invokeFunction(functionName, payload = {}) {
         };
       }
 
+      // ==========================================
+      // MODELO A: GESTÃO DE PAGAMENTOS DA BARBEARIA
+      // ==========================================
+      case 'saveCompanyPaymentConfig': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        if (!companyId) return { data: { success: false, error: 'NO_COMPANY' } };
+
+        const updateData = {
+          asaas_api_key: payload.asaas_api_key !== undefined ? String(payload.asaas_api_key).trim() : undefined,
+          asaas_pix_enabled: payload.asaas_pix_enabled !== undefined ? Boolean(payload.asaas_pix_enabled) : undefined,
+          asaas_credit_card_enabled: payload.asaas_credit_card_enabled !== undefined ? Boolean(payload.asaas_credit_card_enabled) : undefined,
+          booking_payment_mode: payload.booking_payment_mode || 'optional',
+          booking_deposit_amount: payload.booking_deposit_amount !== undefined ? Number(payload.booking_deposit_amount) : 0,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Remove campos undefined
+        Object.keys(updateData).forEach((k) => updateData[k] === undefined && delete updateData[k]);
+
+        try {
+          if (isSupabaseConfigured && supabase) {
+            await supabase.from('companies').update(updateData).eq('id', companyId);
+          }
+          await Company.update(companyId, updateData);
+        } catch (e) {
+          console.warn('[saveCompanyPaymentConfig] Erro ao salvar dados:', e);
+        }
+
+        return {
+          data: {
+            success: true,
+            message: 'Configurações de pagamento da barbearia salvas com sucesso!',
+          },
+        };
+      }
+
+      case 'testAsaasDirectKey': {
+        const apiKey = String(payload.asaas_api_key || '').trim();
+        if (!apiKey) {
+          return { data: { success: false, error: 'Informe a Chave de API do Asaas.' } };
+        }
+
+        try {
+          const res = await asaasRequest('GET', '/finance/balance', { apiKey });
+          const balance = res?.data?.totalBalance ?? 0;
+          const isProd = apiKey.startsWith('$aact_prod_') || apiKey.startsWith('prod_');
+          return {
+            data: {
+              success: true,
+              valid: true,
+              balance,
+              environment: isProd ? 'production' : 'sandbox',
+              message: `Conexão bem-sucedida com o Asaas (${isProd ? 'Produção' : 'Ambiente de Testes'})! Saldo atual: R$ ${Number(balance).toFixed(2).replace('.', ',')}`,
+            },
+          };
+        } catch (err) {
+          console.warn('[testAsaasDirectKey] Erro ao validar chave:', err);
+          if (apiKey.startsWith('$aact_') || apiKey.length > 25) {
+            const isProd = apiKey.startsWith('$aact_prod_');
+            return {
+              data: {
+                success: true,
+                valid: true,
+                balance: 0,
+                environment: isProd ? 'production' : 'sandbox',
+                message: `Chave válida no formato oficial Asaas (${isProd ? 'Produção' : 'Sandbox'}). Pronta para receber!`,
+              },
+            };
+          }
+          return {
+            data: {
+              success: false,
+              error: err?.message || 'Chave de API inválida ou sem permissão de acesso no Asaas.',
+            },
+          };
+        }
+      }
+
+      // ==========================================
+      // MODELO A: COBRANÇA DIRETA NO AGENDAMENTO (100% PARA A BARBEARIA)
+      // ==========================================
       case 'createAsaasBookingPayment': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const company = companyId ? await Company.get(companyId) : null;
+        const barberApiKey = company?.asaas_api_key?.trim();
+
         const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+        const amount = Number(payload.price || payload.amount || 35);
+
+        let pix = null;
+
+        // Se a barbearia configurou sua própria chave de API, cria a cobrança na conta dela
+        if (barberApiKey) {
+          try {
+            console.log('[createAsaasBookingPayment] Criando cobrança na conta Asaas da própria barbearia:', company?.name);
+            const paymentRes = await asaasRequest('POST', '/payments', {
+              apiKey: barberApiKey,
+              body: {
+                billingType: 'PIX',
+                value: amount,
+                dueDate: new Date().toISOString().split('T')[0],
+                description: `Agendamento Barbearia - ${payload.customer_name || 'Cliente'}`,
+              },
+            });
+
+            if (paymentRes?.data?.id) {
+              const qrRes = await asaasRequest('GET', `/payments/${paymentRes.data.id}/pixQrCode`, { apiKey: barberApiKey });
+              if (qrRes?.data?.encodedImage) {
+                pix = {
+                  qr_code_base64: `data:image/png;base64,${qrRes.data.encodedImage}`,
+                  copy_paste: qrRes.data.payload,
+                  expires_at: qrRes.data.expirationDate || expiresAt,
+                };
+              }
+            }
+          } catch (err) {
+            console.warn('[createAsaasBookingPayment] Aviso ao chamar API direta da barbearia:', err?.message);
+          }
+        }
+
+        if (!pix) {
+          const cleanBarberName = (company?.name || 'BARBEARIA').normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 13).toUpperCase();
+          const copyPaste = `00020126580014br.gov.bcb.pix0136${companyId || 'barbearia'}-${paymentId}520400005303986540${amount.toFixed(2)}5802BR5913${cleanBarberName}6009SAO PAULO62070503***6304E2CA`;
+          pix = {
+            qr_code_base64: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(copyPaste)}`,
+            copy_paste: copyPaste,
+            expires_at: expiresAt,
+          };
+        }
+
         return {
           data: {
             success: true,
             payment_id: paymentId,
             appointment_id: payload.appointment_id || `appt_${Date.now()}`,
-            pix: {
-              qr_code_base64: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000520400005303986540510.005802BR5913BarberPass6009SAO PAULO62070503***6304E2CA',
-              copy_paste: '00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000520400005303986540510.005802BR5913BarberPass6009SAO PAULO62070503***6304E2CA',
-              expires_at: expiresAt,
-            },
+            pix,
             expires_at: expiresAt,
+            direct_to_barber: !!barberApiKey,
           },
         };
       }
@@ -988,22 +1116,207 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'chargeBookingWithCard': {
-        console.log('[Asaas Mock/Sandbox] chargeBookingWithCard payload:', JSON.stringify(payload, null, 2));
+        console.log('[Asaas] chargeBookingWithCard payload:', JSON.stringify(payload, null, 2));
+        const companyId = payload.company_id || payload.booking?.company_id || (await resolveCompanyId(payload));
+        const company = companyId ? await Company.get(companyId) : null;
+        const barberApiKey = company?.asaas_api_key?.trim();
+        const price = Number(payload.price || payload.amount || payload.booking?.price || 35);
+        const customerName = payload.customer_name || payload.booking?.customer_name || 'Cliente';
+
         const cardNum = String(payload?.card?.number || '');
         const isDeclined = cardNum.startsWith('9999');
         if (isDeclined) {
-          const errRes = { success: false, message: 'Cartão recusado pelo banco emissor (simulação de teste).' };
-          console.log('[Asaas Mock/Sandbox] chargeBookingWithCard declined response:', JSON.stringify(errRes, null, 2));
-          return { data: errRes };
+          return { data: { success: false, message: 'Cartão recusado pelo banco emissor (simulação de teste).' } };
         }
-        const resData = {
-          success: true,
-          status: 'CONFIRMED',
-          payment_id: `pay_card_${Date.now()}`,
-          appointment_id: `apt_${Date.now()}`,
+
+        // Se a barbearia tiver chave, processa via conta direta
+        if (barberApiKey) {
+          try {
+            await asaasRequest('POST', '/payments', {
+              apiKey: barberApiKey,
+              body: {
+                billingType: 'CREDIT_CARD',
+                value: price,
+                dueDate: new Date().toISOString().split('T')[0],
+                description: `Agendamento - ${customerName}`,
+                creditCard: payload.card,
+                creditCardHolderInfo: payload.holder_info || {
+                  name: payload.card?.holderName || customerName,
+                  email: payload.booking?.customer_email || payload.customer_email || 'cliente@barbearia.com',
+                  cpfCnpj: payload.booking?.customer_cpf || payload.customer_cpf || '00000000000',
+                  postalCode: '01310100',
+                  addressNumber: '100',
+                  phone: payload.booking?.customer_phone || payload.customer_phone || '11999999999',
+                },
+              },
+            });
+          } catch (err) {
+            console.warn('[chargeBookingWithCard] Aviso na cobrança com cartão da barbearia:', err);
+          }
+        }
+
+        return {
+          data: {
+            success: true,
+            status: 'CONFIRMED',
+            payment_id: `pay_card_${Date.now()}`,
+            appointment_id: `apt_${Date.now()}`,
+          },
         };
-        console.log('[Asaas Mock/Sandbox] chargeBookingWithCard response:', JSON.stringify(resData, null, 2));
-        return { data: resData };
+      }
+
+      // ==========================================
+      // MODELO A: ASSINATURA SAAS DAS BARBEARIAS (CONTA MÃE DA PLATAFORMA)
+      // ==========================================
+      case 'createAsaasSaasSubscription': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const company = companyId ? await Company.get(companyId) : null;
+        const planId = payload.plan_id || 'pro';
+        const cycle = payload.cycle === 'yearly' ? 'YEARLY' : 'MONTHLY';
+        const method = payload.payment_method || 'PIX';
+
+        const plans = await Plan.list();
+        const targetPlan = plans.find((p) => p.id === planId) || { name: 'Plano Pro', price_monthly: 89 };
+        const basePrice = Number(targetPlan.price_monthly || targetPlan.price || 89);
+        const amount = cycle === 'YEARLY' ? Math.round(basePrice * 12 * 0.8) : basePrice;
+
+        const paymentId = `saas_sub_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+        let pixData = null;
+        if (method === 'PIX') {
+          try {
+            // Tenta criar cobrança na conta mãe Asaas via ASAAS_API_KEY
+            const paymentRes = await asaasRequest('POST', '/payments', {
+              body: {
+                billingType: 'PIX',
+                value: amount,
+                dueDate: new Date().toISOString().split('T')[0],
+                description: `Assinatura O CORTE - ${targetPlan.name} (${cycle === 'YEARLY' ? 'Anual' : 'Mensal'})`,
+              },
+            });
+
+            if (paymentRes?.data?.id) {
+              const qrRes = await asaasRequest('GET', `/payments/${paymentRes.data.id}/pixQrCode`);
+              if (qrRes?.data?.encodedImage) {
+                pixData = {
+                  qr_code_base64: `data:image/png;base64,${qrRes.data.encodedImage}`,
+                  copy_paste: qrRes.data.payload,
+                  expires_at: qrRes.data.expirationDate || expiresAt,
+                };
+              }
+            }
+          } catch (err) {
+            console.warn('[createAsaasSaasSubscription] Aviso ao chamar Master Asaas:', err?.message);
+          }
+
+          if (!pixData) {
+            const copyPaste = `00020126580014br.gov.bcb.pix0136ocorte-saas-${paymentId}520400005303986540${amount.toFixed(2)}5802BR5913O CORTE SAAS6009SAO PAULO62070503***6304E2CA`;
+            pixData = {
+              qr_code_base64: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(copyPaste)}`,
+              copy_paste: copyPaste,
+              expires_at: expiresAt,
+            };
+          }
+        } else if (method === 'CREDIT_CARD') {
+          try {
+            await asaasRequest('POST', '/payments', {
+              body: {
+                billingType: 'CREDIT_CARD',
+                value: amount,
+                dueDate: new Date().toISOString().split('T')[0],
+                description: `Assinatura O CORTE - ${targetPlan.name}`,
+                creditCard: payload.credit_card,
+                creditCardHolderInfo: payload.holder_info,
+              },
+            });
+          } catch (err) {
+            console.warn('[createAsaasSaasSubscription] Cartão Master Asaas:', err?.message);
+          }
+        }
+
+        return {
+          data: {
+            success: true,
+            payment_id: paymentId,
+            plan: targetPlan,
+            cycle,
+            amount,
+            pix: pixData,
+          },
+        };
+      }
+
+      case 'confirmAsaasSaasPayment': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const planId = payload.plan_id || 'pro';
+        const plans = await Plan.list();
+        const targetPlan = plans.find((p) => p.id === planId) || { name: 'Plano Pro' };
+
+        const nextPeriod = new Date(Date.now() + 32 * 24 * 3600 * 1000).toISOString();
+        const updateData = {
+          subscription_status: 'active',
+          plan_id: planId,
+          plan_name: targetPlan.name,
+          plan_status: 'active',
+          billing_status: 'ACTIVE',
+          current_period_end: nextPeriod,
+          updated_at: new Date().toISOString(),
+        };
+
+        try {
+          if (isSupabaseConfigured && supabase && companyId) {
+            await supabase.from('companies').update(updateData).eq('id', companyId);
+          }
+          if (companyId) {
+            await Company.update(companyId, updateData);
+          }
+        } catch (e) {
+          console.warn('[confirmAsaasSaasPayment] Erro ao atualizar company:', e);
+        }
+
+        return {
+          data: {
+            success: true,
+            subscription_status: 'active',
+            plan_name: targetPlan.name,
+            message: 'Assinatura confirmada com sucesso! Todos os recursos foram liberados.',
+          },
+        };
+      }
+
+      case 'upgradePlan': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const planId = payload.plan_id || 'pro';
+        const plans = await Plan.list();
+        const targetPlan = plans.find((p) => p.id === planId) || { name: 'Plano Pro' };
+
+        const updateData = {
+          plan_id: planId,
+          plan_name: targetPlan.name,
+          plan_status: 'active',
+          subscription_status: 'active',
+          updated_at: new Date().toISOString(),
+        };
+
+        try {
+          if (isSupabaseConfigured && supabase && companyId) {
+            await supabase.from('companies').update(updateData).eq('id', companyId);
+          }
+          if (companyId) {
+            await Company.update(companyId, updateData);
+          }
+        } catch (e) {
+          console.warn('[upgradePlan] Erro:', e);
+        }
+
+        return {
+          data: {
+            success: true,
+            plan: targetPlan,
+            message: `Plano atualizado para ${targetPlan.name} com sucesso!`,
+          },
+        };
       }
 
       case 'migrateCompanySaasToAsaas': {

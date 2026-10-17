@@ -1,99 +1,549 @@
-// Página dedicada para o dono da barbearia conectar sua conta Asaas (Asaas Split)
-// e receber pagamentos online direto na sua conta bancária.
+// AppPagamentos.jsx — Modelo A (SaaS + Integração Direta de Barbearias)
+// Permite que o proprietário configure sua própria Chave de API do Asaas para receber 100%
+// dos pagamentos dos clientes finais de forma autônoma (via Pix ou Cartão de Crédito).
+// 🔒 Protegido: Barbeiros NUNCA têm acesso a esta tela nem à visualização das chaves.
 
-import AppLayout from '@/components/layout/AppLayout';
+import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
-import { CreditCard, ShieldCheck, Banknote, Zap } from 'lucide-react';
+import { useCompany } from '@/hooks/useCompany';
+import { useTeamRole } from '@/lib/useTeamRole';
+import AppLayout from '@/components/layout/AppLayout';
 import AppPageHeader from '@/components/app/AppPageHeader';
-import AsaasSplitCard from '@/components/billing/AsaasSplitCard';
+import StandardModal from '@/components/ui/standard-modal';
+import {
+  CreditCard,
+  QrCode,
+  KeyRound,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
+  ExternalLink,
+  Loader2,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  Zap,
+  Info,
+} from 'lucide-react';
 
 export default function AppPagamentos() {
   const { user } = useAuth();
-  const { data: companies = [], isLoading } = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => base44.entities.Company.list(),
+  const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const { data: teamRole, isLoading: loadingRole } = useTeamRole();
+  const queryClient = useQueryClient();
+
+  const isBarbeiro = teamRole?.role === 'barbeiro' || teamRole?.isBarbeiro === true;
+
+  // Estados locais do formulário
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [pixEnabled, setPixEnabled] = useState(true);
+  const [cardEnabled, setCardEnabled] = useState(true);
+  const [bookingPaymentMode, setBookingPaymentMode] = useState('optional'); // 'none' | 'deposit' | 'full' | 'optional'
+  const [depositAmount, setDepositAmount] = useState('20.00');
+
+  // Estados de feedback e modais
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+  const [testingKey, setTestingKey] = useState(false);
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+  const [testChargeModal, setTestChargeModal] = useState(null);
+  const [generatingCharge, setGeneratingCharge] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // Hidrata dados da company quando carregada
+  useEffect(() => {
+    if (company) {
+      if (company.asaas_api_key) setApiKey(company.asaas_api_key);
+      if (company.asaas_pix_enabled !== undefined) setPixEnabled(Boolean(company.asaas_pix_enabled));
+      if (company.asaas_credit_card_enabled !== undefined) setCardEnabled(Boolean(company.asaas_credit_card_enabled));
+      if (company.booking_payment_mode) setBookingPaymentMode(company.booking_payment_mode);
+      if (company.booking_deposit_amount !== undefined) setDepositAmount(String(company.booking_deposit_amount || '20.00'));
+    }
+  }, [company]);
+
+  // Mutação para salvar configurações no banco
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await base44.functions.invoke('saveCompanyPaymentConfig', {
+        company_id: companyId,
+        asaas_api_key: apiKey.trim(),
+        asaas_pix_enabled: pixEnabled,
+        asaas_credit_card_enabled: cardEnabled,
+        booking_payment_mode: bookingPaymentMode,
+        booking_deposit_amount: parseFloat(depositAmount) || 0,
+      });
+      return res?.data;
+    },
+    onSuccess: () => {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3500);
+      queryClient.invalidateQueries({ queryKey: ['my-company'] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
   });
-  const company = companies.find(c => c.owner_email === user?.email) || companies[0];
+
+  // Função para testar conexão com a API do Asaas usando a chave digitada
+  const handleTestConnection = async () => {
+    if (!apiKey.trim()) {
+      setTestResult({ success: false, error: 'Digite uma chave de API antes de testar.' });
+      return;
+    }
+    setTestingKey(true);
+    setTestResult(null);
+    try {
+      const res = await base44.functions.invoke('testAsaasDirectKey', {
+        asaas_api_key: apiKey.trim(),
+      });
+      setTestResult(res?.data || { success: false, error: 'Não foi possível validar a chave.' });
+    } catch (err) {
+      setTestResult({
+        success: false,
+        error: err?.message || 'Falha ao testar conexão com o Asaas.',
+      });
+    } finally {
+      setTestingKey(false);
+    }
+  };
+
+  // Gerar cobrança de teste de R$ 1,00 para validação
+  const handleGenerateTestCharge = async () => {
+    setGeneratingCharge(true);
+    try {
+      const res = await base44.functions.invoke('createAsaasBookingPayment', {
+        company_id: companyId,
+        price: 1.0,
+        customer_name: 'Teste de Integração Barbearia',
+      });
+      if (res?.data?.pix) {
+        setTestChargeModal(res.data.pix);
+      }
+    } catch (_) {}
+    finally {
+      setGeneratingCharge(false);
+    }
+  };
+
+  // 🔒 Bloqueio estrito de segurança (RBAC): Barbeiros NUNCA acessam esta página
+  if (!loadingRole && isBarbeiro) {
+    return <Navigate to="/app/agenda" replace />;
+  }
+
+  const isConfigured = Boolean(company?.asaas_api_key || apiKey);
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto animate-fade-in">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in font-inter space-y-6">
         <AppPageHeader
-          title="Pagamentos online"
-          subtitle="Receba PIX e cartão pelo seu link de agendamento com split automático Asaas (CNPJ/MEI)"
+          title="Pagamentos e Recebimento Online"
+          subtitle="Configure a chave de API do Asaas da sua barbearia para receber 100% das reservas e cortes direto na sua conta bancária."
           icon={CreditCard}
         />
 
-        {isLoading && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] animate-pulse">
-            <div className="h-6 w-48 bg-white/10 rounded mb-3" />
-            <div className="h-4 w-full bg-white/10 rounded" />
+        {/* Status de Conexão - Modelo A */}
+        <div className={`p-5 rounded-3xl border backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all shadow-xl ${
+          isConfigured
+            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200'
+            : 'bg-amber-500/10 border-amber-500/20 text-amber-200'
+        }`}>
+          <div className="flex items-center gap-3.5">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+              isConfigured ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+            }`}>
+              {isConfigured ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-white text-base">
+                  {isConfigured ? 'Integração Direta Ativa (Modelo A)' : 'Chave do Asaas Pendente'}
+                </h3>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                  isConfigured ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                }`}>
+                  {isConfigured ? '100% Autônomo' : 'Ação Necessária'}
+                </span>
+              </div>
+              <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
+                {isConfigured
+                  ? 'Todos os pagamentos realizados pelos seus clientes no link de agendamento são creditados diretamente na sua conta do Asaas.'
+                  : 'Cole a sua Chave de API do Asaas abaixo para liberar pagamentos via Pix e Cartão de Crédito no seu link de agendamento.'}
+              </p>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowInstructionsModal(true)}
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer flex-shrink-0 border border-white/10"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
+            <span>Como obter minha chave?</span>
+          </button>
+        </div>
+
+        {/* Card 1: Chave de API do Asaas */}
+        <div className="bg-[#0B1020]/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-400">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">Chave de API do Asaas da sua Barbearia</h2>
+                <p className="text-xs text-white/50">Garante a autonomia total: sem intermediários ou taxas ocultas.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200 flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-white block mb-0.5">Instrução simples:</strong>
+                <span>Acesse <strong>asaas.com</strong> &gt; <strong>Configurações</strong> &gt; <strong>Integrações</strong> &gt; <strong>Gerar Chave de API</strong> e cole aqui para receber diretamente dos seus clientes via Cartão ou Pix.</span>
+              </div>
+            </div>
+
+            <label className="block text-xs font-semibold text-white/70">
+              Chave de API do Asaas da sua Barbearia (company.asaas_api_key)
+            </label>
+            <div className="relative">
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  setTestResult(null);
+                }}
+                placeholder="Cole aqui sua chave: $aact_prod_... ou $aact_hmlg_..."
+                className="w-full pl-4 pr-24 py-3 bg-white/[0.04] border border-white/10 rounded-2xl text-sm font-mono text-white placeholder:text-white/25 focus:outline-none focus:border-blue-400 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 text-xs text-white/40 hover:text-white flex items-center gap-1 rounded-lg transition-colors cursor-pointer"
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <span>{showKey ? 'Ocultar' : 'Mostrar'}</span>
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={testingKey || !apiKey.trim()}
+                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.99] border border-white/10 text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {testingKey ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" /> : <Zap className="w-3.5 h-3.5 text-blue-400" />}
+                <span>Testar Conexão com Asaas</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 active:scale-[0.99] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>Salvar Chave de API</span>
+              </button>
+
+              {saveSuccess && (
+                <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Salvo com sucesso!
+                </span>
+              )}
+            </div>
+
+            {/* Resultado do Teste de Conexão */}
+            {testResult && (
+              <div className={`p-4 rounded-2xl border text-xs flex items-start gap-3 mt-3 animate-fade-in ${
+                testResult.success
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200'
+                  : 'bg-rose-500/10 border-rose-500/20 text-rose-200'
+              }`}>
+                {testResult.success ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className="font-bold">{testResult.success ? 'Conexão Testada com Sucesso' : 'Falha na Validação'}</div>
+                  <div className="mt-0.5 text-white/70">{testResult.message || testResult.error}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 2: Métodos de Pagamento Aceitos */}
+        <div className="bg-[#0B1020]/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
+          <div className="border-b border-white/5 pb-4">
+            <h2 className="text-base font-bold text-white">Métodos de Pagamento no Agendamento</h2>
+            <p className="text-xs text-white/50">Selecione quais formas de pagamento seus clientes podem utilizar online.</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            {/* Toggle Pix */}
+            <div className={`p-4 rounded-2xl border transition-all ${
+              pixEnabled ? 'bg-blue-500/10 border-blue-400/30' : 'bg-white/[0.02] border-white/8 opacity-60'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                    <QrCode className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-bold text-white">Pix Instantâneo</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={pixEnabled}
+                  onChange={(e) => {
+                    setPixEnabled(e.target.checked);
+                    saveMutation.mutate();
+                  }}
+                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
+                />
+              </div>
+              <p className="text-xs text-white/55 leading-relaxed">
+                Gera QR Code dinâmico e código Pix Copia e Cola para pagamento na hora. Dinheiro cai em segundos na sua conta.
+              </p>
+            </div>
+
+            {/* Toggle Cartão */}
+            <div className={`p-4 rounded-2xl border transition-all ${
+              cardEnabled ? 'bg-blue-500/10 border-blue-400/30' : 'bg-white/[0.02] border-white/8 opacity-60'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-bold text-white">Cartão de Crédito</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={cardEnabled}
+                  onChange={(e) => {
+                    setCardEnabled(e.target.checked);
+                    saveMutation.mutate();
+                  }}
+                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
+                />
+              </div>
+              <p className="text-xs text-white/55 leading-relaxed">
+                Permite pagamento à vista ou parcelado direto no link público. O valor segue o calendário de repasse do seu Asaas.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Política de Cobrança Online (Sinal Anti No-Show) */}
+        <div className="bg-[#0B1020]/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
+          <div className="border-b border-white/5 pb-4">
+            <h2 className="text-base font-bold text-white">Política de Cobrança no Agendamento</h2>
+            <p className="text-xs text-white/50">Defina se o cliente paga sinal de reserva, valor integral ou apenas no balcão.</p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-3">
+            {[
+              { id: 'none', label: 'Sem cobrança prévia', desc: 'Cliente agenda grátis e paga no balcão da barbearia' },
+              { id: 'deposit', label: 'Cobrar Sinal de Reserva', desc: 'Trava o horário e reduz no-shows (abatido no valor total)' },
+              { id: 'full', label: 'Cobrar Valor Integral', desc: 'Cliente paga 100% do serviço antes de confirmar o horário' },
+            ].map((opt) => (
+              <div
+                key={opt.id}
+                onClick={() => {
+                  setBookingPaymentMode(opt.id);
+                  saveMutation.mutate();
+                }}
+                className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                  bookingPaymentMode === opt.id
+                    ? 'bg-blue-600/15 border-blue-400/40 ring-1 ring-blue-400/30'
+                    : 'bg-white/[0.02] border-white/8 hover:border-white/15'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-xs font-bold text-white">{opt.label}</div>
+                  <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                    bookingPaymentMode === opt.id ? 'border-blue-400 bg-blue-500' : 'border-white/30'
+                  }`}>
+                    {bookingPaymentMode === opt.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-white/50 leading-relaxed">{opt.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {bookingPaymentMode === 'deposit' && (
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2 animate-fade-in max-w-sm">
+              <label className="block text-xs font-semibold text-white/70">
+                Valor do Sinal de Reserva (R$)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-white/40">R$</span>
+                <input
+                  type="number"
+                  step="1"
+                  min="5"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  onBlur={() => saveMutation.mutate()}
+                  placeholder="20.00"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm font-bold text-white focus:outline-none focus:border-blue-400"
+                />
+              </div>
+              <p className="text-[11px] text-white/40">
+                Exemplo: Para um corte de R$ 50, o cliente paga R$ {depositAmount || 20} no agendamento e o restante no balcão.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Card 4: Simulação de Teste */}
+        <div className="p-5 rounded-3xl border border-white/10 bg-white/[0.025] backdrop-blur-xl flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h4 className="text-sm font-bold text-white">Quer testar se sua chave está recebendo?</h4>
+            <p className="text-xs text-white/50">Gere uma cobrança Pix de teste de R$ 1,00 para verificar seu QR Code.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleGenerateTestCharge}
+            disabled={generatingCharge}
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {generatingCharge ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <QrCode className="w-3.5 h-3.5 text-emerald-400" />}
+            <span>Gerar Pix de Teste (R$ 1,00)</span>
+          </button>
+        </div>
+
+        {/* Modal de Instruções Passo a Passo */}
+        {showInstructionsModal && (
+          <StandardModal
+            open={showInstructionsModal}
+            onClose={() => setShowInstructionsModal(false)}
+            title="Como Obter sua Chave de API no Asaas"
+            footer={
+              <div className="flex gap-2 w-full">
+                <a
+                  href="https://www.asaas.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold flex items-center justify-center gap-2 border border-white/10 transition-colors"
+                >
+                  <span>Abrir Asaas.com</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <button
+                  onClick={() => setShowInstructionsModal(false)}
+                  className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Entendi
+                </button>
+              </div>
+            }
+          >
+            <div className="space-y-4 text-xs text-white/80 leading-relaxed">
+              <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-400/20 text-blue-200">
+                <p className="font-bold mb-1">Modelo de Autonomia Total (Modelo A)</p>
+                <p className="text-blue-200/80">
+                  O dinheiro dos seus clientes não passa por contas intermediárias. Ele é depositado 100% na conta Asaas da sua barbearia.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">1</div>
+                  <div>
+                    <p className="font-bold text-white">Acesse sua conta Asaas</p>
+                    <p className="text-white/60">Faça login em <span className="text-blue-400 font-mono">asaas.com</span> com seu e-mail e senha.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">2</div>
+                  <div>
+                    <p className="font-bold text-white">Acesse o menu de Integrações</p>
+                    <p className="text-white/60">No canto superior direito, clique no ícone de engrenagem (Configurações) e depois em <strong>Integrações</strong>.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">3</div>
+                  <div>
+                    <p className="font-bold text-white">Gere a Chave de API</p>
+                    <p className="text-white/60">Na seção "Chaves de API", clique no botão azul <strong>"Gerar Chave de API"</strong> e confirme.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">4</div>
+                  <div>
+                    <p className="font-bold text-white">Copie e Cole no O CORTE</p>
+                    <p className="text-white/60">Copie o código gerado (começa com <span className="font-mono text-emerald-400">$aact_...</span>), cole no campo acima e clique em <strong>Salvar Chave</strong>.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </StandardModal>
         )}
 
-        {company && <AsaasSplitCard company={company} />}
+        {/* Modal do Pix de Teste */}
+        {testChargeModal && (
+          <StandardModal
+            open={!!testChargeModal}
+            onClose={() => setTestChargeModal(null)}
+            title="Cobrança Pix de Teste (R$ 1,00)"
+            footer={
+              <button
+                onClick={() => setTestChargeModal(null)}
+                className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Fechar Teste
+              </button>
+            }
+          >
+            <div className="text-center space-y-4">
+              <p className="text-xs text-white/60">
+                Escaneie o QR Code abaixo com seu aplicativo de banco para testar a recepção na sua conta Asaas.
+              </p>
+              <div className="flex justify-center p-4 bg-white rounded-2xl w-fit mx-auto shadow-xl">
+                <img src={testChargeModal.qr_code_base64} alt="QR Code Pix" className="w-48 h-48" />
+              </div>
 
-        {/* Benefícios — explica por que conectar */}
-        <div className="grid sm:grid-cols-3 gap-3 mt-6">
-          <Benefit
-            icon={Banknote}
-            title="Dinheiro na sua conta"
-            description="O valor cai direto na sua conta bancária via Asaas — com repasse automático."
-          />
-          <Benefit
-            icon={ShieldCheck}
-            title="Reservas garantidas"
-            description="Cliente paga antes de bloquear o horário. Acabaram os no-shows."
-          />
-          <Benefit
-            icon={Zap}
-            title="Pix e cartão"
-            description="Receba via Pix instantâneo ou cartão de crédito direto pelo seu link."
-          />
-        </div>
-
-        {/* FAQ enxuto */}
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-          <h2 className="font-bold text-white mb-4">Perguntas frequentes</h2>
-          <div className="space-y-4">
-            <Faq q="Quanto custa para usar?">
-              O CORTE não cobra nada extra. Apenas as taxas padrão do Asaas são descontadas automaticamente de cada cobrança.
-            </Faq>
-            <Faq q="Em quanto tempo recebo o dinheiro?">
-              Pix cai em minutos. Cartão segue o ciclo padrão do Asaas (1–30 dias após a cobrança, conforme seu plano).
-            </Faq>
-            <Faq q="Preciso ter CNPJ?">
-              Sim. É necessário possuir CNPJ (inclusive MEI) para utilizar os recursos de recebimento da plataforma. Cada pagamento cai direto na sua conta via split automático Asaas.
-            </Faq>
-            <Faq q="E se o cliente não pagar?">
-              O horário fica reservado por 15 minutos enquanto ele paga. Se o pagamento não for concluído, o slot é liberado automaticamente.
-            </Faq>
-          </div>
-        </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-white/60 mb-1">Código Pix Copia e Cola:</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={testChargeModal.copy_paste}
+                    className="flex-1 px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs font-mono text-emerald-300 select-all"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(testChargeModal.copy_paste);
+                      setCopiedCode(true);
+                      setTimeout(() => setCopiedCode(false), 2000);
+                    }}
+                    className="px-3 py-2 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedCode ? 'Copiado' : 'Copiar'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </StandardModal>
+        )}
       </div>
     </AppLayout>
-  );
-}
-
-function Benefit({ icon: Icon, title, description }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-      <div className="w-10 h-10 rounded-xl bg-blue-400/12 ring-1 ring-blue-400/25 flex items-center justify-center mb-3">
-        <Icon className="w-5 h-5 text-[#93C5FD]" />
-      </div>
-      <div className="text-sm font-bold text-white mb-1">{title}</div>
-      <p className="text-xs text-white/55 leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
-function Faq({ q, children }) {
-  return (
-    <div>
-      <div className="text-sm font-bold text-white mb-1">{q}</div>
-      <p className="text-sm text-white/60 leading-relaxed">{children}</p>
-    </div>
   );
 }

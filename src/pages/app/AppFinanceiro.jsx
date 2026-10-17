@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { TrendingUp, TrendingDown, DollarSign, CreditCard, KeyRound, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SkeletonPage } from '@/components/Skeletons';
@@ -162,9 +163,47 @@ export default function AppFinanceiro() {
             <option value="last_month">Mês passado</option>
             <option value="all">Todo o período</option>
           </FilterSelect>
+          <Link
+            to="/app/configuracoes/pagamentos"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30 transition-all cursor-pointer"
+          >
+            <CreditCard className="w-4 h-4 text-blue-400" />
+            <span>Recebimento Asaas</span>
+          </Link>
           <FinancialExport companyId={companyId} companyName={company?.name} />
           {!isAllUnits && <PrimaryButton onClick={() => setShowForm(true)}>Lançamento</PrimaryButton>}
         </AppPageHeader>
+
+        {/* Banner Modelo A de Recebimento Direto Asaas */}
+        <div className="mb-6 p-4 rounded-2xl bg-[#0B1020]/80 border border-white/10 backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white">Recebimento Online da Barbearia (Modelo A)</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  company?.asaas_api_key ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                }`}>
+                  {company?.asaas_api_key ? 'Chave Conectada' : 'Pendente'}
+                </span>
+              </div>
+              <p className="text-xs text-white/50 mt-0.5">
+                {company?.asaas_api_key
+                  ? 'Sua chave de API do Asaas está ativa. Seus pagamentos caem 100% direto na sua conta bancária.'
+                  : 'Configure sua Chave de API do Asaas para receber 100% dos agendamentos via Pix e Cartão.'}
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/app/configuracoes/pagamentos"
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer flex-shrink-0 border border-white/10"
+          >
+            <span>{company?.asaas_api_key ? 'Gerenciar Integração' : 'Configurar Chave'}</span>
+            <ArrowRight className="w-3.5 h-3.5 text-blue-400" />
+          </Link>
+        </div>
 
         {isAllUnits && (
           <AllUnitsNotice message="Visão financeira consolidada de todas as unidades. Para criar um novo lançamento, selecione uma unidade específica." />
