@@ -2,6 +2,7 @@
 // Faz polling a cada 5s no status Asaas e validação estrita no "Já paguei".
 
 import { useState, useEffect, useCallback } from 'react';
+import QRCode from 'qrcode';
 import { supabase } from '@/lib/supabaseClient';
 import { Copy, Check, Clock, Loader2, AlertCircle } from 'lucide-react';
 
@@ -11,6 +12,7 @@ export default function PixPaymentBox({
   pixData,
   expiresAt,
   primaryColor = '#2563EB',
+  companyId,
   onPaid,
   onExpired,
 }) {
@@ -20,16 +22,33 @@ export default function PixPaymentBox({
   );
   const [checking, setChecking] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [generatedQr, setGeneratedQr] = useState('');
 
   const targetPaymentId = propPaymentId || pixData?.paymentId || pixData?.payment_id || '';
   const targetApptId = appointmentId || pixData?.appointmentId || pixData?.appointment_id || '';
   const copyPasteCode = pixData?.payload || pixData?.copy_paste || '';
 
-  // Resolve a imagem do QR Code em Base64 para exibição instantânea sem travamento no loading
+  // Resolve a imagem do QR Code em Base64 para exibição instantânea sem travamento
   const rawImage = pixData?.encodedImage || pixData?.qr_code_base64 || '';
-  const qrImageSrc = rawImage
-    ? (rawImage.startsWith('data:') || rawImage.startsWith('http') ? rawImage : `data:image/png;base64,${rawImage}`)
-    : pixData?.qr_code_url;
+  let qrImageSrc = '';
+  if (rawImage) {
+    qrImageSrc = (rawImage.startsWith('data:') || rawImage.startsWith('http'))
+      ? rawImage
+      : `data:image/png;base64,${rawImage}`;
+  } else if (generatedQr) {
+    qrImageSrc = generatedQr;
+  } else if (pixData?.qr_code_url) {
+    qrImageSrc = pixData.qr_code_url;
+  }
+
+  // Gera QR Code local caso o backend não tenha devolvido encodedImage ainda
+  useEffect(() => {
+    if (!rawImage && copyPasteCode) {
+      QRCode.toDataURL(copyPasteCode, { width: 300, margin: 2 })
+        .then((url) => setGeneratedQr(url))
+        .catch(() => {});
+    }
+  }, [rawImage, copyPasteCode]);
 
   // Timer de contagem regressiva
   useEffect(() => {
@@ -44,19 +63,20 @@ export default function PixPaymentBox({
     return () => clearInterval(interval);
   }, [expiresAt, onExpired]);
 
-  // Consulta de status do pagamento
+  // Consulta de status do pagamento (Polling e Validação Real do Pagamento)
   const checkStatus = useCallback(async (isManualClick = false) => {
     if (checking) return;
     setChecking(true);
 
     if (isManualClick) {
-      setFeedback('Consultando compensação junto ao Asaas...');
+      setFeedback('Verificando pagamento no banco...');
     }
 
     try {
       const queryParams = new URLSearchParams();
       if (targetPaymentId) queryParams.set('paymentId', targetPaymentId);
       if (targetApptId) queryParams.set('appointmentId', targetApptId);
+      if (companyId) queryParams.set('companyId', companyId);
 
       const res = await fetch(`/api/payments/status?${queryParams.toString()}`);
       const data = await res.json();
@@ -80,7 +100,7 @@ export default function PixPaymentBox({
             });
 
             if (targetPaymentId) {
-              updateQuery = updateQuery.or(`asaas_payment_id.eq.${targetPaymentId},payment_id.eq.${targetPaymentId}`);
+              updateQuery = updateQuery.eq('payment_id', targetPaymentId);
             } else if (targetApptId) {
               updateQuery = updateQuery.eq('id', targetApptId);
             }
@@ -91,24 +111,24 @@ export default function PixPaymentBox({
           console.warn('[PixPaymentBox] Aviso ao atualizar status no banco:', dbErr);
         }
 
-        // Avança apenas agora para a tela de confirmação
+        // Só então avança para a tela "Agendado! Seu horário foi confirmado com sucesso"
         onPaid?.();
       } else {
         // Se o pagamento ainda não foi recebido (ex: 'PENDING'):
-        // Exiba um aviso e NUNCA avance para a tela de confirmação
+        // NÃO avance a tela. Mostre o alerta solicitado.
         if (isManualClick) {
-          setFeedback('Aguardando confirmação do banco. Se você já transferiu, aguarde alguns instantes.');
+          setFeedback('Pagamento ainda não identificado pelo banco. Aguarde alguns segundos após fazer o Pix e tente novamente.');
         }
       }
     } catch (err) {
       console.warn('[PixPaymentBox] Erro ao consultar status:', err);
       if (isManualClick) {
-        setFeedback('Aguardando confirmação do banco. Se você já transferiu, aguarde alguns instantes.');
+        setFeedback('Pagamento ainda não identificado pelo banco. Aguarde alguns segundos após fazer o Pix e tente novamente.');
       }
     } finally {
       setChecking(false);
     }
-  }, [checking, targetPaymentId, targetApptId, onPaid]);
+  }, [checking, targetPaymentId, targetApptId, companyId, onPaid]);
 
   // Polling periódico a cada 5 segundos
   useEffect(() => {
@@ -142,7 +162,7 @@ export default function PixPaymentBox({
         <span className="text-lg font-black tabular-nums">{timeStr}</span>
       </div>
 
-      {/* QR code com renderização garantida via Base64 */}
+      {/* QR code com renderização garantida via Base64 sem spinner infinito */}
       {qrImageSrc ? (
         <div className="flex justify-center mb-4">
           <img
@@ -157,7 +177,7 @@ export default function PixPaymentBox({
         </div>
       )}
 
-      {/* Copia e cola */}
+      {/* Copia e cola com botão funcional */}
       {copyPasteCode && (
         <div className="mb-3">
           <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
@@ -168,16 +188,18 @@ export default function PixPaymentBox({
               type="text"
               readOnly
               value={copyPasteCode}
-              className="flex-1 px-3 py-2 border border-black/10 rounded-lg text-xs bg-gray-50 font-mono text-gray-600 truncate"
+              className="flex-1 px-3 py-2 border border-black/10 rounded-lg text-xs bg-gray-50 font-mono text-gray-600 truncate select-all"
+              onClick={(e) => e.target.select()}
             />
             <button
+              type="button"
               onClick={copyCode}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                copied ? 'bg-emerald-500 text-white' : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8]'
+              className={`flex items-center gap-1 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm ${
+                copied ? 'bg-emerald-600 text-white' : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8]'
               }`}
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? 'Copiado' : 'Copiar'}
+              <span>{copied ? 'Copiado!' : 'Copiar'}</span>
             </button>
           </div>
         </div>
@@ -185,13 +207,14 @@ export default function PixPaymentBox({
 
       {/* Instruções */}
       <ol className="text-xs text-gray-600 space-y-1 mb-4 pl-4 list-decimal">
-        <li>Abra o app do seu banco</li>
-        <li>Escolha pagar com Pix → escaneie o QR ou cole o código</li>
-        <li>Confirme o valor e finalize</li>
+        <li>Abra o aplicativo do seu banco</li>
+        <li>Escolha pagar com Pix → escaneie o QR Code ou cole o código</li>
+        <li>Confira o valor e confirme a transferência</li>
       </ol>
 
-      {/* Botão "Já paguei" com consulta imediata e validação rígida */}
+      {/* Botão "Já paguei" com consulta imediata e validação estrita */}
       <button
+        type="button"
         onClick={() => checkStatus(true)}
         disabled={checking || timeLeft === 0}
         className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-md"
@@ -199,7 +222,7 @@ export default function PixPaymentBox({
       >
         {checking ? (
           <span className="inline-flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" /> Verificando compensação…
+            <Loader2 className="w-4 h-4 animate-spin" /> Verificando pagamento no banco...
           </span>
         ) : (
           'Já paguei'
@@ -208,19 +231,19 @@ export default function PixPaymentBox({
 
       {feedback && (
         <div
-          className={`mt-3 flex items-start gap-2 text-xs p-3 rounded-xl border ${
+          className={`mt-3 flex items-start gap-2 text-xs p-3 rounded-xl border animate-fade-in ${
             feedback.includes('confirmado')
               ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : 'bg-amber-50 border-amber-200 text-amber-800'
           }`}
         >
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span>{feedback}</span>
+          <span className="font-medium">{feedback}</span>
         </div>
       )}
 
       <p className="text-[11px] text-gray-400 text-center mt-3">
-        Confirmamos automaticamente assim que o banco notificar.
+        Confirmamos automaticamente assim que o Pix for identificado.
       </p>
     </div>
   );

@@ -1019,16 +1019,25 @@ export async function invokeFunction(functionName, payload = {}) {
         }
 
         try {
-          const res = await asaasRequest('GET', '/finance/balance', { apiKey });
-          const balance = res?.data?.totalBalance ?? 0;
+          let res;
+          let balance = null;
+          try {
+            res = await asaasRequest('GET', '/finance/balance', { apiKey });
+            balance = res?.data?.totalBalance ?? 0;
+          } catch (balanceErr) {
+            console.warn('[testAsaasDirectKey] /finance/balance falhou, tentando /customers:', balanceErr?.message);
+            res = await asaasRequest('GET', '/customers', { apiKey, query: { limit: 1 } });
+          }
+
           const isProd = apiKey.startsWith('$aact_prod_') || apiKey.startsWith('prod_');
+          const balanceMsg = balance !== null ? ` Saldo atual: R$ ${Number(balance).toFixed(2).replace('.', ',')}` : '';
           return {
             data: {
               success: true,
               valid: true,
               balance,
               environment: isProd ? 'production' : 'sandbox',
-              message: `Conexão bem-sucedida com o Asaas (${isProd ? 'Produção' : 'Ambiente de Testes'})! Saldo atual: R$ ${Number(balance).toFixed(2).replace('.', ',')}`,
+              message: `Conexão bem-sucedida com o Asaas (${isProd ? 'Produção' : 'Ambiente de Testes'})!${balanceMsg}`,
             },
           };
         } catch (err) {

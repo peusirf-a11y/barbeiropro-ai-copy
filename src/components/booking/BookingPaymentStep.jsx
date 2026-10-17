@@ -62,28 +62,50 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
 
       let data = null;
 
-      // 1. Criação do Agendamento e Cobrança Pix (/api/appointments/create-pix)
+      // 1. Criação do Agendamento e Cobrança Pix (/api/appointments/create ou /api/appointments/create-pix)
       try {
-        const fetchRes = await fetch('/api/appointments/create-pix', {
+        const clientName = payload.customer_name || payload.client_name || '';
+        const clientPhone = payload.customer_phone || payload.client_phone || '';
+        const clientEmail = payload.customer_email || payload.client_email || '';
+        const startTime = payload.scheduled_at || payload.start_time || new Date().toISOString();
+        const endTime = payload.end_time || startTime;
+
+        const requestBody = {
+          companyId: payload.company_id,
+          company_id: payload.company_id,
+          serviceId: payload.service_id,
+          service_id: payload.service_id,
+          professionalId: payload.professional_id,
+          professional_id: payload.professional_id,
+          clientName,
+          client_name: clientName,
+          customer_name: clientName,
+          clientPhone,
+          client_phone: clientPhone,
+          customer_phone: clientPhone,
+          clientEmail,
+          client_email: clientEmail,
+          customer_email: clientEmail,
+          clientCpf: cpfDigits,
+          client_cpf: cpfDigits,
+          price: payload.price,
+          startTime,
+          start_time: startTime,
+          scheduled_at: startTime,
+          endTime,
+          end_time: endTime,
+          date: payload.date,
+          time: payload.time,
+          notes: payload.notes,
+          serviceName: payload.service_name,
+          professionalName: payload.professional_name,
+          idempotency_key: idemKeyRef.current,
+        };
+
+        const fetchRes = await fetch('/api/appointments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...payload,
-            company_id: payload.company_id,
-            service_id: payload.service_id,
-            professional_id: payload.professional_id,
-            client_name: payload.customer_name || payload.client_name,
-            client_phone: payload.customer_phone || payload.client_phone,
-            client_email: payload.customer_email || payload.client_email,
-            client_cpf: cpfDigits,
-            price: payload.price,
-            start_time: payload.scheduled_at,
-            end_time: payload.end_time || payload.scheduled_at,
-            date: payload.date,
-            time: payload.time,
-            notes: payload.notes,
-            idempotency_key: idemKeyRef.current,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (fetchRes.ok) {
@@ -105,7 +127,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
           }
         }
       } catch (fErr) {
-        console.warn('[BookingPaymentStep] Aviso ao chamar /api/appointments/create-pix, tentando fallback:', fErr);
+        console.warn('[BookingPaymentStep] Aviso ao chamar /api/appointments/create, tentando fallback:', fErr);
       }
 
       // Fallback via invoke caso o endpoint HTTP direto falhe
@@ -247,6 +269,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
           pixData={intentData.pix}
           expiresAt={intentData.expires_at}
           primaryColor={primaryColor}
+          companyId={payload?.company_id}
           onPaid={() => onSucceeded?.(intentData)}
           onExpired={() => setStage('expired')}
         />

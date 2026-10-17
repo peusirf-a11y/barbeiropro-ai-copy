@@ -46,7 +46,7 @@ function asaasApiDevPlugin() {
           }
         }
 
-        if (url === '/api/appointments/create-pix') {
+        if (url === '/api/appointments/create-pix' || url === '/api/appointments/create') {
           if (req.method === 'POST') {
             try {
               let bodyStr = '';
@@ -109,7 +109,7 @@ function asaasApiDevPlugin() {
         const url = rawUrl;
         const query = Object.fromEntries(new URLSearchParams(queryString));
 
-        if (url === '/api/appointments/create-pix' && req.method === 'POST') {
+        if ((url === '/api/appointments/create-pix' || url === '/api/appointments/create') && req.method === 'POST') {
           let bodyStr = '';
           req.on('data', (chunk) => { bodyStr += chunk; });
           req.on('end', async () => {
