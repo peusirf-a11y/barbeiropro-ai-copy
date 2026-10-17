@@ -1013,9 +1013,13 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'testAsaasDirectKey': {
-        const { handleTestConnection } = await import('../server/asaasTestConnectionHandler.js');
-        const res = await handleTestConnection(payload);
-        return { data: res.body };
+        const res = await fetch('/api/asaas/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload || {}),
+        });
+        const body = await res.json().catch(() => ({ success: false, message: 'Falha ao validar chave com o servidor.' }));
+        return { data: body };
       }
 
       // ==========================================
@@ -1023,9 +1027,15 @@ export async function invokeFunction(functionName, payload = {}) {
       // ==========================================
       case 'createAppointmentPix':
       case 'createAsaasBookingPayment': {
-        const { handleCreatePix } = await import('../server/appointmentsPixHandler.js');
-        const result = await handleCreatePix(payload);
-        const b = result.body;
+        const res = await fetch('/api/appointments/create-pix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload || {}),
+        });
+        const b = await res.json().catch(() => ({}));
+        if (!res.ok || b.error) {
+          return { data: { error: b.error || 'CREATE_PIX_FAILED', message: b.message || b.error || 'Falha ao criar cobrança Pix.' } };
+        }
         return {
           data: {
             ...b,
@@ -1037,7 +1047,7 @@ export async function invokeFunction(functionName, payload = {}) {
               paymentId: b.paymentId,
               copy_paste: b.payload,
               qr_code_base64: b.encodedImage,
-              qr_code_url: b.encodedImage ? (b.encodedImage.startsWith('data:') ? b.encodedImage : `data:image/png;base64,${b.encodedImage}`) : '',
+              qr_code_url: b.encodedImage ? `data:image/png;base64,${b.encodedImage}` : '',
               expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
             },
           },
@@ -1046,13 +1056,17 @@ export async function invokeFunction(functionName, payload = {}) {
 
       case 'getPaymentStatus':
       case 'getAsaasBookingStatus': {
-        const { handlePaymentStatus } = await import('../server/appointmentsPixHandler.js');
-        const paymentId = payload.payment_id || payload.paymentId || payload.asaas_payment_id;
-        const appointmentId = payload.appointment_id || payload.appointmentId;
-        const companyId = payload.company_id || payload.companyId;
+        const paymentId = payload.payment_id || payload.paymentId || payload.asaas_payment_id || '';
+        const appointmentId = payload.appointment_id || payload.appointmentId || '';
+        const companyId = payload.company_id || payload.companyId || '';
+        const qs = new URLSearchParams();
+        if (paymentId) qs.set('paymentId', paymentId);
+        if (appointmentId) qs.set('appointmentId', appointmentId);
+        if (companyId) qs.set('companyId', companyId);
 
-        const result = await handlePaymentStatus(paymentId, appointmentId, companyId);
-        return { data: result.body };
+        const res = await fetch(`/api/payments/status?${qs.toString()}`);
+        const body = await res.json().catch(() => ({ status: 'PENDING', received: false, confirmed: false }));
+        return { data: body };
       }
 
       case 'chargeBookingWithCard': {

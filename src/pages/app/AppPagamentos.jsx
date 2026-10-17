@@ -318,13 +318,13 @@ export default function AppPagamentos() {
     }
   };
 
-  // Gerar cobrança de teste de R$ 1,00 para validação
+  // Gerar cobrança de teste de R$ 5,00 para validação
   const handleGenerateTestCharge = async () => {
     setGeneratingCharge(true);
     try {
       const res = await base44.functions.invoke('createAsaasBookingPayment', {
         company_id: companyId,
-        price: 1.0,
+        price: 5.0,
         customer_name: 'Teste de Integração Barbearia',
       });
       if (res?.data?.pix) {

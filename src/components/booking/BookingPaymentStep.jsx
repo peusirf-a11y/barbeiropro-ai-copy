@@ -1,14 +1,5 @@
-// Step de pagamento online no fluxo público.
-// Orquestra: criação do PaymentIntent → escolha Pix/Cartão → confirmação → expiração.
-//
-// Estados internos:
-//  'choose'    → cliente escolhe Pix ou Cartão (e informa CPF)
-//  'creating'  → chamando createBookingPaymentIntent
-//  'pix'       → exibe PixPaymentBox
-//  'card'      → exibe CardPaymentBox
-//  'paid'      → sucesso (delega para o pai)
-//  'expired'   → tempo esgotou — permite recomeçar
-//  'error'     → erro de comunicação — permite tentar de novo
+// Step de pagamento online no fluxo público (/agendar/:slug).
+// Orquestra: criação da cobrança real no Asaas (/api/appointments/create-pix) → QR Code Pix + Polling real → confirmação.
 
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -25,9 +16,8 @@ function maskCpf(value) {
     .replace(/\.(\d{3})(\d)/, '.$1-$2');
 }
 
-export default function BookingPaymentStep({ payload, primaryColor, pixEnabled = false, onBack, onSucceeded }) {
+export default function BookingPaymentStep({ payload, primaryColor, onBack, onSucceeded }) {
   const [stage, setStage] = useState('choose');
-  // Cartão agora usa formulário nativo (tokenização no app). PIX continua com fluxo de intent + polling.
   const [method, setMethod] = useState('pix');
   const [cpf, setCpf] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -36,7 +26,6 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
 
   const cpfDigits = cpf.replace(/\D/g, '');
 
-  // PIX usa fluxo de intent + polling. Cartão pula direto para o formulário inline.
   const handleStart = async () => {
     setErrorMsg('');
     if (method === 'card') {
@@ -47,6 +36,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
       setErrorMsg('Informe um CPF válido (11 dígitos).');
       return;
     }
+
     setStage('creating');
     try {
       if (!idemKeyRef.current) {
@@ -60,120 +50,81 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         });
       }
 
-      let data = null;
+      const clientName = payload.customer_name || payload.client_name || 'Cliente';
+      const clientPhone = payload.customer_phone || payload.client_phone || '';
+      const clientEmail = payload.customer_email || payload.client_email || '';
+      const startTime = payload.scheduled_at || payload.start_time || new Date().toISOString();
+      const endTime = payload.end_time || startTime;
 
-      // 1. Criação do Agendamento e Cobrança Pix (/api/appointments/create ou /api/appointments/create-pix)
-      try {
-        const clientName = payload.customer_name || payload.client_name || '';
-        const clientPhone = payload.customer_phone || payload.client_phone || '';
-        const clientEmail = payload.customer_email || payload.client_email || '';
-        const startTime = payload.scheduled_at || payload.start_time || new Date().toISOString();
-        const endTime = payload.end_time || startTime;
+      const requestBody = {
+        companyId: payload.company_id,
+        company_id: payload.company_id,
+        serviceId: payload.service_id,
+        service_id: payload.service_id,
+        professionalId: payload.professional_id,
+        professional_id: payload.professional_id,
+        customer_id: payload.customer_id,
+        clientName,
+        client_name: clientName,
+        customer_name: clientName,
+        clientPhone,
+        client_phone: clientPhone,
+        customer_phone: clientPhone,
+        clientEmail,
+        client_email: clientEmail,
+        customer_email: clientEmail,
+        clientCpf: cpfDigits,
+        client_cpf: cpfDigits,
+        customer_cpf: cpfDigits,
+        price: payload.price,
+        startTime,
+        start_time: startTime,
+        scheduled_at: startTime,
+        endTime,
+        end_time: endTime,
+        date: payload.date,
+        time: payload.time,
+        notes: payload.notes,
+        serviceName: payload.service_name,
+        professionalName: payload.professional_name,
+        idempotency_key: idemKeyRef.current,
+      };
 
-        const requestBody = {
-          companyId: payload.company_id,
-          company_id: payload.company_id,
-          serviceId: payload.service_id,
-          service_id: payload.service_id,
-          professionalId: payload.professional_id,
-          professional_id: payload.professional_id,
-          clientName,
-          client_name: clientName,
-          customer_name: clientName,
-          clientPhone,
-          client_phone: clientPhone,
-          customer_phone: clientPhone,
-          clientEmail,
-          client_email: clientEmail,
-          customer_email: clientEmail,
-          clientCpf: cpfDigits,
-          client_cpf: cpfDigits,
-          price: payload.price,
-          startTime,
-          start_time: startTime,
-          scheduled_at: startTime,
-          endTime,
-          end_time: endTime,
-          date: payload.date,
-          time: payload.time,
-          notes: payload.notes,
-          serviceName: payload.service_name,
-          professionalName: payload.professional_name,
-          idempotency_key: idemKeyRef.current,
-        };
+      const fetchRes = await fetch('/api/appointments/create-pix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
 
-        const fetchRes = await fetch('/api/appointments/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
+      const jsonRes = await fetchRes.json().catch(() => null);
 
-        if (fetchRes.ok) {
-          const jsonRes = await fetchRes.json();
-          if (jsonRes && (jsonRes.encodedImage || jsonRes.paymentId || jsonRes.success)) {
-            data = {
-              success: true,
-              appointment_id: jsonRes.appointmentId || jsonRes.appointment_id,
-              payment_id: jsonRes.paymentId || jsonRes.payment_id,
-              pix: {
-                encodedImage: jsonRes.encodedImage,
-                payload: jsonRes.payload,
-                paymentId: jsonRes.paymentId,
-                copy_paste: jsonRes.payload,
-                qr_code_base64: jsonRes.encodedImage,
-              },
-              expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-            };
-          }
-        }
-      } catch (fErr) {
-        console.warn('[BookingPaymentStep] Aviso ao chamar /api/appointments/create, tentando fallback:', fErr);
-      }
-
-      // Fallback via invoke caso o endpoint HTTP direto falhe
-      if (!data) {
-        const res = await base44.functions.invoke('createAsaasBookingPayment', {
-          ...payload,
-          client_name: payload.customer_name || payload.client_name,
-          client_phone: payload.customer_phone || payload.client_phone,
-          client_email: payload.customer_email || payload.client_email,
-          customer_cpf: cpfDigits,
-          client_cpf: cpfDigits,
-          payment_method: method,
-          idempotency_key: idemKeyRef.current,
-        });
-        data = res?.data;
-      }
-
-      if (data?.error) {
-        setErrorMsg(data?.message || 'Não foi possível iniciar o pagamento. Tente novamente.');
-        setStage('error');
-        return;
-      }
-      if (!data?.pix && !data?.encodedImage) {
-        setErrorMsg('Não foi possível gerar o PIX. Tente novamente.');
+      if (!fetchRes.ok || !jsonRes || jsonRes.error || !jsonRes.encodedImage || !jsonRes.payload) {
+        const msg = jsonRes?.message || jsonRes?.error || 'Não foi possível gerar a cobrança Pix no Asaas. Verifique a chave de API da barbearia.';
+        setErrorMsg(msg);
         setStage('error');
         return;
       }
 
       const normalizedIntent = {
-        ...data,
-        appointment_id: data.appointment_id || data.appointmentId,
-        payment_id: data.payment_id || data.paymentId,
-        pix: data.pix || {
-          encodedImage: data.encodedImage,
-          payload: data.payload,
-          paymentId: data.paymentId || data.payment_id,
-          copy_paste: data.payload,
-          qr_code_base64: data.encodedImage,
+        appointment_id: jsonRes.appointmentId || jsonRes.appointment_id,
+        payment_id: jsonRes.paymentId || jsonRes.payment_id,
+        paymentId: jsonRes.paymentId || jsonRes.payment_id,
+        encodedImage: jsonRes.encodedImage,
+        payload: jsonRes.payload,
+        pix: {
+          paymentId: jsonRes.paymentId || jsonRes.payment_id,
+          encodedImage: jsonRes.encodedImage,
+          payload: jsonRes.payload,
+          copy_paste: jsonRes.payload,
+          qr_code_base64: jsonRes.encodedImage,
         },
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
       };
 
       setIntentData(normalizedIntent);
       setStage('pix');
     } catch (err) {
-      const body = err?.response?.data;
-      const friendly = body?.message || body?.error || err.message || 'Erro de comunicação. Tente novamente.';
+      const friendly = err?.message || 'Erro de comunicação com o servidor. Tente novamente.';
       setErrorMsg(friendly);
       setStage('error');
     }
@@ -183,7 +134,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
     setIntentData(null);
     setStage('choose');
     setErrorMsg('');
-    idemKeyRef.current = null; // libera nova tentativa real (não replay)
+    idemKeyRef.current = null;
   };
 
   return (
@@ -253,7 +204,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         </div>
       )}
 
-      {/* ─── CRIANDO PAYMENT INTENT ─── */}
+      {/* ─── CRIANDO COBRANÇA PIX NO ASAAS ─── */}
       {stage === 'creating' && (
         <div className="bg-white rounded-2xl border border-black/8 p-10 flex flex-col items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-[#2563EB] mb-3" />
@@ -275,7 +226,7 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
         />
       )}
 
-      {/* ─── CARTÃO (formulário inline com tokenização nativa Asaas) ─── */}
+      {/* ─── CARTÃO ─── */}
       {stage === 'card' && (
         <div className="bg-white rounded-2xl border border-black/8 p-5">
           <CardPaymentFormAsaas
@@ -286,15 +237,11 @@ export default function BookingPaymentStep({ payload, primaryColor, pixEnabled =
             defaultPhone={payload.customer_phone}
             onSubmit={async (card) => {
               const requestPayload = { booking: payload, card };
-              console.log('[Checkout Card] Enviando requisição de cobrança (Asaas Sandbox/Mock):', JSON.stringify(requestPayload, null, 2));
               const res = await base44.functions.invoke('chargeBookingWithCard', requestPayload);
               const data = res?.data;
-              console.log('[Checkout Card] Resposta recebida do gateway:', JSON.stringify(data, null, 2));
               if (!data?.success && !data?.status) {
                 throw new Error(data?.message || data?.error || 'Falha no pagamento.');
               }
-              const statusLower = String(data.status || 'confirmed').toLowerCase();
-              console.log('[Checkout Card] Status processado com sucesso:', statusLower);
               onSucceeded?.({ appointment_id: data.appointment_id || payload.appointment_id });
             }}
           />

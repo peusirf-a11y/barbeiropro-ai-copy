@@ -1,8 +1,7 @@
 // Caixa de pagamento Pix — QR code + copia-e-cola + timer + "Já paguei".
-// Faz polling a cada 5s no status Asaas e validação estrita no "Já paguei".
+// Faz polling a cada 5s no status real do Asaas e validação estrita no "Já paguei".
 
 import { useState, useEffect, useCallback } from 'react';
-import QRCode from 'qrcode';
 import { supabase } from '@/lib/supabaseClient';
 import { Copy, Check, Clock, Loader2, AlertCircle } from 'lucide-react';
 
@@ -22,35 +21,15 @@ export default function PixPaymentBox({
   );
   const [checking, setChecking] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [generatedQr, setGeneratedQr] = useState('');
 
   const targetPaymentId = propPaymentId || pixData?.paymentId || pixData?.payment_id || '';
   const targetApptId = appointmentId || pixData?.appointmentId || pixData?.appointment_id || '';
-  const copyPasteCode = pixData?.payload || pixData?.copy_paste || '';
+  const payload = pixData?.payload || pixData?.copy_paste || '';
 
-  // Resolve a imagem do QR Code em Base64 para exibição instantânea sem travamento
   const rawImage = pixData?.encodedImage || pixData?.qr_code_base64 || '';
-  let qrImageSrc = '';
-  if (rawImage) {
-    qrImageSrc = (rawImage.startsWith('data:') || rawImage.startsWith('http'))
-      ? rawImage
-      : `data:image/png;base64,${rawImage}`;
-  } else if (generatedQr) {
-    qrImageSrc = generatedQr;
-  } else if (pixData?.qr_code_url) {
-    qrImageSrc = pixData.qr_code_url;
-  }
+  const encodedImage = String(rawImage).replace(/^data:image\/png;base64,/, '');
 
-  // Gera QR Code local caso o backend não tenha devolvido encodedImage ainda
-  useEffect(() => {
-    if (!rawImage && copyPasteCode) {
-      QRCode.toDataURL(copyPasteCode, { width: 300, margin: 2 })
-        .then((url) => setGeneratedQr(url))
-        .catch(() => {});
-    }
-  }, [rawImage, copyPasteCode]);
-
-  // Timer de contagem regressiva
+  // Timer de contagem regressiva da janela de pagamento
   useEffect(() => {
     const interval = setInterval(() => {
       const remaining = Math.max(0, Math.floor((new Date(expiresAt || Date.now() + 15 * 60 * 1000) - Date.now()) / 1000));
@@ -63,7 +42,7 @@ export default function PixPaymentBox({
     return () => clearInterval(interval);
   }, [expiresAt, onExpired]);
 
-  // Consulta de status do pagamento (Polling e Validação Real do Pagamento)
+  // Consulta de status real do pagamento no Asaas (GET /v3/payments/{id} via /api/payments/status)
   const checkStatus = useCallback(async (isManualClick = false) => {
     if (checking) return;
     setChecking(true);
@@ -79,18 +58,14 @@ export default function PixPaymentBox({
       if (companyId) queryParams.set('companyId', companyId);
 
       const res = await fetch(`/api/payments/status?${queryParams.toString()}`);
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      const isPaid =
-        data?.status === 'RECEIVED' ||
-        data?.status === 'CONFIRMED' ||
-        data?.received === true ||
-        data?.confirmed === true;
+      // NUNCA avança para "Agendado!" a menos que retorne explicitamente { status: 'RECEIVED' } ou { status: 'CONFIRMED' }
+      const isPaid = data?.status === 'RECEIVED' || data?.status === 'CONFIRMED';
 
       if (isPaid) {
         setFeedback('Pagamento confirmado com sucesso!');
 
-        // Atualiza o agendamento no Supabase para status: 'confirmed'
         try {
           if (supabase && (targetPaymentId || targetApptId)) {
             let updateQuery = supabase.from('appointments').update({
@@ -111,26 +86,23 @@ export default function PixPaymentBox({
           console.warn('[PixPaymentBox] Aviso ao atualizar status no banco:', dbErr);
         }
 
-        // Só então avança para a tela "Agendado! Seu horário foi confirmado com sucesso"
         onPaid?.();
       } else {
-        // Se o pagamento ainda não foi recebido (ex: 'PENDING'):
-        // NÃO avance a tela. Mostre o alerta solicitado.
         if (isManualClick) {
-          setFeedback('Pagamento ainda não identificado pelo banco. Aguarde alguns segundos após fazer o Pix e tente novamente.');
+          setFeedback('Pagamento ainda não detectado pelo banco. Aguarde alguns instantes.');
         }
       }
     } catch (err) {
       console.warn('[PixPaymentBox] Erro ao consultar status:', err);
       if (isManualClick) {
-        setFeedback('Pagamento ainda não identificado pelo banco. Aguarde alguns segundos após fazer o Pix e tente novamente.');
+        setFeedback('Pagamento ainda não detectado pelo banco. Aguarde alguns instantes.');
       }
     } finally {
       setChecking(false);
     }
   }, [checking, targetPaymentId, targetApptId, companyId, onPaid]);
 
-  // Polling periódico a cada 5 segundos
+  // Polling periódico a cada 5 segundos chamando o endpoint de verificação real no Asaas
   useEffect(() => {
     if (!targetPaymentId && !targetApptId) return;
     const poll = setInterval(() => checkStatus(false), 5000);
@@ -138,8 +110,8 @@ export default function PixPaymentBox({
   }, [targetPaymentId, targetApptId, checkStatus]);
 
   const copyCode = () => {
-    if (!copyPasteCode) return;
-    navigator.clipboard.writeText(copyPasteCode);
+    if (!payload) return;
+    navigator.clipboard.writeText(payload);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -162,11 +134,11 @@ export default function PixPaymentBox({
         <span className="text-lg font-black tabular-nums">{timeStr}</span>
       </div>
 
-      {/* QR code com renderização garantida via Base64 sem spinner infinito */}
-      {qrImageSrc ? (
+      {/* QR Code Pix real retornado pelo Asaas */}
+      {encodedImage ? (
         <div className="flex justify-center mb-4">
           <img
-            src={qrImageSrc}
+            src={`data:image/png;base64,${encodedImage}`}
             alt="QR Code Pix"
             className="w-56 h-56 border border-black/10 rounded-xl bg-white p-2 object-contain shadow-sm"
           />
@@ -177,8 +149,8 @@ export default function PixPaymentBox({
         </div>
       )}
 
-      {/* Copia e cola com botão funcional */}
-      {copyPasteCode && (
+      {/* Pix Copia e Cola com payload real */}
+      {payload && (
         <div className="mb-3">
           <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
             Pix copia e cola
@@ -187,7 +159,7 @@ export default function PixPaymentBox({
             <input
               type="text"
               readOnly
-              value={copyPasteCode}
+              value={payload}
               className="flex-1 px-3 py-2 border border-black/10 rounded-lg text-xs bg-gray-50 font-mono text-gray-600 truncate select-all"
               onClick={(e) => e.target.select()}
             />

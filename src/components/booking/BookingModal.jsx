@@ -204,10 +204,6 @@ export default function BookingModal({
 
   const createApptMutation = useMutation({
     mutationFn: async (data) => {
-      if (company?.id === 'mock-company-id') {
-        await new Promise(r => setTimeout(r, 600));
-        return { success: true, appointment_id: 'mock-appt-' + Date.now() };
-      }
       if (!idemKeyRef.current) {
         idemKeyRef.current = generateStableIdempotencyKey('public_appt', {
           company_id: data.company_id,
