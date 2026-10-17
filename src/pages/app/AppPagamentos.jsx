@@ -124,7 +124,7 @@ export default function AppPagamentos() {
       if (activeId && supabase) {
         const { data, error } = await supabase
           .from('companies')
-          .select('id, asaas_api_key, asaas_pix_enabled, asaas_credit_card_enabled, booking_payment_mode, booking_deposit_amount')
+          .select('id, asaas_api_key')
           .eq('id', activeId)
           .maybeSingle();
 
@@ -132,11 +132,19 @@ export default function AppPagamentos() {
           if (data.asaas_api_key) {
             setApiKey(data.asaas_api_key);
           }
-          if (data.asaas_pix_enabled !== undefined) setPixEnabled(Boolean(data.asaas_pix_enabled));
-          if (data.asaas_credit_card_enabled !== undefined) setCardEnabled(Boolean(data.asaas_credit_card_enabled));
-          if (data.booking_payment_mode) setBookingPaymentMode(data.booking_payment_mode);
-          if (data.booking_deposit_amount !== undefined) setDepositAmount(String(data.booking_deposit_amount || '20.00'));
         }
+
+        // Carrega preferências locais se configuradas
+        try {
+          const rawLocal = localStorage.getItem(`barberpass_payment_settings_${activeId}`);
+          if (rawLocal) {
+            const parsed = JSON.parse(rawLocal);
+            if (parsed.pixEnabled !== undefined) setPixEnabled(Boolean(parsed.pixEnabled));
+            if (parsed.cardEnabled !== undefined) setCardEnabled(Boolean(parsed.cardEnabled));
+            if (parsed.bookingPaymentMode) setBookingPaymentMode(parsed.bookingPaymentMode);
+            if (parsed.depositAmount !== undefined) setDepositAmount(String(parsed.depositAmount));
+          }
+        } catch (_) {}
       }
     } catch (err) {
       console.warn('[AppPagamentos] Erro ao carregar asaas_api_key da barbearia:', err);
@@ -151,10 +159,6 @@ export default function AppPagamentos() {
   useEffect(() => {
     if (company) {
       if (company.asaas_api_key && !apiKey) setApiKey(company.asaas_api_key);
-      if (company.asaas_pix_enabled !== undefined) setPixEnabled(Boolean(company.asaas_pix_enabled));
-      if (company.asaas_credit_card_enabled !== undefined) setCardEnabled(Boolean(company.asaas_credit_card_enabled));
-      if (company.booking_payment_mode) setBookingPaymentMode(company.booking_payment_mode);
-      if (company.booking_deposit_amount !== undefined) setDepositAmount(String(company.booking_deposit_amount || '20.00'));
     }
   }, [company, apiKey]);
 
@@ -178,17 +182,10 @@ export default function AppPagamentos() {
         return;
       }
 
-      const updatePayload = {
-        asaas_api_key: cleanKey,
-        asaas_pix_enabled: overrideOptions.pixEnabled !== undefined ? overrideOptions.pixEnabled : pixEnabled,
-        asaas_credit_card_enabled: overrideOptions.cardEnabled !== undefined ? overrideOptions.cardEnabled : cardEnabled,
-        booking_payment_mode: overrideOptions.bookingPaymentMode || bookingPaymentMode,
-        booking_deposit_amount: parseFloat(overrideOptions.depositAmount || depositAmount) || 0,
-      };
-
+      // Executa o update exato da chave de API no Supabase
       const { error } = await supabase
         .from('companies')
-        .update(updatePayload)
+        .update({ asaas_api_key: cleanKey })
         .eq('id', activeCompanyId);
 
       if (error) {
@@ -201,6 +198,18 @@ export default function AppPagamentos() {
         setIsSaving(false);
         return;
       }
+
+      // Salva preferências locais para consistência na UI
+      try {
+        const settingsToSave = {
+          pixEnabled: overrideOptions.pixEnabled !== undefined ? overrideOptions.pixEnabled : pixEnabled,
+          cardEnabled: overrideOptions.cardEnabled !== undefined ? overrideOptions.cardEnabled : cardEnabled,
+          bookingPaymentMode: overrideOptions.bookingPaymentMode || bookingPaymentMode,
+          depositAmount: overrideOptions.depositAmount || depositAmount,
+        };
+        localStorage.setItem(`barberpass_payment_settings_${activeCompanyId}`, JSON.stringify(settingsToSave));
+      } catch (_) {}
+
 
       setApiKey(cleanKey);
       setSaveSuccess(true);
@@ -280,7 +289,7 @@ export default function AppPagamentos() {
           className: 'bg-emerald-600 text-white border-none',
         });
       } else {
-        const errorMsg = data?.message || data?.error || (res.status === 401 ? 'Chave de API inválida ou expirada no Asaas.' : 'Falha ao validar chave com o Asaas.');
+        const errorMsg = data?.message || (typeof data?.error === 'string' ? data.error : null) || `Erro Asaas (${res.status}): Falha na validação com o servidor.`;
         setTestResult({
           success: false,
           error: errorMsg,

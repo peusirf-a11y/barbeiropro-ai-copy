@@ -1,5 +1,5 @@
 // src/server/asaasTestConnectionHandler.js
-// Rota de Proxy Serverless para teste de conexão com o Asaas sem problemas de CORS.
+// Rota de Proxy Serverless para teste de conexão com o Asaas com diagnóstico transparente e ambiente dinâmico.
 import { supabase } from '../lib/supabaseClient.js';
 
 function isMaskedOrEmpty(key) {
@@ -34,7 +34,7 @@ export async function handleTestConnection(body = {}) {
         }
       }
 
-      // Se ainda não encontrou e houver apenas 1 company no banco
+      // Se ainda não encontrou e houver empresas no banco
       if (isMaskedOrEmpty(cleanApiKey) && supabase) {
         try {
           const { data: firstComp } = await supabase
@@ -65,109 +65,95 @@ export async function handleTestConnection(body = {}) {
       };
     }
 
-    // Identifica ambiente Sandbox ou Produção
-    const isSandbox = cleanApiKey.includes('hmlg') || cleanApiKey.includes('sandbox');
-    const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3';
+    // 1. Identificação Automática de Ambiente (Sandbox vs Produção):
+    // Inspecione a chave recebida:
+    // * Se contiver '$aact_prod_' -> use a URL base de produção: 'https://api.asaas.com/v3'
+    // * Caso contrário -> use a URL base de sandbox: 'https://sandbox.asaas.com/v3'
+    const isProd = cleanApiKey.includes('$aact_prod_');
+    let baseUrl = isProd ? 'https://api.asaas.com/v3' : 'https://sandbox.asaas.com/v3';
 
-    // No backend (Node/Next.js), faça a chamada segura
-    const balanceUrl = `${baseUrl}/finance/balance`;
-    let response;
+    // 2. Chamada de Teste no Backend:
+    // Limpe a chave com .trim().
+    // Faça a requisição para `${baseUrl}/customers?limit=1` enviando o header obrigatório:
+    const headers = {
+      'access_token': cleanApiKey,
+      'User-Agent': 'OCorte-App',
+      'Content-Type': 'application/json',
+    };
+
+    let res;
     try {
-      response = await fetch(balanceUrl, {
+      res = await fetch(`${baseUrl}/customers?limit=1`, {
         method: 'GET',
-        headers: {
-          'access_token': cleanApiKey,
-          'Content-Type': 'application/json',
-          'User-Agent': 'OCorte-App',
-        },
+        headers,
       });
+
+      // No sandbox, caso sandbox.asaas.com/v3 sem /api redirecione para tela de login HTML,
+      // utiliza a URL de API direta do sandbox (https://sandbox.asaas.com/api/v3)
+      if (!isProd) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('text/html') || res.url.includes('/login')) {
+          baseUrl = 'https://sandbox.asaas.com/api/v3';
+          res = await fetch(`${baseUrl}/customers?limit=1`, {
+            method: 'GET',
+            headers,
+          });
+        }
+      }
     } catch (netErr) {
-      console.error('[test-connection] Falha de rede ao chamar Asaas:', netErr);
+      console.error('[test-connection] Falha de rede:', netErr);
       return {
-        status: 502,
+        status: 400,
         body: {
           success: false,
-          message: `Falha de rede ao conectar com o Asaas: ${netErr.message || 'Host inacessível'}`,
+          message: `Erro Asaas (Falha de rede): ${netErr.message || 'Host inacessível'}`,
         },
       };
     }
 
-    // Se retornar status 200: sucesso
-    if (response.status === 200) {
-      let balanceInfo = '';
-      try {
-        const json = await response.json();
-        if (json?.totalBalance !== undefined) {
-          balanceInfo = ` Saldo atual: R$ ${Number(json.totalBalance).toFixed(2).replace('.', ',')}`;
-        }
-      } catch (_) {}
+    // 3. Exibição Transparente do Erro Real:
+    // Capture a resposta do Asaas: const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
+    // SE res.ok (status 200):
+    if (res.ok) {
       return {
         status: 200,
         body: {
           success: true,
-          message: `Conexão estabelecida com sucesso!${balanceInfo}`,
+          environment: isProd ? 'production' : 'sandbox',
+          message: 'Conexão confirmada com sucesso no Asaas!',
         },
       };
     }
 
-    // Se retornar status 403 (ex: chave sem permissão de balance), testa /customers
-    if (response.status === 403) {
-      try {
-        const custRes = await fetch(`${baseUrl}/customers?limit=1`, {
-          method: 'GET',
-          headers: {
-            'access_token': cleanApiKey,
-            'Content-Type': 'application/json',
-            'User-Agent': 'OCorte-App',
-          },
-        });
-        if (custRes.status === 200) {
-          return {
-            status: 200,
-            body: {
-              success: true,
-              message: 'Conexão estabelecida com sucesso! (Chave validada via módulo de clientes)',
-            },
-          };
-        }
-      } catch (_) {}
-    }
+    // SE NÃO res.ok:
+    // Retorne status 400 com a mensagem detalhada vinda do Asaas:
+    // { success: false, message: `Erro Asaas (${res.status}): ${data?.errors?.[0]?.description || JSON.stringify(data) || res.statusText}` }
+    const errorDescription =
+      data?.errors?.[0]?.description ||
+      (data?.errors && Array.isArray(data.errors) ? JSON.stringify(data.errors) : null) ||
+      (data ? JSON.stringify(data) : null) ||
+      res.statusText ||
+      'Erro desconhecido';
 
-    // Se retornar 401: chave inválida ou expirada
-    if (response.status === 401) {
-      return {
-        status: 401,
-        body: {
-          success: false,
-          message: 'Chave de API inválida ou expirada no Asaas.',
-        },
-      };
-    }
-
-    // Outros status de erro: lê resposta JSON do Asaas
-    let asaasErrorDescription = '';
-    try {
-      const errJson = await response.json();
-      if (errJson?.errors && Array.isArray(errJson.errors) && errJson.errors[0]?.description) {
-        asaasErrorDescription = errJson.errors[0].description;
-      }
-    } catch (_) {}
+    const detailedMessage = `Erro Asaas (${res.status}): ${errorDescription}`;
 
     return {
-      status: response.status || 400,
+      status: 400,
       body: {
         success: false,
-        message: asaasErrorDescription || `Falha na validação do Asaas (HTTP ${response.status}).`,
+        environment: isProd ? 'production' : 'sandbox',
+        message: detailedMessage,
       },
     };
   } catch (err) {
     console.error('[test-connection] Erro interno:', err);
     return {
-      status: 500,
+      status: 400,
       body: {
         success: false,
-        message: err.message || 'Erro interno ao validar chave de API.',
+        message: `Erro Asaas (500): ${err.message || 'Erro inesperado'}`,
       },
     };
   }
