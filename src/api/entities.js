@@ -43,6 +43,26 @@ export class EntityRepository {
     this.tableName = ENTITY_TABLE_MAP[name] || name.toLowerCase() + 's';
   }
 
+  _normalizeRow(row) {
+    if (!row || typeof row !== 'object') return row;
+    if (this.tableName !== 'appointments') return row;
+    const out = { ...row };
+    if (!out.scheduled_at) {
+      if (out.start_time && String(out.start_time).includes('T')) {
+        out.scheduled_at = out.start_time;
+      } else if (out.date && out.time) {
+        out.scheduled_at = `${out.date}T${String(out.time).slice(0, 5)}:00-03:00`;
+      }
+    }
+    if (!out.customer_name && out.client_name) out.customer_name = out.client_name;
+    if (!out.client_name && out.customer_name) out.client_name = out.customer_name;
+    if (!out.customer_phone && out.client_phone) out.customer_phone = out.client_phone;
+    if (!out.client_phone && out.customer_phone) out.client_phone = out.customer_phone;
+    if (!out.payment_id && out.asaas_payment_id) out.payment_id = out.asaas_payment_id;
+    if (!out.asaas_payment_id && out.payment_id) out.asaas_payment_id = out.payment_id;
+    return out;
+  }
+
   async list(sort = '-created_at', limit = 100) {
     if (!isSupabaseConfigured || !supabase) {
       console.warn(`[Supabase] Não configurado, usando fallback local para ${this.name}`);
@@ -52,7 +72,10 @@ export class EntityRepository {
       let query = supabase.from(this.tableName).select('*');
       if (sort) {
         const isDesc = sort.startsWith('-');
-        const field = isDesc ? sort.substring(1) : sort;
+        let field = isDesc ? sort.substring(1) : sort;
+        if (this.tableName === 'appointments' && field === 'scheduled_at') {
+          field = 'date';
+        }
         query = query.order(field, { ascending: !isDesc });
       }
       if (limit && limit > 0) {
@@ -61,7 +84,7 @@ export class EntityRepository {
       const { data, error } = await query;
       console.log(`[Supabase Debug] Listagem de ${this.name} [${this.tableName}]:`, { data, error });
       if (error) throw error;
-      return data || [];
+      return (data || []).map(r => this._normalizeRow(r));
     } catch (err) {
       console.warn(`[Supabase Warning] Falha ao listar ${this.name} (${err.message}), usando dados locais.`, err);
       return getLocalTable(this.tableName);
@@ -106,7 +129,7 @@ export class EntityRepository {
       }
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data || []).map(r => this._normalizeRow(r));
     } catch (err) {
       console.warn(`[Supabase Warning] Falha ao filtrar ${this.name}, usando fallback local.`, err);
       const items = getLocalTable(this.tableName);
@@ -127,7 +150,7 @@ export class EntityRepository {
     try {
       const { data, error } = await supabase.from(this.tableName).select('*').eq('id', id).single();
       if (error) throw error;
-      return data;
+      return this._normalizeRow(data);
     } catch (err) {
       console.warn(`[Supabase Warning] Falha ao buscar ${this.name} por id ${id}, buscando local.`, err);
       const items = getLocalTable(this.tableName);

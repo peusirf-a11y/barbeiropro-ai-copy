@@ -1,6 +1,5 @@
 // Caixa de pagamento Pix — QR code + copia-e-cola + timer + "Já paguei".
-// Permanece estático no ecrã do Pix; só avança se e somente se /api/payments/status
-// retornar explicitamente { status: 'RECEIVED' } ou { status: 'CONFIRMED' } da API oficial do Asaas.
+// O usuário permanece travado nesta tela até o pagamento ser aprovado (RECEIVED ou CONFIRMED no Asaas).
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
@@ -39,7 +38,7 @@ export default function PixPaymentBox({
   const rawImage = pixData?.encodedImage || pixData?.qr_code_base64 || '';
   const encodedImage = String(rawImage).replace(/^data:image\/png;base64,/, '');
 
-  // Timer de contagem regressiva da janela de pagamento
+  // Timer de contagem regressiva da janela de pagamento (15 min)
   useEffect(() => {
     const interval = setInterval(() => {
       const remaining = Math.max(0, Math.floor((new Date(expiresAt || Date.now() + 15 * 60 * 1000) - Date.now()) / 1000));
@@ -52,7 +51,7 @@ export default function PixPaymentBox({
     return () => clearInterval(interval);
   }, [expiresAt, onExpired]);
 
-  // Consulta de status real do pagamento no Asaas via /api/payments/status
+  // Validação real do pagamento via GET /api/payments/status
   const checkStatus = useCallback(async (isManualClick = false) => {
     if (!hasRealPaymentId || isCheckingRef.current || hasConfirmedRef.current) return;
     isCheckingRef.current = true;
@@ -65,13 +64,13 @@ export default function PixPaymentBox({
     try {
       const queryParams = new URLSearchParams();
       queryParams.set('paymentId', targetPaymentId);
-      if (targetApptId) queryParams.set('appointmentId', targetApptId);
       if (companyId) queryParams.set('companyId', companyId);
+      if (targetApptId) queryParams.set('appointmentId', targetApptId);
 
       const res = await fetch(`/api/payments/status?${queryParams.toString()}`);
       const data = await res.json().catch(() => null);
 
-      // Bloqueio estrito: NUNCA avança a menos que /api/payments/status retorne HTTP 200 com status 'RECEIVED' ou 'CONFIRMED'
+      // Bloqueio total de avanço automático: só avança quando o Asaas retornar status === 'RECEIVED' ou status === 'CONFIRMED'
       const isPaid =
         res.status === 200 &&
         (data?.status === 'RECEIVED' || data?.status === 'CONFIRMED');
@@ -82,22 +81,28 @@ export default function PixPaymentBox({
 
         try {
           if (supabase && (targetPaymentId || targetApptId)) {
-            let updateQuery = supabase.from('appointments').update({
-              status: 'confirmed',
-              payment_status: 'confirmed',
-              updated_at: new Date().toISOString(),
-            });
-
             if (targetPaymentId) {
-              updateQuery = updateQuery.eq('payment_id', targetPaymentId);
+              await supabase
+                .from('appointments')
+                .update({
+                  status: 'confirmed',
+                  payment_status: 'confirmed',
+                  updated_at: new Date().toISOString(),
+                })
+                .or(`asaas_payment_id.eq.${targetPaymentId},payment_id.eq.${targetPaymentId}`);
             } else if (targetApptId) {
-              updateQuery = updateQuery.eq('id', targetApptId);
+              await supabase
+                .from('appointments')
+                .update({
+                  status: 'confirmed',
+                  payment_status: 'confirmed',
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', targetApptId);
             }
-
-            await updateQuery;
           }
         } catch (dbErr) {
-          console.warn('[PixPaymentBox] Aviso ao atualizar status no banco:', dbErr);
+          console.warn('[PixPaymentBox] Aviso ao atualizar status no Supabase:', dbErr);
         }
 
         onPaid?.();
@@ -117,12 +122,12 @@ export default function PixPaymentBox({
     }
   }, [hasRealPaymentId, targetPaymentId, targetApptId, companyId, onPaid]);
 
-  // Polling periódico a cada 5 segundos chamando o endpoint de verificação real no Asaas
+  // Polling a cada 4 segundos no frontend chamando GET /api/payments/status
   useEffect(() => {
     if (!hasRealPaymentId) return;
     const poll = setInterval(() => {
       checkStatus(false);
-    }, 5000);
+    }, 4000);
     return () => clearInterval(poll);
   }, [hasRealPaymentId, checkStatus]);
 
@@ -150,22 +155,18 @@ export default function PixPaymentBox({
         <span className="text-lg font-black tabular-nums">{timeStr}</span>
       </div>
 
-      {/* QR Code Pix real retornado pelo Asaas */}
-      {encodedImage ? (
+      {/* Renderização da Imagem do QR Code (sem spinner se encodedImage existir) */}
+      {encodedImage && (
         <div className="flex justify-center mb-4">
           <img
             src={`data:image/png;base64,${encodedImage}`}
             alt="QR Code Pix"
-            className="w-56 h-56 border border-black/10 rounded-xl bg-white p-2 object-contain shadow-sm"
+            className="w-56 h-56 mx-auto object-contain"
           />
-        </div>
-      ) : (
-        <div className="flex justify-center mb-4 w-56 h-56 mx-auto items-center bg-gray-50 rounded-xl border border-black/5">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         </div>
       )}
 
-      {/* Pix Copia e Cola com payload real */}
+      {/* Renderização do Copia e Cola */}
       {payload && (
         <div className="mb-3">
           <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
@@ -200,7 +201,7 @@ export default function PixPaymentBox({
         <li>Confira o valor e confirme a transferência</li>
       </ol>
 
-      {/* Botão "Já paguei" desabilitado se não houver payment_id real do Asaas */}
+      {/* Botão "Já paguei" */}
       <button
         type="button"
         onClick={() => checkStatus(true)}

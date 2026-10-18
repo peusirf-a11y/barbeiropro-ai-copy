@@ -1,5 +1,5 @@
 // src/server/appointmentsPixHandler.js
-// Handler para criação de agendamento com cobrança Pix real no Asaas e consulta de status bancário real.
+// Handler para criação de agendamento com cobrança Pix real no Asaas, persistência imediata no Supabase e consulta de status bancário real.
 import { supabase } from '../lib/supabaseClient.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -64,7 +64,8 @@ export async function handleCreatePix(body = {}) {
 
     const companyId = toSafeUuid(rawCompanyId);
     const candidateServiceId = toSafeUuid(rawServiceId);
-    const candidateProfessionalId = toSafeUuid(rawProfessionalId);
+    const candidateProfessionalId =
+      rawProfessionalId === 'any' || !rawProfessionalId ? null : toSafeUuid(rawProfessionalId);
     const candidateCustomerId = toSafeUuid(rawCustomerId);
 
     const clientName = (body.clientName || body.client_name || body.customer_name || 'Cliente').trim();
@@ -75,11 +76,30 @@ export async function handleCreatePix(body = {}) {
     const servicePrice = rawPrice > 0 ? rawPrice : 35.0;
 
     const startTime = body.startTime || body.start_time || body.scheduled_at || new Date().toISOString();
-    const date = body.date || (startTime.includes('T') ? startTime.split('T')[0] : new Date().toISOString().split('T')[0]);
-    const time = body.time || (startTime.includes('T') ? startTime.split('T')[1].slice(0, 5) : '09:00');
+    const endTime =
+      body.endTime ||
+      body.end_time ||
+      (() => {
+        const parsed = new Date(startTime);
+        if (!Number.isNaN(parsed.getTime())) {
+          return new Date(parsed.getTime() + 30 * 60 * 1000).toISOString();
+        }
+        return startTime;
+      })();
 
-    // a) Busca a 'asaas_api_key' da barbearia dona da página na tabela 'companies' (company_id)
-    let companyApiKey = '';
+    const date =
+      body.date ||
+      (String(startTime).includes('T')
+        ? String(startTime).split('T')[0]
+        : new Date().toISOString().split('T')[0]);
+    const time =
+      body.time ||
+      (String(startTime).includes('T')
+        ? String(startTime).split('T')[1].slice(0, 5)
+        : '09:00');
+
+    // Busque a 'asaas_api_key' da barbearia em 'companies' pelo companyId
+    let asaasApiKey = '';
     if (companyId && supabase) {
       try {
         const { data: comp } = await supabase
@@ -89,14 +109,14 @@ export async function handleCreatePix(body = {}) {
           .maybeSingle();
 
         if (comp?.asaas_api_key) {
-          companyApiKey = comp.asaas_api_key.trim();
+          asaasApiKey = comp.asaas_api_key.trim();
         }
       } catch (err) {
         console.warn('[create-pix] Erro ao consultar empresa no Supabase:', err);
       }
     }
 
-    if (!companyApiKey) {
+    if (!asaasApiKey) {
       return {
         status: 400,
         body: {
@@ -107,83 +127,60 @@ export async function handleCreatePix(body = {}) {
       };
     }
 
-    const baseUrl = getAsaasBaseUrl(companyApiKey);
+    const baseUrl = getAsaasBaseUrl(asaasApiKey);
     const headers = {
-      'access_token': companyApiKey,
+      'access_token': asaasApiKey,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'User-Agent': 'OCorte-App',
     };
 
-    // 1. Localiza ou cria o cliente no Asaas com CPF válido
+    // 1º PASSO: Crie o cliente no Asaas (POST https://api.asaas.com/v3/customers)
     let customerId = null;
+    const cleanMobile = clientPhone.replace(/\D/g, '');
+    const customerPayload = {
+      name: clientName || 'Cliente',
+      mobilePhone: cleanMobile || undefined,
+      cpfCnpj: validCpf,
+    };
+    if (!cleanMobile || cleanMobile.length < 10 || cleanMobile.length > 11 || /^(\d)\1+$/.test(cleanMobile.slice(-8))) {
+      delete customerPayload.mobilePhone;
+    }
 
-    try {
-      const searchRes = await fetch(`${baseUrl}/customers?cpfCnpj=${encodeURIComponent(validCpf)}&limit=1`, {
-        method: 'GET',
-        headers,
-      });
-      const searchData = await searchRes.json().catch(() => null);
-      if (searchRes.ok && Array.isArray(searchData?.data) && searchData.data.length > 0) {
-        customerId = searchData.data[0].id;
-        if (!searchData.data[0].cpfCnpj) {
-          await fetch(`${baseUrl}/customers/${customerId}`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ name: clientName, cpfCnpj: validCpf }),
-          }).catch(() => null);
-        }
-      }
-    } catch (_) {}
+    const createCustRes = await fetch(`${baseUrl}/customers`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(customerPayload),
+    });
+    const createCustData = await createCustRes.json().catch(() => null);
 
-    if (!customerId) {
-      const cleanMobile = clientPhone.replace(/\D/g, '');
-      const custPayload = {
-        name: clientName || 'Cliente',
-        cpfCnpj: validCpf,
-      };
-      if (cleanMobile.length >= 10 && cleanMobile.length <= 11 && !/^(\d)\1+$/.test(cleanMobile.slice(-8))) {
-        custPayload.mobilePhone = cleanMobile;
-      }
-      if (clientEmail && clientEmail.includes('@')) {
-        custPayload.email = clientEmail;
-      }
-
-      const createCustRes = await fetch(`${baseUrl}/customers`, {
+    if (createCustRes.ok && createCustData?.id) {
+      customerId = createCustData.id;
+    } else {
+      const retryCustRes = await fetch(`${baseUrl}/customers`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(custPayload),
+        body: JSON.stringify({
+          name: clientName || 'Cliente',
+          cpfCnpj: validCpf,
+        }),
       });
-      const createCustData = await createCustRes.json().catch(() => null);
-
-      if (createCustRes.ok && createCustData?.id) {
-        customerId = createCustData.id;
+      const retryCustData = await retryCustRes.json().catch(() => null);
+      if (retryCustRes.ok && retryCustData?.id) {
+        customerId = retryCustData.id;
       } else {
-        const retryCustRes = await fetch(`${baseUrl}/customers`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            name: clientName || 'Cliente',
-            cpfCnpj: validCpf,
-          }),
-        });
-        const retryCustData = await retryCustRes.json().catch(() => null);
-        if (retryCustRes.ok && retryCustData?.id) {
-          customerId = retryCustData.id;
-        } else {
-          return {
-            status: 400,
-            body: {
-              success: false,
-              error: DEFAULT_PIX_ERROR,
-              message: DEFAULT_PIX_ERROR,
-            },
-          };
-        }
+        return {
+          status: 400,
+          body: {
+            success: false,
+            error: DEFAULT_PIX_ERROR,
+            message: DEFAULT_PIX_ERROR,
+          },
+        };
       }
     }
 
-    // b) Faz a chamada real à API do Asaas: POST https://api.asaas.com/v3/payments
+    // 2º PASSO: Crie a cobrança Pix (POST https://api.asaas.com/v3/payments)
     const today = new Date().toISOString().split('T')[0];
     let payRes = await fetch(`${baseUrl}/payments`, {
       method: 'POST',
@@ -191,7 +188,7 @@ export async function handleCreatePix(body = {}) {
       body: JSON.stringify({
         customer: customerId,
         billingType: 'PIX',
-        value: servicePrice,
+        value: Number(servicePrice),
         dueDate: today,
         description: `Agendamento - ${clientName}`,
       }),
@@ -226,14 +223,14 @@ export async function handleCreatePix(body = {}) {
 
     const paymentId = payData.id;
 
-    // c) Em seguida, chama GET https://api.asaas.com/v3/payments/{id}/pixQrCode
+    // 3º PASSO: Obtenha o QR Code e Payload (GET https://api.asaas.com/v3/payments/{paymentId}/pixQrCode)
     const qrRes = await fetch(`${baseUrl}/payments/${paymentId}/pixQrCode`, {
       method: 'GET',
       headers,
     });
-    const qrData = await qrRes.json().catch(() => null);
+    const pixData = await qrRes.json().catch(() => null);
 
-    if (!qrRes.ok || !qrData?.encodedImage || !qrData?.payload) {
+    if (!qrRes.ok || !pixData?.encodedImage || !pixData?.payload) {
       return {
         status: 400,
         body: {
@@ -244,126 +241,112 @@ export async function handleCreatePix(body = {}) {
       };
     }
 
-    const encodedImage = String(qrData.encodedImage).replace(/^data:image\/png;base64,/, '');
-    const pixPayload = qrData.payload;
+    const encodedImage = String(pixData.encodedImage).replace(/^data:image\/png;base64,/, '');
+    const pixPayload = pixData.payload;
 
-    // Resolve FKs reais no Supabase para evitar violação de chave estrangeira ao gravar em 'appointments'
+    // Validação das FKs reais para garantir integridade no insert em 'appointments'
     let validServiceId = null;
-    let serviceName = body.serviceName || body.service_name || '';
+    let resolvedServiceName = body.serviceName || body.service_name || '';
     if (candidateServiceId && supabase) {
       try {
-        const { data: srv } = await supabase.from('services').select('id, name').eq('id', candidateServiceId).maybeSingle();
+        const { data: srv } = await supabase
+          .from('services')
+          .select('id, name')
+          .eq('id', candidateServiceId)
+          .maybeSingle();
         if (srv?.id) {
           validServiceId = srv.id;
-          if (!serviceName && srv.name) serviceName = srv.name;
+          if (!resolvedServiceName && srv.name) resolvedServiceName = srv.name;
         }
       } catch (_) {}
     }
-    if (!serviceName) serviceName = 'Serviço';
+    if (!resolvedServiceName) resolvedServiceName = 'Serviço';
 
     let validProfessionalId = null;
-    let professionalName = body.professionalName || body.professional_name || '';
+    let resolvedProfessionalName = body.professionalName || body.professional_name || '';
     if (candidateProfessionalId && supabase) {
       try {
-        const { data: pro } = await supabase.from('professionals').select('id, name').eq('id', candidateProfessionalId).maybeSingle();
-        if (pro?.id) {
-          validProfessionalId = pro.id;
-          if (!professionalName && pro.name) professionalName = pro.name;
-        }
-      } catch (_) {}
-    }
-    if (!validProfessionalId && companyId && supabase) {
-      try {
-        const { data: firstPro } = await supabase
+        const { data: pro } = await supabase
           .from('professionals')
           .select('id, name')
-          .eq('company_id', companyId)
-          .limit(1)
+          .eq('id', candidateProfessionalId)
           .maybeSingle();
-        if (firstPro?.id) {
-          validProfessionalId = firstPro.id;
-          if (!professionalName) professionalName = firstPro.name;
+        if (pro?.id) {
+          validProfessionalId = pro.id;
+          if (!resolvedProfessionalName && pro.name) resolvedProfessionalName = pro.name;
         }
       } catch (_) {}
     }
-    if (!professionalName) {
-      professionalName = (body.professional_name === 'Sem Preferência' || rawProfessionalId === 'any') ? 'Sem Preferência' : 'Profissional';
+    if (!resolvedProfessionalName) {
+      resolvedProfessionalName =
+        rawProfessionalId === 'any' || !rawProfessionalId ? 'Sem Preferência' : 'Profissional';
     }
 
     let validCustomerId = null;
     if (candidateCustomerId && supabase) {
       try {
-        const { data: cust } = await supabase.from('customers').select('id').eq('id', candidateCustomerId).maybeSingle();
+        const { data: cust } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('id', candidateCustomerId)
+          .maybeSingle();
         if (cust?.id) {
           validCustomerId = cust.id;
         }
       } catch (_) {}
     }
 
-    // d) Salva o agendamento no Supabase na tabela 'appointments' com status 'pending_payment' e o payment_id retornado pelo Asaas
-    let savedAppointmentId = null;
+    // 4º PASSO: GRAVE O AGENDAMENTO NO SUPABASE IMEDIATAMENTE
+    const insertPayload = {
+      company_id: companyId,
+      service_id: validServiceId,
+      service_name: resolvedServiceName,
+      professional_id: (rawProfessionalId === 'any' || !rawProfessionalId) ? null : validProfessionalId,
+      professional_name: resolvedProfessionalName,
+      customer_id: validCustomerId,
+      customer_name: clientName,
+      client_name: clientName,
+      customer_phone: clientPhone,
+      client_phone: clientPhone,
+      customer_email: clientEmail || null,
+      date,
+      time,
+      start_time: startTime,
+      end_time: endTime,
+      price: Number(servicePrice),
+      status: 'pending_payment',
+      payment_status: 'pending',
+      payment_id: paymentId,
+      asaas_payment_id: paymentId,
+      notes: body.notes || '',
+    };
 
-    if (supabase) {
-      const baseRecord = {
-        company_id: companyId,
-        customer_id: validCustomerId,
-        customer_name: clientName,
-        customer_phone: clientPhone,
-        customer_email: clientEmail || null,
-        service_id: validServiceId,
-        service_name: serviceName,
-        professional_id: validProfessionalId,
-        professional_name: professionalName,
-        date,
-        time,
-        price: servicePrice,
-        status: 'pending_payment',
-        payment_status: 'pending',
-        payment_id: paymentId,
-        notes: body.notes || '',
+    const { data: appt, error: apptError } = await supabase
+      .from('appointments')
+      .insert(insertPayload)
+      .select()
+      .single();
+
+    if (apptError) {
+      console.error('[create-pix] Erro ao gravar agendamento no Supabase:', apptError);
+      return {
+        status: 500,
+        body: {
+          success: false,
+          error: apptError.message || 'Erro ao gravar agendamento no Supabase.',
+          details: apptError,
+        },
       };
-
-      try {
-        let { data: inserted, error: insertError } = await supabase
-          .from('appointments')
-          .insert(baseRecord)
-          .select()
-          .maybeSingle();
-
-        if (insertError && insertError.code === '23503') {
-          const fallbackRecord = {
-            ...baseRecord,
-            customer_id: null,
-            service_id: null,
-            professional_id: null,
-          };
-          const retry = await supabase
-            .from('appointments')
-            .insert(fallbackRecord)
-            .select()
-            .maybeSingle();
-          inserted = retry.data;
-          insertError = retry.error;
-        }
-
-        if (!insertError && inserted?.id) {
-          savedAppointmentId = inserted.id;
-        } else if (insertError) {
-          console.error('[create-pix] Erro ao persistir agendamento no Supabase:', insertError.message);
-        }
-      } catch (dbErr) {
-        console.error('[create-pix] Exceção ao gravar appointment no Supabase:', dbErr);
-      }
     }
 
-    // e) Envia para o frontend: { paymentId, encodedImage, payload }
+    // Retorne para o front: { success: true, appointmentId: appt.id, paymentId, encodedImage, payload }
     return {
       status: 200,
       body: {
         success: true,
-        paymentId,
-        appointmentId: savedAppointmentId,
-        encodedImage,
+        appointmentId: appt.id,
+        paymentId: paymentId,
+        encodedImage: encodedImage,
         payload: pixPayload,
       },
     };
@@ -373,8 +356,8 @@ export async function handleCreatePix(body = {}) {
       status: 500,
       body: {
         success: false,
-        error: DEFAULT_PIX_ERROR,
-        message: DEFAULT_PIX_ERROR,
+        error: err.message || DEFAULT_PIX_ERROR,
+        message: err.message || DEFAULT_PIX_ERROR,
       },
     };
   }
@@ -397,7 +380,7 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId) {
       try {
         let query = supabase.from('appointments').select('*');
         if (targetPaymentId) {
-          query = query.eq('payment_id', targetPaymentId);
+          query = query.or(`asaas_payment_id.eq.${targetPaymentId},payment_id.eq.${targetPaymentId}`);
         } else if (appointmentId && toSafeUuid(appointmentId)) {
           query = query.eq('id', toSafeUuid(appointmentId));
         }
@@ -405,7 +388,7 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId) {
         const { data: appt } = await query.maybeSingle();
         if (appt) {
           targetCompanyId = targetCompanyId || appt.company_id;
-          targetPaymentId = targetPaymentId || appt.payment_id || '';
+          targetPaymentId = targetPaymentId || appt.asaas_payment_id || appt.payment_id || '';
         }
       } catch (_) {}
     }
@@ -427,7 +410,7 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId) {
       };
     }
 
-    // 2. Busca chave do Asaas da barbearia na tabela 'companies'
+    // 2. Busca a 'asaas_api_key' da barbearia na tabela 'companies'
     let asaasApiKey = '';
     if (targetCompanyId && supabase) {
       try {
@@ -454,7 +437,7 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId) {
       };
     }
 
-    // 3. Consulta status real no Asaas via GET /v3/payments/{id}
+    // 3. Consulta GET https://api.asaas.com/v3/payments/{paymentId} com a asaasApiKey
     const baseUrl = getAsaasBaseUrl(asaasApiKey);
     const asaasRes = await fetch(`${baseUrl}/payments/${encodeURIComponent(targetPaymentId)}`, {
       method: 'GET',
@@ -469,23 +452,19 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId) {
     const asaasData = await asaasRes.json().catch(() => null);
     const asaasStatus = String(asaasData?.status || 'PENDING').toUpperCase();
 
-    // Só faz o UPDATE para status = 'confirmed' quando o Asaas confirmar explicitamente RECEIVED ou CONFIRMED
+    // Quando o Asaas retornar status === 'RECEIVED' ou status === 'CONFIRMED':
+    // Faz o UPDATE no Supabase: status = 'confirmed'
     if (asaasRes.ok && (asaasStatus === 'RECEIVED' || asaasStatus === 'CONFIRMED')) {
       if (supabase) {
         try {
-          let updateQuery = supabase.from('appointments').update({
-            status: 'confirmed',
-            payment_status: 'confirmed',
-            updated_at: new Date().toISOString(),
-          });
-
-          if (targetPaymentId) {
-            updateQuery = updateQuery.eq('payment_id', targetPaymentId);
-          } else if (appointmentId && toSafeUuid(appointmentId)) {
-            updateQuery = updateQuery.eq('id', toSafeUuid(appointmentId));
-          }
-
-          await updateQuery;
+          await supabase
+            .from('appointments')
+            .update({
+              status: 'confirmed',
+              payment_status: 'confirmed',
+              updated_at: new Date().toISOString(),
+            })
+            .or(`asaas_payment_id.eq.${targetPaymentId},payment_id.eq.${targetPaymentId}`);
         } catch (upErr) {
           console.warn('[handlePaymentStatus] Erro ao atualizar status no Supabase:', upErr);
         }
@@ -498,6 +477,7 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId) {
           received: true,
           confirmed: true,
           payment_status: 'succeeded',
+          appointment_status: 'confirmed',
         },
       };
     }
@@ -505,21 +485,22 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId) {
     return {
       status: 200,
       body: {
-        status: asaasStatus || 'PENDING',
+        status: asaasStatus,
         received: false,
         confirmed: false,
         payment_status: 'pending',
+        appointment_status: 'pending_payment',
       },
     };
   } catch (err) {
-    console.error('[handlePaymentStatus] Erro ao consultar status:', err);
+    console.error('[handlePaymentStatus] Erro fatal:', err);
     return {
       status: 500,
       body: {
         status: 'PENDING',
         received: false,
         confirmed: false,
-        error: err.message,
+        error: err.message || 'Erro interno ao verificar pagamento',
       },
     };
   }

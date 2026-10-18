@@ -173,28 +173,41 @@ export default function BookingModal({
         proId = availablePro.id;
         proName = availablePro.name;
       } else {
-        // Se ainda não houver nenhum profissional/barbeiro cadastrado na tabela de profissionais,
-        // permita o agendamento vinculando diretamente ao dono/empresa (company_id) sem travar a reserva.
-        proId = company?.owner_id || company?.id || 'barbearia';
-        proName = company?.name || 'Barbearia';
+        proId = null;
+        proName = 'Sem Preferência';
       }
     }
 
+    const startMs = new Date(isoBrasilia).getTime();
+    const endTimeIso = !Number.isNaN(startMs)
+      ? new Date(startMs + dur * 60 * 1000).toISOString()
+      : isoBrasilia;
+
     return {
+      companyId: company?.id,
       company_id: company?.id,
       unit_id: unitId || undefined,
+      professionalId: isAny ? 'any' : proId,
       professional_id: proId,
+      serviceId: selected.service.id,
       service_id: selected.service.id,
       service_name: selected.service.name,
-      professional_name: isAny ? (proName || 'Qualquer disponível') : selected.professional?.name,
-      customer_name: loggedCustomer?.name || '',
+      duration_minutes: dur,
+      professional_name: isAny ? (proName || 'Sem Preferência') : selected.professional?.name,
+      clientName: loggedCustomer?.name || 'Cliente',
+      customer_name: loggedCustomer?.name || 'Cliente',
+      clientPhone: loggedCustomer?.phone || '',
       customer_phone: loggedCustomer?.phone || '',
       customer_email: loggedCustomer?.email?.trim() || undefined,
       date: dateStr,
       time: timeFormatted,
+      startTime: isoBrasilia,
+      start_time: isoBrasilia,
+      endTime: endTimeIso,
+      end_time: endTimeIso,
       scheduled_at: isoBrasilia,
       notes: form.notes,
-      price: selected.service.price,
+      price: Number(selected.service.price || 0),
       source: 'online',
       is_flexible_assignment: isAny,
       scope_customer_by_unit: scopeCustomerByUnit,
