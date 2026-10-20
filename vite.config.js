@@ -82,9 +82,10 @@ function asaasApiDevPlugin() {
                 const paymentId = query.paymentId || query.payment_id || parsedBody.paymentId || parsedBody.payment_id;
                 const appointmentId = query.appointmentId || query.appointment_id || parsedBody.appointmentId || parsedBody.appointment_id;
                 const companyId = query.companyId || query.company_id || parsedBody.companyId || parsedBody.company_id;
+                const bookingData = parsedBody.booking || parsedBody || null;
 
                 const { handlePaymentStatus } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
-                const result = await handlePaymentStatus(paymentId, appointmentId, companyId);
+                const result = await handlePaymentStatus(paymentId, appointmentId, companyId, bookingData);
                 res.writeHead(result.status, {
                   'Content-Type': 'application/json',
                   'Access-Control-Allow-Origin': '*',
@@ -149,9 +150,10 @@ function asaasApiDevPlugin() {
             const paymentId = query.paymentId || parsedBody.paymentId;
             const appointmentId = query.appointmentId || parsedBody.appointmentId;
             const companyId = query.companyId || parsedBody.companyId;
+            const bookingData = parsedBody.booking || parsedBody || null;
 
             const { handlePaymentStatus } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
-            const result = await handlePaymentStatus(paymentId, appointmentId, companyId);
+            const result = await handlePaymentStatus(paymentId, appointmentId, companyId, bookingData);
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
           });

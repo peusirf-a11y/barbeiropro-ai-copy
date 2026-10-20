@@ -1,14 +1,15 @@
-// Caixa de pagamento Pix — QR code + copia-e-cola + timer + "Já paguei".
-// O usuário permanece travado nesta tela até o pagamento ser aprovado (RECEIVED ou CONFIRMED no Asaas).
+// Caixa de pagamento Pix — QR code + copia-e-cola + timer + verificação real no Asaas.
+// Se o pagamento for confirmado (RECEIVED / CONFIRMED): realiza o agendamento no sistema e avança.
+// Se o pagamento NÃO for confirmado: informa que o pagamento não foi bem-sucedido e não deixa o cliente prosseguir.
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { Copy, Check, Clock, Loader2, AlertCircle } from 'lucide-react';
 
 export default function PixPaymentBox({
   appointmentId,
   paymentId: propPaymentId,
   pixData,
+  bookingPayload,
   expiresAt,
   primaryColor = '#2563EB',
   companyId,
@@ -21,6 +22,7 @@ export default function PixPaymentBox({
   );
   const [manualChecking, setManualChecking] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [feedbackType, setFeedbackType] = useState('error'); // 'error' | 'success'
   const isCheckingRef = useRef(false);
   const hasConfirmedRef = useRef(false);
 
@@ -51,7 +53,9 @@ export default function PixPaymentBox({
     return () => clearInterval(interval);
   }, [expiresAt, onExpired]);
 
-  // Validação real do pagamento via GET /api/payments/status
+  // Verifica no Asaas se o pagamento foi confirmado:
+  // - Se SIM (RECEIVED ou CONFIRMED): cria o agendamento no sistema e avança para "Agendado!".
+  // - Se NÃO: exibe que o pagamento não foi bem-sucedido e bloqueia o avanço do cliente.
   const checkStatus = useCallback(async (isManualClick = false) => {
     if (!hasRealPaymentId || isCheckingRef.current || hasConfirmedRef.current) return;
     isCheckingRef.current = true;
@@ -67,52 +71,40 @@ export default function PixPaymentBox({
       if (companyId) queryParams.set('companyId', companyId);
       if (targetApptId) queryParams.set('appointmentId', targetApptId);
 
-      const res = await fetch(`/api/payments/status?${queryParams.toString()}`);
+      const res = await fetch(`/api/payments/status?${queryParams.toString()}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId: targetPaymentId,
+          companyId,
+          appointmentId: targetApptId,
+          booking: bookingPayload || null,
+        }),
+      });
       const data = await res.json().catch(() => null);
 
-      // Bloqueio total de avanço automático: só avança quando o Asaas retornar status === 'RECEIVED' ou status === 'CONFIRMED'
       const isPaid =
         res.status === 200 &&
         (data?.status === 'RECEIVED' || data?.status === 'CONFIRMED');
 
       if (isPaid) {
         hasConfirmedRef.current = true;
-        setFeedback('Pagamento confirmado com sucesso!');
-
-        try {
-          if (supabase && (targetPaymentId || targetApptId)) {
-            if (targetPaymentId) {
-              await supabase
-                .from('appointments')
-                .update({
-                  status: 'confirmed',
-                  payment_status: 'confirmed',
-                  updated_at: new Date().toISOString(),
-                })
-                .or(`asaas_payment_id.eq.${targetPaymentId},payment_id.eq.${targetPaymentId}`);
-            } else if (targetApptId) {
-              await supabase
-                .from('appointments')
-                .update({
-                  status: 'confirmed',
-                  payment_status: 'confirmed',
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', targetApptId);
-            }
-          }
-        } catch (dbErr) {
-          console.warn('[PixPaymentBox] Aviso ao atualizar status no Supabase:', dbErr);
-        }
-
-        onPaid?.();
+        setFeedbackType('success');
+        setFeedback('Pagamento confirmado com sucesso! Realizando seu agendamento...');
+        onPaid?.({ appointmentId: data?.appointmentId || targetApptId });
       } else if (isManualClick) {
-        setFeedback('Pagamento pendente. Se já transferiu, aguarde alguns instantes e tente novamente.');
+        setFeedbackType('error');
+        setFeedback(
+          'O pagamento não foi bem-sucedido ou ainda não foi confirmado pelo banco. Conclua o pagamento Pix acima para prosseguir com o agendamento.'
+        );
       }
     } catch (err) {
       console.warn('[PixPaymentBox] Erro ao consultar status:', err);
       if (isManualClick) {
-        setFeedback('Pagamento pendente. Se já transferiu, aguarde alguns instantes e tente novamente.');
+        setFeedbackType('error');
+        setFeedback(
+          'O pagamento não foi bem-sucedido ou ainda não foi confirmado pelo banco. Conclua o pagamento Pix acima para prosseguir com o agendamento.'
+        );
       }
     } finally {
       isCheckingRef.current = false;
@@ -120,9 +112,9 @@ export default function PixPaymentBox({
         setManualChecking(false);
       }
     }
-  }, [hasRealPaymentId, targetPaymentId, targetApptId, companyId, onPaid]);
+  }, [hasRealPaymentId, targetPaymentId, targetApptId, companyId, bookingPayload, onPaid]);
 
-  // Polling a cada 4 segundos no frontend chamando GET /api/payments/status
+  // Polling a cada 4 segundos no frontend verificando se o pagamento foi confirmado no Asaas
   useEffect(() => {
     if (!hasRealPaymentId) return;
     const poll = setInterval(() => {
@@ -155,7 +147,7 @@ export default function PixPaymentBox({
         <span className="text-lg font-black tabular-nums">{timeStr}</span>
       </div>
 
-      {/* Renderização da Imagem do QR Code (sem spinner se encodedImage existir) */}
+      {/* Renderização da Imagem do QR Code */}
       {encodedImage && (
         <div className="flex justify-center mb-4">
           <img
@@ -201,7 +193,7 @@ export default function PixPaymentBox({
         <li>Confira o valor e confirme a transferência</li>
       </ol>
 
-      {/* Botão "Já paguei" */}
+      {/* Botão de verificação de pagamento */}
       <button
         type="button"
         onClick={() => checkStatus(true)}
@@ -214,25 +206,25 @@ export default function PixPaymentBox({
             <Loader2 className="w-4 h-4 animate-spin" /> A verificar com o banco...
           </span>
         ) : (
-          'Já paguei'
+          'Já paguei / Verificar pagamento'
         )}
       </button>
 
       {feedback && (
         <div
-          className={`mt-3 flex items-start gap-2 text-xs p-3 rounded-xl border animate-fade-in ${
-            feedback.includes('confirmado')
+          className={`mt-3 flex items-start gap-2 text-xs p-3.5 rounded-xl border ${
+            feedbackType === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : 'bg-amber-50 border-amber-200 text-amber-800'
+              : 'bg-red-50 border-red-300 text-red-700'
           }`}
         >
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span className="font-medium">{feedback}</span>
+          <span className="font-semibold">{feedback}</span>
         </div>
       )}
 
       <p className="text-[11px] text-gray-400 text-center mt-3">
-        Confirmamos automaticamente assim que o Pix for identificado.
+        O agendamento só é realizado após a confirmação do pagamento.
       </p>
     </div>
   );
