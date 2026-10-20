@@ -66,18 +66,55 @@ export default function CustomerDashboard() {
 
   const { data: appointments = [] } = useQuery({
     queryKey: ['customer-appointments', company?.id, activeCustomer?.id],
-    queryFn: () => isMockCustomer ? Promise.resolve([
-      {
-        id: 'mock-appt-1',
-        service_name: 'Corte Clássico & Degradê',
-        professional_name: 'Carlos Barbeiro',
-        scheduled_at: new Date(Date.now() + 86400000).toISOString(),
-        status: 'agendado',
-        price: 50,
+    queryFn: async () => {
+      if (isMockCustomer) {
+        return [
+          {
+            id: 'mock-appt-1',
+            service_name: 'Corte Clássico & Degradê',
+            professional_name: 'Carlos Barbeiro',
+            scheduled_at: new Date(Date.now() + 86400000).toISOString(),
+            status: 'agendado',
+            price: 50,
+          },
+        ];
       }
-    ]) : base44.entities.Appointment.filter(
-      { company_id: company?.id, customer_id: activeCustomer.id }, '-scheduled_at', 50,
-    ),
+      const allForCompany = await base44.entities.Appointment.filter(
+        { company_id: company?.id },
+        '-scheduled_at',
+        100
+      );
+      let savedApptIds = [];
+      try {
+        savedApptIds = JSON.parse(localStorage.getItem(`bt_my_appointments_${company?.id}`) || '[]');
+      } catch (_) {}
+
+      const custEmail = String(activeCustomer?.email || '').trim().toLowerCase();
+      const custPhone = String(activeCustomer?.phone || '').replace(/\D/g, '');
+
+      const matched = allForCompany.filter((a) => {
+        if (a.customer_id && a.customer_id === activeCustomer.id) return true;
+        if (savedApptIds.includes(a.id)) return true;
+        if (custEmail && String(a.customer_email || '').trim().toLowerCase() === custEmail) return true;
+        if (custPhone && custPhone.length >= 10 && String(a.customer_phone || '').replace(/\D/g, '') === custPhone) return true;
+        if (!a.customer_id && (a.asaas_payment_id || a.payment_id)) return true;
+        return false;
+      });
+
+      // Vincula automaticamente agendamentos pagos que ainda estavam sem customer_id
+      for (const appt of matched) {
+        if (!appt.customer_id && activeCustomer?.id && activeCustomer.id !== 'mock-customer-id') {
+          base44.entities.Appointment.update(appt.id, {
+            customer_id: activeCustomer.id,
+            customer_name: activeCustomer.name || appt.customer_name || 'Cliente',
+            customer_phone: activeCustomer.phone || appt.customer_phone || '',
+            customer_email: activeCustomer.email || appt.customer_email || null,
+          }).catch(() => {});
+        }
+      }
+
+      return matched;
+    },
     enabled: !!company?.id && !!activeCustomer?.id,
   });
 
@@ -337,16 +374,18 @@ function PausedCard({ sub, onResume, isPending, primaryColor, tw }) {
 function AppointmentCard({ appt, primaryColor, tw, muted }) {
   const date = new Date(appt.scheduled_at);
   const statusLabel = {
-    agendado: 'Agendado', confirmado: 'Confirmado', em_atendimento: 'Em atendimento',
+    agendado: 'Agendado', confirmado: 'Confirmado', confirmed: 'Confirmado', em_atendimento: 'Em atendimento',
     concluido: 'Concluído', cancelado: 'Cancelado', faltou: 'Não compareceu',
     aguardando_pagamento: 'Aguardando pagamento',
   }[appt.status] || appt.status;
 
   const statusColor = {
-    agendado: 'text-blue-400', confirmado: 'text-emerald-400', concluido: tw.textFaint,
+    agendado: 'text-blue-400', confirmado: 'text-emerald-400', confirmed: 'text-emerald-400', concluido: tw.textFaint,
     cancelado: 'text-red-400', faltou: 'text-red-400', em_atendimento: 'text-amber-400',
     aguardando_pagamento: 'text-amber-400',
   }[appt.status] || tw.textFaint;
+
+  const isPaidOnline = appt.paid_online || appt.paid || appt.payment_status === 'confirmed' || Boolean(appt.asaas_payment_id);
 
   return (
     <div className={`flex items-center gap-4 ${tw.card} rounded-2xl p-4 transition-all ${muted ? 'opacity-50' : ''}`}>
@@ -362,6 +401,11 @@ function AppointmentCard({ appt, primaryColor, tw, muted }) {
       </div>
       <div className="flex-shrink-0 text-right">
         <div className={`text-[10px] uppercase tracking-wide font-semibold ${statusColor}`}>{statusLabel}</div>
+        {isPaidOnline && (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 mt-1 inline-block">
+            PAGO PIX
+          </span>
+        )}
         {appt.payment_method === 'subscription' && (
           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${tw.iconBg} ${tw.textMuted} mt-1 block`}>PLANO</span>
         )}

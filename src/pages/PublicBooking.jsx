@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { Scissors, Clock, User, AlertCircle, UserCircle2, Star, Check, Sun, Moon } from 'lucide-react';
+import { Scissors, Clock, User, AlertCircle, UserCircle2, Star, Check, Sun, Moon, Calendar } from 'lucide-react';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,6 +15,7 @@ import { normalizeBusinessHours } from '@/lib/businessHours';
 
 export default function PublicBooking() {
   const { slug } = useParams();
+  const queryClient = useQueryClient();
   const { isDark, toggle, tw } = usePublicTheme();
   const [activeTab, setActiveTab] = useState('servicos');
   const [bookingService, setBookingService] = useState(null); // serviço que abre o modal
@@ -226,7 +227,7 @@ export default function PublicBooking() {
               <Check className="w-8 h-8 text-emerald-400" />
             </div>
             <h2 className={`text-2xl font-black ${tw.text} mb-2`}>Agendado!</h2>
-            <p className={`${tw.textMuted} text-sm mb-6`}>Seu horário foi confirmado com sucesso.</p>
+            <p className={`${tw.textMuted} text-sm mb-6`}>Seu horário foi confirmado com sucesso no sistema.</p>
             <div className={`${isDark ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4 text-left space-y-2 mb-6`}>
               <Row label="Serviço" value={selected?.service?.name} tw={tw} />
               <Row label="Profissional" value={selected?.professional?.name} tw={tw} />
@@ -238,6 +239,13 @@ export default function PublicBooking() {
                 <span className="text-emerald-400 font-black text-lg">R$ {selected?.service?.price?.toFixed(2)}</span>
               </div>
             </div>
+            <Link
+              to={`/cliente/${slug}`}
+              className="block w-full text-center text-white text-sm font-bold py-3 rounded-xl mb-3 shadow-md transition-opacity hover:opacity-90"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Ver meus agendamentos
+            </Link>
             {company.whatsapp && (
               <a href={`https://wa.me/55${company.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
                 className="block w-full text-center text-white text-sm font-bold py-3 rounded-xl mb-3 bg-[#25D366]">
@@ -252,6 +260,26 @@ export default function PublicBooking() {
       </div>
     );
   }
+
+  // Agendamentos confirmados do cliente para exibição direta na tela pública
+  const myConfirmedAppointments = (() => {
+    let savedIds = [];
+    try {
+      savedIds = JSON.parse(localStorage.getItem(`bt_my_appointments_${company?.id}`) || '[]');
+    } catch (_) {}
+    const custEmail = String(loggedCustomer?.email || '').trim().toLowerCase();
+    const custPhone = String(loggedCustomer?.phone || '').replace(/\D/g, '');
+
+    return (allAppointments || []).filter((a) => {
+      if (['cancelado', 'faltou', 'pending_payment'].includes(a.status)) return false;
+      if (new Date(a.scheduled_at) < new Date(Date.now() - 2 * 60 * 60 * 1000)) return false;
+      if (loggedCustomer?.id && a.customer_id === loggedCustomer.id) return true;
+      if (savedIds.includes(a.id)) return true;
+      if (custEmail && String(a.customer_email || '').trim().toLowerCase() === custEmail) return true;
+      if (custPhone && custPhone.length >= 10 && String(a.customer_phone || '').replace(/\D/g, '') === custPhone) return true;
+      return false;
+    });
+  })();
 
   const heroBg = isDark
     ? `linear-gradient(135deg, ${primaryColor}33, #0f0f1a)`
@@ -320,6 +348,32 @@ export default function PublicBooking() {
             )}
           </div>
         </div>
+
+        {/* Banner de agendamentos confirmados do cliente */}
+        {myConfirmedAppointments.length > 0 && (
+          <div className="mt-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" /> Seu horário agendado
+              </span>
+              <Link to={`/cliente/${slug}`} className="text-[11px] font-bold text-emerald-300 underline">
+                Ver detalhes
+              </Link>
+            </div>
+            <div className="space-y-1.5">
+              {myConfirmedAppointments.slice(0, 2).map((a) => (
+                <div key={a.id} className="flex items-center justify-between text-xs">
+                  <span className={`${tw.text} font-semibold truncate`}>
+                    {a.service_name || 'Corte'} · {a.professional_name || 'Profissional'}
+                  </span>
+                  <span className="text-emerald-400 font-bold ml-2 flex-shrink-0">
+                    {format(new Date(a.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─── TABS ─── */}
@@ -472,6 +526,9 @@ export default function PublicBooking() {
         onBookingDone={(result) => {
           setShowBookingModal(false);
           setBookingDone(result);
+          queryClient.invalidateQueries({ queryKey: ['public-appointments'] });
+          queryClient.invalidateQueries({ queryKey: ['customer-appointments'] });
+          queryClient.invalidateQueries({ queryKey: ['appointments'] });
         }}
         onNeedAuth={handleNeedAuth}
       />

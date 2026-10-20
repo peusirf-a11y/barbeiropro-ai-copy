@@ -1,5 +1,5 @@
 // src/server/appointmentsPixHandler.js
-// Handler para geração de código Pix real no Asaas e verificação estrita de confirmação de pagamento antes de criar o agendamento no Supabase.
+// Handler para geração de código Pix real no Asaas, gravação e confirmação estrita do agendamento no Supabase.
 import { supabase } from '../lib/supabaseClient.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,10 +56,146 @@ function getAsaasBaseUrl(apiKey) {
 const DEFAULT_PIX_ERROR = 'Não foi possível gerar a cobrança Pix no Asaas. Verifique a chave de API da barbearia.';
 
 /**
- * Persiste o agendamento confirmado no Supabase SOMENTE após confirmação bancária do Asaas (RECEIVED / CONFIRMED).
- * Garante idempotência pelo paymentId para nunca duplicar agendamentos.
+ * Garante que o cliente exista na tabela `customers` do Supabase e retorna seu ID (UUID) e dados normalizados.
  */
-async function createOrUpdateConfirmedAppointment(paymentId, booking = {}, fallbackCompanyId = null) {
+async function ensureCustomerInSupabase({ companyId, customerId, name, phone, email, cpf }) {
+  if (!supabase || !companyId) {
+    return {
+      id: toSafeUuid(customerId),
+      name: name || 'Cliente',
+      phone: phone || '',
+      email: email || null,
+    };
+  }
+
+  const safeId = toSafeUuid(customerId);
+  const cleanName = String(name || '').trim() || 'Cliente';
+  const cleanPhone = String(phone || '').replace(/\D/g, '');
+  const cleanEmail = String(email || '').trim().toLowerCase() || null;
+  const cleanCpf = String(cpf || '').replace(/\D/g, '') || null;
+
+  try {
+    // 1. Tenta localizar pelo UUID se fornecido
+    if (safeId) {
+      const { data: byId } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', safeId)
+        .maybeSingle();
+      if (byId?.id) {
+        return {
+          id: byId.id,
+          name: cleanName !== 'Cliente' ? cleanName : (byId.name || 'Cliente'),
+          phone: cleanPhone || byId.phone || '',
+          email: cleanEmail || byId.email || null,
+        };
+      }
+    }
+
+    // 2. Tenta localizar por email na mesma barbearia
+    if (cleanEmail) {
+      const { data: byEmail } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('email', cleanEmail)
+        .maybeSingle();
+      if (byEmail?.id) {
+        return {
+          id: byEmail.id,
+          name: cleanName !== 'Cliente' ? cleanName : (byEmail.name || 'Cliente'),
+          phone: cleanPhone || byEmail.phone || '',
+          email: byEmail.email || cleanEmail,
+        };
+      }
+    }
+
+    // 3. Tenta localizar por CPF na mesma barbearia
+    if (cleanCpf && cleanCpf.length === 11) {
+      const { data: byCpf } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('cpf', cleanCpf)
+        .maybeSingle();
+      if (byCpf?.id) {
+        return {
+          id: byCpf.id,
+          name: cleanName !== 'Cliente' ? cleanName : (byCpf.name || 'Cliente'),
+          phone: cleanPhone || byCpf.phone || '',
+          email: cleanEmail || byCpf.email || null,
+        };
+      }
+    }
+
+    // 4. Tenta localizar por telefone na mesma barbearia
+    if (cleanPhone && cleanPhone.length >= 10) {
+      const { data: byPhone } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('phone', cleanPhone)
+        .maybeSingle();
+      if (byPhone?.id) {
+        return {
+          id: byPhone.id,
+          name: cleanName !== 'Cliente' ? cleanName : (byPhone.name || 'Cliente'),
+          phone: byPhone.phone || cleanPhone,
+          email: cleanEmail || byPhone.email || null,
+        };
+      }
+    }
+
+    // 5. Cria novo registro na tabela `customers` para que apareça na carteira da barbearia e vincule o agendamento
+    const safeEmail =
+      cleanEmail ||
+      (cleanPhone ? `${cleanPhone}@cliente.local` : cleanCpf ? `${cleanCpf}@cliente.local` : `cliente_${Date.now()}@cliente.local`);
+
+    const { data: created } = await supabase
+      .from('customers')
+      .insert({
+        company_id: companyId,
+        name: cleanName,
+        phone: cleanPhone || null,
+        email: safeEmail,
+        cpf: cleanCpf,
+        status: 'active',
+      })
+      .select()
+      .single();
+
+    if (created?.id) {
+      return {
+        id: created.id,
+        name: created.name || cleanName,
+        phone: created.phone || cleanPhone || '',
+        email: created.email || safeEmail,
+      };
+    }
+  } catch (err) {
+    console.warn('[appointmentsPixHandler] Aviso ao sincronizar cliente no Supabase:', err);
+  }
+
+  return {
+    id: null,
+    name: cleanName,
+    phone: cleanPhone,
+    email: cleanEmail,
+  };
+}
+
+/**
+ * Cria ou atualiza o agendamento no Supabase vinculado ao paymentId do Asaas.
+ * - Na criação do Pix: status = 'pending_payment', payment_status = 'pending'
+ * - Na confirmação bancária (RECEIVED / CONFIRMED): status = 'confirmado', payment_status = 'confirmed'
+ */
+async function upsertAppointmentForPix({
+  paymentId,
+  booking = {},
+  fallbackCompanyId = null,
+  targetStatus = 'confirmado',
+  targetPaymentStatus = 'confirmed',
+}) {
   if (!supabase || !paymentId) return null;
 
   try {
@@ -70,83 +206,101 @@ async function createOrUpdateConfirmedAppointment(paymentId, booking = {}, fallb
       .or(`asaas_payment_id.eq.${paymentId},payment_id.eq.${paymentId}`)
       .maybeSingle();
 
+    const companyId = toSafeUuid(
+      booking?.companyId || booking?.company_id || existing?.company_id || fallbackCompanyId
+    );
+    if (!companyId) return existing || null;
+
+    const rawCustomerInfo = await ensureCustomerInSupabase({
+      companyId,
+      customerId: booking?.customerId || booking?.customer_id || existing?.customer_id,
+      name: booking?.clientName || booking?.client_name || booking?.customer_name || existing?.customer_name,
+      phone: booking?.clientPhone || booking?.client_phone || booking?.customer_phone || existing?.customer_phone,
+      email: booking?.clientEmail || booking?.client_email || booking?.customer_email || existing?.customer_email,
+      cpf: booking?.clientCpf || booking?.client_cpf || booking?.customer_cpf,
+    });
+
     if (existing?.id) {
-      if (existing.status !== 'confirmed' || existing.payment_status !== 'confirmed') {
-        await supabase
-          .from('appointments')
-          .update({
-            status: 'confirmed',
-            payment_status: 'confirmed',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existing.id);
+      const patch = {
+        status: targetStatus,
+        payment_status: targetPaymentStatus,
+        updated_at: new Date().toISOString(),
+      };
+      if (!existing.customer_id && rawCustomerInfo.id) {
+        patch.customer_id = rawCustomerInfo.id;
       }
-      return existing.id;
+      if ((!existing.customer_name || existing.customer_name === 'Cliente') && rawCustomerInfo.name) {
+        patch.customer_name = rawCustomerInfo.name;
+        patch.client_name = rawCustomerInfo.name;
+      }
+      if (!existing.customer_phone && rawCustomerInfo.phone) {
+        patch.customer_phone = rawCustomerInfo.phone;
+        patch.client_phone = rawCustomerInfo.phone;
+      }
+      if (!existing.customer_email && rawCustomerInfo.email) {
+        patch.customer_email = rawCustomerInfo.email;
+      }
+
+      const { data: updated } = await supabase
+        .from('appointments')
+        .update(patch)
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      return updated || { ...existing, ...patch };
     }
 
-    // 2. Caso ainda não exista no banco, cria agora que o pagamento foi confirmado
-    const companyId = toSafeUuid(booking.companyId || booking.company_id || fallbackCompanyId);
-    if (!companyId) return null;
-
-    const rawServiceId = booking.serviceId || booking.service_id || null;
-    const rawProfessionalId = booking.professionalId || booking.professional_id || null;
-    const rawCustomerId = booking.customerId || booking.customer_id || null;
+    // 2. Caso ainda não exista no banco, resolve FKs e insere
+    const rawServiceId = booking?.serviceId || booking?.service_id || null;
+    const rawProfessionalId = booking?.professionalId || booking?.professional_id || null;
 
     const candidateServiceId = toSafeUuid(rawServiceId);
     const candidateProfessionalId =
       rawProfessionalId === 'any' || !rawProfessionalId ? null : toSafeUuid(rawProfessionalId);
-    const candidateCustomerId = toSafeUuid(rawCustomerId);
 
-    const clientName = (booking.clientName || booking.client_name || booking.customer_name || 'Cliente').trim();
-    const clientPhone = (booking.clientPhone || booking.client_phone || booking.customer_phone || '').trim();
-    const clientEmail = (booking.clientEmail || booking.client_email || booking.customer_email || '').trim().toLowerCase();
-    const rawPrice = Number(booking.price || booking.amount || 0);
-    const servicePrice = rawPrice > 0 ? rawPrice : 35.0;
+    const rawPrice = Number(booking?.price || booking?.amount || 0);
+    let servicePrice = rawPrice > 0 ? rawPrice : 35.0;
 
-    const startTime = booking.startTime || booking.start_time || booking.scheduled_at || new Date().toISOString();
-    const endTime =
-      booking.endTime ||
-      booking.end_time ||
-      (() => {
-        const parsed = new Date(startTime);
-        const dur = Number(booking.duration_minutes) || 30;
-        if (!Number.isNaN(parsed.getTime())) {
-          return new Date(parsed.getTime() + dur * 60 * 1000).toISOString();
-        }
-        return startTime;
-      })();
-
-    const date =
-      booking.date ||
-      (String(startTime).includes('T')
-        ? String(startTime).split('T')[0]
-        : new Date().toISOString().split('T')[0]);
-    const time =
-      booking.time ||
-      (String(startTime).includes('T')
-        ? String(startTime).split('T')[1].slice(0, 5)
-        : '09:00');
-
-    // Valida FKs reais no Supabase
+    // Valida Serviço no Supabase
     let validServiceId = null;
-    let resolvedServiceName = booking.serviceName || booking.service_name || '';
+    let resolvedServiceName = booking?.serviceName || booking?.service_name || '';
+    let serviceDuration = Number(booking?.duration_minutes) || 30;
     if (candidateServiceId) {
       try {
         const { data: srv } = await supabase
           .from('services')
-          .select('id, name')
+          .select('id, name, price, duration_minutes')
           .eq('id', candidateServiceId)
           .maybeSingle();
         if (srv?.id) {
           validServiceId = srv.id;
           if (!resolvedServiceName && srv.name) resolvedServiceName = srv.name;
+          if (!rawPrice && srv.price) servicePrice = Number(srv.price);
+          if (srv.duration_minutes) serviceDuration = Number(srv.duration_minutes);
         }
       } catch (_) {}
     }
-    if (!resolvedServiceName) resolvedServiceName = 'Serviço';
+    if (!validServiceId) {
+      try {
+        const { data: firstSrv } = await supabase
+          .from('services')
+          .select('id, name, price, duration_minutes')
+          .eq('company_id', companyId)
+          .limit(1)
+          .maybeSingle();
+        if (firstSrv?.id) {
+          validServiceId = firstSrv.id;
+          if (!resolvedServiceName) resolvedServiceName = firstSrv.name;
+          if (!rawPrice && firstSrv.price) servicePrice = Number(firstSrv.price);
+        }
+      } catch (_) {}
+    }
+    if (!resolvedServiceName) resolvedServiceName = 'Corte';
 
+    // Valida Profissional no Supabase (se 'any' ou vazio, atribui ao primeiro profissional ativo da barbearia para exibir na coluna da Agenda!)
     let validProfessionalId = null;
-    let resolvedProfessionalName = booking.professionalName || booking.professional_name || '';
+    let resolvedProfessionalName = booking?.professionalName || booking?.professional_name || '';
     if (candidateProfessionalId) {
       try {
         const { data: pro } = await supabase
@@ -160,47 +314,76 @@ async function createOrUpdateConfirmedAppointment(paymentId, booking = {}, fallb
         }
       } catch (_) {}
     }
-    if (!resolvedProfessionalName) {
-      resolvedProfessionalName =
-        rawProfessionalId === 'any' || !rawProfessionalId ? 'Sem Preferência' : 'Profissional';
-    }
-
-    let validCustomerId = null;
-    if (candidateCustomerId) {
+    if (!validProfessionalId) {
       try {
-        const { data: cust } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('id', candidateCustomerId)
+        const { data: firstPro } = await supabase
+          .from('professionals')
+          .select('id, name')
+          .eq('company_id', companyId)
+          .limit(1)
           .maybeSingle();
-        if (cust?.id) {
-          validCustomerId = cust.id;
+        if (firstPro?.id) {
+          validProfessionalId = firstPro.id;
+          if (!resolvedProfessionalName || resolvedProfessionalName === 'Sem Preferência') {
+            resolvedProfessionalName = firstPro.name;
+          }
         }
       } catch (_) {}
     }
+    if (!resolvedProfessionalName) {
+      resolvedProfessionalName = 'Profissional';
+    }
+
+    const date =
+      booking?.date ||
+      (booking?.startTime && String(booking.startTime).includes('T')
+        ? String(booking.startTime).split('T')[0]
+        : new Date().toISOString().split('T')[0]);
+    const time =
+      booking?.time ||
+      (booking?.startTime && String(booking.startTime).includes('T')
+        ? String(booking.startTime).split('T')[1].slice(0, 5)
+        : '09:00');
+
+    const startTime =
+      booking?.startTime ||
+      booking?.start_time ||
+      booking?.scheduled_at ||
+      `${date}T${String(time).slice(0, 5)}:00-03:00`;
+
+    const endTime =
+      booking?.endTime ||
+      booking?.end_time ||
+      (() => {
+        const parsed = new Date(startTime);
+        if (!Number.isNaN(parsed.getTime())) {
+          return new Date(parsed.getTime() + serviceDuration * 60 * 1000).toISOString();
+        }
+        return startTime;
+      })();
 
     const insertPayload = {
       company_id: companyId,
       service_id: validServiceId,
       service_name: resolvedServiceName,
-      professional_id: (rawProfessionalId === 'any' || !rawProfessionalId) ? null : validProfessionalId,
+      professional_id: validProfessionalId,
       professional_name: resolvedProfessionalName,
-      customer_id: validCustomerId,
-      customer_name: clientName,
-      client_name: clientName,
-      customer_phone: clientPhone,
-      client_phone: clientPhone,
-      customer_email: clientEmail || null,
+      customer_id: rawCustomerInfo.id,
+      customer_name: rawCustomerInfo.name,
+      client_name: rawCustomerInfo.name,
+      customer_phone: rawCustomerInfo.phone,
+      client_phone: rawCustomerInfo.phone,
+      customer_email: rawCustomerInfo.email,
       date,
-      time,
+      time: String(time).slice(0, 5),
       start_time: startTime,
       end_time: endTime,
       price: Number(servicePrice),
-      status: 'confirmed',
-      payment_status: 'confirmed',
+      status: targetStatus,
+      payment_status: targetPaymentStatus,
       payment_id: paymentId,
       asaas_payment_id: paymentId,
-      notes: booking.notes || '',
+      notes: booking?.notes || '',
     };
 
     const { data: inserted, error: insertError } = await supabase
@@ -210,13 +393,13 @@ async function createOrUpdateConfirmedAppointment(paymentId, booking = {}, fallb
       .single();
 
     if (insertError) {
-      console.error('[appointmentsPixHandler] Erro ao criar agendamento confirmado no Supabase:', insertError);
+      console.error('[appointmentsPixHandler] Erro ao inserir agendamento no Supabase:', insertError);
       return null;
     }
 
-    return inserted?.id || null;
+    return inserted;
   } catch (err) {
-    console.error('[appointmentsPixHandler] Exceção ao criar agendamento confirmado:', err);
+    console.error('[appointmentsPixHandler] Exceção em upsertAppointmentForPix:', err);
     return null;
   }
 }
@@ -378,11 +561,22 @@ export async function handleCreatePix(body = {}) {
     const encodedImage = String(pixData.encodedImage).replace(/^data:image\/png;base64,/, '');
     const pixPayload = pixData.payload;
 
-    // Retorna o código Pix gerado. O agendamento só será gravado no sistema quando o pagamento for confirmado!
+    // 4º PASSO: Registra a intenção com status = 'pending_payment' no Supabase.
+    // Enquanto estiver 'pending_payment', NÃO aparece como corte agendado na agenda,
+    // mas garante que todos os dados do agendamento estejam salvos no banco para ativação imediata assim que o Pix compensar!
+    const pendingAppt = await upsertAppointmentForPix({
+      paymentId,
+      booking: body,
+      fallbackCompanyId: companyId,
+      targetStatus: 'pending_payment',
+      targetPaymentStatus: 'pending',
+    });
+
     return {
       status: 200,
       body: {
         success: true,
+        appointmentId: pendingAppt?.id || null,
         paymentId: paymentId,
         encodedImage: encodedImage,
         payload: pixPayload,
@@ -470,6 +664,21 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
       } catch (_) {}
     }
 
+    // Fallback se companyId não foi passado: busca empresa com asaas_api_key configurada
+    if (!asaasApiKey && supabase) {
+      try {
+        const { data: comps } = await supabase
+          .from('companies')
+          .select('id, asaas_api_key')
+          .not('asaas_api_key', 'is', null)
+          .limit(1);
+        if (comps?.[0]?.asaas_api_key) {
+          asaasApiKey = comps[0].asaas_api_key.trim();
+          targetCompanyId = targetCompanyId || comps[0].id;
+        }
+      } catch (_) {}
+    }
+
     if (!asaasApiKey) {
       return {
         status: 200,
@@ -497,13 +706,15 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
     const asaasData = await asaasRes.json().catch(() => null);
     const asaasStatus = String(asaasData?.status || 'PENDING').toUpperCase();
 
-    // SE SIM (pagamento confirmado no Asaas: RECEIVED ou CONFIRMED) → faz o agendamento no sistema!
-    if (asaasRes.ok && (asaasStatus === 'RECEIVED' || asaasStatus === 'CONFIRMED')) {
-      const savedAppointmentId = await createOrUpdateConfirmedAppointment(
-        targetPaymentId,
-        bookingData || {},
-        targetCompanyId
-      );
+    // SE SIM (pagamento confirmado no Asaas: RECEIVED, CONFIRMED ou RECEIVED_IN_CASH) → confirma o agendamento no sistema!
+    if (asaasRes.ok && ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(asaasStatus)) {
+      const confirmedAppt = await upsertAppointmentForPix({
+        paymentId: targetPaymentId,
+        booking: bookingData || {},
+        fallbackCompanyId: targetCompanyId,
+        targetStatus: 'confirmado',
+        targetPaymentStatus: 'confirmed',
+      });
 
       return {
         status: 200,
@@ -511,14 +722,15 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
           status: asaasStatus,
           received: true,
           confirmed: true,
-          appointmentId: savedAppointmentId || appointmentId || null,
+          appointmentId: confirmedAppt?.id || appointmentId || null,
+          appointment: confirmedAppt || null,
           payment_status: 'succeeded',
-          appointment_status: 'confirmed',
+          appointment_status: 'confirmado',
         },
       };
     }
 
-    // SE NÃO (pagamento não confirmado) → não faz o agendamento e informa que não foi bem-sucedido
+    // SE NÃO (pagamento não confirmado) → mantém pendente e bloqueia avanço
     return {
       status: 200,
       body: {

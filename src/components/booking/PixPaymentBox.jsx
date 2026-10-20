@@ -21,8 +21,13 @@ export default function PixPaymentBox({
   const [manualChecking, setManualChecking] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [feedbackType, setFeedbackType] = useState('error'); // 'error' | 'success'
-  const isCheckingRef = useRef(false);
+  const isPollingRef = useRef(false);
   const hasConfirmedRef = useRef(false);
+  const onPaidRef = useRef(onPaid);
+
+  useEffect(() => {
+    onPaidRef.current = onPaid;
+  }, [onPaid]);
 
   const targetPaymentId = propPaymentId || pixData?.paymentId || pixData?.payment_id || '';
   const targetApptId = appointmentId || pixData?.appointmentId || pixData?.appointment_id || '';
@@ -51,16 +56,23 @@ export default function PixPaymentBox({
   }, [expiresAt]);
 
   // Verifica no Asaas se o pagamento foi confirmado:
-  // - Se SIM (RECEIVED ou CONFIRMED): cria o agendamento no sistema e avança para "Agendado!".
+  // - Se SIM (RECEIVED, CONFIRMED ou RECEIVED_IN_CASH): confirma o agendamento no sistema e avança para "Agendado!".
   // - Se NÃO: mantém o cliente nesta página e informa que o pagamento não foi confirmado.
   const checkStatus = useCallback(async (isManualClick = false) => {
-    if (!hasRealPaymentId || isCheckingRef.current || hasConfirmedRef.current) return;
-    isCheckingRef.current = true;
+    if (!hasRealPaymentId || hasConfirmedRef.current) return;
+    // Se for polling em background e já houver uma checagem em andamento, aguarda a próxima.
+    // Porém, se for clique manual em "Já paguei", SEMPRE executa imediatamente!
+    if (!isManualClick && isPollingRef.current) return;
+
+    isPollingRef.current = true;
 
     if (isManualClick) {
       setManualChecking(true);
       setFeedback('');
     }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     try {
       const queryParams = new URLSearchParams();
@@ -75,6 +87,7 @@ export default function PixPaymentBox({
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           paymentId: targetPaymentId,
           companyId,
@@ -82,18 +95,35 @@ export default function PixPaymentBox({
           booking: bookingPayload || null,
         }),
       });
+      clearTimeout(timeoutId);
+
       const data = await res.json().catch(() => null);
 
       const isPaid =
         res.status === 200 &&
         data?.confirmed === true &&
-        (data?.status === 'RECEIVED' || data?.status === 'CONFIRMED');
+        ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(String(data?.status || '').toUpperCase());
 
       if (isPaid) {
         hasConfirmedRef.current = true;
+        const finalApptId = data?.appointmentId || targetApptId;
+        if (finalApptId && companyId) {
+          try {
+            const rawSaved = localStorage.getItem(`bt_my_appointments_${companyId}`) || '[]';
+            const list = JSON.parse(rawSaved);
+            if (!list.includes(finalApptId)) {
+              list.unshift(finalApptId);
+              localStorage.setItem(`bt_my_appointments_${companyId}`, JSON.stringify(list));
+            }
+          } catch (_) {}
+        }
+
         setFeedbackType('success');
-        setFeedback('Pagamento confirmado com sucesso! Realizando seu agendamento...');
-        onPaid?.({ appointmentId: data?.appointmentId || targetApptId });
+        setFeedback('Pagamento confirmado com sucesso! Agendamento registrado no sistema.');
+        onPaidRef.current?.({
+          appointmentId: finalApptId,
+          appointment: data?.appointment || null,
+        });
       } else if (isManualClick) {
         setFeedbackType('error');
         setFeedback(
@@ -101,6 +131,7 @@ export default function PixPaymentBox({
         );
       }
     } catch (err) {
+      clearTimeout(timeoutId);
       console.warn('[PixPaymentBox] Erro ao consultar status:', err);
       if (isManualClick) {
         setFeedbackType('error');
@@ -109,20 +140,34 @@ export default function PixPaymentBox({
         );
       }
     } finally {
-      isCheckingRef.current = false;
+      isPollingRef.current = false;
       if (isManualClick) {
         setManualChecking(false);
       }
     }
-  }, [hasRealPaymentId, targetPaymentId, targetApptId, companyId, bookingPayload, onPaid]);
+  }, [hasRealPaymentId, targetPaymentId, targetApptId, companyId, bookingPayload]);
 
-  // Polling a cada 4 segundos verificando se o pagamento foi confirmado no Asaas
+  // Polling a cada 3 segundos + verificação imediata ao voltar do aplicativo do banco (visibilitychange / focus)
   useEffect(() => {
     if (!hasRealPaymentId) return;
     const poll = setInterval(() => {
       checkStatus(false);
-    }, 4000);
-    return () => clearInterval(poll);
+    }, 3000);
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        checkStatus(false);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    return () => {
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+    };
   }, [hasRealPaymentId, checkStatus]);
 
   const copyCode = () => {

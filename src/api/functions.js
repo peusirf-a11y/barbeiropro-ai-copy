@@ -27,6 +27,29 @@ export async function resolveCompanyId(payload = {}) {
       }
     } catch (_) {}
   }
+
+  const companies = await Company.list();
+
+  // 1. Verifica sessão ativa no Supabase Auth
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const sessionEmail = sessionData?.session?.user?.email?.toLowerCase().trim();
+      if (sessionEmail) {
+        const owned = companies.find((c) => c.owner_email?.toLowerCase().trim() === sessionEmail);
+        if (owned) return owned.id;
+
+        const { data: tm } = await supabase
+          .from('team_members')
+          .select('company_id')
+          .ilike('email', sessionEmail)
+          .maybeSingle();
+        if (tm?.company_id) return tm.company_id;
+      }
+    } catch (_) {}
+  }
+
+  // 2. Verifica usuário persistido em localStorage (admin_logged_user / barberpass_auth_email)
   if (typeof window !== 'undefined') {
     try {
       const storedAdmin = localStorage.getItem('admin_logged_user');
@@ -35,9 +58,8 @@ export async function resolveCompanyId(payload = {}) {
         if (user?.company_id) {
           return user.company_id;
         }
-        if (user?.email) {
-          const emailClean = user.email.toLowerCase().trim();
-          const companies = await Company.list();
+        const emailClean = (user?.email || localStorage.getItem('barberpass_auth_email') || '').toLowerCase().trim();
+        if (emailClean) {
           const found = companies.find((c) => c.owner_email?.toLowerCase().trim() === emailClean);
           if (found) return found.id;
 
@@ -46,7 +68,7 @@ export async function resolveCompanyId(payload = {}) {
               const { data: tm } = await supabase
                 .from('team_members')
                 .select('company_id')
-                .eq('email', emailClean)
+                .ilike('email', emailClean)
                 .maybeSingle();
               if (tm?.company_id) return tm.company_id;
             }
@@ -56,8 +78,21 @@ export async function resolveCompanyId(payload = {}) {
         }
       }
     } catch (_) {}
+
+    // 3. Se houver um slug de barbearia ativo na sessão (bt_last_slug), prioriza essa barbearia
+    try {
+      const lastSlug = localStorage.getItem('bt_last_slug');
+      if (lastSlug) {
+        const bySlug = companies.find((c) => c.slug === lastSlug);
+        if (bySlug) return bySlug.id;
+      }
+    } catch (_) {}
   }
-  const companies = await Company.list();
+
+  // 4. Prioriza barbearia com asaas_api_key configurada antes do primeiro item genérico
+  const withAsaas = companies.find((c) => c.asaas_api_key);
+  if (withAsaas) return withAsaas.id;
+
   if (companies.length > 0) {
     return companies[0].id;
   }
@@ -1673,25 +1708,41 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'customerAuth': {
-        const action = payload.action;
+        const action = payload.action || 'login';
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
         const email = String(payload.email || '').trim().toLowerCase();
+        const name = String(payload.name || '').trim();
+        const phone = String(payload.phone || '').replace(/\D/g, '');
+        const tokenArg = String(payload.token || '').trim();
+        const uuidMatchRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+        const saveCachedCustomer = (custObj) => {
+          if (typeof window !== 'undefined' && companyId && custObj?.id) {
+            try {
+              localStorage.setItem(`bt_customer_profile_${companyId}`, JSON.stringify(custObj));
+            } catch (_) {}
+          }
+        };
+
+        const getCachedCustomer = () => {
+          if (typeof window !== 'undefined' && companyId) {
+            try {
+              const raw = localStorage.getItem(`bt_customer_profile_${companyId}`);
+              return raw ? JSON.parse(raw) : null;
+            } catch (_) {}
+          }
+          return null;
+        };
 
         if (action === 'request_reset' || action === 'request_password_reset') {
           const token = `rst_cust_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
           let company = null;
-          if (payload.company_id) {
-            company = await Company.get(payload.company_id);
+          if (companyId) {
+            company = await Company.get(companyId);
           }
           const slug = company?.slug || 'demo';
           const resetUrl = `/cliente/${slug}/login?mode=reset&reset_token=${token}&email=${encodeURIComponent(email)}`;
 
-          const customers = await Customer.filter({ email });
-          if (customers.length > 0) {
-            await Customer.update(customers[0].id, {
-              ...customers[0],
-              reset_token: token,
-            });
-          }
           return {
             data: {
               success: true,
@@ -1703,44 +1754,125 @@ export async function invokeFunction(functionName, payload = {}) {
           };
         }
 
-        if (action === 'reset_password') {
-          const newPassword = payload.password || payload.new_password;
-          const customers = await Customer.filter({ email });
-          if (customers.length > 0) {
-            await Customer.update(customers[0].id, {
-              ...customers[0],
-              password: newPassword,
-              reset_token: null,
-            });
+        if (action === 'check' || action === 'check_email') {
+          const customers = email ? await Customer.filter({ company_id: companyId, email }) : [];
+          const found = customers[0] || null;
+          return {
+            data: {
+              success: true,
+              exists: Boolean(found),
+              has_password: Boolean(found),
+              name: found?.name || '',
+            },
+          };
+        }
+
+        if (action === 'me') {
+          // 1. Extrai UUID do token se presente (formato cust_tok_<uuid>_<ts>)
+          let resolvedCust = null;
+          const matchedUuid = tokenArg.match(uuidMatchRegex)?.[0] || null;
+
+          if (matchedUuid) {
+            resolvedCust = await Customer.get(matchedUuid);
           }
+
+          // 2. Verifica cache local do perfil do cliente
+          if (!resolvedCust) {
+            const cached = getCachedCustomer();
+            if (cached?.id && uuidMatchRegex.test(String(cached.id))) {
+              resolvedCust = (await Customer.get(cached.id)) || cached;
+            } else if (cached?.email) {
+              const byEmail = await Customer.filter({ company_id: companyId, email: cached.email });
+              if (byEmail[0]) resolvedCust = byEmail[0];
+            }
+          }
+
+          // 3. Verifica último cliente cadastrado na barbearia se houver token legado ativo
+          if (!resolvedCust && tokenArg && companyId) {
+            const list = await Customer.filter({ company_id: companyId }, '-created_at', 5);
+            if (list[0]) {
+              resolvedCust = list[0];
+            }
+          }
+
+          // 4. Se ainda não existir cliente no Supabase, cria um registro com UUID real para nunca perder o vínculo
+          if (!resolvedCust && tokenArg && companyId) {
+            const cached = getCachedCustomer();
+            try {
+              resolvedCust = await Customer.create({
+                company_id: companyId,
+                name: cached?.name || 'Cliente',
+                email: cached?.email || null,
+                phone: cached?.phone || null,
+                status: 'active',
+              });
+            } catch (_) {}
+          }
+
+          if (resolvedCust) {
+            saveCachedCustomer(resolvedCust);
+            return {
+              data: {
+                success: true,
+                ok: true,
+                token: tokenArg || `cust_tok_${resolvedCust.id}_${Date.now()}`,
+                customer: resolvedCust,
+                customer_id: resolvedCust.id,
+              },
+            };
+          }
+
           return {
             data: {
-              success: true,
-              ok: true,
-              token: `cust_token_${Date.now()}`,
-              customer: customers[0] || { id: `cu_${Date.now()}`, email, name: 'Cliente' },
+              success: false,
+              ok: false,
+              customer: null,
             },
           };
         }
 
-        if (action === 'check_email') {
-          const customers = await Customer.filter({ email });
-          return {
-            data: {
-              success: true,
-              exists: customers.length > 0,
-              has_password: true,
-            },
-          };
+        // action === 'signup' | 'register' | 'login' | 'reset_password'
+        let existingList = [];
+        if (email) {
+          existingList = await Customer.filter({ company_id: companyId, email });
+          if (existingList.length === 0) {
+            existingList = await Customer.filter({ email });
+          }
+        }
+        if (existingList.length === 0 && phone && phone.length >= 10) {
+          existingList = await Customer.filter({ company_id: companyId, phone });
         }
 
-        const customers = await Customer.filter({ email });
-        const cust = customers[0] || { id: `cu_${Date.now()}`, email, name: email.split('@')[0] || 'Cliente' };
+        let cust = existingList[0] || null;
+
+        if (cust) {
+          // Atualiza nome/telefone se fornecidos no signup/login
+          const patch = {};
+          if (name && (!cust.name || cust.name === 'Cliente')) patch.name = name;
+          if (phone && !cust.phone) patch.phone = phone;
+          if (email && !cust.email) patch.email = email;
+          if (Object.keys(patch).length > 0) {
+            cust = (await Customer.update(cust.id, patch)) || { ...cust, ...patch };
+          }
+        } else {
+          // Cria cliente real no Supabase com UUID válido
+          cust = await Customer.create({
+            company_id: companyId,
+            name: name || (email ? email.split('@')[0] : 'Cliente'),
+            email: email || null,
+            phone: phone || null,
+            status: 'active',
+          });
+        }
+
+        saveCachedCustomer(cust);
+        const sessionToken = `cust_tok_${cust.id}_${Date.now()}`;
+
         return {
           data: {
             success: true,
             ok: true,
-            token: `token_cust_${Date.now()}`,
+            token: sessionToken,
             customer: cust,
             customer_id: cust.id,
           },
@@ -2245,6 +2377,75 @@ export async function invokeFunction(functionName, payload = {}) {
             appointment: created || apptData,
           },
         };
+      }
+
+      case 'mutateCustomer': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const action = payload.action || 'create';
+        const data = payload.data || payload;
+
+        if (action === 'create') {
+          const created = await Customer.create({
+            ...data,
+            company_id: companyId,
+            status: data.status || 'active',
+          });
+          return { data: { success: true, customer: created } };
+        }
+        if (action === 'update' && (payload.id || data.id)) {
+          const updated = await Customer.update(payload.id || data.id, data);
+          return { data: { success: true, customer: updated } };
+        }
+        if (action === 'delete' && (payload.id || data.id)) {
+          await Customer.delete(payload.id || data.id);
+          return { data: { success: true } };
+        }
+        return { data: { success: false, error: 'INVALID_ACTION' } };
+      }
+
+      case 'mutateAppointment': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const action = payload.action || 'create';
+        const data = payload.data || {};
+
+        if (action === 'create') {
+          let serviceName = data.service_name;
+          let servicePrice = Number(data.price || 0);
+          if (data.service_id && (!serviceName || !servicePrice)) {
+            const svc = await Service.get(data.service_id);
+            if (svc) {
+              serviceName = serviceName || svc.name;
+              if (!servicePrice) servicePrice = Number(svc.price || 0);
+            }
+          }
+          let proName = data.professional_name;
+          if (data.professional_id && !proName) {
+            const pro = await Professional.get(data.professional_id);
+            if (pro) proName = pro.name;
+          }
+
+          const created = await Appointment.create({
+            ...data,
+            company_id: companyId,
+            service_name: serviceName || 'Serviço',
+            professional_name: proName || 'Profissional',
+            price: servicePrice,
+            status: data.status || 'agendado',
+          });
+          return { data: { success: true, appointment: created } };
+        }
+
+        if (action === 'update' && payload.id) {
+          const updated = await Appointment.update(payload.id, data);
+          return { data: { success: true, appointment: updated } };
+        }
+
+        if (action === 'delete' && payload.id) {
+          await Appointment.delete(payload.id);
+          return { data: { success: true } };
+        }
+
+        return { data: { success: false, error: 'INVALID_ACTION' } };
       }
 
       case 'runSystemCheck': {

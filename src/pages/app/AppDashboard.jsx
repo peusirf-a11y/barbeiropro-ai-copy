@@ -187,6 +187,16 @@ export default function AppDashboard() {
     });
   }, [apptsScoped, todayStr]);
 
+  const upcomingAppts = useMemo(() => {
+    return apptsScoped.filter(a => {
+      if (['cancelado', 'faltou', 'pending_payment'].includes(a.status)) return false;
+      const d = a.scheduled_at || a.date;
+      return d ? new Date(d) >= new Date(Date.now() - 2 * 60 * 60 * 1000) : false;
+    });
+  }, [apptsScoped]);
+
+  const dashboardAgendaAppts = todayAppts.length > 0 ? todayAppts : upcomingAppts;
+
   const monthStart = useMemo(() => startOfMonth(now), [now]);
   const monthAppts = useMemo(() => {
     return apptsScoped.filter(a => {
@@ -459,7 +469,7 @@ export default function AppDashboard() {
         {/* Insights + Agenda do dia */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
           <div className="lg:col-span-2">
-            <TodayAgendaList appointments={todayAppts} />
+            <TodayAgendaList appointments={dashboardAgendaAppts} />
           </div>
           <div className="space-y-4 lg:space-y-6">
             <InsightsCard alerts={alerts} />

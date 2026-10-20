@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,6 +40,7 @@ export default function AppAgenda() {
   const isBarbeiro = teamRole?.role === 'barbeiro';
   const myProId = teamRole?.professional_id || null;
   const [currentDate, setCurrentDate] = useState(new Date());
+  const hasAutoJumpedRef = useRef(false);
   const [selectedAppt, setSelectedAppt] = useState(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -60,11 +61,12 @@ export default function AppAgenda() {
   });
 
   // BFF Fase 3: leitura passa pelo backend. Tenant + role (barbeiro) +
-  // unit scope são aplicados server-side. O front só passa active_unit_id.
+  // unit scope são aplicados server-side. O front passa company_id e active_unit_id.
   const { data: appointmentsRaw, isLoading: loadingAppts } = useQuery({
     queryKey: buildTenantQueryKey({ entity: 'appointments', companyId, filters: { activeUnitId, isBarbeiro: isBarbeiro ? myProId : 'all' } }),
     queryFn: async () => {
       const res = await base44.functions.invoke('listAppointments', {
+        company_id: companyId,
         active_unit_id: activeUnitId || undefined,
         limit: 500,
         ...impPatch,
@@ -295,6 +297,22 @@ export default function AppAgenda() {
   const filteredAppts = filterPro === 'all' ? apptsByUnit : apptsByUnit.filter(a => a.professional_id === filterPro);
   const visiblePros = filterPro === 'all' ? prosByUnit : prosByUnit.filter(p => p.id === filterPro);
 
+  const upcomingAppointments = filteredAppts
+    .filter(a => !['cancelado', 'faltou', 'pending_payment'].includes(a.status) && new Date(a.scheduled_at) >= new Date(Date.now() - 2 * 60 * 60 * 1000))
+    .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+
+  // Se hoje não tiver agendamentos mas houver agendamento confirmado nos próximos dias, posiciona automaticamente no próximo dia agendado
+  useEffect(() => {
+    if (hasAutoJumpedRef.current || filteredAppts.length === 0) return;
+    const todayHasAppt = filteredAppts.some(a => !['cancelado', 'faltou'].includes(a.status) && isSameDay(new Date(a.scheduled_at), new Date()));
+    if (!todayHasAppt && upcomingAppointments.length > 0) {
+      hasAutoJumpedRef.current = true;
+      setCurrentDate(new Date(upcomingAppointments[0].scheduled_at));
+    } else if (todayHasAppt) {
+      hasAutoJumpedRef.current = true;
+    }
+  }, [filteredAppts, upcomingAppointments]);
+
   // Conflict + block check via lib reutilizável
   // custom_duration_minutes (resize manual) sobrescreve a duração padrão do serviço
   const apptsWithDuration = appointments.map(a => ({
@@ -484,6 +502,45 @@ export default function AppAgenda() {
 
         {isAllUnits && (
           <AllUnitsNotice message="Você está vendo a agenda consolidada de todas as unidades. Para criar um novo agendamento, selecione uma unidade específica." />
+        )}
+
+        {/* Barra rápida de próximos agendamentos confirmados */}
+        {upcomingAppointments.length > 0 && (
+          <div className="mb-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
+              <Calendar className="w-4 h-4 text-emerald-400" />
+              <span>Próximos agendamentos confirmados ({upcomingAppointments.length}):</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {upcomingAppointments.slice(0, 4).map(a => {
+                const d = new Date(a.scheduled_at);
+                const isSelectedDay = isSameDay(d, currentDate);
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => {
+                      setCurrentDate(d);
+                      setSelectedAppt(a);
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-xl border transition-all flex items-center gap-2 ${
+                      isSelectedDay
+                        ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-100 font-bold'
+                        : 'bg-white/[0.04] border-white/10 text-white/80 hover:bg-white/[0.08]'
+                    }`}
+                  >
+                    <span>{a.customer_name || 'Cliente'} · {a.service_name || 'Corte'}</span>
+                    <span className="text-emerald-300 font-bold">{format(d, "dd/MM 'às' HH:mm")}</span>
+                    {(a.paid_online || a.paid || a.asaas_payment_id) && (
+                      <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/25 text-emerald-200">
+                        PAGO PIX
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         {/* Seletor de dias da semana — pílulas */}

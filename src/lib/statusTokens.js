@@ -22,6 +22,15 @@ export const STATUS_TOKENS = {
     leftBar: 'border-l-emerald-400 bg-emerald-400/10',
     accent: '#34D399',
   },
+  confirmed: {
+    label: 'Confirmado',
+    pill: 'bg-emerald-400/15 text-emerald-200 border-emerald-400/30',
+    cardBg: 'bg-emerald-400/10',
+    cardBorder: 'border-emerald-400/35',
+    cardText: 'text-emerald-100',
+    leftBar: 'border-l-emerald-400 bg-emerald-400/10',
+    accent: '#34D399',
+  },
   em_atendimento: {
     label: 'Em atendimento',
     pill: 'bg-amber-400/25 text-amber-100 border-amber-400/45',

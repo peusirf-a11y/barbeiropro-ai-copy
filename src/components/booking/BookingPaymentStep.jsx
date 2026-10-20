@@ -1,7 +1,7 @@
 // Step de pagamento online no fluxo público (/agendar/:slug).
 // 1. Tela "Como pagar" (Pix / Cartão + CPF do pagador + botão "Continuar para pagamento").
 // 2. Ao apertar "Continuar para pagamento", gera o código Pix no Asaas (/api/appointments/create-pix).
-// 3. Verifica se o pagamento foi confirmado no Asaas: se sim, cria o agendamento no sistema; se não, informa que o pagamento não foi bem-sucedido e bloqueia o avanço.
+// 3. Verifica se o pagamento foi confirmado no Asaas: se sim, confirma o agendamento no sistema; se não, informa que o pagamento não foi bem-sucedido e bloqueia o avanço.
 
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -114,6 +114,7 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
 
       const jsonRes = await fetchRes.json().catch(() => null);
       const realPaymentId = jsonRes?.paymentId || jsonRes?.payment_id || '';
+      const realApptId = jsonRes?.appointmentId || jsonRes?.appointment_id || null;
       const isValidAsaasPayment =
         fetchRes.ok &&
         jsonRes &&
@@ -135,12 +136,15 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
       }
 
       const normalizedIntent = {
+        appointmentId: realApptId,
+        appointment_id: realApptId,
         paymentId: realPaymentId,
         payment_id: realPaymentId,
         encodedImage: jsonRes.encodedImage,
         payload: jsonRes.payload,
         bookingPayload: requestBody,
         pix: {
+          appointmentId: realApptId,
           paymentId: realPaymentId,
           encodedImage: jsonRes.encodedImage,
           payload: jsonRes.payload,
@@ -240,6 +244,7 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
       {/* ─── TELA DO PIX (QR CODE + COPIA E COLA + VERIFICAÇÃO) ─── */}
       {stage === 'pix' && intentData && (
         <PixPaymentBox
+          appointmentId={intentData.appointment_id}
           paymentId={intentData.payment_id}
           pixData={intentData.pix}
           bookingPayload={intentData.bookingPayload}
@@ -250,6 +255,7 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
             onSucceeded?.({
               ...intentData,
               appointment_id: confirmedData?.appointmentId || intentData.appointment_id,
+              appointment: confirmedData?.appointment || null,
             })
           }
           onExpired={() => setStage('expired')}
