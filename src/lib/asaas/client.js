@@ -68,6 +68,35 @@ export async function asaasRequest(method, path, options = {}) {
   const timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
   const maxRetries = Number.isInteger(options.maxRetries) ? options.maxRetries : DEFAULT_MAX_RETRIES;
 
+  // No navegador (client-side), chamadas diretas para https://api.asaas.com/v3 sofrem bloqueio de CORS.
+  // Roteamos automaticamente pelo endpoint server-side para evitar "Falha de rede ao chamar Asaas".
+  if (typeof window !== 'undefined') {
+    const proxyRes = await fetch('/api/appointments/create-pix', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'asaas_proxy',
+        method,
+        path,
+        query: options.query,
+        body: options.body,
+        apiKey: activeApiKey,
+        companyId: options.companyId,
+      }),
+    });
+    const proxyData = await proxyRes.json().catch(() => null);
+    if (proxyRes.ok) {
+      return { data: proxyData, requestId: correlationId, status: proxyRes.status };
+    }
+    throw new AsaasError({
+      code: proxyRes.status === 401 || proxyRes.status === 403 ? AsaasErrorCodes.UNAUTHORIZED : AsaasErrorCodes.BAD_REQUEST,
+      message: extractErrorMessage(proxyData) || 'Pagamento não autorizado pelo Asaas.',
+      status: proxyRes.status,
+      requestId: correlationId,
+      details: proxyData,
+    });
+  }
+
   const isProd = activeApiKey.startsWith('$aact_prod_') || activeApiKey.startsWith('prod_');
   const baseUrl = options.baseUrl || (isProd ? 'https://api.asaas.com/v3' : cfg.baseUrl);
 

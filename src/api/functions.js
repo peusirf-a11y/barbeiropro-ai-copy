@@ -1105,105 +1105,36 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'chargeBookingWithCard': {
-        console.log('[Asaas] chargeBookingWithCard payload:', JSON.stringify(payload, null, 2));
         const companyId = payload.company_id || payload.booking?.company_id || (await resolveCompanyId(payload));
-        const company = companyId ? await Company.get(companyId) : null;
-        const barberApiKey = company?.asaas_api_key?.trim();
-        const price = Number(payload.price || payload.amount || payload.booking?.price || 35);
-        const customerName = payload.customer_name || payload.booking?.customer_name || 'Cliente';
-
-        const cardNum = String(payload?.card?.number || '');
-        const isDeclined = cardNum.startsWith('9999');
-        if (isDeclined) {
-          return { data: { success: false, message: 'Cartão recusado pelo banco emissor (simulação de teste).' } };
-        }
-
-        if (!barberApiKey) {
+        const res = await fetch('/api/appointments/create-card', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'card',
+            companyId,
+            company_id: companyId,
+            booking: payload.booking || payload,
+            card: payload.card,
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.success) {
           return {
             data: {
               success: false,
-              error: 'ASAAS_NOT_CONFIGURED',
-              message: 'Não foi possível processar o pagamento no Asaas. Verifique a chave de API da barbearia.',
+              status: data?.status || 'DECLINED',
+              error: data?.error || data?.message || 'Pagamento com cartão não autorizado pelo Asaas.',
+              message: data?.message || data?.error || 'Pagamento com cartão não autorizado pelo Asaas.',
             },
           };
         }
-
-        let realCardPaymentId = null;
-        try {
-          const payRes = await asaasRequest('POST', '/payments', {
-            apiKey: barberApiKey,
-            body: {
-              billingType: 'CREDIT_CARD',
-              value: price,
-              dueDate: new Date().toISOString().split('T')[0],
-              description: `Agendamento - ${customerName}`,
-              creditCard: payload.card,
-              creditCardHolderInfo: payload.holder_info || {
-                name: payload.card?.holderName || customerName,
-                email: payload.booking?.customer_email || payload.customer_email || 'cliente@barbearia.com',
-                cpfCnpj: payload.booking?.customer_cpf || payload.customer_cpf || '39053344705',
-                postalCode: '01310100',
-                addressNumber: '100',
-                phone: payload.booking?.customer_phone || payload.customer_phone || '11988887777',
-              },
-            },
-          });
-          realCardPaymentId = payRes?.data?.id || null;
-          const cardStatus = String(payRes?.data?.status || '').toUpperCase();
-          if (!realCardPaymentId || (cardStatus !== 'CONFIRMED' && cardStatus !== 'RECEIVED')) {
-            return {
-              data: {
-                success: false,
-                message: 'Pagamento com cartão não autorizado pelo Asaas.',
-              },
-            };
-          }
-        } catch (err) {
-          return {
-            data: {
-              success: false,
-              message: err?.message || 'Falha na cobrança com cartão no Asaas.',
-            },
-          };
-        }
-
-        let appointmentId = null;
-        if (payload.booking) {
-          try {
-            const b = payload.booking;
-            const dateVal = b.date || (b.scheduled_at ? b.scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0]);
-            const timeVal = b.time || (b.scheduled_at && b.scheduled_at.includes('T') ? b.scheduled_at.split('T')[1].slice(0, 5) : '09:00');
-            const created = await Appointment.create({
-              company_id: companyId,
-              customer_id: b.customer_id || null,
-              customer_name: b.customer_name || customerName,
-              customer_phone: b.customer_phone || '',
-              customer_email: b.customer_email || null,
-              service_id: b.service_id || null,
-              service_name: b.service_name || 'Serviço',
-              professional_id: b.professional_id || companyId,
-              professional_name: b.professional_name || 'Profissional',
-              date: dateVal,
-              time: timeVal,
-              scheduled_at: b.scheduled_at || `${dateVal}T${timeVal}:00-03:00`,
-              price: price,
-              status: 'confirmed',
-              payment_status: 'confirmed',
-              payment_id: realCardPaymentId,
-              notes: b.notes || '',
-            });
-            if (created?.id) appointmentId = created.id;
-          } catch (e) {
-            console.warn('[chargeBookingWithCard] Aviso ao gravar appointment:', e);
-          }
-        }
-
         return {
           data: {
             success: true,
-            status: 'CONFIRMED',
-            payment_id: realCardPaymentId,
-            appointment_id: appointmentId,
+            status: data.status || 'CONFIRMED',
+            payment_id: data.paymentId || data.payment_id,
+            appointment_id: data.appointmentId || data.appointment_id,
+            appointment: data.appointment || null,
           },
         };
       }

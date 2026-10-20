@@ -404,7 +404,374 @@ async function upsertAppointmentForPix({
   }
 }
 
+export async function handleAsaasProxy(body = {}) {
+  try {
+    const method = String(body.method || 'GET').toUpperCase();
+    const path = String(body.path || '/customers');
+    let apiKey = String(body.apiKey || '').trim();
+    const companyId = toSafeUuid(body.companyId || body.company_id);
+
+    if (!apiKey && companyId && supabase) {
+      try {
+        const { data: comp } = await supabase
+          .from('companies')
+          .select('asaas_api_key')
+          .eq('id', companyId)
+          .maybeSingle();
+        if (comp?.asaas_api_key) {
+          apiKey = comp.asaas_api_key.trim();
+        }
+      } catch (_) {}
+    }
+
+    if (!apiKey && supabase) {
+      try {
+        const { data: comps } = await supabase
+          .from('companies')
+          .select('asaas_api_key')
+          .not('asaas_api_key', 'is', null)
+          .limit(1);
+        if (comps?.[0]?.asaas_api_key) {
+          apiKey = comps[0].asaas_api_key.trim();
+        }
+      } catch (_) {}
+    }
+
+    if (!apiKey) {
+      return {
+        status: 400,
+        body: {
+          errors: [{ description: 'Chave de API do Asaas não configurada na barbearia.' }],
+          message: 'Chave de API do Asaas não configurada na barbearia.',
+        },
+      };
+    }
+
+    const baseUrl = getAsaasBaseUrl(apiKey);
+    let url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    if (body.query && typeof body.query === 'object') {
+      const qs = new URLSearchParams();
+      for (const [k, v] of Object.entries(body.query)) {
+        if (v !== undefined && v !== null) qs.append(k, String(v));
+      }
+      const qsStr = qs.toString();
+      if (qsStr) url += `?${qsStr}`;
+    }
+
+    const headers = {
+      'access_token': apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'User-Agent': 'OCorte-App',
+    };
+
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: method !== 'GET' && method !== 'HEAD' && body.body ? JSON.stringify(body.body) : undefined,
+    });
+
+    const data = await res.json().catch(() => null);
+    return {
+      status: res.status,
+      body: data || {},
+    };
+  } catch (err) {
+    return {
+      status: 500,
+      body: {
+        message: err.message || 'Erro ao comunicar com o Asaas.',
+      },
+    };
+  }
+}
+
+export async function handleCreateCardPayment(body = {}) {
+  try {
+    const booking = body.booking || body;
+    const card = body.card || body.creditCard || {};
+
+    const rawCompanyId =
+      body.companyId || body.company_id || booking?.companyId || booking?.company_id || null;
+    let companyId = toSafeUuid(rawCompanyId);
+
+    const clientName = String(
+      booking?.clientName ||
+      booking?.client_name ||
+      booking?.customer_name ||
+      card?.holderName ||
+      'Cliente'
+    ).trim();
+    const clientPhone = String(
+      card?.phone ||
+      booking?.clientPhone ||
+      booking?.client_phone ||
+      booking?.customer_phone ||
+      ''
+    ).trim();
+    const clientEmail = String(
+      card?.email ||
+      booking?.clientEmail ||
+      booking?.client_email ||
+      booking?.customer_email ||
+      ''
+    ).trim();
+
+    const rawCpfDigits = String(
+      card?.cpfCnpj ||
+      booking?.clientCpf ||
+      booking?.client_cpf ||
+      booking?.customer_cpf ||
+      ''
+    ).replace(/\D/g, '');
+    const validCpf =
+      rawCpfDigits.length === 14
+        ? rawCpfDigits
+        : resolveValidCpf(rawCpfDigits);
+
+    const rawPrice = Number(booking?.price || body.price || booking?.amount || 0);
+    const servicePrice = rawPrice > 0 ? rawPrice : 35.0;
+
+    const cardNumber = String(card?.number || '').replace(/\D/g, '');
+    const holderName = String(card?.holderName || clientName || 'Cliente').trim();
+    const expiryMonth = String(card?.expiryMonth || '').replace(/\D/g, '').padStart(2, '0');
+    const rawYear = String(card?.expiryYear || '').replace(/\D/g, '');
+    const expiryYear = rawYear.length === 2 ? `20${rawYear}` : rawYear;
+    const ccv = String(card?.ccv || card?.cvv || '').replace(/\D/g, '');
+
+    if (!cardNumber || cardNumber.length < 13 || !expiryMonth || !expiryYear || !ccv) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          error: 'Dados do cartão incompletos. Verifique número, validade e CVV.',
+          message: 'Dados do cartão incompletos. Verifique número, validade e CVV.',
+        },
+      };
+    }
+
+    // Busca a 'asaas_api_key' da barbearia em 'companies'
+    let asaasApiKey = '';
+    if (companyId && supabase) {
+      try {
+        const { data: comp } = await supabase
+          .from('companies')
+          .select('id, name, asaas_api_key')
+          .eq('id', companyId)
+          .maybeSingle();
+        if (comp?.asaas_api_key) {
+          asaasApiKey = comp.asaas_api_key.trim();
+        }
+      } catch (_) {}
+    }
+
+    if (!asaasApiKey && supabase) {
+      try {
+        const { data: comps } = await supabase
+          .from('companies')
+          .select('id, asaas_api_key')
+          .not('asaas_api_key', 'is', null)
+          .limit(1);
+        if (comps?.[0]?.asaas_api_key) {
+          asaasApiKey = comps[0].asaas_api_key.trim();
+          companyId = companyId || comps[0].id;
+        }
+      } catch (_) {}
+    }
+
+    if (!asaasApiKey) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          error: 'Não foi possível processar o cartão no Asaas. Verifique a chave de API da barbearia.',
+          message: 'Não foi possível processar o cartão no Asaas. Verifique a chave de API da barbearia.',
+        },
+      };
+    }
+
+    const baseUrl = getAsaasBaseUrl(asaasApiKey);
+    const headers = {
+      'access_token': asaasApiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'User-Agent': 'OCorte-App',
+    };
+
+    // 1º PASSO: Cria ou obtém o cliente no Asaas
+    let customerId = null;
+    const cleanMobile = clientPhone.replace(/\D/g, '');
+    const validPhone =
+      cleanMobile.length >= 10 && cleanMobile.length <= 11 && !/^(\d)\1+$/.test(cleanMobile.slice(-8))
+        ? cleanMobile
+        : '11987654321';
+    const validEmail = clientEmail.includes('@') ? clientEmail : 'cliente@barbearia.com';
+
+    const createCustRes = await fetch(`${baseUrl}/customers`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: clientName || holderName || 'Cliente',
+        cpfCnpj: validCpf,
+        email: validEmail,
+        mobilePhone: validPhone,
+      }),
+    });
+    const createCustData = await createCustRes.json().catch(() => null);
+
+    if (createCustRes.ok && createCustData?.id) {
+      customerId = createCustData.id;
+    } else {
+      const retryCustRes = await fetch(`${baseUrl}/customers`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: clientName || holderName || 'Cliente',
+          cpfCnpj: validCpf,
+        }),
+      });
+      const retryCustData = await retryCustRes.json().catch(() => null);
+      if (retryCustRes.ok && retryCustData?.id) {
+        customerId = retryCustData.id;
+      } else {
+        const custErr =
+          retryCustData?.errors?.map((e) => e.description).filter(Boolean).join(' ') ||
+          createCustData?.errors?.map((e) => e.description).filter(Boolean).join(' ') ||
+          'Não foi possível validar o cadastro do titular no Asaas.';
+        return {
+          status: 400,
+          body: {
+            success: false,
+            error: custErr,
+            message: custErr,
+          },
+        };
+      }
+    }
+
+    // 2º PASSO: Cria e captura a cobrança com Cartão de Crédito no Asaas (POST /v3/payments)
+    const today = new Date().toISOString().split('T')[0];
+    const postalCode = String(card?.postalCode || '01310100').replace(/\D/g, '') || '01310100';
+    const addressNumber = String(card?.addressNumber || '100').trim() || '100';
+
+    const buildPaymentBody = (val) => ({
+      customer: customerId,
+      billingType: 'CREDIT_CARD',
+      value: Number(val),
+      dueDate: today,
+      description: `Agendamento - ${clientName}`,
+      creditCard: {
+        holderName,
+        number: cardNumber,
+        expiryMonth,
+        expiryYear,
+        ccv,
+      },
+      creditCardHolderInfo: {
+        name: holderName,
+        email: validEmail,
+        cpfCnpj: validCpf,
+        postalCode,
+        addressNumber,
+        phone: validPhone,
+        mobilePhone: validPhone,
+      },
+    });
+
+    let payRes = await fetch(`${baseUrl}/payments`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(buildPaymentBody(servicePrice)),
+    });
+    let payData = await payRes.json().catch(() => null);
+
+    if (!payRes.ok && servicePrice < 5) {
+      payRes = await fetch(`${baseUrl}/payments`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(buildPaymentBody(5.0)),
+      });
+      payData = await payRes.json().catch(() => null);
+    }
+
+    if (!payRes.ok || !payData?.id) {
+      const asaasErr =
+        payData?.errors?.map((e) => e.description).filter(Boolean).join(' ') ||
+        payData?.message ||
+        'Pagamento com cartão não autorizado pelo banco emissor.';
+      return {
+        status: 400,
+        body: {
+          success: false,
+          error: asaasErr,
+          message: asaasErr,
+        },
+      };
+    }
+
+    const paymentId = payData.id;
+    const payStatus = String(payData.status || '').toUpperCase();
+
+    if (!['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(payStatus)) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          status: payStatus,
+          error: `O pagamento não foi aprovado imediatamente (status: ${payStatus}). Verifique os dados do cartão.`,
+          message: `O pagamento não foi aprovado imediatamente (status: ${payStatus}). Verifique os dados do cartão.`,
+        },
+      };
+    }
+
+    // 3º PASSO: Grava o agendamento confirmado no Supabase imediatamente
+    const confirmedAppt = await upsertAppointmentForPix({
+      paymentId,
+      booking: {
+        ...booking,
+        clientName,
+        clientPhone,
+        clientEmail,
+        clientCpf: validCpf,
+      },
+      fallbackCompanyId: companyId,
+      targetStatus: 'confirmado',
+      targetPaymentStatus: 'confirmed',
+    });
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        confirmed: true,
+        status: payStatus,
+        paymentId,
+        payment_id: paymentId,
+        appointmentId: confirmedAppt?.id || null,
+        appointment_id: confirmedAppt?.id || null,
+        appointment: confirmedAppt || null,
+      },
+    };
+  } catch (err) {
+    console.error('[create-card] Erro fatal:', err);
+    return {
+      status: 500,
+      body: {
+        success: false,
+        error: err.message || 'Erro ao processar pagamento com cartão no Asaas.',
+        message: err.message || 'Erro ao processar pagamento com cartão no Asaas.',
+      },
+    };
+  }
+}
+
 export async function handleCreatePix(body = {}) {
+  if (body?.action === 'asaas_proxy') {
+    return handleAsaasProxy(body);
+  }
+  if (body?.action === 'card' || body?.billingType === 'CREDIT_CARD' || body?.card || body?.creditCard) {
+    return handleCreateCardPayment(body);
+  }
   try {
     const rawCompanyId = body.companyId || body.company_id || null;
     const companyId = toSafeUuid(rawCompanyId);

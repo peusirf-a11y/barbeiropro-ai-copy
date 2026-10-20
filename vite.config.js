@@ -46,7 +46,7 @@ function asaasApiDevPlugin() {
           }
         }
 
-        if (url === '/api/appointments/create-pix' || url === '/api/appointments/create') {
+        if (url === '/api/appointments/create-pix' || url === '/api/appointments/create-card' || url === '/api/appointments/create') {
           if (req.method === 'POST') {
             try {
               let bodyStr = '';
@@ -54,8 +54,10 @@ function asaasApiDevPlugin() {
               req.on('end', async () => {
                 let parsedBody = {};
                 try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
-                const { handleCreatePix } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
-                const result = await handleCreatePix(parsedBody);
+                const { handleCreatePix, handleCreateCardPayment } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
+                const result = url === '/api/appointments/create-card'
+                  ? await handleCreateCardPayment(parsedBody)
+                  : await handleCreatePix(parsedBody);
                 res.writeHead(result.status, {
                   'Content-Type': 'application/json',
                   'Access-Control-Allow-Origin': '*',
@@ -65,8 +67,7 @@ function asaasApiDevPlugin() {
               return;
             } catch (err) {
               res.writeHead(500, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: err.message || 'Erro ao criar Pix' }));
-              return;
+              res.end(JSON.stringify({ error: err.message || 'Erro ao processar pagamento' }));
             }
           }
         }
@@ -127,14 +128,16 @@ function asaasApiDevPlugin() {
         const url = rawUrl;
         const query = Object.fromEntries(new URLSearchParams(queryString));
 
-        if ((url === '/api/appointments/create-pix' || url === '/api/appointments/create') && req.method === 'POST') {
+        if ((url === '/api/appointments/create-pix' || url === '/api/appointments/create-card' || url === '/api/appointments/create') && req.method === 'POST') {
           let bodyStr = '';
           req.on('data', (chunk) => { bodyStr += chunk; });
           req.on('end', async () => {
             let parsedBody = {};
             try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
-            const { handleCreatePix } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
-            const result = await handleCreatePix(parsedBody);
+            const { handleCreatePix, handleCreateCardPayment } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
+            const result = url === '/api/appointments/create-card'
+              ? await handleCreateCardPayment(parsedBody)
+              : await handleCreatePix(parsedBody);
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
           });

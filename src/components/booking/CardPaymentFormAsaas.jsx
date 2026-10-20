@@ -26,7 +26,7 @@ export function maskCpfCnpj(v) {
     return d
       .replace(/^(\d{3})(\d)/, '$1.$2')
       .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d{1,2})$/, '$1-$2');
+      .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
   }
   return d
     .replace(/^(\d{2})(\d)/, '$1.$2')
@@ -160,11 +160,19 @@ export default function CardPaymentFormAsaas({
         </div>
       )}
 
-      {/* Alerta de Segurança e Período de Testes */}
+      {/* Alerta de Segurança */}
       <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200/80 rounded-2xl p-3.5 shadow-sm">
         <Shield className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
         <div className="text-[12px] text-blue-950 leading-relaxed">
-          <strong>7 dias grátis.</strong> Cancele quando quiser. A primeira fatura só será debitada em 7 dias após a validação do cartão.
+          {String(amountLabel || '').toLowerCase().includes('grátis') ? (
+            <>
+              <strong>7 dias grátis.</strong> Cancele quando quiser. A primeira fatura só será debitada em 7 dias após a validação do cartão.
+            </>
+          ) : (
+            <>
+              <strong>Pagamento seguro via Asaas.</strong> Seu agendamento é confirmado imediatamente após a aprovação do cartão.
+            </>
+          )}
         </div>
       </div>
 

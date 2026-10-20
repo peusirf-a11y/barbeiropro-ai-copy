@@ -268,17 +268,48 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
           <CardPaymentFormAsaas
             primaryColor={primaryColor}
             amountLabel={payload.price ? `Pagar R$ ${Number(payload.price).toFixed(2).replace('.', ',')}` : 'Pagar agora'}
+            defaultCpf={cpfDigits || payload.customer_cpf || ''}
             defaultName={payload.customer_name}
             defaultEmail={payload.customer_email}
             defaultPhone={payload.customer_phone}
             onSubmit={async (card) => {
-              const requestPayload = { booking: payload, card };
-              const res = await base44.functions.invoke('chargeBookingWithCard', requestPayload);
-              const data = res?.data;
-              if (!data?.success || (data?.status !== 'CONFIRMED' && data?.status !== 'RECEIVED')) {
-                throw new Error(data?.message || data?.error || 'O pagamento não foi bem-sucedido. Verifique os dados do cartão.');
+              const bookingBody = buildRequestBody();
+              const res = await fetch('/api/appointments/create-card', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'card',
+                  companyId: bookingBody.companyId,
+                  company_id: bookingBody.companyId,
+                  booking: bookingBody,
+                  card,
+                }),
+              });
+              const data = await res.json().catch(() => null);
+              const statusUpper = String(data?.status || '').toUpperCase();
+              if (!res.ok || !data?.success || !['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(statusUpper)) {
+                throw new Error(
+                  data?.message ||
+                  data?.error ||
+                  'O pagamento não foi bem-sucedido. Verifique os dados do cartão e tente novamente.'
+                );
               }
-              onSucceeded?.({ appointment_id: data.appointment_id || payload.appointment_id });
+              const finalApptId = data.appointmentId || data.appointment_id || payload.appointment_id;
+              const targetCompanyId = bookingBody.companyId;
+              if (finalApptId && targetCompanyId) {
+                try {
+                  const rawSaved = localStorage.getItem(`bt_my_appointments_${targetCompanyId}`) || '[]';
+                  const list = JSON.parse(rawSaved);
+                  if (!list.includes(finalApptId)) {
+                    list.unshift(finalApptId);
+                    localStorage.setItem(`bt_my_appointments_${targetCompanyId}`, JSON.stringify(list));
+                  }
+                } catch (_) {}
+              }
+              onSucceeded?.({
+                appointment_id: finalApptId,
+                appointment: data.appointment || null,
+              });
             }}
           />
         </div>
