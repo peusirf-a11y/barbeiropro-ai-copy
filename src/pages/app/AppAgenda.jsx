@@ -533,7 +533,9 @@ export default function AppAgenda() {
                     <span className="text-emerald-300 font-bold">{format(d, "dd/MM 'às' HH:mm")}</span>
                     {(a.paid_online || a.paid || a.asaas_payment_id) && (
                       <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/25 text-emerald-200">
-                        PAGO PIX
+                        {a.payment_status === 'confirmed_card' || a.payment_method === 'credit_card' || a.payment_method === 'card'
+                          ? 'PAGO CARTÃO'
+                          : 'PAGO PIX'}
                       </span>
                     )}
                   </button>

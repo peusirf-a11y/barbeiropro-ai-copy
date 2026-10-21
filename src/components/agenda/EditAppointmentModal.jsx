@@ -319,7 +319,11 @@ export default function EditAppointmentModal({
                 {form.paid ? 'Pago' : 'Marcar como pago'}
               </span>
               {appointment.paid_online && (
-                <span className="text-[10px] font-bold uppercase bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 px-1.5 py-0.5 rounded">Online</span>
+                <span className="text-[10px] font-bold uppercase bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 px-1.5 py-0.5 rounded">
+                  {appointment.payment_status === 'confirmed_card' || appointment.payment_method === 'credit_card' || appointment.payment_method === 'card'
+                    ? 'Cartão Online'
+                    : 'Pix Online'}
+                </span>
               )}
             </button>
           </div>

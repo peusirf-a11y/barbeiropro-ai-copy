@@ -385,7 +385,19 @@ function AppointmentCard({ appt, primaryColor, tw, muted }) {
     aguardando_pagamento: 'text-amber-400',
   }[appt.status] || tw.textFaint;
 
-  const isPaidOnline = appt.paid_online || appt.paid || appt.payment_status === 'confirmed' || Boolean(appt.asaas_payment_id);
+  const isPaidOnline =
+    appt.paid_online ||
+    appt.paid ||
+    appt.payment_status === 'confirmed' ||
+    appt.payment_status === 'confirmed_card' ||
+    Boolean(appt.asaas_payment_id);
+
+  const isCardPayment =
+    appt.payment_status === 'confirmed_card' ||
+    appt.payment_status === 'paid_card' ||
+    appt.payment_method === 'credit_card' ||
+    appt.payment_method === 'card' ||
+    appt.payment_method === 'CREDIT_CARD';
 
   return (
     <div className={`flex items-center gap-4 ${tw.card} rounded-2xl p-4 transition-all ${muted ? 'opacity-50' : ''}`}>
@@ -403,7 +415,7 @@ function AppointmentCard({ appt, primaryColor, tw, muted }) {
         <div className={`text-[10px] uppercase tracking-wide font-semibold ${statusColor}`}>{statusLabel}</div>
         {isPaidOnline && (
           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 mt-1 inline-block">
-            PAGO PIX
+            {isCardPayment ? 'PAGO CARTÃO' : 'PAGO PIX'}
           </span>
         )}
         {appt.payment_method === 'subscription' && (

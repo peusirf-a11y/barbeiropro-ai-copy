@@ -32,7 +32,16 @@ export default function TodayAgendaList({ appointments = [] }) {
           {sorted.map(appt => {
             const apptDate = new Date(appt.scheduled_at);
             const isToday = isSameDay(apptDate, new Date());
-            const isPaidOnline = appt.paid || appt.paid_online || appt.payment_status === 'confirmed' || Boolean(appt.asaas_payment_id);
+            const isPaidOnline =
+              appt.paid ||
+              appt.paid_online ||
+              appt.payment_status === 'confirmed' ||
+              appt.payment_status === 'confirmed_card' ||
+              Boolean(appt.asaas_payment_id);
+            const isCardPayment =
+              appt.payment_status === 'confirmed_card' ||
+              appt.payment_method === 'credit_card' ||
+              appt.payment_method === 'card';
             return (
               <div
                 key={appt.id}
@@ -55,9 +64,9 @@ export default function TodayAgendaList({ appointments = [] }) {
                     {isPaidOnline && (
                       <span
                         className="text-[9px] font-bold flex-shrink-0 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25 px-1.5 py-0.5 rounded"
-                        title="Pago online via Pix"
+                        title={isCardPayment ? 'Pago online via Cartão de Crédito' : 'Pago online via Pix'}
                       >
-                        PAGO PIX
+                        {isCardPayment ? 'PAGO CARTÃO' : 'PAGO PIX'}
                       </span>
                     )}
                   </div>

@@ -736,7 +736,7 @@ export async function handleCreateCardPayment(body = {}) {
       },
       fallbackCompanyId: companyId,
       targetStatus: 'confirmado',
-      targetPaymentStatus: 'confirmed',
+      targetPaymentStatus: 'confirmed_card',
     });
 
     return {
@@ -745,11 +745,15 @@ export async function handleCreateCardPayment(body = {}) {
         success: true,
         confirmed: true,
         status: payStatus,
+        billingType: 'CREDIT_CARD',
+        payment_method: 'credit_card',
         paymentId,
         payment_id: paymentId,
         appointmentId: confirmedAppt?.id || null,
         appointment_id: confirmedAppt?.id || null,
-        appointment: confirmedAppt || null,
+        appointment: confirmedAppt
+          ? { ...confirmedAppt, payment_method: 'credit_card' }
+          : null,
       },
     };
   } catch (err) {
@@ -1072,6 +1076,8 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
 
     const asaasData = await asaasRes.json().catch(() => null);
     const asaasStatus = String(asaasData?.status || 'PENDING').toUpperCase();
+    const asaasBillingType = String(asaasData?.billingType || 'PIX').toUpperCase();
+    const isCard = asaasBillingType === 'CREDIT_CARD';
 
     // SE SIM (pagamento confirmado no Asaas: RECEIVED, CONFIRMED ou RECEIVED_IN_CASH) → confirma o agendamento no sistema!
     if (asaasRes.ok && ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(asaasStatus)) {
@@ -1080,17 +1086,21 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
         booking: bookingData || {},
         fallbackCompanyId: targetCompanyId,
         targetStatus: 'confirmado',
-        targetPaymentStatus: 'confirmed',
+        targetPaymentStatus: isCard ? 'confirmed_card' : 'confirmed',
       });
 
       return {
         status: 200,
         body: {
           status: asaasStatus,
+          billingType: asaasBillingType,
+          payment_method: isCard ? 'credit_card' : 'pix',
           received: true,
           confirmed: true,
           appointmentId: confirmedAppt?.id || appointmentId || null,
-          appointment: confirmedAppt || null,
+          appointment: confirmedAppt
+            ? { ...confirmedAppt, payment_method: isCard ? 'credit_card' : 'pix' }
+            : null,
           payment_status: 'succeeded',
           appointment_status: 'confirmado',
         },

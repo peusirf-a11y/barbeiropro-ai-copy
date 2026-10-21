@@ -115,16 +115,31 @@ export class EntityRepository {
       out.status = 'confirmado';
     }
 
-    // Se houve pagamento online confirmado, habilita flags paid / paid_online para exibir badge PAGO
+    // Se houve pagamento online confirmado, habilita flags paid / paid_online e identifica o método (pix vs credit_card)
+    const pStatus = String(out.payment_status || '').toLowerCase();
+    const isCardPayment =
+      pStatus === 'confirmed_card' ||
+      pStatus === 'paid_card' ||
+      out.payment_method === 'credit_card' ||
+      out.payment_method === 'card' ||
+      out.payment_method === 'CREDIT_CARD';
+
     if (
       out.status !== 'pending_payment' &&
-      (out.payment_status === 'confirmed' ||
-        out.payment_status === 'paid' ||
+      (pStatus === 'confirmed' ||
+        pStatus === 'confirmed_card' ||
+        pStatus === 'confirmed_pix' ||
+        pStatus === 'paid' ||
+        pStatus === 'paid_card' ||
+        pStatus === 'succeeded' ||
         Boolean(out.asaas_payment_id) ||
         Boolean(out.payment_id))
     ) {
       out.paid = true;
       out.paid_online = true;
+      if (out.payment_method !== 'subscription') {
+        out.payment_method = isCardPayment ? 'credit_card' : 'pix';
+      }
     }
 
     if (!out.customer_name && out.client_name) out.customer_name = out.client_name;
@@ -157,11 +172,16 @@ export class EntityRepository {
             const res = await fetch(`/api/payments/status?${qs.toString()}`);
             const statusData = await res.json().catch(() => null);
             if (res.ok && statusData?.confirmed === true) {
+              const isCard =
+                statusData?.payment_method === 'credit_card' ||
+                statusData?.billingType === 'CREDIT_CARD' ||
+                statusData?.appointment?.payment_status === 'confirmed_card';
               const updatedRow = {
                 ...row,
                 ...(statusData.appointment || {}),
                 status: 'confirmado',
-                payment_status: 'confirmed',
+                payment_status: isCard ? 'confirmed_card' : 'confirmed',
+                payment_method: isCard ? 'credit_card' : 'pix',
               };
               result.push(this._normalizeRow(updatedRow));
               continue;
