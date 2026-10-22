@@ -136,15 +136,40 @@ export default function AppFinanceiro() {
   const financialScoped = filterByUnit(financial, activeUnitId, isMultiUnit);
   const apptsScoped = filterByUnit(appointments, activeUnitId, isMultiUnit);
 
-  const filtered = financialScoped;
-  const entradas = filtered.filter(f => f.type === 'entrada');
-  const saidas = filtered.filter(f => f.type === 'saida');
-  const totalIn = entradas.reduce((s, f) => s + (f.amount || 0), 0);
-  const totalOut = saidas.reduce((s, f) => s + (f.amount || 0), 0);
+  const existingFinIds = new Set(financialScoped.map(f => String(f.id)));
+  const missingApptEntries = apptsScoped
+    .filter(
+      a =>
+        String(a.status || '').trim().toLowerCase() === 'concluido' &&
+        Number(a.price || 0) > 0 &&
+        !existingFinIds.has(String(a.id))
+    )
+    .map(a => ({
+      id: a.id,
+      company_id: a.company_id || companyId,
+      type: 'entrada',
+      entry_kind: 'entrada',
+      description: `Atendimento: ${a.service_name || 'Serviço'} — ${a.customer_name || a.client_name || 'Cliente'}`,
+      category: 'Atendimento',
+      amount: Number(a.price || 0),
+      date: a.date || (a.scheduled_at ? String(a.scheduled_at).slice(0, 10) : ''),
+      status: 'confirmado',
+      unit_id: a.unit_id || null,
+    }));
+
+  const filtered = [...financialScoped, ...missingApptEntries].sort((a, b) =>
+    String(b.date || '').localeCompare(String(a.date || ''))
+  );
+  const entradas = filtered.filter(f => (f.type || f.entry_kind) === 'entrada');
+  const saidas = filtered.filter(f => (f.type || f.entry_kind) === 'saida');
+  const totalIn = entradas.reduce((s, f) => s + Number(f.amount || 0), 0);
+  const totalOut = saidas.reduce((s, f) => s + Number(f.amount || 0), 0);
   const saldo = totalIn - totalOut;
 
-  // Receita de atendimentos concluídos no período (já filtrado por completed_at no backend)
-  const apptRevenue = apptsScoped.reduce((s, a) => s + (a.price || 0), 0);
+  // Receita de atendimentos concluídos no período (já filtrado por status=concluido no backend)
+  const apptRevenue = apptsScoped
+    .filter(a => String(a.status || '').trim().toLowerCase() === 'concluido')
+    .reduce((s, a) => s + Number(a.price || 0), 0);
 
   if (loadingCompany || isLoading) {
     return <AppLayout><SkeletonPage /></AppLayout>;

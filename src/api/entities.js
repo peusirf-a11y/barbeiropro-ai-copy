@@ -10,6 +10,11 @@ const ENTITY_TABLE_MAP = {
   TeamMember: 'team_members',
   Appointment: 'appointments',
   CustomerSubscription: 'customer_subscriptions',
+  CustomerPlan: 'plans',
+  ServicePackage: 'service_packages',
+  BlockedTime: 'blocked_times',
+  SlotReservation: 'slot_reservations',
+  CashRegister: 'cash_registers',
   FinancialEntry: 'financial_entries',
   Commission: 'commissions',
   Review: 'reviews',
@@ -18,7 +23,27 @@ const ENTITY_TABLE_MAP = {
   User: 'users',
   SystemAlert: 'system_alerts',
   AuditLog: 'audit_logs',
+  AdminAuditLog: 'admin_audit_logs',
+  PrivacyAuditLog: 'privacy_audit_logs',
+  CookieConsentLog: 'cookie_consent_logs',
+  CustomerConsent: 'customer_consents',
+  FeatureFlag: 'feature_flags',
+  IdempotencyKey: 'idempotency_keys',
+  ImpersonationSession: 'impersonation_sessions',
+  SecurityEvent: 'security_events',
+  SecurityRateLimit: 'security_rate_limits',
+  UserEvent: 'user_events',
+  WhatsAppMessage: 'whatsapp_messages',
 };
+
+const CORE_REMOTE_ONLY_TABLES = new Set([
+  'companies',
+  'plans',
+  'services',
+  'professionals',
+  'appointments',
+  'customers',
+]);
 
 const TABLES_WITH_ACTIVE_COLUMN = new Set([
   'companies',
@@ -69,6 +94,60 @@ const CUSTOMER_COLUMNS = new Set([
   'updated_at',
 ]);
 
+const FINANCIAL_ENTRY_COLUMNS = new Set([
+  'id',
+  'company_id',
+  'type',
+  'entry_kind',
+  'description',
+  'amount',
+  'date',
+  'status',
+  'payment_method',
+  'unit_id',
+  'created_at',
+]);
+
+const PLAN_COLUMNS = new Set([
+  'id',
+  'company_id',
+  'name',
+  'description',
+  'price_monthly',
+  'type',
+  'usage_limit',
+  'recommended',
+  'off_peak',
+  'active',
+  'sort_order',
+  'created_at',
+  'updated_at',
+  'allowed_company_ids',
+  'display_order',
+  'limits',
+  'features',
+  'is_active',
+  'visibility',
+  'trial_days',
+  'billing_cycle',
+  'slug',
+]);
+
+const CUSTOMER_PLAN_META_KEYS = [
+  'service_ids',
+  'rollover',
+  'valid_in_units',
+  'off_peak_enabled',
+  'off_peak_start',
+  'off_peak_end',
+  'off_peak_weekdays',
+  'allowed_customer_ids',
+  'invite_token',
+  'invite_token_uses',
+  'invite_token_max_uses',
+  'invite_token_expires_at',
+];
+
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function getLocalTable(tableName) {
@@ -93,11 +172,38 @@ function saveLocalTable(tableName, items) {
 export class EntityRepository {
   constructor(name) {
     this.name = name;
-    this.tableName = ENTITY_TABLE_MAP[name] || name.toLowerCase() + 's';
+    const snakePlural =
+      String(name || '')
+        .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+        .toLowerCase() + 's';
+    this.tableName = ENTITY_TABLE_MAP[name] || snakePlural;
   }
 
   _normalizeRow(row) {
     if (!row || typeof row !== 'object') return row;
+    if (this.tableName === 'plans') {
+      const meta = (row.limits && typeof row.limits === 'object' && row.limits._customer_plan_meta) || {};
+      const out = { ...row, ...meta };
+      out.active = out.active !== undefined ? Boolean(out.active) : Boolean(out.is_active ?? true);
+      out.is_active = out.active;
+      out.price_monthly = Number(out.price_monthly ?? out.price ?? 0);
+      out.price = out.price_monthly;
+      out.usage_limit = out.type === 'unlimited' ? 0 : Number(out.usage_limit ?? 0);
+      out.off_peak = Boolean(out.off_peak ?? out.off_peak_enabled ?? false);
+      out.off_peak_enabled = Boolean(out.off_peak_enabled ?? out.off_peak ?? false);
+      out.service_ids = Array.isArray(out.service_ids) ? out.service_ids : [];
+      out.valid_in_units = Array.isArray(out.valid_in_units) ? out.valid_in_units : [];
+      out.allowed_customer_ids = Array.isArray(out.allowed_customer_ids) ? out.allowed_customer_ids : [];
+      return out;
+    }
+    if (this.tableName === 'financial_entries') {
+      const out = { ...row };
+      out.type = out.type || out.entry_kind || 'entrada';
+      out.entry_kind = out.entry_kind || out.type || 'entrada';
+      out.amount = Number(out.amount || 0);
+      out.category = out.category || (out.type === 'saida' ? 'Despesa' : 'Atendimento');
+      return out;
+    }
     if (this.tableName === 'companies') {
       const out = { ...row };
       const billingMeta = out.business_hours?._billing || out.opening_hours?._billing || {};
@@ -284,6 +390,73 @@ export class EntityRepository {
       return cleaned;
     }
 
+    if (this.tableName === 'financial_entries') {
+      const kind = item.type || item.entry_kind || 'entrada';
+      item.type = kind;
+      item.entry_kind = kind;
+      if (!isUpdate && !item.status) {
+        item.status = 'confirmado';
+      }
+      if (!isUpdate && !item.date) {
+        item.date = new Date().toISOString().split('T')[0];
+      }
+      if (item.unit_id && !UUID_REGEX.test(String(item.unit_id))) {
+        item.unit_id = null;
+      }
+      const cleaned = {};
+      for (const [k, v] of Object.entries(item)) {
+        if (FINANCIAL_ENTRY_COLUMNS.has(k) && v !== undefined) {
+          cleaned[k] = v;
+        }
+      }
+      return cleaned;
+    }
+
+    if (this.tableName === 'plans') {
+      if (item.price !== undefined && item.price_monthly === undefined) {
+        item.price_monthly = Number(item.price || 0);
+      }
+      if (item.price_monthly !== undefined) {
+        item.price_monthly = Number(item.price_monthly || 0);
+      }
+      if (item.active !== undefined && item.is_active === undefined) {
+        item.is_active = Boolean(item.active);
+      } else if (item.is_active !== undefined && item.active === undefined) {
+        item.active = Boolean(item.is_active);
+      }
+      if (item.off_peak_enabled !== undefined && item.off_peak === undefined) {
+        item.off_peak = Boolean(item.off_peak_enabled);
+      }
+      if (item.usage_limit === null || item.usage_limit === '') {
+        item.usage_limit = 0;
+      }
+      const meta = {};
+      let hasMeta = false;
+      for (const k of CUSTOMER_PLAN_META_KEYS) {
+        if (item[k] !== undefined) {
+          meta[k] = item[k];
+          hasMeta = true;
+        }
+      }
+      if (hasMeta) {
+        const baseLimits = item.limits && typeof item.limits === 'object' ? item.limits : {};
+        item.limits = {
+          ...baseLimits,
+          _customer_plan_meta: {
+            ...(baseLimits._customer_plan_meta || {}),
+            ...meta,
+          },
+        };
+      }
+      const cleaned = {};
+      for (const [k, v] of Object.entries(item)) {
+        if (PLAN_COLUMNS.has(k) && v !== undefined) {
+          cleaned[k] = v;
+        }
+      }
+      return cleaned;
+    }
+
     return item;
   }
 
@@ -309,10 +482,26 @@ export class EntityRepository {
       if (this.tableName === 'appointments') {
         return await this._reconcileAndFilterAppointments(data || []);
       }
-      return (data || []).map(r => this._normalizeRow(r));
+      let remoteRows = (data || []).map(r => this._normalizeRow(r));
+      if (this.name === 'Plan') {
+        remoteRows = remoteRows.filter(r => !r.company_id);
+      } else if (this.name === 'CustomerPlan') {
+        remoteRows = remoteRows.filter(r => Boolean(r.company_id));
+      }
+      if (!CORE_REMOTE_ONLY_TABLES.has(this.tableName)) {
+        const localRows = getLocalTable(this.tableName).map(r => this._normalizeRow(r));
+        const seen = new Set(remoteRows.map(r => String(r.id)));
+        for (const lr of localRows) {
+          if (lr && lr.id && !seen.has(String(lr.id))) {
+            remoteRows.push(lr);
+            seen.add(String(lr.id));
+          }
+        }
+      }
+      return remoteRows;
     } catch (err) {
       console.warn(`[Supabase Warning] Falha ao listar ${this.name} (${err.message}), usando dados locais.`, err);
-      return getLocalTable(this.tableName);
+      return getLocalTable(this.tableName).map(r => this._normalizeRow(r));
     }
   }
 
@@ -327,11 +516,22 @@ export class EntityRepository {
       }
     }
 
-    if (!isSupabaseConfigured || !supabase) {
-      const items = getLocalTable(this.tableName);
-      return items.filter(item => {
-        return Object.entries(criteria).every(([k, v]) => item[k] === v);
+    const matchLocalCriteria = (item) => {
+      return Object.entries(criteria).every(([k, v]) => {
+        if (v === undefined || v === null) return true;
+        if (typeof v === 'object' && !Array.isArray(v)) {
+          if (v.$ne !== undefined && item[k] === v.$ne) return false;
+          if (v.$gte !== undefined && item[k] < v.$gte) return false;
+          if (v.$lte !== undefined && item[k] > v.$lte) return false;
+          return true;
+        }
+        return item[k] === v;
       });
+    };
+
+    if (!isSupabaseConfigured || !supabase) {
+      const items = getLocalTable(this.tableName).map(r => this._normalizeRow(r));
+      return items.filter(matchLocalCriteria);
     }
     try {
       let query = supabase.from(this.tableName).select('*');
@@ -369,16 +569,29 @@ export class EntityRepository {
       if (this.tableName === 'appointments') {
         return await this._reconcileAndFilterAppointments(data || []);
       }
-      return (data || []).map(r => this._normalizeRow(r));
+      let remoteRows = (data || []).map(r => this._normalizeRow(r));
+      if (this.name === 'Plan' && criteria.company_id === undefined) {
+        remoteRows = remoteRows.filter(r => !r.company_id);
+      } else if (this.name === 'CustomerPlan') {
+        remoteRows = remoteRows.filter(r => Boolean(r.company_id));
+      }
+      if (!CORE_REMOTE_ONLY_TABLES.has(this.tableName)) {
+        const localRows = getLocalTable(this.tableName)
+          .map(r => this._normalizeRow(r))
+          .filter(matchLocalCriteria);
+        const seen = new Set(remoteRows.map(r => String(r.id)));
+        for (const lr of localRows) {
+          if (lr && lr.id && !seen.has(String(lr.id))) {
+            remoteRows.push(lr);
+            seen.add(String(lr.id));
+          }
+        }
+      }
+      return remoteRows;
     } catch (err) {
       console.warn(`[Supabase Warning] Falha ao filtrar ${this.name}, usando fallback local.`, err);
-      const items = getLocalTable(this.tableName);
-      return items.filter(item => {
-        return Object.entries(criteria).every(([k, v]) => {
-          if (typeof v === 'object' && v !== null) return true;
-          return item[k] === v;
-        });
-      });
+      const items = getLocalTable(this.tableName).map(r => this._normalizeRow(r));
+      return items.filter(matchLocalCriteria);
     }
   }
 
@@ -412,7 +625,7 @@ export class EntityRepository {
     const dbPayload = this._prepareDbPayload(rawNewItem, false);
 
     if (!isSupabaseConfigured || !supabase) {
-      const localItems = getLocalTable(this.tableName);
+      const localItems = getLocalTable(this.tableName).filter(i => String(i.id) !== String(rawNewItem.id));
       localItems.unshift(rawNewItem);
       saveLocalTable(this.tableName, localItems);
       return this._normalizeRow(rawNewItem);
@@ -421,17 +634,39 @@ export class EntityRepository {
     try {
       const { data: inserted, error } = await supabase.from(this.tableName).insert([dbPayload]).select();
       if (error) {
+        if (
+          error.code === '42501' ||
+          error.code === 'PGRST204' ||
+          error.code === 'PGRST205' ||
+          !CORE_REMOTE_ONLY_TABLES.has(this.tableName)
+        ) {
+          const localItems = getLocalTable(this.tableName).filter(i => String(i.id) !== String(rawNewItem.id));
+          localItems.unshift(rawNewItem);
+          saveLocalTable(this.tableName, localItems);
+          return this._normalizeRow(rawNewItem);
+        }
         console.error(`[Supabase Error] Falha ao inserir ${this.name}:`, error);
         throw error;
       }
 
-      const localItems = getLocalTable(this.tableName);
+      const localItems = getLocalTable(this.tableName).filter(i => String(i.id) !== String(rawNewItem.id));
       const savedItem = inserted && inserted[0] ? inserted[0] : dbPayload;
       localItems.unshift(savedItem);
       saveLocalTable(this.tableName, localItems);
 
       return this._normalizeRow(savedItem);
     } catch (err) {
+      if (
+        err?.code === '42501' ||
+        err?.code === 'PGRST204' ||
+        err?.code === 'PGRST205' ||
+        !CORE_REMOTE_ONLY_TABLES.has(this.tableName)
+      ) {
+        const localItems = getLocalTable(this.tableName).filter(i => String(i.id) !== String(rawNewItem.id));
+        localItems.unshift(rawNewItem);
+        saveLocalTable(this.tableName, localItems);
+        return this._normalizeRow(rawNewItem);
+      }
       console.error(`[Supabase Exception] Erro crítico ao inserir ${this.name} no Supabase:`, err.message || err);
       throw err;
     }
@@ -507,6 +742,9 @@ export const Service = new EntityRepository('Service');
 export const Review = new EntityRepository('Review');
 export const SystemAlert = new EntityRepository('SystemAlert');
 export const AuditLog = new EntityRepository('AuditLog');
+export const BlockedTime = new EntityRepository('BlockedTime');
+export const CustomerPlan = new EntityRepository('CustomerPlan');
+export const CustomerSubscription = new EntityRepository('CustomerSubscription');
 
 const registeredEntities = {
   Plan,
@@ -524,7 +762,9 @@ const registeredEntities = {
   Review,
   SystemAlert,
   AuditLog,
-  CustomerSubscription: new EntityRepository('CustomerSubscription'),
+  BlockedTime,
+  CustomerPlan,
+  CustomerSubscription,
   IdempotencyKey: new EntityRepository('IdempotencyKey'),
 };
 

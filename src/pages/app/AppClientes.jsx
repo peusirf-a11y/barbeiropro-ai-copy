@@ -203,22 +203,22 @@ export default function AppClientes() {
         <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
           {filtered.length > 0 ? (
            <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px]">
+            <table className="w-full md:min-w-[680px]">
               <thead>
                 <tr className="border-b border-white/8 bg-white/[0.015]">
-                  <th className="text-left p-4 text-xs font-semibold text-white/55 uppercase tracking-wide">Cliente</th>
+                  <th className="text-left p-3 sm:p-4 text-xs font-semibold text-white/55 uppercase tracking-wide">Cliente</th>
                   <th className="text-left p-4 text-xs font-semibold text-white/55 uppercase tracking-wide hidden md:table-cell">Telefone</th>
                   <th className="text-left p-4 text-xs font-semibold text-white/55 uppercase tracking-wide hidden md:table-cell">Atendimentos</th>
                   <th className="text-left p-4 text-xs font-semibold text-white/55 uppercase tracking-wide hidden lg:table-cell">Última Visita</th>
-                  <th className="text-left p-4 text-xs font-semibold text-white/55 uppercase tracking-wide">Status</th>
-                  <th className="p-4" />
+                  <th className="text-left p-3 sm:p-4 text-xs font-semibold text-white/55 uppercase tracking-wide">Status</th>
+                  <th className="p-3 sm:p-4" />
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(c => (
                   <tr key={c.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
+                    <td className="p-3 sm:p-4">
+                      <div className="flex items-start sm:items-center gap-3">
                         <div className="relative w-9 h-9 bg-gradient-to-br from-[#1D4ED8] to-[#60A5FA] rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ring-1 ring-white/15 shadow-[0_4px_12px_rgba(37,99,235,0.4)]">
                           <span className="absolute inset-0 rounded-full bg-[#60A5FA]/40 blur-md opacity-50" />
                           <span className="relative">{(c.name || '?')[0].toUpperCase()}</span>
@@ -232,9 +232,9 @@ export default function AppClientes() {
                               </span>
                             )}
                           </div>
-                          {c.email && <div className="text-xs text-white/50">{c.email}</div>}
+                          {c.email && <div className="text-xs text-white/50 truncate">{c.email}</div>}
                           {!subByCustomer[c.id] && (
-                            <div className="mt-1">
+                            <div className="mt-1.5">
                               <CustomerPlanRecommendation companyId={companyId} customerId={c.id} onOffer={() => setOfferingTo(c)} />
                             </div>
                           )}

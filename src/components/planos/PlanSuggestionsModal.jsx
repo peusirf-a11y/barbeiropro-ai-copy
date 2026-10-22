@@ -51,11 +51,13 @@ export default function PlanSuggestionsModal({ companyId, onClose, onCreated }) 
           price_monthly: s.price_monthly,
           type: s.type,
           usage_limit: s.usage_limit,
+          recommended: Boolean(s.recommended),
+          off_peak: Boolean(s.off_peak),
         })),
       });
       if (res?.data?.success) {
         setCreatedCount(res.data.created_count);
-        onCreated?.();
+        await onCreated?.();
       } else {
         throw new Error(res?.data?.error || 'Falha ao criar planos');
       }

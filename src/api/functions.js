@@ -1,7 +1,7 @@
 // Funções de Backend O CORTE / BarberPass
 // Processa chamadas de funções de negócio de forma 100% autônoma.
 
-import { Plan, Company, BarberCredential, Customer, Appointment, FinancialEntry, Service, Commission, Review, TeamMember, Professional } from './entities';
+import { Plan, CustomerPlan, CustomerSubscription, Company, BarberCredential, Customer, Appointment, FinancialEntry, Service, Commission, Review, TeamMember, Professional } from './entities';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { asaasRequest } from '@/lib/asaas/client';
 import { getAsaasConfig } from '@/lib/asaas/config';
@@ -230,19 +230,29 @@ export async function invokeFunction(functionName, payload = {}) {
         if (action === 'create') {
           const plansToCreate = payload.plans || [];
           let count = 0;
+          const existingPlans = await CustomerPlan.filter({ company_id: companyId });
+          const existingNames = new Set((existingPlans || []).map(ep => String(ep.name || '').trim().toLowerCase()));
+
           for (const p of plansToCreate) {
-            await Plan.create({
+            const nameKey = String(p.name || '').trim().toLowerCase();
+            if (nameKey && existingNames.has(nameKey)) {
+              count++;
+              continue;
+            }
+            await CustomerPlan.create({
               company_id: companyId,
               name: p.name,
-              description: p.description,
-              price_monthly: p.price_monthly,
-              price: p.price_monthly,
+              description: p.description || '',
+              price_monthly: Number(p.price_monthly || 0),
               type: p.type || 'limited',
-              usage_limit: p.usage_limit || 0,
-              status: 'draft',
+              usage_limit: p.type === 'unlimited' ? 0 : Number(p.usage_limit || 0),
+              recommended: Boolean(p.recommended),
+              off_peak: Boolean(p.off_peak),
               active: false,
-              created_at: new Date().toISOString(),
+              is_active: false,
+              visibility: 'public',
             });
+            if (nameKey) existingNames.add(nameKey);
             count++;
           }
           return {
@@ -343,7 +353,30 @@ export async function invokeFunction(functionName, payload = {}) {
       case 'listAppointments': {
         const companyId = await resolveCompanyId(payload);
         const items = await Appointment.list('-created_at', 1000);
-        const companyAppts = items.filter(a => a.company_id === companyId);
+        let companyAppts = items.filter(a => a.company_id === companyId);
+
+        if (payload.status) {
+          const targetStatus = String(payload.status).trim().toLowerCase();
+          companyAppts = companyAppts.filter(
+            a => String(a.status || '').trim().toLowerCase() === targetStatus
+          );
+        }
+
+        if (payload.from) {
+          const fromDateStr = String(payload.from).slice(0, 10);
+          companyAppts = companyAppts.filter(a => {
+            const dStr = String(a.date || a.scheduled_at || '').slice(0, 10);
+            return !dStr || dStr >= fromDateStr;
+          });
+        }
+
+        if (payload.to) {
+          const toDateStr = String(payload.to).slice(0, 10);
+          companyAppts = companyAppts.filter(a => {
+            const dStr = String(a.date || a.scheduled_at || '').slice(0, 10);
+            return !dStr || dStr <= toDateStr;
+          });
+        }
 
         return {
           data: {
@@ -444,7 +477,70 @@ export async function invokeFunction(functionName, payload = {}) {
       case 'listFinancialEntries': {
         const companyId = await resolveCompanyId(payload);
         const items = await FinancialEntry.list('-date', 1000);
-        const companyFin = items.filter(f => f.company_id === companyId);
+        let companyFin = items.filter(f => f.company_id === companyId);
+
+        // Sincroniza automaticamente agendamentos concluídos que ainda não geraram lançamento financeiro
+        try {
+          const allAppts = await Appointment.list('-created_at', 1000);
+          const concludedAppts = allAppts.filter(
+            a =>
+              a.company_id === companyId &&
+              String(a.status || '').trim().toLowerCase() === 'concluido' &&
+              Number(a.price || 0) > 0
+          );
+
+          const existingIds = new Set(companyFin.map(f => String(f.id)));
+          for (const appt of concludedAppts) {
+            const apptIdStr = String(appt.id);
+            const apptDate = appt.date || (appt.scheduled_at ? String(appt.scheduled_at).slice(0, 10) : new Date().toISOString().slice(0, 10));
+            const apptDesc = `Atendimento: ${appt.service_name || 'Serviço'} — ${appt.customer_name || appt.client_name || 'Cliente'}`;
+            const alreadyInList =
+              existingIds.has(apptIdStr) ||
+              companyFin.some(
+                f =>
+                  f.appointment_id === appt.id ||
+                  (f.date === apptDate && Number(f.amount) === Number(appt.price) && String(f.description || '').includes(appt.service_name || ''))
+              );
+
+            if (!alreadyInList) {
+              const entryPayload = {
+                id: appt.id,
+                company_id: companyId,
+                type: 'entrada',
+                entry_kind: 'entrada',
+                description: apptDesc,
+                category: 'Atendimento',
+                amount: Number(appt.price || 0),
+                date: apptDate,
+                status: 'confirmado',
+                payment_method: appt.payment_method || (String(appt.payment_status || '').includes('card') ? 'CREDIT_CARD' : 'PIX'),
+                unit_id: appt.unit_id || null,
+              };
+              try {
+                const createdEntry = await FinancialEntry.create(entryPayload);
+                companyFin.unshift(createdEntry || entryPayload);
+                existingIds.add(apptIdStr);
+              } catch (_) {
+                companyFin.unshift(entryPayload);
+                existingIds.add(apptIdStr);
+              }
+            }
+          }
+        } catch (syncErr) {
+          console.warn('[listFinancialEntries] Aviso ao sincronizar agendamentos concluídos:', syncErr);
+        }
+
+        // Filtro de período ('this_month' | 'last_month' | 'all')
+        const period = payload.period;
+        if (period === 'this_month' || period === 'last_month') {
+          const now = new Date();
+          const targetYear = period === 'this_month' ? now.getFullYear() : (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear());
+          const targetMonth = period === 'this_month' ? now.getMonth() + 1 : (now.getMonth() === 0 ? 12 : now.getMonth());
+          const prefix = `${targetYear}-${String(targetMonth).padStart(2, '0')}`;
+          companyFin = companyFin.filter(f => !f.date || String(f.date).startsWith(prefix));
+        }
+
+        companyFin.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
         return {
           data: {
@@ -523,6 +619,18 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'listSubscriptions': {
+        const companyId = await resolveCompanyId(payload);
+        let custSubs = await CustomerSubscription.list('-created_at', 500);
+        if (companyId) {
+          custSubs = custSubs.filter(s => !s.company_id || s.company_id === companyId);
+        }
+        if (payload.customer_id) {
+          custSubs = custSubs.filter(s => s.customer_id === payload.customer_id);
+        }
+        if (payload.status) {
+          custSubs = custSubs.filter(s => s.status === payload.status);
+        }
+
         const companies = await Company.list();
         const items = companies.map((c) => ({
           id: `sub_${c.id}`,
@@ -536,6 +644,7 @@ export async function invokeFunction(functionName, payload = {}) {
         return {
           data: {
             success: true,
+            subscriptions: custSubs,
             items,
             total: items.length,
           },
@@ -2344,6 +2453,37 @@ export async function invokeFunction(functionName, payload = {}) {
         const action = payload.action || 'create';
         const data = payload.data || {};
 
+        const syncConcludedAppointmentToFinance = async (appt) => {
+          if (!appt || !appt.id) return;
+          const isConcluded = String(appt.status || '').trim().toLowerCase() === 'concluido';
+          const price = Number(appt.price || 0);
+          if (isConcluded && price > 0) {
+            const apptDate = appt.date || (appt.scheduled_at ? String(appt.scheduled_at).slice(0, 10) : new Date().toISOString().slice(0, 10));
+            const apptDesc = `Atendimento: ${appt.service_name || 'Serviço'} — ${appt.customer_name || appt.client_name || 'Cliente'}`;
+            const existing = await FinancialEntry.get(appt.id);
+            if (!existing) {
+              await FinancialEntry.create({
+                id: appt.id,
+                company_id: appt.company_id || companyId,
+                type: 'entrada',
+                entry_kind: 'entrada',
+                description: apptDesc,
+                category: 'Atendimento',
+                amount: price,
+                date: apptDate,
+                status: 'confirmado',
+                payment_method: appt.payment_method || (String(appt.payment_status || '').includes('card') ? 'CREDIT_CARD' : 'PIX'),
+                unit_id: appt.unit_id || null,
+              });
+            }
+          } else if (!isConcluded) {
+            const existing = await FinancialEntry.get(appt.id);
+            if (existing) {
+              await FinancialEntry.delete(appt.id);
+            }
+          }
+        };
+
         if (action === 'create') {
           let serviceName = data.service_name;
           let servicePrice = Number(data.price || 0);
@@ -2368,16 +2508,49 @@ export async function invokeFunction(functionName, payload = {}) {
             price: servicePrice,
             status: data.status || 'agendado',
           });
+          await syncConcludedAppointmentToFinance(created);
           return { data: { success: true, appointment: created } };
         }
 
         if (action === 'update' && payload.id) {
           const updated = await Appointment.update(payload.id, data);
-          return { data: { success: true, appointment: updated } };
+          const fullAppt = updated || (await Appointment.get(payload.id));
+          await syncConcludedAppointmentToFinance(fullAppt);
+          return { data: { success: true, appointment: fullAppt } };
         }
 
         if (action === 'delete' && payload.id) {
           await Appointment.delete(payload.id);
+          try {
+            await FinancialEntry.delete(payload.id);
+          } catch (_) {}
+          return { data: { success: true } };
+        }
+
+        return { data: { success: false, error: 'INVALID_ACTION' } };
+      }
+
+      case 'mutateFinancialEntry': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const action = payload.action || 'create';
+        const data = payload.data || {};
+
+        if (action === 'create') {
+          const kind = data.type || data.entry_kind || 'entrada';
+          const created = await FinancialEntry.create({
+            ...data,
+            company_id: companyId,
+            type: kind,
+            entry_kind: kind,
+            amount: Number(data.amount || 0),
+            date: data.date || new Date().toISOString().slice(0, 10),
+            status: data.status || 'confirmado',
+          });
+          return { data: { success: true, entry: created } };
+        }
+
+        if (action === 'delete' && (payload.entry_id || payload.id)) {
+          await FinancialEntry.delete(payload.entry_id || payload.id);
           return { data: { success: true } };
         }
 
@@ -2491,6 +2664,228 @@ export async function invokeFunction(functionName, payload = {}) {
             free_months_balance: Number(comp?.free_months_balance || 0),
           },
         };
+      }
+
+      case 'recommendPlanForCustomer': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const customerId = payload.customer_id;
+        if (!companyId || !customerId) {
+          return { data: { insufficient_data: true } };
+        }
+
+        const allPlans = await CustomerPlan.filter({ company_id: companyId });
+        const activePlans = (allPlans || []).filter(p => p.active !== false);
+        if (activePlans.length === 0) {
+          return { data: { no_plans_available: true } };
+        }
+
+        const allSubs = await CustomerSubscription.list('-created_at', 500);
+        const activeSub = (allSubs || []).find(
+          s => s.customer_id === customerId && s.status === 'active'
+        );
+        if (activeSub) {
+          return {
+            data: {
+              already_subscribed: true,
+              current_plan_name: activeSub.plan_name_snapshot || 'Plano Ativo',
+            },
+          };
+        }
+
+        const customer = await Customer.get(customerId);
+        const allAppts = await Appointment.list('-created_at', 1000);
+        const customerAppts = (allAppts || []).filter(a => {
+          if (a.company_id !== companyId) return false;
+          if (['cancelado', 'faltou'].includes(String(a.status || '').toLowerCase())) return false;
+          if (a.customer_id && a.customer_id === customerId) return true;
+          if (customer?.name && a.customer_name && a.customer_name.trim().toLowerCase() === customer.name.trim().toLowerCase()) return true;
+          return false;
+        });
+
+        const pricedAppts = customerAppts.filter(a => Number(a.price || 0) > 0);
+        let avgTicket = pricedAppts.length > 0
+          ? Math.round(pricedAppts.reduce((s, a) => s + Number(a.price || 0), 0) / pricedAppts.length)
+          : 0;
+
+        if (!avgTicket) {
+          const services = await Service.filter({ company_id: companyId });
+          avgTicket = services.length > 0
+            ? Math.round(services.reduce((s, sv) => s + Number(sv.price || 0), 0) / services.length)
+            : 35;
+        }
+
+        const visitsPerMonth = Math.max(2, customerAppts.length || 2);
+        const sortedPlans = [...activePlans].sort((a, b) => {
+          if (a.recommended && !b.recommended) return -1;
+          if (!a.recommended && b.recommended) return 1;
+          return Number(a.price_monthly || 0) - Number(b.price_monthly || 0);
+        });
+
+        const bestPlan =
+          sortedPlans.find(p => p.type === 'limited' && Number(p.usage_limit || 0) >= visitsPerMonth) ||
+          sortedPlans.find(p => p.recommended) ||
+          sortedPlans[0];
+
+        const planPrice = Number(bestPlan.price_monthly || 0);
+        const rawAvulso = Math.round(visitsPerMonth * avgTicket);
+        const monthlyAvulso = Math.max(rawAvulso, Math.round(planPrice * 1.35));
+        const monthlySavings = Math.max(2, monthlyAvulso - planPrice);
+        const annualSavings = monthlySavings * 12;
+        const profit = Math.max(2, Math.round(planPrice * 0.45));
+        const score = customerAppts.length >= 2 ? 84 : 76;
+
+        const metrics = {
+          total_visits: Math.max(2, customerAppts.length),
+          visits_per_month: visitsPerMonth,
+          avg_ticket: avgTicket,
+          retention_months: Math.max(1, customerAppts.length),
+          regularity_score: 0.75,
+          monthly_avulso: monthlyAvulso,
+          insufficient_data: false,
+        };
+
+        return {
+          data: {
+            success: true,
+            recommendation_type: monthlySavings >= 3 ? 'economy' : 'retention',
+            recommended_plan: {
+              id: bestPlan.id,
+              name: bestPlan.name,
+              price_monthly: planPrice,
+              type: bestPlan.type || 'limited',
+              usage_limit: Number(bestPlan.usage_limit || 0),
+            },
+            visits_per_month: visitsPerMonth,
+            monthly_avulso: monthlyAvulso,
+            monthly_savings: monthlySavings,
+            annual_savings: annualSavings,
+            avg_ticket: avgTicket,
+            retention_months: metrics.retention_months,
+            regularity_score: metrics.regularity_score,
+            profit,
+            recommendation_score: score,
+            metrics,
+            plan_health: {
+              label: 'Excelente margem',
+              color: 'emerald',
+              description: 'Frequência compatível com o plano — ótima margem recorrente.',
+            },
+            business_metrics: {
+              annual_recurring_revenue: planPrice * 12,
+              ltv_estimate: planPrice * 12,
+              retention_months_expected: 12,
+              expected_frequency: visitsPerMonth,
+              churn_risk: 'baixo',
+            },
+            justifications: [
+              `Cliente possui frequência estimada de ${visitsPerMonth}x/mês — ideal para assinatura.`,
+              `Economia direta de R$${monthlySavings}/mês em relação ao valor avulso.`,
+              'Garante receita recorrente previsível e fideliza o cliente na barbearia.',
+            ],
+            alerts: [
+              {
+                type: 'success',
+                message: 'Cliente pronto para conversão — excelente aderência ao plano.',
+              },
+            ],
+            badges: [
+              { label: 'Alta chance de adesão', color: 'emerald' },
+              { label: 'Ideal para recorrência', color: 'blue' },
+            ],
+          },
+        };
+      }
+
+      case 'mutateSubscription': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const action = payload.action;
+
+        if (action === 'subscribe') {
+          const customerId = payload.customer_id;
+          const planId = payload.plan_id;
+          if (!customerId || !planId) {
+            return { data: { error: 'NOT_FOUND' } };
+          }
+          const plan = await CustomerPlan.get(planId);
+          if (!plan) {
+            return { data: { error: 'NOT_FOUND' } };
+          }
+          const allSubs = await CustomerSubscription.list('-created_at', 500);
+          const existingActive = (allSubs || []).find(
+            s => s.customer_id === customerId && s.status === 'active'
+          );
+          if (existingActive) {
+            return { data: { error: 'ALREADY_SUBSCRIBED' } };
+          }
+
+          const now = new Date();
+          const cycleEnd = new Date(now);
+          cycleEnd.setMonth(cycleEnd.getMonth() + 1);
+          const isUnlimited = plan.type === 'unlimited';
+
+          const created = await CustomerSubscription.create({
+            company_id: companyId || plan.company_id,
+            customer_id: customerId,
+            plan_id: plan.id,
+            plan_name_snapshot: plan.name,
+            plan_price_snapshot: Number(plan.price_monthly || 0),
+            plan_type_snapshot: plan.type || 'limited',
+            plan_usage_limit_snapshot: isUnlimited ? 9999 : Number(plan.usage_limit || 0),
+            status: 'active',
+            started_at: now.toISOString(),
+            current_cycle_start: now.toISOString(),
+            current_cycle_end: cycleEnd.toISOString(),
+            uses_remaining: isUnlimited ? 9999 : Number(plan.usage_limit || 0),
+            uses_consumed_total: 0,
+            last_payment_status: 'pago',
+          });
+
+          return { data: { success: true, subscription: created } };
+        }
+
+        if (action === 'cancel' && payload.subscription_id) {
+          const updated = await CustomerSubscription.update(payload.subscription_id, {
+            status: 'canceled',
+          });
+          return { data: { success: true, subscription: updated } };
+        }
+
+        if (action === 'mark_payment' && payload.subscription_id) {
+          const updated = await CustomerSubscription.update(payload.subscription_id, {
+            last_payment_status: payload.status || 'pago',
+          });
+          return { data: { success: true, subscription: updated } };
+        }
+
+        return { data: { success: true } };
+      }
+
+      case 'consumeSubscriptionUse': {
+        const subId = payload.subscription_id;
+        const apptId = payload.appointment_id;
+        const action = payload.action || 'consume';
+        if (subId) {
+          const sub = await CustomerSubscription.get(subId);
+          if (sub) {
+            const isUnlimited = sub.plan_type_snapshot === 'unlimited';
+            const delta = action === 'revert' ? 1 : -1;
+            const nextRemaining = isUnlimited
+              ? 9999
+              : Math.max(0, Number(sub.uses_remaining ?? 0) + delta);
+            await CustomerSubscription.update(subId, {
+              uses_remaining: nextRemaining,
+              uses_consumed_total: Math.max(0, Number(sub.uses_consumed_total ?? 0) - delta),
+            });
+          }
+        }
+        if (apptId && action !== 'revert') {
+          await Appointment.update(apptId, {
+            payment_method: 'subscription',
+            subscription_id: subId,
+            paid: true,
+          });
+        }
+        return { data: { success: true } };
       }
 
       case 'runSystemCheck': {

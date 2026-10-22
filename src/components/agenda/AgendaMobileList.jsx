@@ -4,7 +4,7 @@
 
 import { format, addMinutes } from 'date-fns';
 import { useMemo } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, Sparkles } from 'lucide-react';
 import { getStatusToken, isClientWithoutPreference } from '@/lib/statusTokens';
 import AppointmentNoteIcon from '@/components/agenda/AppointmentNoteIcon';
 import AppointmentSourceIcon from '@/components/agenda/AppointmentSourceIcon';
@@ -19,7 +19,10 @@ export default function AgendaMobileList({
   appointments = [],
   services = [],
   customers = [],
+  subByCustomer = {},
+  hasActivePlans = false,
   onCardClick,
+  onOfferPlan,
 }) {
   const { company } = useCompany();
   // Guards defensivos: queries do TanStack já têm default=[], mas se algum caller
@@ -64,10 +67,12 @@ export default function AgendaMobileList({
         const endTime = format(addMinutes(start, dur), 'HH:mm');
         const startTime = format(start, 'HH:mm');
         const token = getStatusToken(appt.status);
-        const customer = customerById[appt.customer_id];
+        const customer = customerById[appt.customer_id] || safeCustomers.find(c => (c.name || '').toLowerCase() === (appt.customer_name || '').toLowerCase());
         const noPreference = isClientWithoutPreference(appt, customer);
         const isFirstVisit = customer && (customer.total_appointments || 0) === 0;
         const pro = proById[appt.professional_id];
+        const isSubscriber = appt.payment_method === 'subscription' || !!(customer?.id && subByCustomer[customer.id]) || !!(appt.customer_id && subByCustomer[appt.customer_id]);
+        const canOfferPlan = hasActivePlans && !isSubscriber && !['cancelado', 'faltou'].includes(appt.status) && !!(customer?.id || appt.customer_id);
 
         return (
           <div
@@ -96,12 +101,12 @@ export default function AgendaMobileList({
 
             {/* Conteúdo */}
             <div className={`flex-1 min-w-0 rounded-xl border backdrop-blur-sm ${token.cardBg} ${token.cardBorder} ${token.cardText} ${noPreference ? 'border-dashed' : ''} px-3 py-2`}>
-              <div className="flex items-center gap-2 mb-0.5">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                 <span className="font-semibold text-[13px] truncate">
                   {appt.customer_name || 'Cliente'}
                 </span>
                 {isFirstVisit && <FirstVisitBadge />}
-                {appt.payment_method === 'subscription' && (
+                {isSubscriber && (
                   <span className="text-[9px] font-bold px-1 py-px rounded bg-violet-400/20 text-violet-200 border border-violet-400/30 flex-shrink-0">
                     PLANO
                   </span>
@@ -116,9 +121,26 @@ export default function AgendaMobileList({
               {pro && (
                 <div className="text-[11px] opacity-60 mt-0.5 truncate">com {pro.name}</div>
               )}
-              <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <AppointmentSourceIcon source={appt.source} className="w-3 h-3 opacity-60" />
                 <AppointmentNoteIcon note={appt.notes} />
+                {canOfferPlan && onOfferPlan && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOfferPlan(customer || {
+                        id: appt.customer_id,
+                        name: appt.customer_name || 'Cliente',
+                        phone: appt.customer_phone || '',
+                      });
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 text-white px-2.5 py-1 rounded-lg transition-all ring-1 ring-white/20 shadow-[0_4px_12px_rgba(37,99,235,0.4)]"
+                  >
+                    <Sparkles className="w-2.5 h-2.5" />
+                    Oferecer plano
+                  </button>
+                )}
                 <span className="ml-auto text-[10px] font-medium opacity-60">{token.label}</span>
                 {/* WhatsApp manual — usa template de confirmação se ainda não confirmado,
                     senão lembrete. Para appointments concluídos, oculta (já houve o pós-atendimento). */}

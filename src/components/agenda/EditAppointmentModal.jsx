@@ -60,7 +60,9 @@ export default function EditAppointmentModal({
   const safeCustomers = safeArray(customers);
   const safeServices = safeArray(services);
   const safeProfessionals = safeArray(professionals);
-  const customer = safeCustomers.find(c => c.id === appointment.customer_id);
+  const customer = safeCustomers.find(c => c.id === appointment.customer_id)
+    || safeCustomers.find(c => (c.name || '').toLowerCase() === (appointment.customer_name || '').toLowerCase())
+    || (appointment.customer_id ? { id: appointment.customer_id, name: appointment.customer_name || 'Cliente', phone: appointment.customer_phone || '' } : null);
 
   // Status que merecem perguntar "+ WhatsApp?": confirmar/cancelar/faltou/concluido.
   // "concluido" abre opção manual de enviar o link de avaliação imediatamente,
@@ -204,10 +206,10 @@ export default function EditAppointmentModal({
         footer={footer}
       >
         {/* Gatilho inteligente: cliente frequente sem assinatura → oferece plano */}
-        {!isBarbeiro && companyId && appointment.customer_id && (
+        {!isBarbeiro && companyId && (customer?.id || appointment.customer_id) && (
           <OfferPlanInlineBanner
             companyId={companyId}
-            customerId={appointment.customer_id}
+            customerId={customer?.id || appointment.customer_id}
             onOffer={() => setShowOffer(true)}
           />
         )}

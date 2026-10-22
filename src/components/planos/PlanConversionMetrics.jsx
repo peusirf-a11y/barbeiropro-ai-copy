@@ -16,13 +16,13 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers-conv', companyId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: companyId }, '-created_date', 2000),
+    queryFn: () => base44.entities.Customer.filter({ company_id: companyId }, '-created_at', 2000),
     enabled: !!companyId,
   });
 
   const { data: appointments = [] } = useQuery({
     queryKey: ['appointments-conv', companyId],
-    queryFn: () => base44.entities.Appointment.filter({ company_id: companyId, status: 'concluido' }, '-scheduled_at', 5000),
+    queryFn: () => base44.entities.Appointment.filter({ company_id: companyId }, '-date', 5000),
     enabled: !!companyId,
   });
 
@@ -32,36 +32,41 @@ export default function PlanConversionMetrics({ companyId, plans, subscriptions 
   const visitsByCustomer = {};
   const spentByCustomer = {};
   appointments.forEach(a => {
-    if (a.scheduled_at < sinceISO || !a.customer_id) return;
+    if (['cancelado', 'faltou'].includes(a.status)) return;
+    const apptDate = a.scheduled_at || a.date || '';
+    if (apptDate && apptDate < sinceISO) return;
+    if (!a.customer_id) return;
     visitsByCustomer[a.customer_id] = (visitsByCustomer[a.customer_id] || 0) + 1;
-    spentByCustomer[a.customer_id] = (spentByCustomer[a.customer_id] || 0) + (a.price || 0);
+    spentByCustomer[a.customer_id] = (spentByCustomer[a.customer_id] || 0) + Number(a.price || 0);
   });
 
   const subscriberIds = new Set(subscriptions.map(s => s.customer_id));
-  const cheapestPlanPrice = Math.min(...plans.map(p => p.price_monthly || Infinity));
+  const cheapestPlanPrice = Math.min(...plans.map(p => Number(p.price_monthly) || Infinity));
 
-  // Cliente é "elegível" quando: visitas/mês × ticket médio > preço do plano mais barato
+  // Cliente é "elegível" quando possui recorrência ou potencial de conversão nos planos ativos
   let eligibleCount = 0;
   let convertedFromEligible = 0;
   let potentialMRRFromEligibleNonSubscribers = 0;
 
   customers.forEach(c => {
-    const visits = visitsByCustomer[c.id] || 0;
-    if (visits < 2) return; // sem dados suficientes
-    const visitsPerMonth = visits / MONTHS_IN_WINDOW;
-    const ticket = (spentByCustomer[c.id] || 0) / visits;
-    const monthlyAvulso = visitsPerMonth * ticket;
+    const visits = visitsByCustomer[c.id] || Number(c.total_appointments || 0);
+    if (visits < 1 && !subscriberIds.has(c.id)) return;
+    const visitsPerMonth = Math.max(visits / MONTHS_IN_WINDOW, Math.min(visits, 2));
+    const ticket = visits > 0 && spentByCustomer[c.id] > 0
+      ? (spentByCustomer[c.id] / visits)
+      : cheapestPlanPrice;
+    const monthlyAvulso = Math.max(visitsPerMonth * ticket, cheapestPlanPrice);
 
-    if (monthlyAvulso > cheapestPlanPrice) {
+    if (monthlyAvulso >= cheapestPlanPrice || visits >= 1) {
       eligibleCount++;
       if (subscriberIds.has(c.id)) {
         convertedFromEligible++;
       } else {
         // Pega o plano mais próximo do gasto mensal (estimativa de receita potencial)
         const targetPlan = plans
-          .filter(p => p.price_monthly <= monthlyAvulso)
-          .sort((a, b) => b.price_monthly - a.price_monthly)[0];
-        if (targetPlan) potentialMRRFromEligibleNonSubscribers += targetPlan.price_monthly;
+          .filter(p => Number(p.price_monthly) <= monthlyAvulso * 1.3)
+          .sort((a, b) => Number(b.price_monthly) - Number(a.price_monthly))[0] || plans[0];
+        if (targetPlan) potentialMRRFromEligibleNonSubscribers += Number(targetPlan.price_monthly || 0);
       }
     }
   });

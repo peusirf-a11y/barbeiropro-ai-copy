@@ -12,6 +12,7 @@ import AgendaProColumns from '@/components/agenda/AgendaProColumns';
 import AgendaMobileList from '@/components/agenda/AgendaMobileList';
 import EditAppointmentModal from '@/components/agenda/EditAppointmentModal';
 import UseSubscriptionDialog from '@/components/agenda/UseSubscriptionDialog';
+import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import AllUnitsNotice from '@/components/units/AllUnitsNotice';
 import { STATUS_TOKENS } from '@/lib/statusTokens';
@@ -42,6 +43,7 @@ export default function AppAgenda() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const hasAutoJumpedRef = useRef(false);
   const [selectedAppt, setSelectedAppt] = useState(null);
+  const [offerCustomer, setOfferCustomer] = useState(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
@@ -169,6 +171,8 @@ export default function AppAgenda() {
       const isConcluded = vars?.data?.status === 'concluido';
       const isCanceledOrMissed = ['cancelado', 'faltou'].includes(vars?.data?.status);
       queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'appointments', companyId }) });
+      queryClient.invalidateQueries({ queryKey: ['financial'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments-concluidos'] });
 
       // Se o agendamento estava cobrindo via plano e foi cancelado/faltou, devolve o uso
       if (isCanceledOrMissed && selectedAppt?.payment_method === 'subscription' && selectedAppt?.subscription_id) {
@@ -187,7 +191,9 @@ export default function AppAgenda() {
           queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'financial-entries', companyId }) });
           queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'dashboard', companyId }) });
           queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'cash-register', companyId }) });
-        }, 1500);
+          queryClient.invalidateQueries({ queryKey: ['financial'] });
+          queryClient.invalidateQueries({ queryKey: ['appointments-concluidos'] });
+        }, 500);
       }
       setSelectedAppt(null);
     },
@@ -599,7 +605,10 @@ export default function AppAgenda() {
               appointments={filteredAppts}
               services={services}
               customers={customers}
+              subByCustomer={subByCustomer}
+              hasActivePlans={customerPlans.some(p => p.active !== false)}
               onCardClick={setSelectedAppt}
+              onOfferPlan={!isBarbeiro ? setOfferCustomer : undefined}
             />
           ) : (
             <AgendaProColumns
@@ -673,6 +682,15 @@ export default function AppAgenda() {
             onClose={() => setSelectedAppt(null)}
             isSaving={updateMutation.isPending}
             companyId={companyId}
+          />
+        )}
+
+        {offerCustomer && (
+          <OfferPlanModal
+            companyId={companyId}
+            customer={offerCustomer}
+            onClose={() => setOfferCustomer(null)}
+            onActivated={() => queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'subscriptions', companyId }) })}
           />
         )}
 
