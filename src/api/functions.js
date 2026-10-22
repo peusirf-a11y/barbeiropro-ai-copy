@@ -1475,6 +1475,9 @@ export async function invokeFunction(functionName, payload = {}) {
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '');
 
+        const cardLastDigits = cardNum.slice(-4);
+        const cardBrand = card.brand || (cardNum.startsWith('4') ? 'VISA' : /^5[1-5]/.test(cardNum) ? 'MASTERCARD' : 'CARTAO');
+
         const companyPayload = {
           name: businessName,
           owner_name: ownerName,
@@ -1490,6 +1493,8 @@ export async function invokeFunction(functionName, payload = {}) {
           subscription_status: 'trialing',
           asaas_customer_id: asaasCustomerId,
           asaas_subscription_id: asaasSubscriptionId,
+          card_last_digits: cardLastDigits,
+          card_brand: cardBrand,
           trial_ends_at: trialDateObj.toISOString(),
           current_period_end: trialDateObj.toISOString(),
           slug: company?.slug || slugStr || `barbearia-${Date.now().toString().slice(-4)}`,
@@ -2377,6 +2382,115 @@ export async function invokeFunction(functionName, payload = {}) {
         }
 
         return { data: { success: false, error: 'INVALID_ACTION' } };
+      }
+
+      case 'analyzeProfessionalSpecialties': {
+        const proId = payload.professional_id || payload.id;
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const pro = proId ? await Professional.get(proId) : null;
+        const appts = (await Appointment.list('-created_at', 500)).filter(
+          (a) => (!companyId || a.company_id === companyId) && (!proId || a.professional_id === proId || (pro?.name && a.professional_name === pro.name))
+        );
+        const completed = appts.filter((a) => a.status === 'concluido' || a.status === 'agendado');
+
+        const countsByService = {};
+        for (const a of completed) {
+          const svc = String(a.service_name || '').trim();
+          if (svc) countsByService[svc] = (countsByService[svc] || 0) + 1;
+        }
+
+        const sortedServices = Object.entries(countsByService).sort((a, b) => b[1] - a[1]);
+        const specialties = [];
+
+        if (sortedServices.length > 0) {
+          sortedServices.slice(0, 3).forEach(([svcName, count], idx) => {
+            const conf = Math.min(98, Math.max(82, 95 - idx * 6));
+            specialties.push({
+              tag: svcName,
+              confidence: conf,
+              evidence: `${count} ${count === 1 ? 'atendimento registrado' : 'atendimentos registrados'} neste serviço com excelente aceitação.`,
+            });
+          });
+        } else {
+          const fallbackSpecs = Array.isArray(pro?.specialties) && pro.specialties.length > 0
+            ? pro.specialties
+            : [pro?.specialty || 'Corte Degradê & Navalha', 'Barba com Toalha Quente'];
+          fallbackSpecs.forEach((item, idx) => {
+            const tag = typeof item === 'string' ? item.trim() : String(item?.tag || item?.name || '').trim();
+            if (tag) {
+              specialties.push({
+                tag,
+                confidence: idx === 0 ? 94 : 86,
+                evidence: 'Baseado nos serviços vinculados e perfil de atendimento do profissional.',
+              });
+            }
+          });
+        }
+
+        const analyzedAt = new Date().toISOString();
+        return {
+          data: {
+            success: true,
+            specialties,
+            analyzed_at: analyzedAt,
+            total_appointments: completed.length,
+            min_required: 5,
+          },
+        };
+      }
+
+      case 'generateProfessionalBio': {
+        const proId = payload.professional_id || payload.id;
+        const pro = proId ? await Professional.get(proId) : null;
+        const name = pro?.name || 'Profissional';
+        const spec = pro?.specialty || (Array.isArray(pro?.specialties) && pro.specialties[0]) || 'cortes clássicos e modernos';
+        const bioShort = `${name} — Especialista em ${spec}, com atendimento personalizado e acabamento de precisão.`.slice(0, 150);
+        const bioMedium = `${name} é especialista em ${spec}. Focado em excelência técnica, visagismo prático e experiência confortável em cada atendimento.`.slice(0, 300);
+        const bioFull = `${name} atua com foco em ${spec}, unindo técnica apurada, atenção aos detalhes e atendimento de alto padrão. Cada serviço é realizado de forma personalizada para valorizar o estilo de cada cliente com pontualidade e qualidade.`.slice(0, 600);
+
+        return {
+          data: {
+            success: true,
+            bio_short: bioShort,
+            bio_medium: bioMedium,
+            bio_full: bioFull,
+            generated_at: new Date().toISOString(),
+          },
+        };
+      }
+
+      case 'createReferralLink': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        let comp = companyId ? await Company.get(companyId) : null;
+        if (!comp) {
+          const all = await Company.list();
+          comp = all[0] || { id: companyId || 'comp_demo_01' };
+        }
+        let code = comp?.referral_code ? String(comp.referral_code).trim() : '';
+        if (!code) {
+          const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+          for (let i = 0; i < 8; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          try {
+            if (isSupabaseConfigured && supabase && comp?.id && comp.id !== 'comp_demo_01') {
+              await supabase.from('companies').update({ referral_code: code }).eq('id', comp.id);
+            }
+            if (comp?.id) {
+              await Company.update(comp.id, { referral_code: code });
+            }
+          } catch (_) {}
+        }
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        const url = `${origin}/cadastro?ref=${code}`;
+        return {
+          data: {
+            success: true,
+            code,
+            url,
+            free_months_balance: Number(comp?.free_months_balance || 0),
+          },
+        };
       }
 
       case 'runSystemCheck': {

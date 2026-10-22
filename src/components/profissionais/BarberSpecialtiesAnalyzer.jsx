@@ -24,6 +24,31 @@ const TONE_STYLES = {
   amber: 'bg-amber-400/12 text-amber-100 border-amber-400/30',
 };
 
+function normalizeSpecialtyItem(item) {
+  if (!item) return null;
+  if (typeof item === 'string') {
+    const trimmed = item.trim();
+    if (!trimmed) return null;
+    return {
+      tag: trimmed,
+      confidence: 88,
+      evidence: 'Especialidade cadastrada no perfil do profissional.',
+    };
+  }
+  if (typeof item === 'object') {
+    const rawTag = item.tag ?? item.name ?? item.specialty ?? item.label ?? '';
+    const trimmed = String(rawTag).trim();
+    if (!trimmed) return null;
+    const conf = Number(item.confidence ?? item.score ?? 88);
+    return {
+      tag: trimmed,
+      confidence: Number.isFinite(conf) && conf > 0 ? Math.min(100, Math.round(conf)) : 88,
+      evidence: item.evidence || item.reason || item.description || '',
+    };
+  }
+  return null;
+}
+
 export default function BarberSpecialtiesAnalyzer({
   professionalId,
   suggested = [],
@@ -34,7 +59,12 @@ export default function BarberSpecialtiesAnalyzer({
 }) {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState({ specialties: suggested, analyzedAt, reason: null, total: null });
+  const [result, setResult] = useState({
+    specialties: Array.isArray(suggested) ? suggested : [],
+    analyzedAt,
+    reason: null,
+    total: null,
+  });
 
   const analyze = async () => {
     if (!professionalId) {
@@ -49,8 +79,8 @@ export default function BarberSpecialtiesAnalyzer({
       });
       if (!data?.success) throw new Error(data?.error || 'Falha na análise.');
       setResult({
-        specialties: data.specialties || [],
-        analyzedAt: data.analyzed_at,
+        specialties: Array.isArray(data.specialties) ? data.specialties : [],
+        analyzedAt: data.analyzed_at || new Date().toISOString(),
         reason: data.reason || null,
         total: data.total_appointments,
         minRequired: data.min_required,
@@ -63,8 +93,21 @@ export default function BarberSpecialtiesAnalyzer({
     }
   };
 
-  const specialties = result.specialties || [];
+  const specialties = (Array.isArray(result.specialties) ? result.specialties : [])
+    .map(normalizeSpecialtyItem)
+    .filter(Boolean);
   const hasResults = specialties.length > 0;
+  const currentSpecNormalized = typeof currentSpecialty === 'string' ? currentSpecialty.trim().toLowerCase() : '';
+
+  let formattedAnalyzedAt = null;
+  if (result.analyzedAt) {
+    try {
+      const d = new Date(result.analyzedAt);
+      if (!Number.isNaN(d.getTime())) {
+        formattedAnalyzedAt = formatDistanceToNow(d, { addSuffix: true, locale: ptBR });
+      }
+    } catch (_) {}
+  }
 
   return (
     <div className="rounded-xl border border-[#60A5FA]/25 bg-[#0B1226] p-4 space-y-3">
@@ -77,9 +120,9 @@ export default function BarberSpecialtiesAnalyzer({
           <p className="text-[11px] text-white/55 mt-1 leading-snug">
             A análise é feita só com base nos atendimentos concluídos reais — volume, avaliações e ticket médio por tipo de serviço.
           </p>
-          {result.analyzedAt && (
+          {formattedAnalyzedAt && (
             <p className="text-[10px] text-white/40 mt-1">
-              Última análise: {formatDistanceToNow(new Date(result.analyzedAt), { addSuffix: true, locale: ptBR })}
+              Última análise: {formattedAnalyzedAt}
             </p>
           )}
         </div>
@@ -142,12 +185,12 @@ export default function BarberSpecialtiesAnalyzer({
       {/* Resultado */}
       {hasResults && (
         <div className="space-y-2">
-          {specialties.map((s) => {
+          {specialties.map((s, idx) => {
             const { label, tone } = confidenceLabel(s.confidence);
-            const isCurrent = currentSpecialty && currentSpecialty.toLowerCase() === s.tag.toLowerCase();
+            const isCurrent = Boolean(currentSpecNormalized && currentSpecNormalized === s.tag.toLowerCase());
             return (
               <div
-                key={s.tag}
+                key={`${s.tag}-${idx}`}
                 className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-colors"
               >
                 <div className="flex-1 min-w-0">
@@ -163,7 +206,7 @@ export default function BarberSpecialtiesAnalyzer({
                 </div>
                 <button
                   type="button"
-                  onClick={() => onApplySpecialty(s.tag)}
+                  onClick={() => onApplySpecialty && onApplySpecialty(s.tag)}
                   disabled={disabled || isCurrent}
                   className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
                     isCurrent

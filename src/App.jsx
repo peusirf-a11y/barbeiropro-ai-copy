@@ -152,6 +152,7 @@ function App() {
             <Route path="/planos/convite/:token" element={<PlanInviteRedeem />} />
             <Route path="/confirma/:token" element={<ConfirmAppointment />} />
             <Route path="/avaliar/:token" element={<ReviewAppointment />} />
+            <Route path="/cadastro" element={<Checkout />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/sucesso" element={<CheckoutSuccess />} />
             <Route path="/acessar-conta" element={<AcessarConta />} />
@@ -231,6 +232,7 @@ function App() {
             <Route path="/app/comissoes" element={<PrivateRoute><RoleRoute roles={['admin','financeiro','barbeiro']}><AppComissoes /></RoleRoute></PrivateRoute>} />
             <Route path="/app/avaliacoes" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppAvaliacoes /></RoleRoute></PrivateRoute>} />
             <Route path="/app/indicacoes" element={<PrivateRoute><RoleRoute roles={['admin']}><AppIndicacoes /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/indique-ganhe" element={<PrivateRoute><RoleRoute roles={['admin']}><AppIndicacoes /></RoleRoute></PrivateRoute>} />
             <Route path="/app/relatorios" element={<PrivateRoute><RoleRoute roles={['admin','financeiro']}><AppRelatorios /></RoleRoute></PrivateRoute>} />
             <Route path="/app/ai-growth" element={<PrivateRoute><RoleRoute roles={['admin']}><AppAIGrowth /></RoleRoute></PrivateRoute>} />
             <Route path="/app/crm" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppCRM /></RoleRoute></PrivateRoute>} />

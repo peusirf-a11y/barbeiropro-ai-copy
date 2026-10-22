@@ -55,9 +55,12 @@ function normalizeProfessional(p) {
     : (p.active !== undefined ? Boolean(p.active) : true);
   const commVal = Number(p.commission_rate ?? p.commission_value ?? p.commission_pct ?? 0);
   const commType = p.commission_type || 'percent';
-  const specialtiesArr = Array.isArray(p.specialties)
+  const rawSpecs = Array.isArray(p.specialties)
     ? p.specialties
-    : (p.specialty ? p.specialty.split(/[,/]/).map(s => s.trim()).filter(Boolean) : []);
+    : (p.specialty ? String(p.specialty).split(/[,/]/).map(s => s.trim()).filter(Boolean) : []);
+  const specialtiesArr = rawSpecs
+    .map(s => (typeof s === 'string' ? s.trim() : String(s?.tag || s?.name || s?.specialty || '').trim()))
+    .filter(Boolean);
   const servicesArr = Array.isArray(p.services)
     ? p.services
     : (Array.isArray(p.service_ids) ? p.service_ids : []);

@@ -10,6 +10,19 @@ function extractAsaasError(data) {
   return data.message || data.error || 'Cartão não autorizado ou dados inválidos no Asaas.';
 }
 
+function detectCardBrand(cardNumber = '') {
+  const num = String(cardNumber).replace(/\D/g, '');
+  if (/^4/.test(num)) return 'VISA';
+  if (/^(5[1-5]|2[2-7])/.test(num)) return 'MASTERCARD';
+  if (/^(4011(78|79)|43(1274|8935)|45(1416|7393|763(1|2))|50(4175|6699|67[0-7][0-9]|9000)|627780|63(6297|6368)|650(03([^4])|04([0-9])|05(0|1)|4(0[5-9]|3[0-9]|8[5-9]|9[0-9])|5([0-2][0-9]|3[0-8])|9([2-6][0-9]|7[0-8])|7([0-2][0-9]))|65165[2-9]|65500[0-9]|65502[1-9])/.test(num)) {
+    return 'ELO';
+  }
+  if (/^3[47]/.test(num)) return 'AMEX';
+  if (/^(606282|3841)/.test(num)) return 'HIPERCARD';
+  if (/^3(?:0[0-5]|[68])/.test(num)) return 'DINERS';
+  return 'CARTAO';
+}
+
 export async function handleAsaasSubscription(payload = {}) {
   try {
     const rawApiKey = (
@@ -26,7 +39,7 @@ export async function handleAsaasSubscription(payload = {}) {
       !rawApiKey.toLowerCase().includes('your_key') &&
       !rawApiKey.toLowerCase().includes('placeholder');
 
-    let apiKey = rawApiKey;
+    const apiKey = rawApiKey;
     let useSandboxMock = !isApiKeyValid;
 
     if (useSandboxMock) {
@@ -104,6 +117,8 @@ export async function handleAsaasSubscription(payload = {}) {
 
     let customerId = null;
     let subscriptionId = null;
+    let cardLastDigits = cleanCardNum.slice(-4);
+    let cardBrand = creditCard.brand || detectCardBrand(cleanCardNum);
 
     if (!useSandboxMock) {
       const isHmlg = apiKey.startsWith('$aact_hmlg_');
@@ -179,8 +194,7 @@ export async function handleAsaasSubscription(payload = {}) {
         if (!custRes.ok) {
           const errorMsg = extractAsaasError(custData);
           console.error('[subscribeHandler] Erro na criação de cliente Asaas:', errorMsg, custData);
-          
-          // Se o erro for de chave de API inválida, ativamos o modo sandbox fallback automaticamente para não travar o teste do usuário
+
           if (errorMsg.toLowerCase().includes('chave de api') || errorMsg.toLowerCase().includes('api key') || errorMsg.toLowerCase().includes('access_token')) {
             console.warn('[subscribeHandler] Chave de Asaas rejeitada pela API. Ativando fallback de sandbox local para testes.');
             useSandboxMock = true;
@@ -214,7 +228,7 @@ export async function handleAsaasSubscription(payload = {}) {
       const isHmlg = apiKey.startsWith('$aact_hmlg_');
       const baseUrl = (process.env.ASAAS_BASE_URL || (isHmlg ? 'https://api-sandbox.asaas.com/v3' : 'https://api.asaas.com/v3')).trim();
 
-      // 3. Cria Assinatura Recorrente no Asaas (/v3/subscriptions) com Cartão de Crédito
+      // 3. Cria Assinatura Recorrente no Asaas (/v3/subscriptions) com Cartão de Crédito e nextDueDate (+7 dias)
       const subBody = {
         customer: customerId,
         billingType: 'CREDIT_CARD',
@@ -272,6 +286,12 @@ export async function handleAsaasSubscription(payload = {}) {
         }
       } else {
         subscriptionId = subData.id;
+        if (subData?.creditCard?.creditCardNumber) {
+          cardLastDigits = String(subData.creditCard.creditCardNumber).slice(-4);
+        }
+        if (subData?.creditCard?.creditCardBrand) {
+          cardBrand = String(subData.creditCard.creditCardBrand).toUpperCase();
+        }
         console.info('[subscribeHandler] Assinatura criada com SUCESSO no Asaas! ID:', subscriptionId);
       }
     }
@@ -282,7 +302,7 @@ export async function handleAsaasSubscription(payload = {}) {
       console.info('[subscribeHandler] Usando IDs de Sandbox Mock:', { customerId, subscriptionId });
     }
 
-    // 4. Salva no banco de dados (Supabase se disponível)
+    // 4. Salva na tabela 'companies' do Supabase com asaas_customer_id, asaas_subscription_id, card_last_digits e card_brand
     const businessName = payload.business_name || customer.name || 'Minha Barbearia';
     const slugStr = businessName
       .toLowerCase()
@@ -305,13 +325,15 @@ export async function handleAsaasSubscription(payload = {}) {
       subscription_status: 'trialing',
       asaas_customer_id: customerId,
       asaas_subscription_id: subscriptionId,
+      card_last_digits: cardLastDigits,
+      card_brand: cardBrand,
       trial_ends_at: trialDate.toISOString(),
       current_period_end: trialDate.toISOString(),
       slug: slugStr || `barbearia-${Date.now().toString().slice(-4)}`,
       updated_at: new Date().toISOString(),
     };
 
-    // Tenta persistir via Supabase se as variáveis estiverem disponíveis no Node
+    let savedCompanyId = null;
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
@@ -320,20 +342,52 @@ export async function handleAsaasSubscription(payload = {}) {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Verifica se a empresa já existe pelo owner_email
         const { data: existing } = await supabase
           .from('companies')
-          .select('id')
+          .select('id, business_hours')
           .eq('owner_email', cleanEmail)
           .maybeSingle();
 
-        if (existing?.id) {
-          await supabase.from('companies').update(companyData).eq('id', existing.id);
-          console.info('[subscribeHandler] Empresa atualizada no Supabase:', existing.id);
-        } else {
-          const { data: newComp } = await supabase.from('companies').insert([companyData]).select('id').maybeSingle();
-          console.info('[subscribeHandler] Nova empresa criada no Supabase:', newComp?.id);
-        }
+        const enrichedCompanyData = {
+          ...companyData,
+          cnpj: cleanCpfCnpj,
+          business_hours: {
+            ...(existing?.business_hours || {}),
+            _billing: {
+              card_last_digits: cardLastDigits,
+              card_brand: cardBrand,
+              plan_name: planName,
+              asaas_customer_id: customerId,
+              asaas_subscription_id: subscriptionId,
+            },
+          },
+        };
+
+        const saveWithFallback = async (targetId, dataToSave) => {
+          const payloadCopy = { ...dataToSave };
+          for (let attempt = 0; attempt < 15; attempt++) {
+            const res = targetId
+              ? await supabase.from('companies').update(payloadCopy).eq('id', targetId).select('id').maybeSingle()
+              : await supabase.from('companies').insert([payloadCopy]).select('id').maybeSingle();
+
+            if (!res.error) {
+              return res.data?.id || targetId;
+            }
+
+            // Se alguma coluna opcional ainda não existir no banco remoto, remove apenas a coluna ausente e tenta novamente
+            const matchCol =
+              res.error.message?.match(/Could not find the '([^']+)' column/) ||
+              res.error.message?.match(/column "([^"]+)" of relation/);
+            if (matchCol && matchCol[1] && matchCol[1] in payloadCopy) {
+              delete payloadCopy[matchCol[1]];
+              continue;
+            }
+            break;
+          }
+          return targetId;
+        };
+
+        savedCompanyId = await saveWithFallback(existing?.id || null, enrichedCompanyData);
       } catch (dbErr) {
         console.warn('[subscribeHandler] Aviso ao sincronizar com Supabase no servidor:', dbErr.message);
       }
@@ -352,8 +406,14 @@ export async function handleAsaasSubscription(payload = {}) {
       status: 200,
       body: {
         success: true,
+        company_id: savedCompanyId,
         customer_id: customerId,
+        asaas_customer_id: customerId,
         subscription_id: subscriptionId,
+        asaas_subscription_id: subscriptionId,
+        card_last_digits: cardLastDigits,
+        card_brand: cardBrand,
+        trial_ends_at: trialDate.toISOString(),
         url: `/checkout/sucesso?${queryParams}`,
         message: useSandboxMock ? 'Assinatura simulada com sucesso (Modo Sandbox).' : 'Assinatura criada com sucesso no Asaas!',
       },

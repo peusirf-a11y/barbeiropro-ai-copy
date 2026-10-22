@@ -495,7 +495,7 @@ export default function AppConfiguracoes() {
             icon={CreditCard}
             ctaLabel="Gerenciar pagamentos"
             to="/app/configuracoes/pagamentos"
-            statusBadge={company?.asaas_pix_enabled ? <ActiveBadge /> : null}
+            statusBadge={(company?.asaas_api_key || company?.asaas_pix_enabled) ? <ActiveBadge /> : null}
           />
         )}
 

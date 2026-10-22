@@ -14,6 +14,11 @@ export default function ConnectPendingBanner({ company }) {
   // Barbeiros NUNCA visualizam avisos e configurações de faturamento/Asaas
   if (isBarbeiro || !company) return null;
 
+  // Enquanto company é apenas o objeto provisório de cache antes de carregar os campos do banco, não exibe falso alerta
+  if (!('asaas_api_key' in company) && !('slug' in company)) return null;
+
+  // Chave de API do Asaas configurada = pagamentos já estão ativos!
+  if (company.asaas_api_key && String(company.asaas_api_key).trim().length > 0) return null;
   // Subaccount ativa + PIX habilitado = nada a fazer.
   if (company.asaas_subaccount_status === 'active' && company.asaas_pix_enabled) return null;
   // Barbearias legadas em modo manual continuam funcionando — não exibimos o banner.

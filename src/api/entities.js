@@ -98,6 +98,32 @@ export class EntityRepository {
 
   _normalizeRow(row) {
     if (!row || typeof row !== 'object') return row;
+    if (this.tableName === 'companies') {
+      const out = { ...row };
+      const billingMeta = out.business_hours?._billing || out.opening_hours?._billing || {};
+      if (!out.card_last_digits && billingMeta.card_last_digits) {
+        out.card_last_digits = billingMeta.card_last_digits;
+      }
+      if (!out.card_brand && billingMeta.card_brand) {
+        out.card_brand = billingMeta.card_brand;
+      }
+      if (!out.plan_name && billingMeta.plan_name) {
+        out.plan_name = billingMeta.plan_name;
+      }
+      if (!out.asaas_subscription_id && billingMeta.asaas_subscription_id) {
+        out.asaas_subscription_id = billingMeta.asaas_subscription_id;
+      }
+      if (!out.asaas_customer_id && billingMeta.asaas_customer_id) {
+        out.asaas_customer_id = billingMeta.asaas_customer_id;
+      }
+      if (out.asaas_api_key && String(out.asaas_api_key).trim().length > 0) {
+        out.asaas_pix_enabled = true;
+        if (!out.asaas_subaccount_status) {
+          out.asaas_subaccount_status = 'active';
+        }
+      }
+      return out;
+    }
     if (this.tableName !== 'appointments') return row;
     const out = { ...row };
 

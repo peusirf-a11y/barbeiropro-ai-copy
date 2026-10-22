@@ -131,6 +131,7 @@ export default function Checkout() {
     setError('');
     const cleanCpfCnpj = form.cpf_cnpj.replace(/\D/g, '');
 
+    const cleanCardDigits = String(card.number || '').replace(/\D/g, '');
     const checkoutData = {
       business_name: form.business_name.trim(),
       owner_name: form.owner_name.trim(),
@@ -139,6 +140,8 @@ export default function Checkout() {
       cnpj: cleanCpfCnpj,
       plan: selectedPlan,
       payment_method: 'card',
+      card_last_digits: cleanCardDigits.slice(-4),
+      card_brand: card.brand || undefined,
     };
     try {
       localStorage.setItem('barberpass_checkout_data', JSON.stringify(checkoutData));
@@ -162,6 +165,7 @@ export default function Checkout() {
         expiryMonth: card.expiryMonth,
         expiryYear: card.expiryYear,
         ccv: card.ccv,
+        brand: card.brand,
       },
       creditCardHolderInfo: {
         name: card.holderName || form.owner_name.trim(),
@@ -201,6 +205,19 @@ export default function Checkout() {
       setError(errorMsg);
       throw new Error(errorMsg);
     }
+
+    try {
+      const enrichedCheckout = {
+        ...checkoutData,
+        company_id: data.company_id,
+        asaas_customer_id: data.asaas_customer_id || data.customer_id,
+        asaas_subscription_id: data.asaas_subscription_id || data.subscription_id,
+        card_last_digits: data.card_last_digits || cleanCardDigits.slice(-4),
+        card_brand: data.card_brand || card.brand || 'CARTAO',
+        trial_ends_at: data.trial_ends_at,
+      };
+      localStorage.setItem('barberpass_checkout_data', JSON.stringify(enrichedCheckout));
+    } catch (_) {}
 
     const queryParams = new URLSearchParams({
       email: form.email.trim().toLowerCase(),
