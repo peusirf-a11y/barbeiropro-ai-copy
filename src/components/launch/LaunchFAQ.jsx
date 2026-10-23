@@ -23,7 +23,7 @@ const FAQ = [
   },
   {
     q: 'Preciso ter CNPJ?',
-    a: 'Sim, o O CORTE atende barbearias formalizadas (CNPJ — MEI, ME ou outras). Isso garante segurança fiscal nos pagamentos integrados.',
+    a: 'Não é obrigatório. Você pode cadastrar e conectar sua conta Asaas pessoal (CPF / autônomo) ou empresarial (CNPJ — MEI, ME ou outras) para receber via Pix e cartão.',
   },
   {
     q: 'Existe suporte?',

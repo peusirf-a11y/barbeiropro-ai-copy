@@ -68,32 +68,14 @@ export async function asaasRequest(method, path, options = {}) {
   const timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
   const maxRetries = Number.isInteger(options.maxRetries) ? options.maxRetries : DEFAULT_MAX_RETRIES;
 
-  // No navegador (client-side), chamadas diretas para https://api.asaas.com/v3 sofrem bloqueio de CORS.
-  // Roteamos automaticamente pelo endpoint server-side para evitar "Falha de rede ao chamar Asaas".
+  // Bloqueio estrito de segurança: o cliente Asaas com access_token NUNCA pode ser invocado a partir do browser.
+  // Toda comunicação com api.asaas.com deve ocorrer exclusivamente em rotas de API / Server Handlers.
   if (typeof window !== 'undefined') {
-    const proxyRes = await fetch('/api/appointments/create-pix', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'asaas_proxy',
-        method,
-        path,
-        query: options.query,
-        body: options.body,
-        apiKey: activeApiKey,
-        companyId: options.companyId,
-      }),
-    });
-    const proxyData = await proxyRes.json().catch(() => null);
-    if (proxyRes.ok) {
-      return { data: proxyData, requestId: correlationId, status: proxyRes.status };
-    }
     throw new AsaasError({
-      code: proxyRes.status === 401 || proxyRes.status === 403 ? AsaasErrorCodes.UNAUTHORIZED : AsaasErrorCodes.BAD_REQUEST,
-      message: extractErrorMessage(proxyData) || 'Pagamento não autorizado pelo Asaas.',
-      status: proxyRes.status,
+      code: AsaasErrorCodes.UNAUTHORIZED,
+      message: 'Operação bloqueada: chamadas diretas à API do Asaas com access_token são restritas ao servidor.',
+      status: 403,
       requestId: correlationId,
-      details: proxyData,
     });
   }
 

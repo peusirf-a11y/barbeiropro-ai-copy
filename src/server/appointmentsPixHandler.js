@@ -404,87 +404,6 @@ async function upsertAppointmentForPix({
   }
 }
 
-export async function handleAsaasProxy(body = {}) {
-  try {
-    const method = String(body.method || 'GET').toUpperCase();
-    const path = String(body.path || '/customers');
-    let apiKey = String(body.apiKey || '').trim();
-    const companyId = toSafeUuid(body.companyId || body.company_id);
-
-    if (!apiKey && companyId && supabase) {
-      try {
-        const { data: comp } = await supabase
-          .from('companies')
-          .select('asaas_api_key')
-          .eq('id', companyId)
-          .maybeSingle();
-        if (comp?.asaas_api_key) {
-          apiKey = comp.asaas_api_key.trim();
-        }
-      } catch (_) {}
-    }
-
-    if (!apiKey && supabase) {
-      try {
-        const { data: comps } = await supabase
-          .from('companies')
-          .select('asaas_api_key')
-          .not('asaas_api_key', 'is', null)
-          .limit(1);
-        if (comps?.[0]?.asaas_api_key) {
-          apiKey = comps[0].asaas_api_key.trim();
-        }
-      } catch (_) {}
-    }
-
-    if (!apiKey) {
-      return {
-        status: 400,
-        body: {
-          errors: [{ description: 'Chave de API do Asaas não configurada na barbearia.' }],
-          message: 'Chave de API do Asaas não configurada na barbearia.',
-        },
-      };
-    }
-
-    const baseUrl = getAsaasBaseUrl(apiKey);
-    let url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
-    if (body.query && typeof body.query === 'object') {
-      const qs = new URLSearchParams();
-      for (const [k, v] of Object.entries(body.query)) {
-        if (v !== undefined && v !== null) qs.append(k, String(v));
-      }
-      const qsStr = qs.toString();
-      if (qsStr) url += `?${qsStr}`;
-    }
-
-    const headers = {
-      'access_token': apiKey,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'User-Agent': 'OCorte-App',
-    };
-
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: method !== 'GET' && method !== 'HEAD' && body.body ? JSON.stringify(body.body) : undefined,
-    });
-
-    const data = await res.json().catch(() => null);
-    return {
-      status: res.status,
-      body: data || {},
-    };
-  } catch (err) {
-    return {
-      status: 500,
-      body: {
-        message: err.message || 'Erro ao comunicar com o Asaas.',
-      },
-    };
-  }
-}
 
 export async function handleCreateCardPayment(body = {}) {
   try {
@@ -659,7 +578,7 @@ export async function handleCreateCardPayment(body = {}) {
       billingType: 'CREDIT_CARD',
       value: Number(val),
       dueDate: today,
-      description: `Agendamento - ${clientName}`,
+      description: body.description || booking?.description || `Agendamento - ${clientName}`,
       creditCard: {
         holderName,
         number: cardNumber,
@@ -724,6 +643,24 @@ export async function handleCreateCardPayment(body = {}) {
       };
     }
 
+    // Se for cobrança de plano de assinatura de cliente (skipAppointmentRecord), não cria agendamento avulso
+    if (body.skipAppointmentRecord || body.isCustomerPlan) {
+      return {
+        status: 200,
+        body: {
+          success: true,
+          confirmed: true,
+          status: payStatus,
+          billingType: 'CREDIT_CARD',
+          payment_method: 'credit_card',
+          paymentId,
+          payment_id: paymentId,
+          customerId,
+          invoiceUrl: payData.invoiceUrl || null,
+        },
+      };
+    }
+
     // 3º PASSO: Grava o agendamento confirmado no Supabase imediatamente
     const confirmedAppt = await upsertAppointmentForPix({
       paymentId,
@@ -770,15 +707,15 @@ export async function handleCreateCardPayment(body = {}) {
 }
 
 export async function handleCreatePix(body = {}) {
-  if (body?.action === 'asaas_proxy') {
-    return handleAsaasProxy(body);
-  }
   if (body?.action === 'card' || body?.billingType === 'CREDIT_CARD' || body?.card || body?.creditCard) {
     return handleCreateCardPayment(body);
   }
   try {
     const rawCompanyId = body.companyId || body.company_id || null;
     const companyId = toSafeUuid(rawCompanyId);
+    const isSaasSubscription = Boolean(body.isSaasSubscription);
+    const isPlanCheckout = body.action === 'plan_checkout' || Boolean(body.isCustomerPlan);
+    const skipAppointmentRecord = Boolean(body.skipAppointmentRecord || isSaasSubscription || isPlanCheckout);
 
     const clientName = (body.clientName || body.client_name || body.customer_name || 'Cliente').trim();
     const clientPhone = (body.clientPhone || body.client_phone || body.customer_phone || '').trim();
@@ -786,9 +723,13 @@ export async function handleCreatePix(body = {}) {
     const rawPrice = Number(body.price || body.amount || 0);
     const servicePrice = rawPrice > 0 ? rawPrice : 35.0;
 
-    // Busca a 'asaas_api_key' da barbearia em 'companies' pelo companyId
+    // Busca a 'asaas_api_key' da barbearia em 'companies' pelo companyId (ou usa ASAAS_API_KEY da plataforma se for assinatura SaaS)
     let asaasApiKey = '';
-    if (companyId && supabase) {
+    if (isSaasSubscription && process.env.ASAAS_API_KEY) {
+      asaasApiKey = process.env.ASAAS_API_KEY.trim();
+    }
+
+    if (!asaasApiKey && companyId && supabase) {
       try {
         const { data: comp } = await supabase
           .from('companies')
@@ -802,6 +743,10 @@ export async function handleCreatePix(body = {}) {
       } catch (err) {
         console.warn('[create-pix] Erro ao consultar empresa no Supabase:', err);
       }
+    }
+
+    if (!asaasApiKey && process.env.ASAAS_API_KEY) {
+      asaasApiKey = process.env.ASAAS_API_KEY.trim();
     }
 
     if (!asaasApiKey) {
@@ -868,17 +813,20 @@ export async function handleCreatePix(body = {}) {
       }
     }
 
-    // 2º PASSO: Cria a cobrança Pix no Asaas (POST https://api.asaas.com/v3/payments)
+    // 2º PASSO: Cria a cobrança no Asaas (POST https://api.asaas.com/v3/payments)
     const today = new Date().toISOString().split('T')[0];
+    const chargeDescription = body.description || `Agendamento - ${clientName}`;
+    const billingType = isPlanCheckout && body.billingType ? body.billingType : 'PIX';
+
     let payRes = await fetch(`${baseUrl}/payments`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         customer: customerId,
-        billingType: 'PIX',
+        billingType,
         value: Number(servicePrice),
         dueDate: today,
-        description: `Agendamento - ${clientName}`,
+        description: chargeDescription,
       }),
     });
     let payData = await payRes.json().catch(() => null);
@@ -889,10 +837,10 @@ export async function handleCreatePix(body = {}) {
         headers,
         body: JSON.stringify({
           customer: customerId,
-          billingType: 'PIX',
+          billingType,
           value: 5.0,
           dueDate: today,
-          description: `Agendamento - ${clientName}`,
+          description: chargeDescription,
         }),
       });
       payData = await payRes.json().catch(() => null);
@@ -910,6 +858,20 @@ export async function handleCreatePix(body = {}) {
     }
 
     const paymentId = payData.id;
+    const invoiceUrl = payData.invoiceUrl || payData.bankSlipUrl || null;
+
+    // Se for checkout de plano de cliente e já tivermos invoiceUrl sem exigir QR code imediato
+    if (isPlanCheckout && invoiceUrl && body.returnInvoiceOnly) {
+      return {
+        status: 200,
+        body: {
+          success: true,
+          paymentId,
+          customerId,
+          invoiceUrl,
+        },
+      };
+    }
 
     // 3º PASSO: Obtém o QR Code e Payload no Asaas (GET https://api.asaas.com/v3/payments/{paymentId}/pixQrCode)
     const qrRes = await fetch(`${baseUrl}/payments/${paymentId}/pixQrCode`, {
@@ -919,6 +881,17 @@ export async function handleCreatePix(body = {}) {
     const pixData = await qrRes.json().catch(() => null);
 
     if (!qrRes.ok || !pixData?.encodedImage || !pixData?.payload) {
+      if (isPlanCheckout && invoiceUrl) {
+        return {
+          status: 200,
+          body: {
+            success: true,
+            paymentId,
+            customerId,
+            invoiceUrl,
+          },
+        };
+      }
       return {
         status: 400,
         body: {
@@ -932,9 +905,21 @@ export async function handleCreatePix(body = {}) {
     const encodedImage = String(pixData.encodedImage).replace(/^data:image\/png;base64,/, '');
     const pixPayload = pixData.payload;
 
+    if (skipAppointmentRecord) {
+      return {
+        status: 200,
+        body: {
+          success: true,
+          appointmentId: null,
+          paymentId: paymentId,
+          invoiceUrl,
+          encodedImage: encodedImage,
+          payload: pixPayload,
+        },
+      };
+    }
+
     // 4º PASSO: Registra a intenção com status = 'pending_payment' no Supabase.
-    // Enquanto estiver 'pending_payment', NÃO aparece como corte agendado na agenda,
-    // mas garante que todos os dados do agendamento estejam salvos no banco para ativação imediata assim que o Pix compensar!
     const pendingAppt = await upsertAppointmentForPix({
       paymentId,
       booking: body,
@@ -949,6 +934,7 @@ export async function handleCreatePix(body = {}) {
         success: true,
         appointmentId: pendingAppt?.id || null,
         paymentId: paymentId,
+        invoiceUrl,
         encodedImage: encodedImage,
         payload: pixPayload,
       },
@@ -968,6 +954,7 @@ export async function handleCreatePix(body = {}) {
 
 export async function handlePaymentStatus(paymentId, appointmentId, companyId, bookingData = null) {
   try {
+    // Valida parâmetros obrigatórios e bloqueia qualquer tentativa de enviar status = 'confirmed' sem validação Asaas
     if (!paymentId && !appointmentId) {
       return {
         status: 400,
@@ -980,14 +967,35 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
       };
     }
 
-    let targetCompanyId = toSafeUuid(companyId || bookingData?.companyId || bookingData?.company_id);
+    // Sanitiza bookingData para impedir que o cliente manipule status ou campos internos
+    let sanitizedBooking = {};
+    if (bookingData && typeof bookingData === 'object') {
+      const {
+        status: _ignoreStatus,
+        payment_status: _ignorePayStatus,
+        confirmed: _ignoreConfirmed,
+        received: _ignoreReceived,
+        paid: _ignorePaid,
+        paid_online: _ignorePaidOnline,
+        asaas_api_key: _ignoreApiKey,
+        ...safeFields
+      } = bookingData;
+      sanitizedBooking = safeFields;
+    }
+
+    const skipAppointmentRecord = Boolean(
+      sanitizedBooking?.skipAppointmentRecord || sanitizedBooking?.isSaasSubscription
+    );
+    let targetCompanyId = toSafeUuid(companyId || sanitizedBooking?.companyId || sanitizedBooking?.company_id);
     let targetPaymentId = paymentId ? String(paymentId).trim() : '';
 
     // 1. Consulta agendamento existente se necessário
-    if (supabase && (!targetCompanyId || !targetPaymentId)) {
+    if (supabase && (!targetCompanyId || !targetPaymentId) && !skipAppointmentRecord) {
       try {
-        let query = supabase.from('appointments').select('*');
-        if (targetPaymentId) {
+        let query = supabase
+          .from('appointments')
+          .select('id, company_id, asaas_payment_id, payment_id, status, payment_status');
+        if (targetPaymentId && /^pay_[a-zA-Z0-9_]+$/.test(targetPaymentId)) {
           query = query.or(`asaas_payment_id.eq.${targetPaymentId},payment_id.eq.${targetPaymentId}`);
         } else if (appointmentId && toSafeUuid(appointmentId)) {
           query = query.eq('id', toSafeUuid(appointmentId));
@@ -1001,10 +1009,10 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
       } catch (_) {}
     }
 
-    // Bloqueia qualquer ID simulado/inválido
+    // Bloqueia qualquer ID simulado, inválido ou fora do formato oficial Asaas
     if (
       !targetPaymentId ||
-      !targetPaymentId.startsWith('pay_') ||
+      !/^pay_[a-zA-Z0-9_]+$/.test(targetPaymentId) ||
       targetPaymentId.startsWith('pay_mock_') ||
       targetPaymentId.startsWith('pay_test_')
     ) {
@@ -1019,9 +1027,13 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
       };
     }
 
-    // 2. Busca a 'asaas_api_key' da barbearia na tabela 'companies'
+    // 2. Busca a 'asaas_api_key' da barbearia na tabela 'companies' (ou usa ASAAS_API_KEY da plataforma se aplicável)
     let asaasApiKey = '';
-    if (targetCompanyId && supabase) {
+    if (sanitizedBooking?.isSaasSubscription && process.env.ASAAS_API_KEY) {
+      asaasApiKey = process.env.ASAAS_API_KEY.trim();
+    }
+
+    if (!asaasApiKey && targetCompanyId && supabase) {
       try {
         const { data: comp } = await supabase
           .from('companies')
@@ -1035,19 +1047,8 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
       } catch (_) {}
     }
 
-    // Fallback se companyId não foi passado: busca empresa com asaas_api_key configurada
-    if (!asaasApiKey && supabase) {
-      try {
-        const { data: comps } = await supabase
-          .from('companies')
-          .select('id, asaas_api_key')
-          .not('asaas_api_key', 'is', null)
-          .limit(1);
-        if (comps?.[0]?.asaas_api_key) {
-          asaasApiKey = comps[0].asaas_api_key.trim();
-          targetCompanyId = targetCompanyId || comps[0].id;
-        }
-      } catch (_) {}
+    if (!asaasApiKey && process.env.ASAAS_API_KEY) {
+      asaasApiKey = process.env.ASAAS_API_KEY.trim();
     }
 
     if (!asaasApiKey) {
@@ -1062,7 +1063,7 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
       };
     }
 
-    // 3. Consulta GET https://api.asaas.com/v3/payments/{paymentId} com a asaasApiKey
+    // 3. Consulta oficial GET https://api.asaas.com/v3/payments/{paymentId} com a asaasApiKey
     const baseUrl = getAsaasBaseUrl(asaasApiKey);
     const asaasRes = await fetch(`${baseUrl}/payments/${encodeURIComponent(targetPaymentId)}`, {
       method: 'GET',
@@ -1079,11 +1080,29 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
     const asaasBillingType = String(asaasData?.billingType || 'PIX').toUpperCase();
     const isCard = asaasBillingType === 'CREDIT_CARD';
 
-    // SE SIM (pagamento confirmado no Asaas: RECEIVED, CONFIRMED ou RECEIVED_IN_CASH) → confirma o agendamento no sistema!
-    if (asaasRes.ok && ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(asaasStatus)) {
+    // SE SIM (pagamento confirmado na API oficial do Asaas: RECEIVED, CONFIRMED ou RECEIVED_IN_CASH)
+    if (
+      asaasRes.ok &&
+      asaasData?.id === targetPaymentId &&
+      ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(asaasStatus)
+    ) {
+      if (skipAppointmentRecord) {
+        return {
+          status: 200,
+          body: {
+            status: asaasStatus,
+            billingType: asaasBillingType,
+            payment_method: isCard ? 'credit_card' : 'pix',
+            received: true,
+            confirmed: true,
+            payment_status: 'succeeded',
+          },
+        };
+      }
+
       const confirmedAppt = await upsertAppointmentForPix({
         paymentId: targetPaymentId,
-        booking: bookingData || {},
+        booking: sanitizedBooking,
         fallbackCompanyId: targetCompanyId,
         targetStatus: 'confirmado',
         targetPaymentStatus: isCard ? 'confirmed_card' : 'confirmed',

@@ -23,14 +23,19 @@ function detectCardBrand(cardNumber = '') {
   return 'CARTAO';
 }
 
+function generateReferralCode(length = 8) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 export async function handleAsaasSubscription(payload = {}) {
   try {
-    const rawApiKey = (
-      process.env.ASAAS_API_KEY ||
-      process.env.VITE_ASAAS_API_KEY ||
-      payload.apiKey ||
-      ''
-    ).trim();
+    // Segurança estrita: consome exclusivamente a variável de ambiente server-side (nunca VITE_/NEXT_PUBLIC_ ou payload do cliente)
+    const rawApiKey = (process.env.ASAAS_API_KEY || '').trim();
 
     const isApiKeyValid =
       rawApiKey &&
@@ -39,11 +44,38 @@ export async function handleAsaasSubscription(payload = {}) {
       !rawApiKey.toLowerCase().includes('your_key') &&
       !rawApiKey.toLowerCase().includes('placeholder');
 
-    const apiKey = rawApiKey;
-    let useSandboxMock = !isApiKeyValid;
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY;
 
-    if (useSandboxMock) {
-      console.warn('[subscribeHandler] ASAAS_API_KEY não configurada ou inválida. Ativando modo Sandbox/Simulação local para testes.');
+    let apiKey = isApiKeyValid ? rawApiKey : '';
+
+    // Se a chave da plataforma não estiver no env mas a company já possuir chave cadastrada no servidor, busca do Supabase
+    if (!apiKey && payload.company_id && supabaseUrl && supabaseKey) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const sb = createClient(supabaseUrl, supabaseKey);
+        const { data: compRow } = await sb
+          .from('companies')
+          .select('asaas_api_key')
+          .eq('id', payload.company_id)
+          .maybeSingle();
+        if (compRow?.asaas_api_key) {
+          apiKey = compRow.asaas_api_key.trim();
+        }
+      } catch (_) {}
+    }
+
+    if (!apiKey) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          error: 'Chave de API do Asaas (ASAAS_API_KEY) não configurada no servidor.',
+        },
+      };
     }
 
     // Normaliza os dados recebidos (suporta formato aninhado ou plano do formulário)
@@ -69,9 +101,9 @@ export async function handleAsaasSubscription(payload = {}) {
       phone: customer.phone,
     };
 
-    const cleanCpfCnpj = String(customer.cpfCnpj || '').replace(/\D/g, '');
-    const cleanEmail = String(customer.email || '').trim().toLowerCase();
-    const cleanPhone = String(customer.phone || '').replace(/\D/g, '');
+    const cleanCpfCnpj = String(customer.cpfCnpj || creditCardHolderInfo.cpfCnpj || '').replace(/\D/g, '');
+    const cleanEmail = String(customer.email || creditCardHolderInfo.email || '').trim().toLowerCase();
+    const cleanPhone = String(customer.phone || creditCardHolderInfo.phone || '').replace(/\D/g, '');
 
     // Validação de documento (CPF = 11 dígitos, CNPJ = 14 dígitos)
     if (cleanCpfCnpj.length !== 11 && cleanCpfCnpj.length !== 14) {
@@ -104,35 +136,43 @@ export async function handleAsaasSubscription(payload = {}) {
       };
     }
 
-    // Bloqueio de cartão de teste recusado
-    if (cleanCardNum.startsWith('9999')) {
-      return {
-        status: 400,
-        body: {
-          success: false,
-          error: 'Cartão não autorizado ou recusado pelo banco emissor (simulação de recusa).',
-        },
-      };
-    }
-
     let customerId = null;
     let subscriptionId = null;
     let cardLastDigits = cleanCardNum.slice(-4);
     let cardBrand = creditCard.brand || detectCardBrand(cleanCardNum);
 
-    if (!useSandboxMock) {
-      const isHmlg = apiKey.startsWith('$aact_hmlg_');
-      const baseUrl = (process.env.ASAAS_BASE_URL || (isHmlg ? 'https://api-sandbox.asaas.com/v3' : 'https://api.asaas.com/v3')).trim();
+    const isHmlg = apiKey.startsWith('$aact_hmlg_');
+    const baseUrl = (
+      process.env.ASAAS_BASE_URL ||
+      (isHmlg ? 'https://api-sandbox.asaas.com/v3' : 'https://api.asaas.com/v3')
+    ).trim();
 
-      console.info('[subscribeHandler] Chamando Asaas API em:', baseUrl, 'Ambiente:', isHmlg ? 'Sandbox' : 'Produção');
+    console.info('[subscribeHandler] Chamando Asaas API em:', baseUrl, 'Ambiente:', isHmlg ? 'Sandbox' : 'Produção');
 
-      // 1. Busca ou Cria Cliente no Asaas
-      try {
-        const searchUrl = cleanCpfCnpj
-          ? `${baseUrl}/customers?cpfCnpj=${cleanCpfCnpj}`
-          : `${baseUrl}/customers?email=${encodeURIComponent(cleanEmail)}`;
+    // 1. Busca ou Cria Cliente no Asaas
+    try {
+      const searchUrl = cleanCpfCnpj
+        ? `${baseUrl}/customers?cpfCnpj=${cleanCpfCnpj}`
+        : `${baseUrl}/customers?email=${encodeURIComponent(cleanEmail)}`;
 
-        const searchRes = await fetch(searchUrl, {
+      const searchRes = await fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'access_token': apiKey,
+          'User-Agent': 'OCorte-SaaS/1.0',
+        },
+      });
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (Array.isArray(searchData?.data) && searchData.data.length > 0) {
+          customerId = searchData.data[0].id;
+          console.info('[subscribeHandler] Cliente Asaas existente identificado por doc:', customerId);
+        }
+      }
+
+      if (!customerId && cleanEmail) {
+        const emailRes = await fetch(`${baseUrl}/customers?email=${encodeURIComponent(cleanEmail)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -140,79 +180,54 @@ export async function handleAsaasSubscription(payload = {}) {
             'User-Agent': 'OCorte-SaaS/1.0',
           },
         });
-        if (searchRes.ok) {
-          const searchData = await searchRes.json();
-          if (Array.isArray(searchData?.data) && searchData.data.length > 0) {
-            customerId = searchData.data[0].id;
-            console.info('[subscribeHandler] Cliente Asaas existente identificado por doc:', customerId);
+        if (emailRes.ok) {
+          const emailData = await emailRes.json();
+          if (Array.isArray(emailData?.data) && emailData.data.length > 0) {
+            customerId = emailData.data[0].id;
+            console.info('[subscribeHandler] Cliente Asaas existente identificado por email:', customerId);
           }
         }
-
-        if (!customerId && cleanEmail) {
-          const emailRes = await fetch(`${baseUrl}/customers?email=${encodeURIComponent(cleanEmail)}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'access_token': apiKey,
-              'User-Agent': 'OCorte-SaaS/1.0',
-            },
-          });
-          if (emailRes.ok) {
-            const emailData = await emailRes.json();
-            if (Array.isArray(emailData?.data) && emailData.data.length > 0) {
-              customerId = emailData.data[0].id;
-              console.info('[subscribeHandler] Cliente Asaas existente identificado por email:', customerId);
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('[subscribeHandler] Busca de cliente Asaas falhou, tentando cadastro direto:', e.message);
       }
+    } catch (e) {
+      console.warn('[subscribeHandler] Busca de cliente Asaas falhou, tentando cadastro direto:', e.message);
+    }
 
-      if (!customerId) {
-        const custBody = {
-          name: customer.name || 'Cliente O CORTE',
-          email: cleanEmail,
-          cpfCnpj: cleanCpfCnpj,
-          phone: cleanPhone || undefined,
-          mobilePhone: cleanPhone || undefined,
-          notificationDisabled: false,
-        };
+    if (!customerId) {
+      const custBody = {
+        name: customer.name || creditCard.holderName || 'Cliente O CORTE',
+        email: cleanEmail || 'contato@ocorte.com.br',
+        cpfCnpj: cleanCpfCnpj,
+        phone: cleanPhone || undefined,
+        mobilePhone: cleanPhone || undefined,
+        notificationDisabled: false,
+      };
 
-        console.info('[subscribeHandler] Registrando novo cliente no Asaas:', cleanEmail, cleanCpfCnpj);
-        const custRes = await fetch(`${baseUrl}/customers`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'access_token': apiKey,
-            'User-Agent': 'OCorte-SaaS/1.0',
+      console.info('[subscribeHandler] Registrando novo cliente no Asaas:', cleanEmail, cleanCpfCnpj);
+      const custRes = await fetch(`${baseUrl}/customers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'access_token': apiKey,
+          'User-Agent': 'OCorte-SaaS/1.0',
+        },
+        body: JSON.stringify(custBody),
+      });
+
+      const custData = await custRes.json().catch(() => ({}));
+      if (!custRes.ok || !custData?.id) {
+        const errorMsg = extractAsaasError(custData);
+        console.error('[subscribeHandler] Erro na criação de cliente Asaas:', errorMsg, custData);
+        return {
+          status: 400,
+          body: {
+            success: false,
+            error: errorMsg,
+            details: custData,
           },
-          body: JSON.stringify(custBody),
-        });
-
-        const custData = await custRes.json().catch(() => ({}));
-        if (!custRes.ok) {
-          const errorMsg = extractAsaasError(custData);
-          console.error('[subscribeHandler] Erro na criação de cliente Asaas:', errorMsg, custData);
-
-          if (errorMsg.toLowerCase().includes('chave de api') || errorMsg.toLowerCase().includes('api key') || errorMsg.toLowerCase().includes('access_token')) {
-            console.warn('[subscribeHandler] Chave de Asaas rejeitada pela API. Ativando fallback de sandbox local para testes.');
-            useSandboxMock = true;
-          } else {
-            return {
-              status: 400,
-              body: {
-                success: false,
-                error: errorMsg,
-                details: custData,
-              },
-            };
-          }
-        } else {
-          customerId = custData.id;
-          console.info('[subscribeHandler] Novo cliente criado no Asaas com sucesso! ID:', customerId);
-        }
+        };
       }
+      customerId = custData.id;
+      console.info('[subscribeHandler] Novo cliente criado no Asaas com sucesso! ID:', customerId);
     }
 
     // 2. Calcula data de vencimento da primeira fatura: Hoje + 7 dias (Trial Seguro)
@@ -221,88 +236,72 @@ export async function handleAsaasSubscription(payload = {}) {
     const nextDueDate = trialDate.toISOString().split('T')[0];
 
     const planValue = Number(plan.value || 89.00);
-    const planName = plan.name || 'Pro';
+    const planName = typeof plan === 'string' ? plan : (plan.name || 'Pro');
     const expYear = String(creditCard.expiryYear).length === 2 ? `20${creditCard.expiryYear}` : String(creditCard.expiryYear);
+    const billingCycle = String(payload.cycle || 'MONTHLY').toUpperCase() === 'YEARLY' ? 'YEARLY' : 'MONTHLY';
 
-    if (!useSandboxMock && customerId) {
-      const isHmlg = apiKey.startsWith('$aact_hmlg_');
-      const baseUrl = (process.env.ASAAS_BASE_URL || (isHmlg ? 'https://api-sandbox.asaas.com/v3' : 'https://api.asaas.com/v3')).trim();
+    // 3. Cria Assinatura Recorrente no Asaas (/v3/subscriptions) com Cartão de Crédito validado pela API oficial
+    const subBody = {
+      customer: customerId,
+      billingType: 'CREDIT_CARD',
+      value: planValue,
+      nextDueDate,
+      cycle: billingCycle,
+      description: `Assinatura O CORTE - Plano ${planName}`,
+      creditCard: {
+        holderName: String(creditCard.holderName).trim().toUpperCase(),
+        number: cleanCardNum,
+        expiryMonth: String(creditCard.expiryMonth).padStart(2, '0'),
+        expiryYear: expYear,
+        ccv: ccvVal,
+      },
+      creditCardHolderInfo: {
+        name: String(creditCardHolderInfo.name || creditCard.holderName || customer.name).trim().toUpperCase(),
+        email: cleanEmail || 'contato@ocorte.com.br',
+        cpfCnpj: String(creditCardHolderInfo.cpfCnpj || cleanCpfCnpj).replace(/\D/g, ''),
+        postalCode: String(creditCardHolderInfo.postalCode || '01310100').replace(/\D/g, ''),
+        addressNumber: String(creditCardHolderInfo.addressNumber || '100').trim(),
+        phone: cleanPhone || '11999999999',
+      },
+    };
 
-      // 3. Cria Assinatura Recorrente no Asaas (/v3/subscriptions) com Cartão de Crédito e nextDueDate (+7 dias)
-      const subBody = {
-        customer: customerId,
-        billingType: 'CREDIT_CARD',
-        value: planValue,
-        nextDueDate,
-        cycle: 'MONTHLY',
-        description: `Assinatura O CORTE - Plano ${planName}`,
-        creditCard: {
-          holderName: String(creditCard.holderName).trim().toUpperCase(),
-          number: cleanCardNum,
-          expiryMonth: String(creditCard.expiryMonth).padStart(2, '0'),
-          expiryYear: expYear,
-          ccv: ccvVal,
-        },
-        creditCardHolderInfo: {
-          name: String(creditCardHolderInfo.name || creditCard.holderName || customer.name).trim().toUpperCase(),
-          email: cleanEmail,
-          cpfCnpj: String(creditCardHolderInfo.cpfCnpj || cleanCpfCnpj).replace(/\D/g, ''),
-          postalCode: String(creditCardHolderInfo.postalCode || '01310100').replace(/\D/g, ''),
-          addressNumber: String(creditCardHolderInfo.addressNumber || '100').trim(),
-          phone: cleanPhone || '11999999999',
+    console.info('[subscribeHandler] Enviando requisição de assinatura para Asaas. nextDueDate:', nextDueDate, 'Valor:', planValue);
+
+    const subRes = await fetch(`${baseUrl}/subscriptions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'access_token': apiKey,
+        'User-Agent': 'OCorte-SaaS/1.0',
+      },
+      body: JSON.stringify(subBody),
+    });
+
+    const subData = await subRes.json().catch(() => ({}));
+
+    if (!subRes.ok || !subData?.id) {
+      const errorMsg = extractAsaasError(subData);
+      console.error('[subscribeHandler] Assinatura recusada pela API do Asaas:', errorMsg, subData);
+      return {
+        status: 400,
+        body: {
+          success: false,
+          error: errorMsg,
+          details: subData,
         },
       };
-
-      console.info('[subscribeHandler] Enviando requisição de assinatura para Asaas. nextDueDate:', nextDueDate, 'Valor:', planValue);
-
-      const subRes = await fetch(`${baseUrl}/subscriptions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'access_token': apiKey,
-          'User-Agent': 'OCorte-SaaS/1.0',
-        },
-        body: JSON.stringify(subBody),
-      });
-
-      const subData = await subRes.json().catch(() => ({}));
-
-      if (!subRes.ok) {
-        const errorMsg = extractAsaasError(subData);
-        console.error('[subscribeHandler] Assinatura recusada pela API do Asaas:', errorMsg, subData);
-
-        if (errorMsg.toLowerCase().includes('chave de api') || errorMsg.toLowerCase().includes('api key') || errorMsg.toLowerCase().includes('access_token')) {
-          console.warn('[subscribeHandler] Chave de Asaas rejeitada na criação de assinatura. Ativando fallback sandbox local.');
-          useSandboxMock = true;
-        } else {
-          return {
-            status: 400,
-            body: {
-              success: false,
-              error: errorMsg,
-              details: subData,
-            },
-          };
-        }
-      } else {
-        subscriptionId = subData.id;
-        if (subData?.creditCard?.creditCardNumber) {
-          cardLastDigits = String(subData.creditCard.creditCardNumber).slice(-4);
-        }
-        if (subData?.creditCard?.creditCardBrand) {
-          cardBrand = String(subData.creditCard.creditCardBrand).toUpperCase();
-        }
-        console.info('[subscribeHandler] Assinatura criada com SUCESSO no Asaas! ID:', subscriptionId);
-      }
     }
 
-    if (useSandboxMock) {
-      customerId = `cust_dev_${Date.now()}`;
-      subscriptionId = `sub_dev_${Date.now()}`;
-      console.info('[subscribeHandler] Usando IDs de Sandbox Mock:', { customerId, subscriptionId });
+    subscriptionId = subData.id;
+    if (subData?.creditCard?.creditCardNumber) {
+      cardLastDigits = String(subData.creditCard.creditCardNumber).slice(-4);
     }
+    if (subData?.creditCard?.creditCardBrand) {
+      cardBrand = String(subData.creditCard.creditCardBrand).toUpperCase();
+    }
+    console.info('[subscribeHandler] Assinatura criada com SUCESSO no Asaas! ID:', subscriptionId);
 
-    // 4. Salva na tabela 'companies' do Supabase com asaas_customer_id, asaas_subscription_id, card_last_digits e card_brand
+    // 4. Salva na tabela 'companies' do Supabase com asaas_customer_id, asaas_subscription_id, card_last_digits, card_brand, referred_by e referral_code
     const businessName = payload.business_name || customer.name || 'Minha Barbearia';
     const slugStr = businessName
       .toLowerCase()
@@ -310,6 +309,9 @@ export async function handleAsaasSubscription(payload = {}) {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+
+    const rawReferredBy = String(payload.referred_by || payload.ref || '').trim().toUpperCase();
+    const generatedReferralCode = String(payload.referral_code || '').trim().toUpperCase() || generateReferralCode(8);
 
     const companyData = {
       name: businessName,
@@ -330,26 +332,43 @@ export async function handleAsaasSubscription(payload = {}) {
       trial_ends_at: trialDate.toISOString(),
       current_period_end: trialDate.toISOString(),
       slug: slugStr || `barbearia-${Date.now().toString().slice(-4)}`,
+      referral_code: generatedReferralCode,
+      ...(rawReferredBy ? { referred_by: rawReferredBy } : {}),
       updated_at: new Date().toISOString(),
     };
 
-    let savedCompanyId = null;
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    let savedCompanyId = payload.company_id || null;
 
     if (supabaseUrl && supabaseKey) {
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        const { data: existing } = await supabase
-          .from('companies')
-          .select('id, business_hours')
-          .eq('owner_email', cleanEmail)
-          .maybeSingle();
+        let existing = null;
+        if (savedCompanyId) {
+          const { data: byId } = await supabase
+            .from('companies')
+            .select('id, business_hours, referral_code, referred_by')
+            .eq('id', savedCompanyId)
+            .maybeSingle();
+          existing = byId;
+        }
+        if (!existing && cleanEmail) {
+          const { data: byEmail } = await supabase
+            .from('companies')
+            .select('id, business_hours, referral_code, referred_by')
+            .eq('owner_email', cleanEmail)
+            .maybeSingle();
+          existing = byEmail;
+        }
+
+        const finalReferralCode = existing?.referral_code || generatedReferralCode;
+        const finalReferredBy = existing?.referred_by || rawReferredBy || null;
 
         const enrichedCompanyData = {
           ...companyData,
+          referral_code: finalReferralCode,
+          ...(finalReferredBy ? { referred_by: finalReferredBy } : {}),
           cnpj: cleanCpfCnpj,
           business_hours: {
             ...(existing?.business_hours || {}),
@@ -387,7 +406,7 @@ export async function handleAsaasSubscription(payload = {}) {
           return targetId;
         };
 
-        savedCompanyId = await saveWithFallback(existing?.id || null, enrichedCompanyData);
+        savedCompanyId = await saveWithFallback(existing?.id || savedCompanyId || null, enrichedCompanyData);
       } catch (dbErr) {
         console.warn('[subscribeHandler] Aviso ao sincronizar com Supabase no servidor:', dbErr.message);
       }
@@ -400,6 +419,7 @@ export async function handleAsaasSubscription(payload = {}) {
       owner: customer.name,
       phone: cleanPhone,
       cnpj: cleanCpfCnpj,
+      ...(rawReferredBy ? { ref: rawReferredBy } : {}),
     }).toString();
 
     return {
@@ -413,9 +433,11 @@ export async function handleAsaasSubscription(payload = {}) {
         asaas_subscription_id: subscriptionId,
         card_last_digits: cardLastDigits,
         card_brand: cardBrand,
+        referral_code: companyData.referral_code,
+        referred_by: rawReferredBy || null,
         trial_ends_at: trialDate.toISOString(),
         url: `/checkout/sucesso?${queryParams}`,
-        message: useSandboxMock ? 'Assinatura simulada com sucesso (Modo Sandbox).' : 'Assinatura criada com sucesso no Asaas!',
+        message: 'Assinatura criada com sucesso no Asaas!',
       },
     };
   } catch (err) {

@@ -2,9 +2,10 @@
 // Plano Mensal: exclusivo Cartão de Crédito com renovação automática.
 // Plano Anual: Cartão de Crédito parcelado em até 12x ou à vista via Pix.
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import StandardModal from '@/components/ui/standard-modal';
 import { base44 } from '@/api/base44Client';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import {
   CreditCard,
   CheckCircle2,
@@ -14,6 +15,7 @@ import {
   Lock,
   QrCode,
   Copy,
+  RefreshCw,
 } from 'lucide-react';
 import { maskCpfCnpj, detectCardBrand } from '@/components/booking/CardPaymentFormAsaas';
 
@@ -29,10 +31,14 @@ export default function SaasPaymentModal({
   const [paymentMethod, setPaymentMethod] = useState('CREDIT_CARD'); // 'CREDIT_CARD' | 'PIX' (PIX disponível no anual)
   const [installments, setInstallments] = useState(12);
   const [loading, setLoading] = useState(false);
+  const [checkingPix, setCheckingPix] = useState(false);
   const [error, setError] = useState('');
   const [paidSuccess, setPaidSuccess] = useState(false);
   const [pixData, setPixData] = useState(null);
+  const [pixPaymentId, setPixPaymentId] = useState('');
   const [copiedPix, setCopiedPix] = useState(false);
+  const isPollingRef = useRef(false);
+  const confirmedRef = useRef(false);
 
   const [cardForm, setCardForm] = useState({
     name: '',
@@ -41,6 +47,121 @@ export default function SaasPaymentModal({
     expiry: '',
     cvv: '',
   });
+
+  const finalizeAnnualPixSubscription = useCallback(async () => {
+    if (confirmedRef.current) return;
+    confirmedRef.current = true;
+
+    const oneYearFromNow = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    const updatePayload = {
+      subscription_status: 'active',
+      billing_status: 'ACTIVE',
+      current_period_end: oneYearFromNow,
+      plan_id: plan?.id || 'pro',
+      plan_name: plan?.name || 'Plano Pro',
+      plan_status: 'active',
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      if (isSupabaseConfigured && supabase && companyId) {
+        await supabase.from('companies').update(updatePayload).eq('id', companyId);
+      }
+      await base44.functions.invoke('confirmAsaasSaasPayment', {
+        company_id: companyId,
+        plan_id: plan?.id || 'pro',
+        cycle: 'yearly',
+        current_period_end: oneYearFromNow,
+      });
+    } catch (err) {
+      console.warn('[SaasPaymentModal] Aviso ao atualizar assinatura anual no Supabase:', err);
+    }
+
+    setPaidSuccess(true);
+    onSuccess?.();
+    setTimeout(() => {
+      onClose?.();
+    }, 1800);
+  }, [companyId, plan, onSuccess, onClose]);
+
+  const checkPixPaymentStatus = useCallback(
+    async (isManualClick = false) => {
+      if (!pixPaymentId || confirmedRef.current) return;
+      if (!isManualClick && isPollingRef.current) return;
+
+      isPollingRef.current = true;
+      if (isManualClick) {
+        setCheckingPix(true);
+        setError('');
+      }
+
+      try {
+        const qs = new URLSearchParams({
+          paymentId: pixPaymentId,
+          ...(companyId ? { companyId } : {}),
+          _t: String(Date.now()),
+        });
+
+        const res = await fetch(`/api/payments/status?${qs.toString()}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+          body: JSON.stringify({
+            paymentId: pixPaymentId,
+            companyId,
+            booking: {
+              skipAppointmentRecord: true,
+              isSaasSubscription: true,
+              companyId,
+            },
+          }),
+        });
+
+        const data = await res.json().catch(() => null);
+        const asaasStatus = String(data?.status || '').toUpperCase();
+        const isConfirmed =
+          res.ok &&
+          (data?.confirmed === true || data?.received === true) &&
+          ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(asaasStatus);
+
+        if (isConfirmed) {
+          await finalizeAnnualPixSubscription();
+        } else if (isManualClick) {
+          setError(
+            'Pagamento Pix ainda não confirmado pelo banco no Asaas. Assim que compensar, seu Plano Anual será liberado automaticamente.'
+          );
+        }
+      } catch (err) {
+        if (isManualClick) {
+          setError(
+            err?.message ||
+              'Não foi possível confirmar o pagamento no Asaas agora. Tente novamente em alguns segundos.'
+          );
+        }
+      } finally {
+        isPollingRef.current = false;
+        if (isManualClick) {
+          setCheckingPix(false);
+        }
+      }
+    },
+    [pixPaymentId, companyId, finalizeAnnualPixSubscription]
+  );
+
+  // Polling automático a cada 4 segundos enquanto o QR Code Pix anual estiver aberto
+  useEffect(() => {
+    if (!isOpen || !isYearly || paymentMethod !== 'PIX' || !pixPaymentId || paidSuccess) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      checkPixPaymentStatus(false);
+    }, 4000);
+
+    return () => clearInterval(intervalId);
+  }, [isOpen, isYearly, paymentMethod, pixPaymentId, paidSuccess, checkPixPaymentStatus]);
 
   if (!plan) return null;
 
@@ -64,6 +185,7 @@ export default function SaasPaymentModal({
   const handleGenerateYearlyPix = async () => {
     setError('');
     setLoading(true);
+    confirmedRef.current = false;
     try {
       const res = await base44.functions.invoke('createAsaasSaasSubscription', {
         company_id: companyId,
@@ -75,6 +197,9 @@ export default function SaasPaymentModal({
       if (!data || !data.success || !data.pix) {
         throw new Error(data?.error || data?.message || 'Não foi possível gerar o QR Code Pix.');
       }
+      const resolvedPaymentId =
+        data.payment_id || data.paymentId || data.pix?.payment_id || data.pix?.paymentId || '';
+      setPixPaymentId(resolvedPaymentId);
       setPixData(data.pix);
     } catch (err) {
       setError(err?.message || 'Erro ao gerar Pix para o plano anual.');
@@ -107,11 +232,6 @@ export default function SaasPaymentModal({
       return;
     }
 
-    if (cleanNumber.startsWith('9999')) {
-      setError('Cartão não autorizado ou dados inválidos. Verifique as informações ou utilize outro cartão.');
-      return;
-    }
-
     setLoading(true);
     try {
       const [mm, yy] = cardForm.expiry.split('/');
@@ -141,9 +261,15 @@ export default function SaasPaymentModal({
         throw new Error(data?.error || data?.message || 'Cartão não autorizado ou dados inválidos. Verifique as informações ou utilize outro cartão.');
       }
 
+      const nextPeriodEnd = isYearly
+        ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+        : undefined;
+
       await base44.functions.invoke('confirmAsaasSaasPayment', {
         company_id: companyId,
         plan_id: plan.id,
+        cycle: isYearly ? 'yearly' : 'monthly',
+        current_period_end: nextPeriodEnd,
       });
 
       setPaidSuccess(true);
@@ -174,9 +300,15 @@ export default function SaasPaymentModal({
             <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto ring-4 ring-emerald-500/10">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-black text-white">Assinatura Confirmada com Sucesso!</h3>
+            <h3 className="text-xl font-black text-white">
+              {isYearly
+                ? `Bem-vindo ao Plano Anual ${plan.name}!`
+                : 'Assinatura Confirmada com Sucesso!'}
+            </h3>
             <p className="text-xs text-white/70">
-              O plano <strong className="text-white">{plan.name}</strong> foi ativado na sua barbearia.
+              {isYearly
+                ? `Pagamento confirmado no Asaas! Seu acesso anual ao plano ${plan.name} está ativo por 12 meses.`
+                : `O plano ${plan.name} foi ativado na sua barbearia.`}
             </p>
           </div>
         ) : (
@@ -300,6 +432,28 @@ export default function SaasPaymentModal({
                         {copiedPix ? 'Copiado!' : 'Copiar Pix'}
                       </button>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => checkPixPaymentStatus(true)}
+                      disabled={checkingPix || !pixPaymentId}
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:brightness-110 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/20 disabled:opacity-50"
+                    >
+                      {checkingPix ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Verificando pagamento no Asaas...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4" />
+                          <span>Já realizei o Pix</span>
+                        </>
+                      )}
+                    </button>
+                    <p className="text-[11px] text-white/50">
+                      Verificação automática a cada 4 segundos junto ao Asaas.
+                    </p>
                   </div>
                 )}
               </div>

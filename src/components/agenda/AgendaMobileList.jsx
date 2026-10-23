@@ -129,10 +129,11 @@ export default function AgendaMobileList({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onOfferPlan(customer || {
-                        id: appt.customer_id,
-                        name: appt.customer_name || 'Cliente',
-                        phone: appt.customer_phone || '',
+                      onOfferPlan({
+                        ...(customer || {}),
+                        id: customer?.id || appt.customer_id,
+                        name: customer?.name || appt.customer_name || 'Cliente',
+                        phone: customer?.phone || appt.customer_phone || '',
                       });
                     }}
                     className="inline-flex items-center gap-1 text-[10px] font-bold bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 text-white px-2.5 py-1 rounded-lg transition-all ring-1 ring-white/20 shadow-[0_4px_12px_rgba(37,99,235,0.4)]"

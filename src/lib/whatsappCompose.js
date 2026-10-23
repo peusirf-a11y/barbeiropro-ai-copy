@@ -141,6 +141,50 @@ export function buildReschedulingMessage({ company, customer }) {
   );
 }
 
+// Oferta de Plano / Assinatura — explica as vantagens do plano recomendado ao cliente
+export function buildPlanOfferMessage({ company, customer, plan, recommendation }) {
+  const rawName = String(customer?.name || 'Cliente').trim();
+  const firstName = rawName.split(' ')[0] || rawName;
+  const companyName = company?.name || recommendation?.company_name || 'nossa barbearia';
+  const slug = company?.slug || recommendation?.company_slug || '';
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const plansLink = slug
+    ? `${origin}/cliente/${slug}/planos`
+    : origin
+      ? `${origin}/minha-conta`
+      : '';
+
+  const planName = plan?.name || 'Plano VIP';
+  const planPrice = Number(plan?.price_monthly || 0);
+  const isUnlimited = plan?.type === 'unlimited';
+  const usageLimit = Number(plan?.usage_limit || 2);
+  const monthlySavings = Number(recommendation?.monthly_savings || 0);
+  const annualSavings = Number(recommendation?.annual_savings || monthlySavings * 12);
+
+  const usageLine = isUnlimited
+    ? '• Atendimentos ilimitados durante todo o mês'
+    : `• Até ${usageLimit} ${usageLimit === 1 ? 'atendimento garantido' : 'atendimentos garantidos'} por mês`;
+
+  const savingsLine = monthlySavings > 0
+    ? `\n• Economia direta de R$ ${monthlySavings}/mês (R$ ${annualSavings}/ano) em relação aos cortes avulsos`
+    : '';
+
+  const linkSection = plansLink
+    ? `\n\n👉 Confira os detalhes e ative sua assinatura pelo link:\n${plansLink}`
+    : '\n\nMe avise por aqui se quiser conhecer ou ativar seu plano!';
+
+  return (
+    `Olá, ${firstName}! Tudo bem? 💈\n\n` +
+    `Vimos que você já é cliente frequente aqui na *${companyName}* e selecionamos um plano especial para o seu perfil: o *${planName}* (R$ ${planPrice}/mês).\n\n` +
+    `✨ *Vantagens da assinatura para você:*\n` +
+    `${usageLine}` +
+    `${savingsLine}\n` +
+    `• Agendamento rápido sem precisar pagar a cada visita\n` +
+    `• Previsibilidade e prioridade nos horários da agenda` +
+    `${linkSection}`
+  );
+}
+
 // ─── Abertura do WhatsApp ────────────────────────────────────────────────
 
 // Detecta mobile/desktop apenas para fins de logging. Ambos os formatos

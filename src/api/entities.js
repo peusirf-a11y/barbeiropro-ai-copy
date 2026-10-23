@@ -150,6 +150,17 @@ const CUSTOMER_PLAN_META_KEYS = [
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Colunas seguras da tabela companies (EXCLUI estritamente asaas_api_key para nunca trafegar ao browser)
+export const PUBLIC_COMPANY_COLUMNS =
+  'id, name, slug, logo_url, phone, whatsapp, address, primary_color, business_hours';
+
+export const SAFE_COMPANY_COLUMNS =
+  'id, name, slug, logo_url, phone, whatsapp, address, primary_color, business_hours, status, active, plan_id, plan_name, billing_status, subscription_status, trial_ends_at, current_period_end, card_last_digits, card_brand, asaas_customer_id, asaas_subscription_id, referral_code, free_months_balance, owner_name, owner_email, cnpj, owner_cpf_cnpj, onboarding_completed, created_at, updated_at';
+
+export const BASE_COMPANY_COLUMNS =
+  'id, name, slug, logo_url, phone, whatsapp, address, primary_color, business_hours, active, owner_email, created_at';
+
+
 function getLocalTable(tableName) {
   try {
     if (typeof localStorage === 'undefined') return [];
@@ -206,6 +217,26 @@ export class EntityRepository {
     }
     if (this.tableName === 'companies') {
       const out = { ...row };
+      // Proteção estrita: garante que o campo sensível asaas_api_key NUNCA trafegue para o browser
+      delete out.asaas_api_key;
+      const brandingMeta = out.business_hours?._branding || out.opening_hours?._branding || {};
+      if (brandingMeta.primary_color) {
+        out.primary_color = brandingMeta.primary_color;
+      } else if (!out.primary_color) {
+        try {
+          const localCompanies = getLocalTable('companies');
+          const localMatch = localCompanies.find(
+            lc => (out.id && lc.id === out.id) || (out.slug && lc.slug === out.slug)
+          );
+          if (localMatch?.primary_color) {
+            out.primary_color = localMatch.primary_color;
+          }
+        } catch (_) {}
+      }
+      if (!out.whatsapp && brandingMeta.whatsapp) out.whatsapp = brandingMeta.whatsapp;
+      if (!out.address && brandingMeta.address) out.address = brandingMeta.address;
+      if (!out.logo_url && brandingMeta.logo_url) out.logo_url = brandingMeta.logo_url;
+
       const billingMeta = out.business_hours?._billing || out.opening_hours?._billing || {};
       if (!out.card_last_digits && billingMeta.card_last_digits) {
         out.card_last_digits = billingMeta.card_last_digits;
@@ -221,12 +252,6 @@ export class EntityRepository {
       }
       if (!out.asaas_customer_id && billingMeta.asaas_customer_id) {
         out.asaas_customer_id = billingMeta.asaas_customer_id;
-      }
-      if (out.asaas_api_key && String(out.asaas_api_key).trim().length > 0) {
-        out.asaas_pix_enabled = true;
-        if (!out.asaas_subaccount_status) {
-          out.asaas_subaccount_status = 'active';
-        }
       }
       return out;
     }
@@ -465,7 +490,8 @@ export class EntityRepository {
       return getLocalTable(this.tableName);
     }
     try {
-      let query = supabase.from(this.tableName).select('*');
+      const selectCols = this.tableName === 'companies' ? SAFE_COMPANY_COLUMNS : '*';
+      let query = supabase.from(this.tableName).select(selectCols);
       if (sort) {
         const isDesc = sort.startsWith('-');
         let field = isDesc ? sort.substring(1) : sort;
@@ -477,7 +503,14 @@ export class EntityRepository {
       if (limit && limit > 0) {
         query = query.limit(limit);
       }
-      const { data, error } = await query;
+      let { data, error } = await query;
+      if (error && this.tableName === 'companies') {
+        let fbQuery = supabase.from('companies').select(BASE_COMPANY_COLUMNS);
+        if (limit && limit > 0) fbQuery = fbQuery.limit(limit);
+        const fbRes = await fbQuery;
+        data = fbRes.data;
+        error = fbRes.error;
+      }
       if (error) throw error;
       if (this.tableName === 'appointments') {
         return await this._reconcileAndFilterAppointments(data || []);
@@ -490,6 +523,14 @@ export class EntityRepository {
       }
       if (!CORE_REMOTE_ONLY_TABLES.has(this.tableName)) {
         const localRows = getLocalTable(this.tableName).map(r => this._normalizeRow(r));
+        const localMap = new Map(
+          localRows.filter(lr => lr && lr.id).map(lr => [String(lr.id), lr])
+        );
+        remoteRows = remoteRows.map(rr => {
+          const lr = rr && rr.id ? localMap.get(String(rr.id)) : null;
+          if (!lr) return rr;
+          return this._normalizeRow({ ...rr, ...lr });
+        });
         const seen = new Set(remoteRows.map(r => String(r.id)));
         for (const lr of localRows) {
           if (lr && lr.id && !seen.has(String(lr.id))) {
@@ -534,7 +575,17 @@ export class EntityRepository {
       return items.filter(matchLocalCriteria);
     }
     try {
-      let query = supabase.from(this.tableName).select('*');
+      const isPublicSlugFilter =
+        this.tableName === 'companies' &&
+        Object.keys(criteria).length === 1 &&
+        Boolean(criteria.slug);
+      const selectCols =
+        this.tableName === 'companies'
+          ? isPublicSlugFilter
+            ? PUBLIC_COMPANY_COLUMNS
+            : SAFE_COMPANY_COLUMNS
+          : '*';
+      let query = supabase.from(this.tableName).select(selectCols);
       Object.entries(criteria).forEach(([key, val]) => {
         if (val === undefined || val === null) return;
         if (this.tableName === 'appointments' && key === 'scheduled_at') return;
@@ -564,7 +615,21 @@ export class EntityRepository {
       if (limit && limit > 0) {
         query = query.limit(limit);
       }
-      const { data, error } = await query;
+      let { data, error } = await query;
+      if (error && this.tableName === 'companies') {
+        let fbQuery = supabase
+          .from('companies')
+          .select(isPublicSlugFilter ? PUBLIC_COMPANY_COLUMNS : BASE_COMPANY_COLUMNS);
+        Object.entries(criteria).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && typeof val !== 'object') {
+            fbQuery = fbQuery.eq(key, val);
+          }
+        });
+        if (limit && limit > 0) fbQuery = fbQuery.limit(limit);
+        const fbRes = await fbQuery;
+        data = fbRes.data;
+        error = fbRes.error;
+      }
       if (error) throw error;
       if (this.tableName === 'appointments') {
         return await this._reconcileAndFilterAppointments(data || []);
@@ -576,9 +641,18 @@ export class EntityRepository {
         remoteRows = remoteRows.filter(r => Boolean(r.company_id));
       }
       if (!CORE_REMOTE_ONLY_TABLES.has(this.tableName)) {
-        const localRows = getLocalTable(this.tableName)
-          .map(r => this._normalizeRow(r))
+        const allLocalRows = getLocalTable(this.tableName).map(r => this._normalizeRow(r));
+        const localMap = new Map(
+          allLocalRows.filter(lr => lr && lr.id).map(lr => [String(lr.id), lr])
+        );
+        remoteRows = remoteRows
+          .map(rr => {
+            const lr = rr && rr.id ? localMap.get(String(rr.id)) : null;
+            if (!lr) return rr;
+            return this._normalizeRow({ ...rr, ...lr });
+          })
           .filter(matchLocalCriteria);
+        const localRows = allLocalRows.filter(matchLocalCriteria);
         const seen = new Set(remoteRows.map(r => String(r.id)));
         for (const lr of localRows) {
           if (lr && lr.id && !seen.has(String(lr.id))) {
@@ -601,7 +675,13 @@ export class EntityRepository {
       return items.find(i => i.id === id) || null;
     }
     try {
-      const { data, error } = await supabase.from(this.tableName).select('*').eq('id', id).single();
+      const selectCols = this.tableName === 'companies' ? SAFE_COMPANY_COLUMNS : '*';
+      let { data, error } = await supabase.from(this.tableName).select(selectCols).eq('id', id).single();
+      if (error && this.tableName === 'companies') {
+        const fb = await supabase.from('companies').select(BASE_COMPANY_COLUMNS).eq('id', id).single();
+        data = fb.data;
+        error = fb.error;
+      }
       if (error) throw error;
       return this._normalizeRow(data);
     } catch (err) {
@@ -632,7 +712,8 @@ export class EntityRepository {
     }
 
     try {
-      const { data: inserted, error } = await supabase.from(this.tableName).insert([dbPayload]).select();
+      const selectCols = this.tableName === 'companies' ? BASE_COMPANY_COLUMNS : '*';
+      const { data: inserted, error } = await supabase.from(this.tableName).insert([dbPayload]).select(selectCols);
       if (error) {
         if (
           error.code === '42501' ||
@@ -682,12 +763,16 @@ export class EntityRepository {
     const localItems = getLocalTable(this.tableName);
     let updatedLocalItem = null;
     const newItems = localItems.map(item => {
-      if (item.id === id) {
+      if (String(item.id) === String(id)) {
         updatedLocalItem = { ...item, ...rawPatch };
         return updatedLocalItem;
       }
       return item;
     });
+    if (!updatedLocalItem && !CORE_REMOTE_ONLY_TABLES.has(this.tableName)) {
+      updatedLocalItem = { id, ...rawPatch };
+      newItems.unshift(updatedLocalItem);
+    }
     saveLocalTable(this.tableName, newItems);
 
     if (!isSupabaseConfigured || !supabase) {
@@ -695,9 +780,20 @@ export class EntityRepository {
     }
 
     try {
-      const { data: updated, error } = await supabase.from(this.tableName).update(dbPatch).eq('id', id).select();
+      const selectCols = this.tableName === 'companies' ? BASE_COMPANY_COLUMNS : '*';
+      let { data: updated, error } = await supabase.from(this.tableName).update(dbPatch).eq('id', id).select(selectCols);
+      if (error) {
+        const cleanPatch = this._prepareDbPayload({ ...patchData }, true);
+        const retryRes = await supabase.from(this.tableName).update(cleanPatch).eq('id', id).select(selectCols);
+        updated = retryRes.data;
+        error = retryRes.error;
+      }
       if (error) throw error;
       if (updated && updated[0]) {
+        const mergedItems = getLocalTable(this.tableName).map(item =>
+          String(item.id) === String(id) ? { ...item, ...updated[0], ...rawPatch } : item
+        );
+        saveLocalTable(this.tableName, mergedItems);
         return this._normalizeRow(updated[0]);
       }
       return this._normalizeRow(updatedLocalItem || { id, ...rawPatch });

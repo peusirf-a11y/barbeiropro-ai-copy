@@ -1,6 +1,13 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { handleAsaasSubscription } from './src/server/subscribeHandler.js';
+import {
+  handleCreatePix,
+  handleCreateCardPayment,
+  handlePaymentStatus,
+} from './src/server/appointmentsPixHandler.js';
+import { handleTestConnection } from './src/server/asaasTestConnectionHandler.js';
 
 function asaasApiDevPlugin() {
   return {
@@ -15,7 +22,7 @@ function asaasApiDevPlugin() {
           res.writeHead(200, {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, access_token',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
           });
           res.end();
           return;
@@ -29,7 +36,6 @@ function asaasApiDevPlugin() {
               req.on('end', async () => {
                 let parsedBody = {};
                 try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
-                const { handleAsaasSubscription } = await import('./src/server/subscribeHandler.js');
                 const result = await handleAsaasSubscription(parsedBody);
                 res.writeHead(result.status, {
                   'Content-Type': 'application/json',
@@ -54,7 +60,6 @@ function asaasApiDevPlugin() {
               req.on('end', async () => {
                 let parsedBody = {};
                 try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
-                const { handleCreatePix, handleCreateCardPayment } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
                 const result = url === '/api/appointments/create-card'
                   ? await handleCreateCardPayment(parsedBody)
                   : await handleCreatePix(parsedBody);
@@ -68,6 +73,7 @@ function asaasApiDevPlugin() {
             } catch (err) {
               res.writeHead(500, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: err.message || 'Erro ao processar pagamento' }));
+              return;
             }
           }
         }
@@ -85,7 +91,6 @@ function asaasApiDevPlugin() {
                 const companyId = query.companyId || query.company_id || parsedBody.companyId || parsedBody.company_id;
                 const bookingData = parsedBody.booking || parsedBody || null;
 
-                const { handlePaymentStatus } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
                 const result = await handlePaymentStatus(paymentId, appointmentId, companyId, bookingData);
                 res.writeHead(result.status, {
                   'Content-Type': 'application/json',
@@ -103,20 +108,25 @@ function asaasApiDevPlugin() {
         }
 
         if (url === '/api/asaas/test-connection' && req.method === 'POST') {
-          let bodyStr = '';
-          req.on('data', (chunk) => { bodyStr += chunk; });
-          req.on('end', async () => {
-            let parsedBody = {};
-            try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
-            const { handleTestConnection } = await import(`./src/server/asaasTestConnectionHandler.js?t=${Date.now()}`);
-            const result = await handleTestConnection(parsedBody);
-            res.writeHead(result.status, {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
+          try {
+            let bodyStr = '';
+            req.on('data', (chunk) => { bodyStr += chunk; });
+            req.on('end', async () => {
+              let parsedBody = {};
+              try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
+              const result = await handleTestConnection(parsedBody);
+              res.writeHead(result.status, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+              });
+              res.end(JSON.stringify(result.body));
             });
-            res.end(JSON.stringify(result.body));
-          });
-          return;
+            return;
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: err.message || 'Erro interno ao testar conexão' }));
+            return;
+          }
         }
 
         next();
@@ -134,7 +144,6 @@ function asaasApiDevPlugin() {
           req.on('end', async () => {
             let parsedBody = {};
             try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
-            const { handleCreatePix, handleCreateCardPayment } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
             const result = url === '/api/appointments/create-card'
               ? await handleCreateCardPayment(parsedBody)
               : await handleCreatePix(parsedBody);
@@ -155,7 +164,6 @@ function asaasApiDevPlugin() {
             const companyId = query.companyId || parsedBody.companyId;
             const bookingData = parsedBody.booking || parsedBody || null;
 
-            const { handlePaymentStatus } = await import(`./src/server/appointmentsPixHandler.js?t=${Date.now()}`);
             const result = await handlePaymentStatus(paymentId, appointmentId, companyId, bookingData);
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));
@@ -170,7 +178,6 @@ function asaasApiDevPlugin() {
             req.on('end', async () => {
               let parsedBody = {};
               try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
-              const { handleAsaasSubscription } = await import('./src/server/subscribeHandler.js');
               const result = await handleAsaasSubscription(parsedBody);
               res.writeHead(result.status, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify(result.body));
@@ -184,7 +191,6 @@ function asaasApiDevPlugin() {
           req.on('end', async () => {
             let parsedBody = {};
             try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
-            const { handleTestConnection } = await import('./src/server/asaasTestConnectionHandler.js');
             const result = await handleTestConnection(parsedBody);
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));

@@ -92,7 +92,7 @@ export default function AppConfiguracoes() {
       if (supabase && cid) {
         const { data, error } = await supabase
           .from('companies')
-          .select('*')
+          .select('id, name, slug, logo_url, phone, whatsapp, address, primary_color, business_hours, active, owner_email, created_at')
           .eq('id', cid);
         if (!error && Array.isArray(data) && data.length > 0) {
           return data;
@@ -125,18 +125,19 @@ export default function AppConfiguracoes() {
   useEffect(() => {
     if (company) {
       const normalizedHours = normalizeBusinessHours(company);
+      const brandingMeta = company.business_hours?._branding || company.opening_hours?._branding || {};
       setForm({
         name: company.name || '',
         slug: company.slug || '',
         phone: company.phone || '',
-        whatsapp: company.whatsapp || '',
-        address: company.address || '',
-        primary_color: company.primary_color || '#2563EB',
+        whatsapp: company.whatsapp || brandingMeta.whatsapp || '',
+        address: company.address || brandingMeta.address || '',
+        primary_color: brandingMeta.primary_color || company.primary_color || '#2563EB',
         business_hours: normalizedHours,
-        logo_url: company.logo_url || '',
+        logo_url: company.logo_url || brandingMeta.logo_url || '',
       });
     }
-  }, [company?.id, company?.business_hours, company?.opening_hours]);
+  }, [company?.id, company?.primary_color, company?.business_hours, company?.opening_hours]);
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -215,6 +216,19 @@ export default function AppConfiguracoes() {
         };
       }
 
+      // Preserva metadados existentes (_billing) e armazena _branding dentro de business_hours (JSONB universal)
+      const existingBilling = company?.business_hours?._billing || company?.opening_hours?._billing;
+      const hoursWithMeta = {
+        ...serializedHours,
+        ...(existingBilling ? { _billing: existingBilling } : {}),
+        _branding: {
+          primary_color: form.primary_color || '#2563EB',
+          whatsapp: (form.whatsapp || '').trim(),
+          address: (form.address || '').trim(),
+          logo_url: form.logo_url || '',
+        },
+      };
+
       setForm(p => ({ ...p, business_hours: serializedHours }));
 
       const basePayload = {
@@ -225,32 +239,30 @@ export default function AppConfiguracoes() {
         address: (form.address || '').trim(),
         primary_color: form.primary_color || '#2563EB',
         logo_url: form.logo_url || '',
-        business_hours: serializedHours,
-        opening_hours: serializedHours,
+        business_hours: hoursWithMeta,
+        opening_hours: hoursWithMeta,
       };
 
+      const selectAfterWrite = 'id, name, slug, logo_url, phone, whatsapp, address, primary_color, business_hours, active, owner_email, created_at';
+
       if (activeCompanyId) {
+        let currentPayload = { ...basePayload };
         let updateResult = await supabase
           .from('companies')
-          .update(basePayload)
+          .update(currentPayload)
           .eq('id', activeCompanyId)
-          .select();
+          .select(selectAfterWrite);
 
-        // Se a coluna opening_hours não existir no schema cache de uma instância específica, tenta gravar business_hours
-        if (updateResult.error && String(updateResult.error.message || '').includes('opening_hours')) {
-          const { opening_hours, ...fallbackPayload } = basePayload;
-          updateResult = await supabase
-            .from('companies')
-            .update(fallbackPayload)
-            .eq('id', activeCompanyId)
-            .select();
-        } else if (updateResult.error && String(updateResult.error.message || '').includes('business_hours')) {
-          const { business_hours, ...fallbackPayload } = basePayload;
-          updateResult = await supabase
-            .from('companies')
-            .update(fallbackPayload)
-            .eq('id', activeCompanyId)
-            .select();
+        // Remove dinamicamente qualquer coluna opcional inexistente no schema de uma instância específica
+        const optionalCols = ['opening_hours', 'primary_color', 'whatsapp', 'address', 'business_hours'];
+        for (const col of optionalCols) {
+          if (updateResult.error && String(updateResult.error.message || '').includes(col)) {
+            delete currentPayload[col];
+            updateResult = await supabase
+              .from('companies')
+              .update(currentPayload)
+              .eq('id', activeCompanyId);
+          }
         }
 
         if (updateResult.error) {
@@ -264,17 +276,27 @@ export default function AppConfiguracoes() {
           return;
         }
 
-        // Sincroniza cache local
+        const savedRecord = {
+          ...company,
+          ...(updateResult.data && updateResult.data[0] ? updateResult.data[0] : {}),
+          ...basePayload,
+          id: activeCompanyId,
+        };
+
+        // Sincroniza cache local e query cache público
         try {
           const rawLocal = localStorage.getItem('barberpass_local_companies');
           const localList = rawLocal ? JSON.parse(rawLocal) : [];
-          const savedRecord = (updateResult.data && updateResult.data[0]) || { ...company, ...basePayload, id: activeCompanyId };
           const exists = localList.some(item => item.id === activeCompanyId);
           const nextLocal = exists
             ? localList.map(item => (item.id === activeCompanyId ? { ...item, ...savedRecord } : item))
             : [savedRecord, ...localList];
           localStorage.setItem('barberpass_local_companies', JSON.stringify(nextLocal));
         } catch (_) {}
+
+        if (savedRecord.slug) {
+          queryClient.setQueryData(['company-by-slug', savedRecord.slug], [savedRecord]);
+        }
       } else {
         const insertPayload = {
           ...basePayload,
@@ -285,14 +307,13 @@ export default function AppConfiguracoes() {
         let insertResult = await supabase
           .from('companies')
           .insert([insertPayload])
-          .select();
+          .select(selectAfterWrite);
 
         if (insertResult.error && String(insertResult.error.message || '').includes('opening_hours')) {
           const { opening_hours, ...fallbackPayload } = insertPayload;
           insertResult = await supabase
             .from('companies')
-            .insert([fallbackPayload])
-            .select();
+            .insert([fallbackPayload]);
         }
 
         if (insertResult.error) {
@@ -313,7 +334,7 @@ export default function AppConfiguracoes() {
 
       toast({
         title: 'Configurações salvas!',
-        description: 'Os horários de funcionamento e dados da barbearia foram atualizados.',
+        description: 'A cor principal, horários e dados da barbearia foram atualizados.',
       });
     } catch (err) {
       console.error('[AppConfiguracoes] Exceção ao salvar configurações:', err);

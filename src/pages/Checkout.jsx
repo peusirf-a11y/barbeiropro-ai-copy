@@ -19,6 +19,21 @@ function getPromoFromUrl() {
   return params.get('promo') === LAUNCH_PROMO.code ? LAUNCH_PROMO : null;
 }
 
+function getReferralFromUrlOrStorage() {
+  if (typeof window === 'undefined') return '';
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const refParam = (params.get('ref') || '').trim().toUpperCase();
+    if (refParam) {
+      localStorage.setItem('ocorte_referred_by', refParam);
+      return refParam;
+    }
+    return (localStorage.getItem('ocorte_referred_by') || '').trim().toUpperCase();
+  } catch (_) {
+    return '';
+  }
+}
+
 function planKeyFromName(name) {
   const n = String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   if (n.includes('starter')) return 'starter';
@@ -87,6 +102,7 @@ function maskCpfCnpj(value) {
 export default function Checkout() {
   const [selectedPlan, setSelectedPlan] = useState(getInitialPlan());
   const [promo] = useState(getPromoFromUrl());
+  const [referredBy] = useState(getReferralFromUrlOrStorage());
   const isLaunch = !!promo;
   const { plans: dbPlans, isLoading: loadingPlans } = usePublicPlans();
   const PLANS = mapDbPlansToUi(dbPlans);
@@ -142,6 +158,7 @@ export default function Checkout() {
       payment_method: 'card',
       card_last_digits: cleanCardDigits.slice(-4),
       card_brand: card.brand || undefined,
+      ...(referredBy ? { referred_by: referredBy } : {}),
     };
     try {
       localStorage.setItem('barberpass_checkout_data', JSON.stringify(checkoutData));
@@ -183,6 +200,7 @@ export default function Checkout() {
       plan_name: plan.name,
       value: effectivePrice,
       promo: isLaunch ? promo.code : undefined,
+      referred_by: referredBy || undefined,
     };
 
     console.info('[Checkout] Submetendo ao endpoint real do Asaas /api/subscribe...');
@@ -214,6 +232,8 @@ export default function Checkout() {
         asaas_subscription_id: data.asaas_subscription_id || data.subscription_id,
         card_last_digits: data.card_last_digits || cleanCardDigits.slice(-4),
         card_brand: data.card_brand || card.brand || 'CARTAO',
+        referral_code: data.referral_code || undefined,
+        referred_by: data.referred_by || referredBy || undefined,
         trial_ends_at: data.trial_ends_at,
       };
       localStorage.setItem('barberpass_checkout_data', JSON.stringify(enrichedCheckout));
@@ -226,6 +246,7 @@ export default function Checkout() {
       owner: form.owner_name.trim(),
       phone: form.phone.trim(),
       cnpj: cleanCpfCnpj,
+      ...(referredBy ? { ref: referredBy } : {}),
     }).toString();
 
     // Somente com cartão validado e assinatura confirmada, redireciona para a tela final de acesso

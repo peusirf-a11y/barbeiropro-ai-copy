@@ -2,13 +2,17 @@
 // Visual: SaaS enterprise / CRM inteligente
 // NÃO altera fluxo de ativação, billing ou subscriptions.
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
+import { useCompany } from '@/hooks/useCompany';
+import { useToast } from '@/components/ui/use-toast';
+import { buildPlanOfferMessage, openWhatsApp, normalizeWhatsAppNumber } from '@/lib/whatsappCompose';
 import {
   X, Sparkles, Loader2, AlertCircle, TrendingUp,
   RefreshCw, Shield, Zap, BarChart2, Target,
+  MessageCircle, Copy, Check, Phone,
 } from 'lucide-react';
 
 // ─── Helpers sem placeholder ───────────────────────────────────────────────────
@@ -306,6 +310,11 @@ function AlertBanner({ alert }) {
 // ─── Modal principal ───────────────────────────────────────────────────────────
 export default function OfferPlanModal({ companyId, customer, onClose, onActivated }) {
   const queryClient = useQueryClient();
+  const { company } = useCompany();
+  const { toast } = useToast();
+  const [customMessage, setCustomMessage] = useState('');
+  const [phoneInput, setPhoneInput] = useState(customer?.phone || '');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     try {
@@ -314,7 +323,7 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
         properties: { customer_id: customer?.id, company_id: companyId },
       });
     } catch {}
-  }, []);  
+  }, []);
 
   const { data: recData, isLoading } = useQuery({
     queryKey: ['plan-rec', companyId, customer?.id],
@@ -325,45 +334,120 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
     staleTime: 5 * 60 * 1000,
   });
 
-  const subscribeMutation = useMutation({
-    mutationFn: async () => {
-      const planId = recData?.data?.recommended_plan?.id;
-      if (!planId) throw new Error('Plano não encontrado');
-      const res = await base44.functions.invoke('mutateSubscription', {
-        action: 'subscribe',
-        customer_id: customer.id,
-        plan_id: planId,
+  const r = recData?.data;
+  const plan = r?.recommended_plan;
+  const planHealth = r?.plan_health || null;
+  const biz = r?.business_metrics || null;
+  const justifications = r?.justifications || [];
+  const alerts = r?.alerts || [];
+  const badges = r?.badges || [];
+  const score = safeNum(r?.recommendation_score);
+  const metrics = r?.metrics || {};
+
+  // Sincroniza telefone e texto da proposta quando a análise termina de carregar
+  useEffect(() => {
+    if (!phoneInput && (customer?.phone || r?.customer_phone)) {
+      setPhoneInput(customer?.phone || r?.customer_phone || '');
+    }
+  }, [customer?.phone, r?.customer_phone]);
+
+  useEffect(() => {
+    if (plan && !customMessage) {
+      const generated = buildPlanOfferMessage({
+        company,
+        customer,
+        plan,
+        recommendation: r,
       });
-      const data = res?.data;
-      if (data?.error) {
-        const map = {
-          ALREADY_SUBSCRIBED: 'Cliente já tem uma assinatura ativa.',
-          PLAN_INACTIVE: 'Esse plano está inativo.',
-          NOT_FOUND: 'Plano ou cliente não encontrado.',
-          FORBIDDEN_ROLE: 'Seu perfil não tem permissão.',
-        };
-        throw new Error(map[data.error] || data.error);
+      setCustomMessage(generated);
+    }
+  }, [plan, company?.name, company?.slug]);
+
+  const handleCopyMessage = async () => {
+    if (!customMessage) return;
+    try {
+      await navigator.clipboard.writeText(customMessage);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast?.({
+        title: 'Mensagem copiada!',
+        description: 'O texto explicando as vantagens do plano foi copiado.',
+      });
+    } catch {}
+  };
+
+  const sendOfferMutation = useMutation({
+    mutationFn: async () => {
+      if (!plan) throw new Error('Plano recomendado não encontrado.');
+      const messageToSend = String(customMessage || '').trim() || buildPlanOfferMessage({
+        company,
+        customer,
+        plan,
+        recommendation: r,
+      });
+
+      const cleanPhone = String(phoneInput || customer?.phone || r?.customer_phone || '').trim();
+      const digits = normalizeWhatsAppNumber(cleanPhone);
+
+      if (!digits || digits.length < 10) {
+        try {
+          await navigator.clipboard.writeText(messageToSend);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch {}
+        throw new Error('Informe o WhatsApp do cliente no campo acima para abrir a conversa (a mensagem já foi copiada para sua área de transferência).');
       }
+
+      // Se o cliente não tinha telefone salvo no cadastro e o usuário preencheu agora, atualiza o cadastro
+      if (!customer?.phone && customer?.id && cleanPhone) {
+        try {
+          await base44.entities.Customer.update(customer.id, { phone: cleanPhone });
+        } catch {}
+      }
+
+      // Abre o WhatsApp do cliente com a mensagem explicando as vantagens da assinatura
+      const opened = openWhatsApp(cleanPhone, messageToSend);
+      if (!opened) {
+        throw new Error('Não foi possível abrir o WhatsApp para este número.');
+      }
+
+      // Registra no histórico de CRM do cliente que a oferta de plano foi enviada
+      try {
+        await base44.entities.WhatsAppMessage.create({
+          company_id: companyId,
+          customer_id: customer?.id,
+          customer_name: customer?.name || 'Cliente',
+          phone: cleanPhone,
+          type: 'crm_fiel_sem_plano',
+          status: 'enviado',
+          message_text: messageToSend,
+          sent_at: new Date().toISOString(),
+        });
+      } catch {}
+
       try {
         base44.analytics.track({
-          eventName: 'plan_offer_accepted',
+          eventName: 'plan_offer_sent_whatsapp',
           properties: {
-            customer_id: customer.id,
-            plan_id: planId,
-            plan_name: recData?.data?.recommended_plan?.name,
-            recommendation_score: recData?.data?.recommendation_score || 0,
-            conversion_label: scoreToLabel(recData?.data?.recommendation_score || 0),
-            projected_arr: recData?.data?.business_metrics?.annual_recurring_revenue || 0,
+            customer_id: customer?.id,
+            plan_id: plan.id,
+            plan_name: plan.name,
+            recommendation_score: score,
+            conversion_label: scoreToLabel(score),
+            projected_arr: biz?.annual_recurring_revenue || 0,
           },
         });
       } catch {}
-      return data;
+
+      return { sent: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription', customer.id] });
-      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-active', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['plan-rec', companyId, customer.id] });
+      queryClient.invalidateQueries({ queryKey: ['customer-crm-messages', customer?.id] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-messages'] });
+      toast?.({
+        title: 'Oferta enviada ao cliente!',
+        description: `As vantagens do plano ${plan?.name || ''} foram enviadas para ${customer?.name?.split(' ')[0] || 'o cliente'} no WhatsApp.`,
+      });
       onActivated?.();
       onClose();
     },
@@ -382,16 +466,6 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
     } catch {}
     onClose();
   };
-
-  const r = recData?.data;
-  const plan = r?.recommended_plan;
-  const planHealth = r?.plan_health || null;
-  const biz = r?.business_metrics || null;
-  const justifications = r?.justifications || [];
-  const alerts = r?.alerts || [];
-  const badges = r?.badges || [];
-  const score = safeNum(r?.recommendation_score);
-  const metrics = r?.metrics || {};
 
   // Churn derivado de forma inteligente
   const churnRisk = biz?.churn_risk || deriveChurnRisk(metrics);
@@ -542,16 +616,55 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
                 )}
               </div>
 
-              {subscribeMutation.error && (
+              {/* ── Mensagem personalizada explicando as vantagens do plano ao cliente ── */}
+              <div className="bg-emerald-500/[0.06] border border-emerald-400/25 rounded-xl p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-300">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Mensagem para o cliente
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyMessage}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/85 border border-white/10 transition-colors"
+                  >
+                    {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-white/60" />}
+                    {copied ? 'Copiado!' : 'Copiar texto'}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1.5">
+                  <Phone className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0" />
+                  <input
+                    type="tel"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="WhatsApp do cliente (ex: 11999999999)"
+                    className="w-full bg-transparent text-xs text-white placeholder:text-white/35 focus:outline-none"
+                  />
+                </div>
+
+                <textarea
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  rows={6}
+                  className="w-full bg-black/30 border border-white/10 rounded-lg p-2.5 text-xs text-white/90 leading-relaxed focus:outline-none focus:border-emerald-400/50 resize-none"
+                />
+                <p className="text-[10px] text-white/50 leading-snug">
+                  Ao enviar, o cliente receberá as vantagens da assinatura e o link direto para contratar o plano.
+                </p>
+              </div>
+
+              {sendOfferMutation.error && (
                 <div className="text-xs text-rose-200 bg-rose-500/10 border border-rose-400/30 rounded-lg p-2.5">
-                  {subscribeMutation.error?.message || 'Erro ao ativar assinatura.'}
+                  {sendOfferMutation.error?.message || 'Erro ao enviar oferta.'}
                 </div>
               )}
 
             </>)}
           </div>
 
-          {/* ── CTA sticky — sempre visível ── */}
+          {/* ── CTA sticky — envia mensagem ao cliente em vez de contratar imediatamente ── */}
           {!isLoading && plan && (
             <div className="flex-shrink-0 bg-[#0B1226] border-t border-white/8 px-4 py-3 flex gap-2.5">
               <button
@@ -561,20 +674,20 @@ export default function OfferPlanModal({ companyId, customer, onClose, onActivat
                 Agora não
               </button>
               <button
-                onClick={() => subscribeMutation.mutate()}
-                disabled={subscribeMutation.isPending}
-                className="flex-1 flex flex-col items-center justify-center gap-0 py-2.5 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 text-white rounded-xl disabled:opacity-50 shadow-[0_12px_36px_rgba(37,99,235,0.45)] ring-1 ring-white/15 transition-all"
+                onClick={() => sendOfferMutation.mutate()}
+                disabled={sendOfferMutation.isPending}
+                className="flex-1 flex flex-col items-center justify-center gap-0 py-2.5 bg-gradient-to-br from-[#059669] to-[#10B981] hover:brightness-110 text-white rounded-xl disabled:opacity-50 shadow-[0_12px_36px_rgba(16,185,129,0.35)] ring-1 ring-white/15 transition-all"
               >
-                {subscribeMutation.isPending ? (
+                {sendOfferMutation.isPending ? (
                   <span className="flex items-center gap-2 text-sm font-bold">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Ativando…
+                    <Loader2 className="w-4 h-4 animate-spin" /> Abrindo WhatsApp…
                   </span>
                 ) : (
                   <>
                     <span className="flex items-center gap-1.5 text-sm font-black">
-                      <Sparkles className="w-3.5 h-3.5" /> Ativar assinatura
+                      <MessageCircle className="w-4 h-4" /> Enviar oferta ao cliente
                     </span>
-                    <span className="text-[10px] text-blue-200/90 font-medium">Iniciar relacionamento recorrente</span>
+                    <span className="text-[10px] text-emerald-100/90 font-medium">Apresentar vantagens da assinatura no WhatsApp</span>
                   </>
                 )}
               </button>

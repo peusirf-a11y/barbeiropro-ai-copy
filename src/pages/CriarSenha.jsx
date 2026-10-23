@@ -93,7 +93,7 @@ export default function CriarSenha() {
       let targetCompany = null;
       const { data: existingCompany } = await supabase
         .from('companies')
-        .select('*')
+        .select('id, name, slug, owner_email, phone, whatsapp, cnpj, active, created_at')
         .eq('owner_email', targetEmail)
         .maybeSingle();
 
@@ -121,7 +121,7 @@ export default function CriarSenha() {
         let { data: newCompany, error: companyError } = await supabase
           .from('companies')
           .insert([insertData])
-          .select()
+          .select('id, name, slug, owner_email, phone, whatsapp, cnpj, active, created_at')
           .single();
 
         // Se o schema cache não contiver colunas adicionais (ex: owner_name, plan), faz fallback para colunas base
@@ -140,7 +140,7 @@ export default function CriarSenha() {
           const fallbackRes = await supabase
             .from('companies')
             .insert([baseData])
-            .select()
+            .select('id, name, slug, owner_email, phone, whatsapp, cnpj, active, created_at')
             .single();
           newCompany = fallbackRes.data;
           companyError = fallbackRes.error;
@@ -161,7 +161,7 @@ export default function CriarSenha() {
               active: true,
               created_at: new Date().toISOString()
             }])
-            .select()
+            .select('id, name, slug, owner_email, phone, whatsapp, cnpj, active, created_at')
             .single();
           newCompany = retrySlug.data;
           companyError = retrySlug.error;

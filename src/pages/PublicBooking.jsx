@@ -13,6 +13,8 @@ import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { useBookingSession } from '@/contexts/BookingSessionContext';
 import { normalizeBusinessHours } from '@/lib/businessHours';
 
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+
 export default function PublicBooking() {
   const { slug } = useParams();
   const queryClient = useQueryClient();
@@ -30,24 +32,75 @@ export default function PublicBooking() {
     }
   }, [slug]);
 
+  // Proteção Multi-Tenant: seleciona estritamente campos públicos da barbearia (NUNCA SELECT * nem asaas_api_key)
   const { data: companies = [], isLoading: loadingCompany } = useQuery({
     queryKey: ['company-by-slug', slug],
-    queryFn: () => base44.entities.Company.filter({ slug }),
+    queryFn: async () => {
+      if (isSupabaseConfigured && supabase) {
+        const { data: publicRow, error: publicErr } = await supabase
+          .from('companies')
+          .select('id, name, slug, logo_url, phone, whatsapp, address, primary_color, business_hours')
+          .eq('slug', slug)
+          .maybeSingle();
+
+        if (!publicErr && publicRow) {
+          return [publicRow];
+        }
+
+        const { data: colorRow, error: colorErr } = await supabase
+          .from('companies')
+          .select('id, name, slug, logo_url, phone, primary_color, business_hours')
+          .eq('slug', slug)
+          .maybeSingle();
+
+        if (!colorErr && colorRow) {
+          return [colorRow];
+        }
+
+        const { data: strictRow } = await supabase
+          .from('companies')
+          .select('id, name, slug, logo_url, phone, business_hours')
+          .eq('slug', slug)
+          .maybeSingle();
+
+        if (strictRow) {
+          return [strictRow];
+        }
+      }
+      return base44.entities.Company.filter({ slug });
+    },
     enabled: !!slug,
   });
   const rawCompany = companies[0] || null;
   const company = rawCompany
-    ? {
-        ...rawCompany,
-        business_hours: normalizeBusinessHours(rawCompany),
-      }
+    ? (() => {
+        let localMatch = null;
+        try {
+          const localList = JSON.parse(localStorage.getItem('barberpass_local_companies') || '[]');
+          localMatch = localList.find(
+            c => (rawCompany.id && c.id === rawCompany.id) || (rawCompany.slug && c.slug === rawCompany.slug)
+          );
+        } catch (_) {}
+        const brandingMeta = rawCompany.business_hours?._branding || localMatch?.business_hours?._branding || {};
+        return {
+          ...rawCompany,
+          primary_color:
+            rawCompany.primary_color ||
+            brandingMeta.primary_color ||
+            localMatch?.primary_color ||
+            '#2563EB',
+          whatsapp: rawCompany.whatsapp || brandingMeta.whatsapp || localMatch?.whatsapp || '',
+          address: rawCompany.address || brandingMeta.address || localMatch?.address || '',
+          logo_url: rawCompany.logo_url || brandingMeta.logo_url || localMatch?.logo_url || '',
+          business_hours: normalizeBusinessHours(rawCompany),
+        };
+      })()
     : null;
   const primaryColor = company?.primary_color || '#2563EB';
 
-  // Modelo A: A barbearia aceita pagamentos online se configurou sua chave do Asaas
-  // ou se o método Pix/Cartão estiver habilitado
+  // Modelo A: A barbearia aceita pagamentos online (validação da chave ocorre exclusivamente no backend)
   const loadingConnect = false;
-  const canAcceptPayments = !!company?.asaas_api_key || company?.asaas_pix_enabled !== false;
+  const canAcceptPayments = company?.asaas_pix_enabled !== false;
 
   const { customer: loggedCustomer, token: customerToken, loading: loadingCustomerAuth, logout: logoutCustomer, login } = useCustomerAuth(company?.id);
   const [isAuthenticatedCustomer, setIsAuthenticatedCustomer] = useState(false);

@@ -21,7 +21,6 @@ import ProfessionalRanking from '@/components/dashboard/ProfessionalRanking';
 import QuickActions from '@/components/dashboard/QuickActions';
 import InsightsCard from '@/components/dashboard/InsightsCard';
 import TodayAgendaList from '@/components/dashboard/TodayAgendaList';
-import ConnectPendingBanner from '@/components/dashboard/ConnectPendingBanner';
 import RetentionCampaignsCard from '@/components/dashboard/RetentionCampaignsCard';
 
 export default function AppDashboard() {
@@ -358,9 +357,6 @@ export default function AppDashboard() {
             </span>
           </p>
         </div>
-
-        {/* Banner: Recebimentos Asaas pendentes (só dono — barbeiros não veem) */}
-        {!isBarbeiro && company && <ConnectPendingBanner company={company} />}
 
         {/* Quick Actions */}
         <div className="mb-6">

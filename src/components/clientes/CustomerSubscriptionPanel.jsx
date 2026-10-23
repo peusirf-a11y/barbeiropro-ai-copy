@@ -4,10 +4,11 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Package, Check, AlertCircle, Plus, X } from 'lucide-react';
+import { Package, Check, AlertCircle, Plus, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatUsage } from '@/lib/subscriptions';
+import { useToast } from '@/components/ui/use-toast';
 
 // Helper para invocar o BFF de subscription com mensagem de erro humana.
 async function invokeSubscriptionMutation(payload) {
@@ -28,7 +29,10 @@ async function invokeSubscriptionMutation(payload) {
 
 export default function CustomerSubscriptionPanel({ customer, companyId }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [showPicker, setShowPicker] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Subscriptions via BFF Fase 4 (listSubscriptions).
   const { data: subscriptions = [] } = useQuery({
@@ -51,37 +55,73 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['subscription', customer.id] });
-    queryClient.invalidateQueries({ queryKey: ['customer-subscriptions', companyId] });
-    queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-active', companyId] });
+    queryClient.invalidateQueries({ queryKey: ['customer-subscriptions'] });
+    queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-active'] });
+    queryClient.invalidateQueries({
+      predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes('subscription'),
+    });
   };
 
   const subscribeMutation = useMutation({
     mutationFn: (plan) => invokeSubscriptionMutation({
       action: 'subscribe',
       customer_id: customer.id,
+      company_id: companyId,
       plan_id: plan.id,
     }),
-    onSuccess: () => { invalidate(); setShowPicker(false); },
-    onError: (err) => alert(err.message),
+    onSuccess: () => {
+      setErrorMsg('');
+      setShowPicker(false);
+      invalidate();
+      toast({
+        title: 'Assinatura ativada!',
+        description: 'O plano foi vinculado ao cliente com sucesso.',
+      });
+    },
+    onError: (err) => setErrorMsg(err?.message || 'Erro ao assinar plano.'),
   });
 
   const cancelMutation = useMutation({
     mutationFn: () => invokeSubscriptionMutation({
       action: 'cancel',
-      subscription_id: activeSub.id,
+      subscription_id: activeSub?.id,
+      customer_id: customer.id,
+      company_id: companyId,
     }),
-    onSuccess: () => invalidate(),
-    onError: (err) => alert(err.message),
+    onSuccess: () => {
+      setErrorMsg('');
+      setConfirmingCancel(false);
+      // Atualiza otimisticamente o cache local para resposta visual instantânea
+      queryClient.setQueryData(['subscription', customer.id], (old = []) =>
+        Array.isArray(old)
+          ? old.map((s) => (s.status === 'active' ? { ...s, status: 'canceled' } : s))
+          : []
+      );
+      invalidate();
+      toast({
+        title: 'Assinatura cancelada',
+        description: 'A assinatura deste cliente foi encerrada.',
+      });
+    },
+    onError: (err) => setErrorMsg(err?.message || 'Erro ao cancelar assinatura.'),
   });
 
   const markPaidMutation = useMutation({
     mutationFn: () => invokeSubscriptionMutation({
       action: 'mark_payment',
-      subscription_id: activeSub.id,
+      subscription_id: activeSub?.id,
+      company_id: companyId,
       status: 'pago',
     }),
-    onSuccess: () => invalidate(),
-    onError: (err) => alert(err.message),
+    onSuccess: () => {
+      setErrorMsg('');
+      invalidate();
+      toast({
+        title: 'Pagamento confirmado',
+        description: 'O status de pagamento da assinatura foi atualizado.',
+      });
+    },
+    onError: (err) => setErrorMsg(err?.message || 'Erro ao atualizar pagamento.'),
   });
 
   return (
@@ -93,13 +133,27 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
         </div>
       </div>
 
+      {errorMsg && (
+        <div className="mb-3 p-2.5 rounded-lg bg-rose-500/15 border border-rose-400/30 text-xs text-rose-200 flex items-center justify-between gap-2">
+          <span>{errorMsg}</span>
+          <button
+            type="button"
+            onClick={() => setErrorMsg('')}
+            className="text-rose-300 hover:text-white"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {!activeSub ? (
         <div>
           <p className="text-sm text-white/55 mb-3">Cliente não tem assinatura ativa.</p>
           {!showPicker ? (
             <button
+              type="button"
               onClick={() => setShowPicker(true)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-[#93C5FD] hover:text-white transition-colors"
+              className="flex items-center gap-1.5 text-sm font-semibold text-[#93C5FD] hover:text-white transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Assinar a um plano
             </button>
@@ -107,16 +161,23 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-white/60">Escolha um plano</span>
-                <button onClick={() => setShowPicker(false)}><X className="w-4 h-4 text-white/50" /></button>
+                <button
+                  type="button"
+                  onClick={() => setShowPicker(false)}
+                  className="cursor-pointer"
+                >
+                  <X className="w-4 h-4 text-white/50" />
+                </button>
               </div>
               {plans.length === 0 ? (
                 <p className="text-xs text-white/45">Nenhum plano disponível. Crie planos em "Planos".</p>
               ) : plans.map(plan => (
                 <button
+                  type="button"
                   key={plan.id}
                   onClick={() => subscribeMutation.mutate(plan)}
                   disabled={subscribeMutation.isPending}
-                  className="w-full text-left p-3 border border-white/10 rounded-lg bg-white/[0.02] hover:border-[#60A5FA]/40 hover:bg-white/[0.05] transition-colors disabled:opacity-50"
+                  className="w-full text-left p-3 border border-white/10 rounded-lg bg-white/[0.02] hover:border-[#60A5FA]/40 hover:bg-white/[0.05] transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -162,8 +223,10 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
                   <AlertCircle className="w-3 h-3" /> {activeSub.last_payment_status === 'atrasado' ? 'Atrasado' : 'Pendente'}
                 </span>
                 <button
+                  type="button"
                   onClick={() => markPaidMutation.mutate()}
-                  className="ml-auto text-[#93C5FD] font-semibold hover:text-white transition-colors"
+                  disabled={markPaidMutation.isPending}
+                  className="ml-auto text-[#93C5FD] font-semibold hover:text-white transition-colors cursor-pointer"
                 >
                   Marcar como pago
                 </button>
@@ -171,12 +234,47 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
             )}
           </div>
 
-          <button
-            onClick={() => { if (confirm('Cancelar a assinatura deste cliente?')) cancelMutation.mutate(); }}
-            className="w-full text-xs font-semibold text-white/60 hover:text-rose-300 py-2 rounded-lg border border-white/10 hover:border-rose-400/30 hover:bg-rose-500/5 transition-colors"
-          >
-            Cancelar assinatura
-          </button>
+          {!confirmingCancel ? (
+            <button
+              type="button"
+              onClick={() => setConfirmingCancel(true)}
+              disabled={cancelMutation.isPending}
+              className="w-full text-xs font-semibold text-rose-300/90 hover:text-rose-200 py-2.5 rounded-lg border border-rose-500/25 bg-rose-500/10 hover:border-rose-400/40 hover:bg-rose-500/15 transition-colors cursor-pointer"
+            >
+              Cancelar assinatura
+            </button>
+          ) : (
+            <div className="p-3 rounded-xl border border-rose-400/35 bg-rose-500/10 space-y-2.5">
+              <p className="text-xs text-rose-100 font-medium">
+                Tem certeza que deseja cancelar a assinatura deste cliente?
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmingCancel(false)}
+                  disabled={cancelMutation.isPending}
+                  className="flex-1 py-2 px-3 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/80 transition-colors cursor-pointer"
+                >
+                  Manter ativa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => cancelMutation.mutate()}
+                  disabled={cancelMutation.isPending}
+                  className="flex-1 py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {cancelMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Cancelando...</span>
+                    </>
+                  ) : (
+                    <span>Confirmar cancelamento</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

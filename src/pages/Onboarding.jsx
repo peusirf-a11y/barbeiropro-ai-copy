@@ -19,6 +19,30 @@ function sanitizeSlug(s) {
     .slice(0, 40);
 }
 
+function generateAlphanumericReferralCode(length = 8) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function getReferredByCode() {
+  if (typeof window === 'undefined') return '';
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = (params.get('ref') || '').trim().toUpperCase();
+    if (fromUrl) {
+      localStorage.setItem('ocorte_referred_by', fromUrl);
+      return fromUrl;
+    }
+    return (localStorage.getItem('ocorte_referred_by') || '').trim().toUpperCase();
+  } catch (_) {
+    return '';
+  }
+}
+
 const RESERVED_SLUGS = ['app', 'api', 'admin', 'master', 'checkout', 'onboarding', 'agendar', 'demo', 'login', 'logout', 'termos-de-uso', 'politica-de-privacidade'];
 
 const STEPS = [
@@ -38,7 +62,7 @@ export default function Onboarding() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [company, setCompany] = useState({ name: '', phone: '', whatsapp: '', address: '', slug: '', primary_color: '#2563EB' });
+  const [company, setCompany] = useState({ name: '', phone: '', whatsapp: '', address: '', slug: '', primary_color: '#2563EB', referral_code: '', referred_by: '' });
   const [businessDetails, setBusinessDetails] = useState({
     business_type: '',
     phone: '',
@@ -62,7 +86,7 @@ export default function Onboarding() {
         if (supabase) {
           const { data } = await supabase
             .from('companies')
-            .select('*')
+            .select('id, name, slug, logo_url, phone, whatsapp, address, primary_color, business_hours, owner_email, owner_cpf_cnpj, cnpj, referral_code, referred_by, active, created_at')
             .eq('owner_email', cleanEmail)
             .maybeSingle();
           if (data) existing = data;
@@ -81,6 +105,8 @@ export default function Onboarding() {
           address: existing.address || p.address,
           slug: existing.slug || p.slug,
           primary_color: existing.primary_color || p.primary_color,
+          referral_code: existing.referral_code || p.referral_code || generateAlphanumericReferralCode(8),
+          referred_by: existing.referred_by || p.referred_by || getReferredByCode(),
         }));
         if (existing.business_type || existing.address_details || existing.owner_cpf_cnpj) {
           setBusinessDetails(p => ({
@@ -142,10 +168,16 @@ export default function Onboarding() {
       const ok = await validateSlug(company.slug);
       if (!ok) return;
       const cleanSlug = sanitizeSlug(company.slug);
+      const ensuredReferralCode = company.referral_code || generateAlphanumericReferralCode(8);
+      const ensuredReferredBy = company.referred_by || getReferredByCode();
+      setCompany(p => ({ ...p, referral_code: ensuredReferralCode, referred_by: ensuredReferredBy }));
+
       if (!companyId) {
         const result = await createCompanyMutation.mutateAsync({
           ...company,
           slug: cleanSlug,
+          referral_code: ensuredReferralCode,
+          ...(ensuredReferredBy ? { referred_by: ensuredReferredBy } : {}),
           status: 'active',
           onboarding_step: 2,
           onboarding_completed: false,
@@ -161,6 +193,8 @@ export default function Onboarding() {
           address: company.address,
           primary_color: company.primary_color,
           slug: cleanSlug,
+          referral_code: ensuredReferralCode,
+          ...(ensuredReferredBy ? { referred_by: ensuredReferredBy } : {}),
           onboarding_step: 3,
         });
       }
@@ -212,10 +246,12 @@ export default function Onboarding() {
       const currentCompanyId = companyId || company?.id || user?.company_id;
       const currentEmail = user?.email?.toLowerCase().trim();
       const currentSlug = company?.slug;
+      const ensuredReferralCode = company.referral_code || generateAlphanumericReferralCode(8);
+      const ensuredReferredBy = company.referred_by || getReferredByCode();
 
       console.log('[Onboarding] Finalizando Onboarding (Etapa 7):', { currentCompanyId, currentSlug, currentEmail });
 
-      // 1. UPDATE no Supabase garantindo que a empresa atual seja marcada como concluída e ativa
+      // 1. UPDATE no Supabase garantindo que a empresa atual seja marcada como concluída, ativa e com referral_code / referred_by
       if (supabase) {
         try {
           let updateQuery = supabase
@@ -223,6 +259,8 @@ export default function Onboarding() {
             .update({
               onboarding_completed: true,
               active: true,
+              referral_code: ensuredReferralCode,
+              ...(ensuredReferredBy ? { referred_by: ensuredReferredBy } : {}),
             });
 
           if (currentCompanyId) {
@@ -235,9 +273,9 @@ export default function Onboarding() {
 
           let { error: updateError } = await updateQuery;
 
-          // Se a coluna onboarding_completed não existir no schema do banco, atualiza active: true
+          // Se alguma coluna opcional não existir no schema do banco, atualiza active: true
           if (updateError && (updateError.code === 'PGRST204' || updateError.message?.includes('column'))) {
-            console.warn('[Onboarding] Coluna onboarding_completed não existe no Supabase, atualizando active: true:', updateError.message);
+            console.warn('[Onboarding] Coluna opcional não existe no Supabase, atualizando active: true:', updateError.message);
             let fallbackQuery = supabase.from('companies').update({ active: true });
             if (currentCompanyId) {
               fallbackQuery = fallbackQuery.eq('id', currentCompanyId);
@@ -267,6 +305,8 @@ export default function Onboarding() {
             onboarding_completed: true,
             active: true,
             onboarding_step: 7,
+            referral_code: ensuredReferralCode,
+            ...(ensuredReferredBy ? { referred_by: ensuredReferredBy } : {}),
           });
         } catch (_) {}
       }

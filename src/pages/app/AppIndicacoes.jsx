@@ -94,7 +94,7 @@ export default function AppIndicacoes() {
               .from('companies')
               .update({ referral_code: code })
               .eq('id', fetchedCompany.id)
-              .select()
+              .select('id, name, referral_code, free_months_balance')
               .maybeSingle();
 
             if (!updateError && updatedRow) {

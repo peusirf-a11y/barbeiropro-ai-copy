@@ -18,30 +18,52 @@ function constantTimeEquals(a, b) {
   * @param {object} res - Objeto de resposta opcional
   */
 export async function handleAsaasWebhook(req, res) {
+  if (req?.method === 'GET' || req?.method === 'HEAD' || req?.method === 'OPTIONS') {
+    const payload = { ok: true, status: 'healthy', service: 'asaas-webhook' };
+    if (res) return res.status(200).json(payload);
+    return { status: 200, body: payload };
+  }
+
   const startedAt = Date.now();
-  const eventId = req.body?.id || `evt_${Date.now()}`;
-  const eventType = req.body?.event || 'UNKNOWN';
-  const payment = req.body?.payment || {};
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const eventId = body.id || `evt_${Date.now()}`;
+  const eventType = typeof body.event === 'string' ? body.event.trim() : '';
+  const payment = body.payment && typeof body.payment === 'object' ? body.payment : null;
+  const subscription = body.subscription && typeof body.subscription === 'object' ? body.subscription : null;
 
   try {
-    // 1. Validação do Token do Webhook
-    const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN || 'barberpass_asaas_token';
-    const receivedToken = req.headers?.['asaas-access-token'] || req.headers?.['x-asaas-access-token'] || '';
+    // 1. Validação estrita do Token do Webhook (asaas-access-token)
+    const expectedToken = (process.env.ASAAS_WEBHOOK_TOKEN || '').trim();
+    const receivedToken = String(
+      req.headers?.['asaas-access-token'] ||
+      req.headers?.['x-asaas-access-token'] ||
+      ''
+    ).trim();
 
-    if (process.env.NODE_ENV === 'production' && !constantTimeEquals(receivedToken, expectedToken)) {
-      console.warn('[Asaas Webhook] Token inválido recebido:', receivedToken);
-      if (res) return res.status(401).json({ error: 'UNAUTHORIZED' });
-      return { status: 401, body: { error: 'UNAUTHORIZED' } };
+    if (!expectedToken || !receivedToken || !constantTimeEquals(receivedToken, expectedToken)) {
+      console.warn('[Asaas Webhook] Acesso negado: token de webhook ausente ou inválido.');
+      if (res) return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Webhook token inválido.' });
+      return { status: 401, body: { error: 'UNAUTHORIZED', message: 'Webhook token inválido.' } };
+    }
+
+    // 2. Validação dos parâmetros esperados no payload
+    if (!eventType || (!payment?.id && eventType !== 'SUBSCRIPTION_DELETED')) {
+      if (res) return res.status(400).json({ error: 'INVALID_PAYLOAD', message: 'Parâmetros obrigatórios (event, payment.id) ausentes.' });
+      return { status: 400, body: { error: 'INVALID_PAYLOAD', message: 'Parâmetros obrigatórios (event, payment.id) ausentes.' } };
+    }
+
+    if (payment?.id && !/^pay_[a-zA-Z0-9_]+$/.test(String(payment.id))) {
+      if (res) return res.status(400).json({ error: 'INVALID_PAYMENT_ID', message: 'Formato de payment.id inválido.' });
+      return { status: 400, body: { error: 'INVALID_PAYMENT_ID', message: 'Formato de payment.id inválido.' } };
     }
 
     console.info(`[Asaas Webhook] Processando evento: ${eventType} (ID: ${eventId})`);
 
     let outcome = { handled: false, eventType };
 
-    // 2. Tratamento Independente por Tipo de Evento
+    // 3. Tratamento Independente por Tipo de Evento
     switch (eventType) {
       case 'PAYMENT_CREATED': {
-        // Cobrança gerada
         outcome = {
           handled: true,
           status: 'CREATED',
@@ -52,14 +74,69 @@ export async function handleAsaasWebhook(req, res) {
 
       case 'PAYMENT_CONFIRMED':
       case 'PAYMENT_RECEIVED': {
-        // Pagamento confirmado/recebido
         const customerId = payment.customer;
-        const value = payment.value;
+        const subId = payment.subscription;
+        const value = Number(payment.value || 0);
         const externalRef = payment.externalReference;
 
-        // Atualiza a empresa vinculada para ACTIVE
+        // 3A. Verifica se o pagamento corresponde a um agendamento Pix/Cartão na tabela 'appointments'
+        let matchedAppointment = null;
+        if (isSupabaseConfigured && supabase && payment.id) {
+          try {
+            const { data: apptRow } = await supabase
+              .from('appointments')
+              .select('id, company_id, status, payment_status')
+              .or(`payment_id.eq.${payment.id},asaas_payment_id.eq.${payment.id}`)
+              .maybeSingle();
+
+            if (apptRow?.id) {
+              matchedAppointment = apptRow;
+              await supabase
+                .from('appointments')
+                .update({
+                  status: 'confirmado',
+                  payment_status: 'confirmed',
+                  paid: true,
+                })
+                .eq('id', apptRow.id);
+            }
+          } catch (_) {}
+        }
+
+        // 3B. Identifica estritamente a empresa vinculada (SEM fallback para companies[0] para proteger isolamento multi-tenant)
         const companies = await Company.list();
-        const targetCompany = companies.find(c => c.id === externalRef || c.asaas_customer_id === customerId) || companies[0];
+        const targetCompany = companies.find(
+          (c) =>
+            (externalRef && String(c.id) === String(externalRef)) ||
+            (subId && String(c.asaas_subscription_id) === String(subId)) ||
+            (customerId && String(c.asaas_customer_id) === String(customerId))
+        );
+
+        if (!targetCompany && !matchedAppointment) {
+          if (res) return res.status(404).json({ error: 'COMPANY_NOT_FOUND', message: 'Empresa ou agendamento correspondente ao pagamento não encontrado.' });
+          return { status: 404, body: { error: 'COMPANY_NOT_FOUND', message: 'Empresa ou agendamento correspondente ao pagamento não encontrado.' } };
+        }
+
+        // Valida o status real da cobrança diretamente na API oficial do Asaas se houver chave configurada no servidor
+        const masterApiKey = (process.env.ASAAS_API_KEY || '').trim();
+        if (masterApiKey && targetCompany) {
+          const isSandbox = masterApiKey.includes('hmlg') || masterApiKey.includes('sandbox');
+          const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3';
+          const verifyRes = await fetch(`${baseUrl}/payments/${encodeURIComponent(payment.id)}`, {
+            method: 'GET',
+            headers: {
+              'access_token': masterApiKey,
+              'Accept': 'application/json',
+              'User-Agent': 'OCorte-App',
+            },
+          });
+          const verifiedPayment = await verifyRes.json().catch(() => null);
+          const verifiedStatus = String(verifiedPayment?.status || '').toUpperCase();
+          if (!verifyRes.ok || !['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(verifiedStatus)) {
+            if (res) return res.status(400).json({ error: 'UNVERIFIED_PAYMENT_STATUS', message: 'Status do pagamento não confirmado na API do Asaas.' });
+            return { status: 400, body: { error: 'UNVERIFIED_PAYMENT_STATUS', message: 'Status do pagamento não confirmado na API do Asaas.' } };
+          }
+        }
 
         if (targetCompany) {
           const updateData = {
@@ -74,62 +151,86 @@ export async function handleAsaasWebhook(req, res) {
             }
           } catch (_) {}
           await Company.update(targetCompany.id, updateData);
-        }
 
-        // Registra entrada financeira
-        await FinancialEntry.create({
-          company_id: targetCompany?.id || 'comp_demo_01',
-          description: `Assinatura Asaas - ${payment.description || 'Plano O CORTE'}`,
-          type: 'income',
-          amount: value || 99,
-          payment_method: payment.billingType || 'CREDIT_CARD',
-          status: 'paid',
-          asaas_payment_id: payment.id,
-        });
+          await FinancialEntry.create({
+            company_id: targetCompany.id,
+            description: `Assinatura Asaas - ${payment.description || 'Plano O CORTE'}`,
+            type: 'income',
+            amount: value || 99,
+            payment_method: payment.billingType || 'CREDIT_CARD',
+            status: 'paid',
+            asaas_payment_id: payment.id,
+          });
+        }
 
         outcome = {
           handled: true,
           status: 'CONFIRMED',
-          company_id: targetCompany?.id,
+          company_id: targetCompany?.id || matchedAppointment?.company_id || null,
+          appointment_id: matchedAppointment?.id || null,
           message: `Pagamento de R$ ${value} processado com sucesso.`,
         };
         break;
       }
 
       case 'PAYMENT_OVERDUE': {
-        // Cobrança vencida
         const externalRef = payment.externalReference;
+        const subId = payment.subscription;
         const companies = await Company.list();
-        const targetCompany = companies.find(c => c.id === externalRef || c.asaas_customer_id === payment.customer);
+        const targetCompany = companies.find(
+          (c) =>
+            (externalRef && String(c.id) === String(externalRef)) ||
+            (subId && String(c.asaas_subscription_id) === String(subId)) ||
+            (payment.customer && String(c.asaas_customer_id) === String(payment.customer))
+        );
 
         if (targetCompany) {
-          await Company.update(targetCompany.id, {
-            billing_status: 'PAST_DUE',
+          const overduePayload = {
+            billing_status: 'OVERDUE',
+            subscription_status: 'overdue',
             past_due_since: new Date().toISOString(),
-          });
+          };
+          try {
+            if (isSupabaseConfigured && supabase) {
+              await supabase.from('companies').update(overduePayload).eq('id', targetCompany.id);
+            }
+          } catch (_) {}
+          await Company.update(targetCompany.id, overduePayload);
         }
 
         outcome = {
           handled: true,
-          status: 'PAST_DUE',
+          status: 'OVERDUE',
           company_id: targetCompany?.id,
-          message: `Cobrança ${payment.id} está vencida. Status alterado para PAST_DUE.`,
+          message: `Cobrança ${payment.id} está vencida. Status alterado para OVERDUE.`,
         };
         break;
       }
 
       case 'PAYMENT_REFUNDED':
       case 'PAYMENT_DELETED': {
-        // Pagamento estornado ou deletado
         const externalRef = payment.externalReference;
+        const subId = payment.subscription;
         const companies = await Company.list();
-        const targetCompany = companies.find(c => c.id === externalRef || c.asaas_customer_id === payment.customer);
+        const targetCompany = companies.find(
+          (c) =>
+            (externalRef && String(c.id) === String(externalRef)) ||
+            (subId && String(c.asaas_subscription_id) === String(subId)) ||
+            (payment.customer && String(c.asaas_customer_id) === String(payment.customer))
+        );
 
         if (targetCompany) {
-          await Company.update(targetCompany.id, {
+          const refundPayload = {
             billing_status: 'CANCELED',
+            subscription_status: 'canceled',
             status: 'blocked',
-          });
+          };
+          try {
+            if (isSupabaseConfigured && supabase) {
+              await supabase.from('companies').update(refundPayload).eq('id', targetCompany.id);
+            }
+          } catch (_) {}
+          await Company.update(targetCompany.id, refundPayload);
         }
 
         outcome = {
@@ -142,11 +243,36 @@ export async function handleAsaasWebhook(req, res) {
       }
 
       case 'SUBSCRIPTION_DELETED': {
-        // Assinatura cancelada no Asaas
+        const subId = subscription?.id || payment?.subscription || body.id;
+        const customerId = subscription?.customer || payment?.customer;
+        const externalRef = subscription?.externalReference || payment?.externalReference;
+        const companies = await Company.list();
+        const targetCompany = companies.find(
+          (c) =>
+            (subId && String(c.asaas_subscription_id) === String(subId)) ||
+            (externalRef && String(c.id) === String(externalRef)) ||
+            (customerId && String(c.asaas_customer_id) === String(customerId))
+        );
+
+        if (targetCompany) {
+          const canceledPayload = {
+            subscription_status: 'canceled',
+            billing_status: 'CANCELED',
+            updated_at: new Date().toISOString(),
+          };
+          try {
+            if (isSupabaseConfigured && supabase) {
+              await supabase.from('companies').update(canceledPayload).eq('id', targetCompany.id);
+            }
+          } catch (_) {}
+          await Company.update(targetCompany.id, canceledPayload);
+        }
+
         outcome = {
           handled: true,
           status: 'SUBSCRIPTION_DELETED',
-          message: `Assinatura ${req.body?.subscription?.id} encerrada no Asaas.`,
+          company_id: targetCompany?.id || null,
+          message: `Assinatura ${subId} encerrada no Asaas.`,
         };
         break;
       }

@@ -1,6 +1,20 @@
-#env
+# Environment variables
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*
+*.local
+
+# Local Databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+supabase/.temp
 
 # Logs
 /logs
@@ -11,10 +25,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Build & Dependencies
 node_modules
 dist
 dist-ssr
-*.local
+.vite
 
 # Editor directories and files
 .vscode/*
@@ -27,6 +42,5 @@ dist-ssr
 *.sln
 *.sw?
 
-.env
-.vite
 base44/.app.jsonc
+

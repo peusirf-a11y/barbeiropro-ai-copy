@@ -1,16 +1,10 @@
-// Etapa do onboarding que coleta dados fiscais (tipo de negócio + CNPJ) +
-// endereço estruturado + telefone comercial. Esses dados são usados para
-// pré-preencher a subaccount Asaas, reduzindo retrabalho.
-//
-// POLÍTICA: O CORTE opera exclusivamente com CNPJ/MEI.
-// Se o usuário digitar 11 dígitos (CPF), bloqueamos o avanço e exibimos
-// orientação para contato comercial.
+// Etapa do onboarding que coleta dados fiscais (CPF, MEI ou CNPJ) +
+// endereço estruturado + telefone comercial.
 
-import { AlertCircle, Building2 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
-// PJ-only policy (docs/PJ_ONLY_POLICY.md): cadastro automatizado disponível
-// apenas para MEI ou CNPJ. Atendimento PF é manual via equipe comercial.
 const BUSINESS_TYPES = [
+  { value: 'cpf', label: 'CPF / Autônomo', sub: 'Conta pessoal (Pessoa Física)' },
   { value: 'mei', label: 'MEI', sub: 'Microempreendedor Individual' },
   { value: 'cnpj', label: 'CNPJ', sub: 'Empresa registrada' },
 ];
@@ -21,8 +15,14 @@ function maskCep(v) {
   return String(v || '').replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
 }
 
-function maskCNPJ(v) {
+function maskCpfOrCnpj(v) {
   const d = String(v || '').replace(/\D/g, '').slice(0, 14);
+  if (d.length <= 11) {
+    return d
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
   return d
     .replace(/^(\d{2})(\d)/, '$1.$2')
     .replace(/^(\d{2}\.\d{3})(\d)/, '$1.$2')
@@ -35,15 +35,14 @@ export default function BusinessDetailsStep({ value, onChange }) {
   const addr = value.address_details || {};
   const setAddr = (k, v) => onChange({ ...value, address_details: { ...addr, [k]: v } });
   const docDigits = String(value.owner_cpf_cnpj || '').replace(/\D/g, '');
-  const isCpf = docDigits.length === 11;
-  const isCnpj = docDigits.length === 14;
+  const isValidDoc = docDigits.length === 11 || docDigits.length === 14;
 
   return (
     <div className="space-y-5">
       {/* Tipo de negócio */}
       <div>
-        <label className="text-xs font-semibold text-gray-500 block mb-2">Tipo de negócio *</label>
-        <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs font-semibold text-gray-500 block mb-2">Tipo de cadastro *</label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {BUSINESS_TYPES.map(t => {
             const active = value.business_type === t.value;
             return (
@@ -63,28 +62,18 @@ export default function BusinessDetailsStep({ value, onChange }) {
         </div>
       </div>
 
-      {/* CNPJ */}
+      {/* CPF ou CNPJ */}
       <div>
-        <label className="text-xs font-semibold text-gray-500 block mb-1">CNPJ *</label>
+        <label className="text-xs font-semibold text-gray-500 block mb-1">CPF ou CNPJ *</label>
         <input
           type="text"
-          value={maskCNPJ(value.owner_cpf_cnpj || '')}
+          value={maskCpfOrCnpj(value.owner_cpf_cnpj || '')}
           onChange={e => onChange({ ...value, owner_cpf_cnpj: e.target.value })}
-          placeholder="00.000.000/0000-00"
-          className={`w-full px-4 py-3 border rounded-xl text-sm font-semibold text-slate-900 bg-white ${
-            isCpf ? 'border-red-400' : 'border-slate-300'
-          }`}
+          placeholder="000.000.000-00 ou 00.000.000/0000-00"
+          className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 bg-white"
         />
-        {isCpf && (
-          <div className="mt-2 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3">
-            <Building2 className="w-4 h-4 text-red-700 flex-shrink-0 mt-0.5" />
-            <p className="text-[12px] text-red-800 leading-relaxed">
-              Para utilizar os recebimentos automáticos do O CORTE é necessário possuir um <strong>CNPJ ativo</strong> (MEI também é aceito). Caso precise de uma análise especial, entre em contato pelo WhatsApp.
-            </p>
-          </div>
-        )}
-        {!isCpf && !isCnpj && (value.owner_cpf_cnpj || '').length > 0 && (
-          <p className="text-[11px] text-gray-500 mt-1">Digite os 14 dígitos do seu CNPJ.</p>
+        {!isValidDoc && (value.owner_cpf_cnpj || '').length > 0 && (
+          <p className="text-[11px] text-gray-500 mt-1">Digite os 11 dígitos do seu CPF ou os 14 dígitos do seu CNPJ.</p>
         )}
       </div>
 
@@ -174,7 +163,7 @@ export default function BusinessDetailsStep({ value, onChange }) {
 
       <div className="flex items-start gap-2 text-[11px] text-gray-500">
         <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-        <span>Esses dados são usados para criar sua subaccount Asaas e habilitar o split automático dos recebimentos.</span>
+        <span>Aceitamos contas pessoais (CPF) ou empresariais (MEI/CNPJ) para configurar sua integração com o Asaas.</span>
       </div>
     </div>
   );
@@ -184,9 +173,8 @@ export default function BusinessDetailsStep({ value, onChange }) {
 export function isBusinessDetailsValid(v) {
   if (!v?.business_type) return false;
   if (!v?.phone || v.phone.replace(/\D/g, '').length < 10) return false;
-  // O CORTE exige CNPJ válido (14 dígitos) — bloqueia avanço com CPF ou vazio.
   const docDigits = String(v?.owner_cpf_cnpj || '').replace(/\D/g, '');
-  if (docDigits.length !== 14) return false;
+  if (docDigits.length !== 11 && docDigits.length !== 14) return false;
   const a = v.address_details || {};
   if (!a.line1 || !a.neighborhood || !a.city || !a.state) return false;
   if (!a.postal_code || a.postal_code.replace(/\D/g, '').length !== 8) return false;

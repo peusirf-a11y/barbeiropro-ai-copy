@@ -108,7 +108,7 @@ export default function AppAssinatura() {
         if (resolvedId && resolvedId !== 'comp_demo_01') {
           const explicitRes = await supabase
             .from('companies')
-            .select('id, name, card_last_digits, card_brand, trial_ends_at, asaas_subscription_id, plan_name, owner_email, business_hours, created_at')
+            .select('id, name, card_last_digits, card_brand, trial_ends_at, asaas_subscription_id, asaas_customer_id, plan_name, subscription_status, billing_status, current_period_end, asaas_payment_link_url, owner_email, business_hours, created_at')
             .eq('id', resolvedId)
             .maybeSingle();
 
@@ -116,20 +116,20 @@ export default function AppAssinatura() {
             return enrichCompanyBillingFields(explicitRes.data);
           }
 
-          const starRes = await supabase
+          const baseRes = await supabase
             .from('companies')
-            .select('*')
+            .select('id, name, slug, logo_url, phone, owner_email, business_hours, created_at')
             .eq('id', resolvedId)
             .maybeSingle();
 
-          if (!starRes.error && starRes.data) {
-            return enrichCompanyBillingFields(starRes.data);
+          if (!baseRes.error && baseRes.data) {
+            return enrichCompanyBillingFields(baseRes.data);
           }
         }
 
         const { data: allRows } = await supabase
           .from('companies')
-          .select('*')
+          .select('id, name, slug, logo_url, phone, owner_email, business_hours, created_at')
           .order('created_at', { ascending: false });
 
         if (Array.isArray(allRows) && allRows.length > 0) {
@@ -137,7 +137,7 @@ export default function AppAssinatura() {
           const byEmail =
             user?.email &&
             normalizedRows.find((c) => c.owner_email?.toLowerCase() === user.email.toLowerCase());
-          const withSub = normalizedRows.find((c) => c.asaas_subscription_id || c.card_last_digits || c.asaas_api_key);
+          const withSub = normalizedRows.find((c) => c.asaas_subscription_id || c.card_last_digits);
           return byEmail || withSub || normalizedRows[0];
         }
       }

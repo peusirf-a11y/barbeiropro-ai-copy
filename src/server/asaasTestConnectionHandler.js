@@ -13,8 +13,65 @@ function isMaskedOrEmpty(key) {
 
 export async function handleTestConnection(body = {}) {
   try {
-    let cleanApiKey = String(body.apiKey || body.asaas_api_key || '').trim();
+    const action = String(body.action || 'test').toLowerCase();
     const companyId = body.companyId || body.company_id || null;
+
+    // Ação 'status': verifica no servidor se a barbearia possui chave configurada SEM expor a chave no JSON
+    if (action === 'status') {
+      let hasKey = false;
+      if (companyId && supabase) {
+        try {
+          const { data: comp } = await supabase
+            .from('companies')
+            .select('asaas_api_key')
+            .eq('id', companyId)
+            .maybeSingle();
+          hasKey = Boolean(comp?.asaas_api_key && String(comp.asaas_api_key).trim().length > 0);
+        } catch (_) {}
+      }
+      return {
+        status: 200,
+        body: {
+          success: true,
+          hasKey,
+          maskedKey: hasKey ? '••••••••••••••••••••••••••••••••' : '',
+        },
+      };
+    }
+
+    // Ação 'save': grava a chave no banco pelo servidor sem trafegar a chave de volta
+    if (action === 'save') {
+      const rawNewKey = String(body.apiKey || '').trim();
+      if (!companyId || !supabase) {
+        return {
+          status: 400,
+          body: { success: false, message: 'ID da barbearia inválido para salvar a chave.' },
+        };
+      }
+      if (!isMaskedOrEmpty(rawNewKey)) {
+        const { error } = await supabase
+          .from('companies')
+          .update({ asaas_api_key: rawNewKey })
+          .eq('id', companyId);
+        if (error) {
+          return {
+            status: 400,
+            body: { success: false, message: error.message || 'Erro ao gravar chave no banco.' },
+          };
+        }
+      }
+      return {
+        status: 200,
+        body: {
+          success: true,
+          hasKey: true,
+          maskedKey: '••••••••••••••••••••••••••••••••',
+          message: 'Chave de API salva com sucesso!',
+        },
+      };
+    }
+
+    let cleanApiKey = String(body.apiKey || '').trim();
 
     // Caso a chave esteja oculta por bolinhas ou vazia, consulte a tabela 'companies' do Supabase pelo companyId
     if (isMaskedOrEmpty(cleanApiKey)) {

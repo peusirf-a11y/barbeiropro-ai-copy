@@ -116,23 +116,22 @@ export default function AppPagamentos() {
   }, [company, companyId]);
 
   // 1. Carregamento Inicial (useEffect / fetch):
-  // Ao carregar a página, consulte o registo da barbearia ativa em 'companies' trazendo o campo 'asaas_api_key'.
-  // Se 'asaas_api_key' existir no banco, preencha o input com o valor (ou mantenha o valor visível para edição).
+  // Verifica no servidor se a barbearia possui chave configurada (sem trafegar a chave bruta no JSON do browser).
   const fetchAsaasApiKey = useCallback(async () => {
     try {
       const activeId = await resolveActiveCompanyId();
-      if (activeId && supabase) {
-        const { data, error } = await supabase
-          .from('companies')
-          .select('id, asaas_api_key')
-          .eq('id', activeId)
-          .maybeSingle();
-
-        if (!error && data) {
-          if (data.asaas_api_key) {
-            setApiKey(data.asaas_api_key);
+      if (activeId) {
+        try {
+          const res = await fetch('/api/asaas/test-connection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'status', companyId: activeId }),
+          });
+          const statusData = await res.json().catch(() => null);
+          if (res.ok && statusData?.hasKey) {
+            setApiKey((prev) => prev || statusData.maskedKey || '••••••••••••••••••••••••••••••••');
           }
-        }
+        } catch (_) {}
 
         // Carrega preferências locais se configuradas
         try {
@@ -147,7 +146,7 @@ export default function AppPagamentos() {
         } catch (_) {}
       }
     } catch (err) {
-      console.warn('[AppPagamentos] Erro ao carregar asaas_api_key da barbearia:', err);
+      console.warn('[AppPagamentos] Erro ao verificar status da chave da barbearia:', err);
     }
   }, [resolveActiveCompanyId]);
 
@@ -155,20 +154,10 @@ export default function AppPagamentos() {
     fetchAsaasApiKey();
   }, [fetchAsaasApiKey]);
 
-  // Hidrata dados da company quando carregada
-  useEffect(() => {
-    if (company) {
-      if (company.asaas_api_key && !apiKey) setApiKey(company.asaas_api_key);
-    }
-  }, [company, apiKey]);
-
   // 2. Ação de Salvar ("Salvar Chave de API"):
-  // Ao clicar em "Salvar Chave de API", execute o update no Supabase:
-  // supabase.from('companies').update({ asaas_api_key: apiKey.trim() }).eq('id', activeCompanyId)
-  // Adicione tratamento explícito de erro: se houver erro, exiba um toast com a mensagem exata (error.message).
-  // Em caso de sucesso, exiba toast verde: "Chave de API salva com sucesso!" e atualize o estado local.
   const handleSaveApiKey = async (overrideOptions = {}) => {
     const cleanKey = (overrideOptions.apiKey !== undefined ? overrideOptions.apiKey : apiKey).trim();
+    const isMasked = /^[•*]+$/.test(cleanKey) || cleanKey.includes('••••') || cleanKey.includes('****');
     setIsSaving(true);
     try {
       const activeCompanyId = await resolveActiveCompanyId();
@@ -182,21 +171,22 @@ export default function AppPagamentos() {
         return;
       }
 
-      // Executa o update exato da chave de API no Supabase
-      const { error } = await supabase
-        .from('companies')
-        .update({ asaas_api_key: cleanKey })
-        .eq('id', activeCompanyId);
+      if (!isMasked) {
+        const { error } = await supabase
+          .from('companies')
+          .update({ asaas_api_key: cleanKey })
+          .eq('id', activeCompanyId);
 
-      if (error) {
-        console.error('[AppPagamentos] Erro ao salvar chave no Supabase:', error);
-        toast({
-          title: 'Erro ao salvar chave',
-          description: error.message,
-          variant: 'destructive',
-        });
-        setIsSaving(false);
-        return;
+        if (error) {
+          console.error('[AppPagamentos] Erro ao salvar chave no Supabase:', error);
+          toast({
+            title: 'Erro ao salvar chave',
+            description: error.message,
+            variant: 'destructive',
+          });
+          setIsSaving(false);
+          return;
+        }
       }
 
       // Salva preferências locais para consistência na UI
@@ -210,14 +200,13 @@ export default function AppPagamentos() {
         localStorage.setItem(`barberpass_payment_settings_${activeCompanyId}`, JSON.stringify(settingsToSave));
       } catch (_) {}
 
-
-      setApiKey(cleanKey);
+      setApiKey('••••••••••••••••••••••••••••••••');
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
 
       toast({
         title: 'Chave de API salva com sucesso!',
-        description: 'Sua chave do Asaas foi gravada e está ativa para recebimentos.',
+        description: 'Sua chave do Asaas foi gravada com segurança e está ativa para recebimentos.',
         className: 'bg-emerald-600 text-white border-none',
       });
 
@@ -244,7 +233,7 @@ export default function AppPagamentos() {
 
     const isMasked = /^[•*]+$/.test(rawKey) || rawKey.includes('••••') || rawKey.includes('****');
 
-    if (!rawKey && !activeCompanyId && !company?.asaas_api_key) {
+    if (!rawKey && !activeCompanyId) {
       const msg = 'Digite uma chave de API antes de testar.';
       setTestResult({ success: false, error: msg, message: msg });
       toast({
@@ -341,7 +330,7 @@ export default function AppPagamentos() {
     return <Navigate to="/app/agenda" replace />;
   }
 
-  const isConfigured = Boolean(company?.asaas_api_key || apiKey);
+  const isConfigured = Boolean(apiKey);
 
   return (
     <AppLayout>
@@ -417,7 +406,7 @@ export default function AppPagamentos() {
             </div>
 
             <label className="block text-xs font-semibold text-white/70">
-              Chave de API do Asaas da sua Barbearia (company.asaas_api_key)
+              Chave de API do Asaas da sua Barbearia
             </label>
             <div className="relative">
               <input
@@ -444,7 +433,7 @@ export default function AppPagamentos() {
               <button
                 type="button"
                 onClick={handleTestConnection}
-                disabled={testingKey || (!apiKey.trim() && !company?.asaas_api_key)}
+                disabled={testingKey || !apiKey.trim()}
                 className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.99] border border-white/10 text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {testingKey ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" /> : <Zap className="w-3.5 h-3.5 text-blue-400" />}
