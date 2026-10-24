@@ -45,7 +45,6 @@ export default function BookingModal({
   const [selected, setSelected] = useState({ service: initialService, professional: null, date: null, time: null });
   const [form, setForm] = useState({ notes: '' });
   const [formError, setFormError] = useState('');
-  const [dayRestrictionNotice, setDayRestrictionNotice] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(() => (canUseSubscription ? 'subscription' : 'avulso'));
   // Idempotency key estável — protege contra duplo-clique no "Confirmar agendamento" (fluxo grátis/assinatura).
   const idemKeyRef = useRef(null);
@@ -66,7 +65,6 @@ export default function BookingModal({
       }
       setForm({ notes: '' });
       setFormError('');
-      setDayRestrictionNotice('');
       setPaymentMethod(canUseSubscription ? 'subscription' : 'avulso');
       idemKeyRef.current = null; // nova sessão → key fresca
     }
@@ -96,7 +94,6 @@ export default function BookingModal({
   useEffect(() => {
     if (isUsingPlan && hasWeekdayRestrictions && selected.date && !isDateAllowedByPlan(selected.date, allowedWeekdays)) {
       setSelected(p => ({ ...p, date: null, time: null }));
-      setDayRestrictionNotice(`Dia não disponível para o seu plano. ${formatAllowedWeekdaysError(allowedWeekdays)}`);
     }
   }, [isUsingPlan, hasWeekdayRestrictions, selected.date]);
 
@@ -579,13 +576,7 @@ export default function BookingModal({
                           aria-disabled={isDayBlockedByPlan}
                           title={isDayBlockedByPlan ? 'Dia não disponível para o seu plano' : undefined}
                           onClick={() => {
-                            if (isDayBlockedByPlan) {
-                              setDayRestrictionNotice(
-                                `Dia não disponível para o seu plano. ${formatAllowedWeekdaysError(allowedWeekdays)}`
-                              );
-                              return;
-                            }
-                            setDayRestrictionNotice('');
+                            if (isDayBlockedByPlan) return;
                             setSelected(p => ({ ...p, date: day, time: null }));
                           }}
                           className={`flex-shrink-0 flex flex-col items-center px-3 py-2.5 rounded-2xl border transition-all min-w-[60px] ${
@@ -628,25 +619,6 @@ export default function BookingModal({
                       );
                     })}
                   </div>
-
-                  {/* Aviso de dia desabilitado pelo plano */}
-                  {isUsingPlan && hasWeekdayRestrictions && (
-                    <div
-                      className={`mb-4 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-xs ${
-                        dayRestrictionNotice
-                          ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 font-semibold'
-                          : `${tw.card} ${tw.textMuted}`
-                      }`}
-                    >
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
-                      <div>
-                        <span className="font-bold">Dia não disponível para o seu plano</span>
-                        <span>
-                          {' '}— {formatAllowedWeekdaysError(allowedWeekdays)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
 
                   {selected.date && (
                     <>
