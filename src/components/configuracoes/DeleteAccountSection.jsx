@@ -66,7 +66,7 @@ export default function DeleteAccountSection({ company, isOwner }) {
 
   return (
     <>
-      <div className="mt-8 bg-white rounded-2xl border border-red-200 p-6 shadow-[var(--shadow-sm)]">
+      <div className="mt-6 sm:mt-8 bg-white rounded-2xl border border-red-200 p-4 sm:p-6 shadow-[var(--shadow-sm)]">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
             <AlertTriangle className="w-5 h-5 text-red-600" />

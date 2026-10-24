@@ -32,10 +32,10 @@ export default function MyEmailLogs() {
   const logs = (data?.logs || []).slice(0, 20);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-4 sm:p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
       <div className="flex items-center gap-3 mb-2">
         <Mail className="w-5 h-5 text-[#93C5FD]" />
-        <h2 className="font-bold text-white">Notificações por e-mail</h2>
+        <h2 className="font-bold text-sm sm:text-base text-white">Notificações por e-mail</h2>
       </div>
       <p className="text-xs text-white/55 mb-5">
         Histórico dos últimos e-mails que o sistema enviou em nome da sua barbearia (confirmações para clientes, lembretes, etc.).

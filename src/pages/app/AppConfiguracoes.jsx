@@ -358,7 +358,7 @@ export default function AppConfiguracoes() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto animate-fade-in">
+      <div className="p-3.5 sm:p-6 lg:p-8 max-w-3xl mx-auto animate-fade-in">
         <AppPageHeader
           title="Configurações"
           subtitle="Configure sua barbearia e link público de agendamento"
@@ -367,39 +367,39 @@ export default function AppConfiguracoes() {
 
         {/* Public link */}
         {form.slug && (
-          <div className="relative rounded-2xl border border-blue-400/25 bg-gradient-to-br from-blue-500/15 to-transparent backdrop-blur-xl p-3.5 sm:p-5 mb-5 flex items-center gap-3.5 sm:gap-4 shadow-[0_8px_24px_rgba(37,99,235,0.2)] overflow-hidden">
+          <div className="relative rounded-2xl border border-blue-400/25 bg-gradient-to-br from-blue-500/15 to-transparent backdrop-blur-xl p-3.5 sm:p-5 mb-4 sm:mb-5 flex items-center gap-3 sm:gap-4 shadow-[0_8px_24px_rgba(37,99,235,0.2)] overflow-hidden">
             <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#60A5FA]/20 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
-            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center flex-shrink-0 ring-1 ring-white/15 shadow-[0_4px_12px_rgba(37,99,235,0.4)]">
-              <Globe className="w-5 h-5 text-white" />
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center flex-shrink-0 ring-1 ring-white/15 shadow-[0_4px_12px_rgba(37,99,235,0.4)]">
+              <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="relative flex-1 min-w-0">
-              <div className="text-[11px] font-semibold text-[#93C5FD] uppercase tracking-wider mb-0.5">Seu link público de agendamento</div>
-              <div className="text-sm font-semibold text-white break-all">{publicLink}</div>
+              <div className="text-[10px] sm:text-[11px] font-semibold text-[#93C5FD] uppercase tracking-wider mb-0.5">Seu link público de agendamento</div>
+              <div className="text-xs sm:text-sm font-semibold text-white break-all">{publicLink}</div>
             </div>
-            <button onClick={copyLink} className={`relative flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-shrink-0 ${copied ? 'bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/30' : 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white ring-1 ring-white/15 hover:brightness-110 shadow-[0_4px_12px_rgba(37,99,235,0.4)]'}`}>
+            <button onClick={copyLink} className={`relative flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 sm:px-3 rounded-lg transition-all flex-shrink-0 ${copied ? 'bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/30' : 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white ring-1 ring-white/15 hover:brightness-110 shadow-[0_4px_12px_rgba(37,99,235,0.4)]'}`}>
               {copied ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copiado!' : 'Copiar'}
             </button>
           </div>
         )}
 
-        <div className="space-y-5">
+        <div className="space-y-4 sm:space-y-5">
           {/* Basic info */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-4 sm:p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-            <h2 className="font-bold text-white mb-4 sm:mb-5">Informações básicas</h2>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-3.5 sm:p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <h2 className="font-bold text-sm sm:text-base text-white mb-3.5 sm:mb-5">Informações básicas</h2>
 
             {/* Logo upload */}
-            <div className="mb-5">
-              <label className="text-xs font-semibold text-white/55 block mb-2">Logo da barbearia</label>
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center bg-white/[0.04] flex-shrink-0">
+            <div className="mb-4 sm:mb-5">
+              <label className="text-xs font-semibold text-white/55 block mb-1.5 sm:mb-2">Logo da barbearia</label>
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center bg-white/[0.04] flex-shrink-0">
                   {form.logo_url ? (
                     <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-2xl font-black text-white/25">{form.name?.[0] || '?'}</span>
+                    <span className="text-xl sm:text-2xl font-black text-white/25">{form.name?.[0] || '?'}</span>
                   )}
                 </div>
-                <label className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/12 text-white/80 hover:bg-white/[0.08] hover:border-white/20 transition-colors cursor-pointer">
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white/[0.04] border border-white/12 text-white/80 hover:bg-white/[0.08] hover:border-white/20 transition-colors cursor-pointer">
                   {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   {uploadingLogo ? 'Enviando...' : 'Enviar logo'}
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
@@ -412,7 +412,7 @@ export default function AppConfiguracoes() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
               {[
                 { label: 'Nome da barbearia', key: 'name', placeholder: 'Ex: Barbearia Studio 47' },
                 { label: 'Slug (URL pública)', key: 'slug', placeholder: 'ex: studio47' },
@@ -423,31 +423,31 @@ export default function AppConfiguracoes() {
                   <label className="text-xs font-semibold text-white/55 block mb-1">{f.label}</label>
                   <input type="text" value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    className="w-full px-3 py-2.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white placeholder:text-white/30" />
+                    className="w-full px-3 py-2 border border-white/10 bg-white/[0.03] rounded-lg text-xs sm:text-sm text-white placeholder:text-white/30" />
                 </div>
               ))}
               <div className="md:col-span-2">
                 <label className="text-xs font-semibold text-white/55 block mb-1">Endereço</label>
                 <input type="text" value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
                   placeholder="Rua, número, bairro, cidade"
-                  className="w-full px-3 py-2.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white placeholder:text-white/30" />
+                  className="w-full px-3 py-2 border border-white/10 bg-white/[0.03] rounded-lg text-xs sm:text-sm text-white placeholder:text-white/30" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-white/55 block mb-1">Cor principal</label>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 sm:gap-3">
                   <input type="color" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                    className="w-10 h-10 rounded-lg border border-white/10 bg-white/[0.03] cursor-pointer" />
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-white/10 bg-white/[0.03] cursor-pointer flex-shrink-0" />
                   <input type="text" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                    className="flex-1 px-3 py-2.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white" />
+                    className="flex-1 min-w-0 px-3 py-2 border border-white/10 bg-white/[0.03] rounded-lg text-xs sm:text-sm text-white" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Business hours */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-4 sm:p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-            <h2 className="font-bold text-white mb-4">Horários de funcionamento</h2>
-            <div className="space-y-1.5">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-3.5 sm:p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] overflow-hidden">
+            <h2 className="font-bold text-sm sm:text-base text-white mb-3 sm:mb-4">Horários de funcionamento</h2>
+            <div className="space-y-1">
               {BUSINESS_DAYS.map(({ key, label }) => {
                 const rawH = form.business_hours?.[key] || defaultHours[key];
                 const isActive = Boolean(rawH?.active);
@@ -455,15 +455,15 @@ export default function AppConfiguracoes() {
                 const closeVal = formatTimeHHMM(rawH?.close, '22:00');
 
                 return (
-                  <div key={key} className="grid grid-cols-[96px_1fr_auto_1fr] items-center gap-2 sm:gap-3 py-2 border-b border-white/6 last:border-b-0">
-                    <label className="flex items-center gap-2 min-w-0 cursor-pointer">
+                  <div key={key} className="grid grid-cols-[76px_minmax(0,1fr)_auto_minmax(0,1fr)] sm:grid-cols-[110px_1fr_auto_1fr] items-center gap-1.5 sm:gap-3 py-1.5 sm:py-2 border-b border-white/6 last:border-b-0">
+                    <label className="flex items-center gap-1.5 sm:gap-2 min-w-0 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={isActive}
                         onChange={e => setHour(key, 'active', e.target.checked)}
-                        className="flex-shrink-0 accent-[#2563EB]"
+                        className="flex-shrink-0 accent-[#2563EB] w-3.5 h-3.5 sm:w-4 sm:h-4"
                       />
-                      <span className={`text-sm font-semibold truncate ${isActive ? 'text-white' : 'text-white/40'}`}>
+                      <span className={`text-xs sm:text-sm font-semibold truncate ${isActive ? 'text-white' : 'text-white/40'}`}>
                         {label}
                       </span>
                     </label>
@@ -475,20 +475,20 @@ export default function AppConfiguracoes() {
                           value={openVal}
                           onChange={e => setHour(key, 'open', formatTimeHHMM(e.target.value, openVal))}
                           onBlur={() => normalizeHourOnBlur(key, 'open', '07:00')}
-                          className="w-full min-w-[104px] px-3 py-2 border border-white/10 bg-white/[0.04] rounded-lg text-sm font-mono text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA]"
+                          className="w-full min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 border border-white/10 bg-white/[0.04] rounded-lg text-xs sm:text-sm font-mono text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA]"
                         />
-                        <span className="text-white/40 text-xs px-1">até</span>
+                        <span className="text-white/40 text-[11px] sm:text-xs px-0.5">até</span>
                         <input
                           type="time"
                           step="60"
                           value={closeVal}
                           onChange={e => setHour(key, 'close', formatTimeHHMM(e.target.value, closeVal))}
                           onBlur={() => normalizeHourOnBlur(key, 'close', '22:00')}
-                          className="w-full min-w-[104px] px-3 py-2 border border-white/10 bg-white/[0.04] rounded-lg text-sm font-mono text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA]"
+                          className="w-full min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 border border-white/10 bg-white/[0.04] rounded-lg text-xs sm:text-sm font-mono text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA]"
                         />
                       </>
                     ) : (
-                      <span className="text-sm text-white/35 col-span-3">Fechado</span>
+                      <span className="text-xs sm:text-sm text-white/35 col-span-3">Fechado</span>
                     )}
                   </div>
                 );
@@ -497,11 +497,11 @@ export default function AppConfiguracoes() {
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-5 sm:mt-6">
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white px-6 py-3 rounded-xl font-semibold ring-1 ring-white/15 hover:brightness-110 disabled:opacity-50 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] active:scale-[0.98]"
+            className="flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl text-sm font-semibold ring-1 ring-white/15 hover:brightness-110 disabled:opacity-50 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] active:scale-[0.98]"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {isSaving ? 'Salvando...' : 'Salvar configurações'}
