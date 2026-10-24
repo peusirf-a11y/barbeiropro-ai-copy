@@ -1,5 +1,6 @@
 // Repositório de Entidades Robusto com Supabase e Fallback LocalStorage (Anti "Failed to fetch")
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { resolvePlanAllowedWeekdays } from '@/lib/businessHours';
 
 const ENTITY_TABLE_MAP = {
   Company: 'companies',
@@ -141,6 +142,9 @@ const CUSTOMER_PLAN_META_KEYS = [
   'off_peak_start',
   'off_peak_end',
   'off_peak_weekdays',
+  'allowed_weekdays',
+  'days_of_week',
+  'valid_days',
   'allowed_customer_ids',
   'invite_token',
   'invite_token_uses',
@@ -202,6 +206,11 @@ export class EntityRepository {
       out.usage_limit = out.type === 'unlimited' ? 0 : Number(out.usage_limit ?? 0);
       out.off_peak = Boolean(out.off_peak ?? out.off_peak_enabled ?? false);
       out.off_peak_enabled = Boolean(out.off_peak_enabled ?? out.off_peak ?? false);
+      const resolvedDays = resolvePlanAllowedWeekdays(out, null);
+      if (resolvedDays) {
+        out.allowed_weekdays = resolvedDays;
+        out.off_peak_weekdays = resolvedDays;
+      }
       out.service_ids = Array.isArray(out.service_ids) ? out.service_ids : [];
       out.valid_in_units = Array.isArray(out.valid_in_units) ? out.valid_in_units : [];
       out.allowed_customer_ids = Array.isArray(out.allowed_customer_ids) ? out.allowed_customer_ids : [];
@@ -257,23 +266,31 @@ export class EntityRepository {
     }
     if (this.tableName === 'customer_subscriptions') {
       const out = { ...row };
-      if (!out.plan_name && out.plan_name_snapshot) out.plan_name = out.plan_name_snapshot;
-      if (!out.plan_name_snapshot && out.plan_name) out.plan_name_snapshot = out.plan_name;
-      if (!out.plan_name && out.plan_id) {
+      let matchedPlan = null;
+      if (out.plan_id) {
         try {
           const localPlans = getLocalTable('plans');
-          const matchedPlan = localPlans.find(p => String(p.id) === String(out.plan_id));
-          if (matchedPlan) {
-            out.plan_name = matchedPlan.name;
-            out.plan_name_snapshot = matchedPlan.name;
-            if (out.plan_price_snapshot === undefined) {
-              out.plan_price_snapshot = Number(matchedPlan.price_monthly ?? matchedPlan.price ?? 0);
-            }
-            if (!out.plan_type_snapshot) {
-              out.plan_type_snapshot = matchedPlan.type || 'unlimited';
-            }
-          }
+          matchedPlan = localPlans.find(p => String(p.id) === String(out.plan_id)) || null;
         } catch (_) {}
+      }
+      if (!out.plan_name && out.plan_name_snapshot) out.plan_name = out.plan_name_snapshot;
+      if (!out.plan_name_snapshot && out.plan_name) out.plan_name_snapshot = out.plan_name;
+      if (!out.plan_name && matchedPlan) {
+        out.plan_name = matchedPlan.name;
+        out.plan_name_snapshot = matchedPlan.name;
+      }
+      if (matchedPlan) {
+        if (out.plan_price_snapshot === undefined) {
+          out.plan_price_snapshot = Number(matchedPlan.price_monthly ?? matchedPlan.price ?? 0);
+        }
+        if (!out.plan_type_snapshot) {
+          out.plan_type_snapshot = matchedPlan.type || 'unlimited';
+        }
+      }
+      const resolvedDays = resolvePlanAllowedWeekdays(matchedPlan, out);
+      if (resolvedDays) {
+        out.allowed_weekdays = resolvedDays;
+        out.off_peak_weekdays = resolvedDays;
       }
       if (!out.current_period_end && out.current_cycle_end) out.current_period_end = out.current_cycle_end;
       if (!out.current_cycle_end && out.current_period_end) out.current_cycle_end = out.current_period_end;

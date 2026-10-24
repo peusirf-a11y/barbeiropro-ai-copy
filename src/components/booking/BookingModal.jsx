@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
 import { generateStableIdempotencyKey } from '@/lib/system/idempotency';
-import { X, ChevronLeft, Check, Clock, User, AlertCircle, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, Check, Clock, User, AlertCircle, ChevronRight, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, addDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -17,6 +17,10 @@ import {
   generateSlotsForDay,
   normalizeBusinessHours,
   toBrasiliaDateParts,
+  resolvePlanAllowedWeekdays,
+  formatAllowedWeekdaysError,
+  formatAllowedWeekdaysShort,
+  isDateAllowedByPlan,
 } from '@/lib/businessHours';
 import BookingPaymentStep from './BookingPaymentStep';
 import BookingConsentBlock from './BookingConsentBlock';
@@ -41,9 +45,14 @@ export default function BookingModal({
   const [selected, setSelected] = useState({ service: initialService, professional: null, date: null, time: null });
   const [form, setForm] = useState({ notes: '' });
   const [formError, setFormError] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('avulso');
+  const [dayRestrictionNotice, setDayRestrictionNotice] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState(() => (canUseSubscription ? 'subscription' : 'avulso'));
   // Idempotency key estável — protege contra duplo-clique no "Confirmar agendamento" (fluxo grátis/assinatura).
   const idemKeyRef = useRef(null);
+
+  const allowedWeekdays = resolvePlanAllowedWeekdays(activePlan, activeSubscription);
+  const hasWeekdayRestrictions = Array.isArray(allowedWeekdays) && allowedWeekdays.length > 0 && allowedWeekdays.length < 7;
+  const isUsingPlan = Boolean(activeSubscription && canUseSubscription && paymentMethod === 'subscription');
 
   // Ao abrir com serviço inicial, pula para profissional
   useEffect(() => {
@@ -57,16 +66,39 @@ export default function BookingModal({
       }
       setForm({ notes: '' });
       setFormError('');
+      setDayRestrictionNotice('');
+      setPaymentMethod(canUseSubscription ? 'subscription' : 'avulso');
       idemKeyRef.current = null; // nova sessão → key fresca
     }
   }, [isOpen, initialService]);
 
   useEffect(() => {
+    if (canUseSubscription && paymentMethod === 'avulso' && step < 3) {
+      setPaymentMethod('subscription');
+    }
+    if (!canUseSubscription && paymentMethod === 'subscription') {
+      setPaymentMethod('avulso');
+    }
+  }, [canUseSubscription, step]);
+
+  useEffect(() => {
     if (step !== 3) return;
     setFormError('');
-    if (canUseSubscription && paymentMethod === 'avulso') setPaymentMethod('subscription');
+    if (canUseSubscription && paymentMethod === 'avulso') {
+      if (!hasWeekdayRestrictions || isDateAllowedByPlan(selected.date, allowedWeekdays)) {
+        setPaymentMethod('subscription');
+      }
+    }
     if (!canUseSubscription && paymentMethod === 'subscription') setPaymentMethod('avulso');
   }, [step, canUseSubscription]);
+
+  // Se o cliente estiver usando o plano e a data selecionada não for permitida pelo plano, limpa a seleção inválida
+  useEffect(() => {
+    if (isUsingPlan && hasWeekdayRestrictions && selected.date && !isDateAllowedByPlan(selected.date, allowedWeekdays)) {
+      setSelected(p => ({ ...p, date: null, time: null }));
+      setDayRestrictionNotice(`Dia não disponível para o seu plano. ${formatAllowedWeekdaysError(allowedWeekdays)}`);
+    }
+  }, [isUsingPlan, hasWeekdayRestrictions, selected.date]);
 
   const normalizedBusinessHours = normalizeBusinessHours(company);
 
@@ -79,6 +111,9 @@ export default function BookingModal({
 
   const getAvailableSlots = () => {
     if (!selected.date || !selected.service || !company) return [];
+    if (isUsingPlan && hasWeekdayRestrictions && !isDateAllowedByPlan(selected.date, allowedWeekdays)) {
+      return [];
+    }
     const { dateStr, dayOfWeek } = toBrasiliaDateParts(selected.date, '12:00');
     const dk = DAY_INDEX_TO_KEY[dayOfWeek];
     const hours = normalizedBusinessHours?.[dk];
@@ -230,15 +265,26 @@ export default function BookingModal({
         ...data,
         scope_customer_by_unit: scopeCustomerByUnit,
         idempotency_key: idemKeyRef.current,
+        ...(paymentMethod === 'subscription' && activeSubscription
+          ? {
+              subscription_id: activeSubscription.id,
+              plan_id: activeSubscription.plan_id || activePlan?.id,
+              plan_name: activeSubscription.plan_name || activeSubscription.plan_name_snapshot || activePlan?.name,
+              allowed_weekdays: allowedWeekdays,
+              payment_method: 'subscription',
+              use_subscription: true,
+            }
+          : {}),
       });
       if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao criar agendamento');
-      if (activeSubscription && customerToken && res.data.appointment_id) {
+      if (activeSubscription && customerToken && res.data.appointment_id && paymentMethod === 'subscription') {
         const consumeRes = await base44.functions.invoke('consumeSubscriptionUse', {
           action: 'consume',
           subscription_id: activeSubscription.id,
           appointment_id: res.data.appointment_id,
           service_id: data.service_id,
           service_name: data.service_name,
+          scheduled_at: data.scheduled_at,
           customer_token: customerToken,
           company_id: company.id,
         });
@@ -257,6 +303,13 @@ export default function BookingModal({
     }
 
     const { dateStr, timeFormatted, isoBrasilia, dayOfWeek } = toBrasiliaDateParts(selected.date, selected.time);
+
+    // Validação estrita dos dias permitidos pelo plano do cliente
+    if (paymentMethod === 'subscription' && hasWeekdayRestrictions && !allowedWeekdays.includes(dayOfWeek)) {
+      setFormError(formatAllowedWeekdaysError(allowedWeekdays));
+      return false;
+    }
+
     const dur = Math.max(5, Number(selected.service.duration_minutes) || 30);
     const safeAppts = Array.isArray(existingAppointments) ? existingAppointments : [];
     const safeBlocks = Array.isArray(blockedTimes) ? blockedTimes : [];
@@ -348,6 +401,10 @@ export default function BookingModal({
   };
 
   const handleContinueToConfirmation = () => {
+    if (isUsingPlan && hasWeekdayRestrictions && selected.date && !isDateAllowedByPlan(selected.date, allowedWeekdays)) {
+      setDayRestrictionNotice(`Dia não disponível para o seu plano. ${formatAllowedWeekdaysError(allowedWeekdays)}`);
+      return;
+    }
     if (loggedCustomer && customerToken) {
       setStep(3);
     } else {
@@ -365,6 +422,13 @@ export default function BookingModal({
   };
 
   const availableSlots = getAvailableSlots();
+
+  const datePlanBlocker =
+    selected.date && hasWeekdayRestrictions && !isDateAllowedByPlan(selected.date, allowedWeekdays)
+      ? `Dia não disponível para o seu plano. ${formatAllowedWeekdaysError(allowedWeekdays)}`
+      : null;
+
+  const effectiveSubscriptionBlocker = subscriptionBlocker || datePlanBlocker;
 
   const stepTitles = ['Escolha o serviço', 'Escolha o profissional', 'Escolha a data e hora', 'Confirmar agendamento', 'Pagamento'];
 
@@ -477,23 +541,112 @@ export default function BookingModal({
               {/* STEP 2: Data & Horário */}
               {step === 2 && (
                 <div>
-                  {/* Date picker */}
-                  <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
-                    {next14Days.slice(0, 10).map((day, i) => {
-                      const isSel = selected.date?.toDateString() === day.toDateString();
-                      return (
-                        <button key={i}
-                          onClick={() => setSelected(p => ({ ...p, date: day, time: null }))}
-                          className={`flex-shrink-0 flex flex-col items-center px-3 py-3 rounded-2xl border transition-all min-w-[56px] ${isSel ? 'border-transparent' : `${tw.card} ${tw.textMuted}`}`}
-                          style={{ backgroundColor: isSel ? primaryColor : undefined, color: isSel ? '#FFFFFF' : undefined }}
+                  {/* Aviso de regra do plano ativo com restrição de dias */}
+                  {canUseSubscription && hasWeekdayRestrictions && (
+                    <div className={`mb-3 rounded-2xl border p-3 ${isDark ? 'bg-white/[0.04] border-white/10' : 'bg-gray-50 border-black/10'}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className={`text-xs font-bold ${tw.text} truncate`}>
+                            {activeSubscription?.plan_name || activeSubscription?.plan_name_snapshot || activePlan?.name || 'Meu Plano'}
+                          </div>
+                          <div className={`text-[11px] ${tw.textMuted}`}>
+                            {formatAllowedWeekdaysError(allowedWeekdays)}
+                          </div>
+                        </div>
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                         >
-                          <span className="text-[10px] uppercase tracking-wide opacity-70" style={isSel ? { color: '#FFFFFF' } : undefined}>{format(day, 'EEE', { locale: ptBR })}</span>
-                          <span className="text-lg font-black" style={isSel ? { color: '#FFFFFF' } : undefined}>{format(day, 'd')}</span>
-                          <span className="text-[10px] opacity-70" style={isSel ? { color: '#FFFFFF' } : undefined}>{format(day, 'MMM', { locale: ptBR })}</span>
+                          {formatAllowedWeekdaysShort(allowedWeekdays)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Date picker */}
+                  <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-hide">
+                    {next14Days.map((day, i) => {
+                      const { dayOfWeek } = toBrasiliaDateParts(day);
+                      const isDayBlockedByPlan = Boolean(
+                        isUsingPlan && hasWeekdayRestrictions && !allowedWeekdays.includes(dayOfWeek)
+                      );
+                      const isSel = !isDayBlockedByPlan && selected.date?.toDateString() === day.toDateString();
+
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          aria-disabled={isDayBlockedByPlan}
+                          title={isDayBlockedByPlan ? 'Dia não disponível para o seu plano' : undefined}
+                          onClick={() => {
+                            if (isDayBlockedByPlan) {
+                              setDayRestrictionNotice(
+                                `Dia não disponível para o seu plano. ${formatAllowedWeekdaysError(allowedWeekdays)}`
+                              );
+                              return;
+                            }
+                            setDayRestrictionNotice('');
+                            setSelected(p => ({ ...p, date: day, time: null }));
+                          }}
+                          className={`flex-shrink-0 flex flex-col items-center px-3 py-2.5 rounded-2xl border transition-all min-w-[60px] ${
+                            isDayBlockedByPlan
+                              ? 'opacity-40 grayscale cursor-not-allowed bg-gray-500/10 border-dashed border-gray-400/30 text-gray-400'
+                              : isSel
+                              ? 'border-transparent shadow-md'
+                              : `${tw.card} ${tw.textMuted}`
+                          }`}
+                          style={
+                            !isDayBlockedByPlan && isSel
+                              ? { backgroundColor: primaryColor, color: '#FFFFFF' }
+                              : undefined
+                          }
+                        >
+                          <span
+                            className="text-[10px] uppercase tracking-wide opacity-70"
+                            style={!isDayBlockedByPlan && isSel ? { color: '#FFFFFF' } : undefined}
+                          >
+                            {format(day, 'EEE', { locale: ptBR })}
+                          </span>
+                          <span
+                            className={`text-lg font-black ${isDayBlockedByPlan ? 'line-through' : ''}`}
+                            style={!isDayBlockedByPlan && isSel ? { color: '#FFFFFF' } : undefined}
+                          >
+                            {format(day, 'd')}
+                          </span>
+                          <span
+                            className="text-[10px] opacity-70"
+                            style={!isDayBlockedByPlan && isSel ? { color: '#FFFFFF' } : undefined}
+                          >
+                            {format(day, 'MMM', { locale: ptBR })}
+                          </span>
+                          {isDayBlockedByPlan && (
+                            <span className="mt-1 inline-flex items-center gap-0.5 text-[9px] font-semibold text-gray-400">
+                              <Lock className="w-2.5 h-2.5" /> Plano
+                            </span>
+                          )}
                         </button>
                       );
                     })}
                   </div>
+
+                  {/* Aviso de dia desabilitado pelo plano */}
+                  {isUsingPlan && hasWeekdayRestrictions && (
+                    <div
+                      className={`mb-4 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-xs ${
+                        dayRestrictionNotice
+                          ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 font-semibold'
+                          : `${tw.card} ${tw.textMuted}`
+                      }`}
+                    >
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
+                      <div>
+                        <span className="font-bold">Dia não disponível para o seu plano</span>
+                        <span>
+                          {' '}— {formatAllowedWeekdaysError(allowedWeekdays)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {selected.date && (
                     <>
@@ -534,7 +687,7 @@ export default function BookingModal({
 
                   {!selected.date && (
                     <div className={`text-center py-6 ${tw.textFaint} text-sm`}>
-                      Selecione uma data acima
+                      Selecione uma data disponível acima
                     </div>
                   )}
                 </div>
@@ -569,7 +722,7 @@ export default function BookingModal({
                       value={paymentMethod}
                       onChange={setPaymentMethod}
                       primaryColor={primaryColor}
-                      blocker={subscriptionBlocker}
+                      blocker={effectiveSubscriptionBlocker}
                     />
                   )}
 

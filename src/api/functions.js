@@ -3,6 +3,11 @@
 
 import { Plan, CustomerPlan, CustomerSubscription, Company, BarberCredential, Customer, Appointment, FinancialEntry, Service, Commission, Review, TeamMember, Professional } from './entities';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import {
+  resolvePlanAllowedWeekdays,
+  formatAllowedWeekdaysError,
+  toBrasiliaDateParts,
+} from '@/lib/businessHours';
 
 export async function resolveCompanyId(payload = {}) {
   if (payload?.company_id) {
@@ -178,6 +183,9 @@ export async function invokeFunction(functionName, payload = {}) {
               usage_limit: 0,
               recommended: false,
               off_peak: true,
+              off_peak_enabled: true,
+              off_peak_weekdays: [2, 3],
+              allowed_weekdays: [2, 3],
               margin_health: 'safe',
               avulso_equivalent: Math.round(ticketMedio * 2.5),
               savings: Math.round(ticketMedio * 1.1),
@@ -233,6 +241,7 @@ export async function invokeFunction(functionName, payload = {}) {
               count++;
               continue;
             }
+            const resolvedDays = resolvePlanAllowedWeekdays(p, null);
             await CustomerPlan.create({
               company_id: companyId,
               name: p.name,
@@ -241,7 +250,9 @@ export async function invokeFunction(functionName, payload = {}) {
               type: p.type || 'limited',
               usage_limit: p.type === 'unlimited' ? 0 : Number(p.usage_limit || 0),
               recommended: Boolean(p.recommended),
-              off_peak: Boolean(p.off_peak),
+              off_peak: Boolean(p.off_peak ?? p.off_peak_enabled),
+              off_peak_enabled: Boolean(p.off_peak_enabled ?? p.off_peak),
+              ...(resolvedDays ? { off_peak_weekdays: resolvedDays, allowed_weekdays: resolvedDays } : {}),
               active: false,
               is_active: false,
               visibility: 'public',
@@ -1557,6 +1568,12 @@ export async function invokeFunction(functionName, payload = {}) {
           chargeData.creditCard?.creditCardBrand ||
           null;
 
+        const resolvedAllowedDays = resolvePlanAllowedWeekdays(plan, {
+          ...(existingSub || {}),
+          plan_name: planName,
+          plan_name_snapshot: planName,
+        });
+
         const activeSubPayload = {
           ...(chargeData.subscription?.id ? { id: chargeData.subscription.id } : {}),
           company_id: companyId,
@@ -1567,6 +1584,7 @@ export async function invokeFunction(functionName, payload = {}) {
           plan_price_snapshot: planPrice,
           plan_type_snapshot: planType,
           plan_usage_limit_snapshot: usageLimit,
+          ...(resolvedAllowedDays ? { allowed_weekdays: resolvedAllowedDays, off_peak_weekdays: resolvedAllowedDays } : {}),
           status: 'active',
           asaas_subscription_id: asaasSubId,
           card_last_digits: cardLastDigits,
@@ -2565,6 +2583,84 @@ export async function invokeFunction(functionName, payload = {}) {
         const apptId = payload.id || crypto.randomUUID();
         const dateVal = payload.date || (payload.scheduled_at ? payload.scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0]);
         const timeVal = payload.time || (payload.scheduled_at && payload.scheduled_at.includes('T') ? payload.scheduled_at.split('T')[1].slice(0, 5) : '09:00');
+        const scheduledIso = payload.scheduled_at || `${dateVal}T${timeVal}:00-03:00`;
+
+        // Validação Server-side / Regras de Dias Permitidos do Plano
+        const isSubscriptionBooking = Boolean(
+          payload.subscription_id ||
+            payload.use_subscription ||
+            payload.payment_method === 'subscription'
+        );
+
+        if (isSubscriptionBooking) {
+          // 1. Valida via endpoint backend /api/appointments/create (retorna HTTP 400 se dia não permitido)
+          try {
+            const backendRes = await fetch('/api/appointments/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...payload,
+                company_id: companyId,
+                scheduled_at: scheduledIso,
+                date: dateVal,
+                time: timeVal,
+              }),
+            });
+            if (backendRes.status === 400) {
+              const errBody = await backendRes.json().catch(() => null);
+              return {
+                data: {
+                  success: false,
+                  status: 400,
+                  error: errBody?.error || 'O seu plano só permite agendamentos às terças e quartas-feiras.',
+                },
+              };
+            }
+          } catch (_) {}
+
+          // 2. Valida localmente com base na assinatura e no plano cadastrado
+          const parsedDay = new Date(scheduledIso).getDay();
+          const brasiliaDay = toBrasiliaDateParts(scheduledIso).dayOfWeek ?? parsedDay;
+
+          let subObj = payload.subscription_id ? await CustomerSubscription.get(payload.subscription_id) : null;
+          if (!subObj && payload.customer_id) {
+            const subs = await CustomerSubscription.filter({
+              company_id: companyId,
+              customer_id: payload.customer_id,
+              status: 'active',
+            });
+            subObj = subs?.[0] || null;
+          }
+
+          const targetPlanId = payload.plan_id || subObj?.plan_id || null;
+          let planObj = targetPlanId ? await CustomerPlan.get(targetPlanId) : null;
+          if (!planObj && (payload.plan_name || subObj?.plan_name || subObj?.plan_name_snapshot)) {
+            const allCompanyPlans = await CustomerPlan.filter({ company_id: companyId });
+            const targetName = String(payload.plan_name || subObj?.plan_name || subObj?.plan_name_snapshot || '').trim().toLowerCase();
+            planObj = (allCompanyPlans || []).find(p => String(p.name || '').trim().toLowerCase() === targetName) || null;
+          }
+
+          const allowedWeekdays = resolvePlanAllowedWeekdays(planObj, {
+            ...(subObj || {}),
+            plan_name: payload.plan_name || subObj?.plan_name || subObj?.plan_name_snapshot,
+            allowed_weekdays: payload.allowed_weekdays || subObj?.allowed_weekdays,
+          });
+
+          if (
+            Array.isArray(allowedWeekdays) &&
+            allowedWeekdays.length > 0 &&
+            allowedWeekdays.length < 7 &&
+            !allowedWeekdays.includes(brasiliaDay)
+          ) {
+            return {
+              data: {
+                success: false,
+                status: 400,
+                error: formatAllowedWeekdaysError(allowedWeekdays),
+              },
+            };
+          }
+        }
 
         let proId = payload.professional_id;
         let proName = payload.professional_name;
@@ -2602,7 +2698,7 @@ export async function invokeFunction(functionName, payload = {}) {
           professional_name: proName || 'Profissional',
           date: dateVal,
           time: timeVal,
-          scheduled_at: payload.scheduled_at || `${dateVal}T${timeVal}:00-03:00`,
+          scheduled_at: scheduledIso,
           price: Number(payload.price || 0),
           status: 'agendado',
           payment_status: 'pending',
@@ -3086,6 +3182,33 @@ export async function invokeFunction(functionName, payload = {}) {
         if (subId) {
           const sub = await CustomerSubscription.get(subId);
           if (sub) {
+            if (action !== 'revert') {
+              const planObj = sub.plan_id ? await CustomerPlan.get(sub.plan_id) : null;
+              const allowedWeekdays = resolvePlanAllowedWeekdays(planObj, sub);
+              if (Array.isArray(allowedWeekdays) && allowedWeekdays.length > 0 && allowedWeekdays.length < 7) {
+                let targetScheduled = payload.scheduled_at;
+                if (!targetScheduled && apptId) {
+                  const appt = await Appointment.get(apptId);
+                  targetScheduled = appt?.scheduled_at || (appt?.date ? `${appt.date}T12:00:00-03:00` : null);
+                }
+                if (targetScheduled) {
+                  const dayOfWeek = toBrasiliaDateParts(targetScheduled).dayOfWeek ?? new Date(targetScheduled).getDay();
+                  if (!allowedWeekdays.includes(dayOfWeek)) {
+                    if (apptId) {
+                      try { await Appointment.delete(apptId); } catch (_) {}
+                    }
+                    return {
+                      data: {
+                        success: false,
+                        status: 400,
+                        error: formatAllowedWeekdaysError(allowedWeekdays),
+                      },
+                    };
+                  }
+                }
+              }
+            }
+
             const isUnlimited = sub.plan_type_snapshot === 'unlimited';
             const delta = action === 'revert' ? 1 : -1;
             const nextRemaining = isUnlimited

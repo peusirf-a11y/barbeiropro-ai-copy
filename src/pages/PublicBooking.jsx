@@ -151,6 +151,19 @@ export default function PublicBooking() {
   });
   const hasActivePlans = activePlans.length > 0;
 
+  const effectiveActivePlan =
+    activePlan ||
+    activePlans.find(
+      p =>
+        (activeSubscription?.plan_id && String(p.id) === String(activeSubscription.plan_id)) ||
+        (activeSubscription &&
+          String(p.name || '').trim().toLowerCase() ===
+            String(activeSubscription.plan_name || activeSubscription.plan_name_snapshot || '')
+              .trim()
+              .toLowerCase())
+    ) ||
+    null;
+
   const { data: allProfessionals = [] } = useQuery({
     queryKey: ['public-professionals', company?.id],
     queryFn: async () => {
@@ -571,7 +584,7 @@ export default function PublicBooking() {
         customerToken={customerToken}
         isAuthenticatedCustomer={isAuthenticatedCustomer}
         activeSubscription={activeSubscription}
-        activePlan={activePlan}
+        activePlan={effectiveActivePlan}
         canUseSubscription={canUseSubscription}
         subscriptionBlocker={subscriptionBlocker}
         slug={slug}

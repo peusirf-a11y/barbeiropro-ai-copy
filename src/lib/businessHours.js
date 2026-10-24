@@ -333,3 +333,226 @@ export function toBrasiliaDateParts(dateInput, timeStr = '09:00') {
   };
 }
 
+const WEEKDAY_TOKEN_MAP = [
+  { day: 0, regex: /\b(domingo|domingos|dom)\b/i },
+  { day: 1, regex: /\b(segunda(?:-feira)?|segundas(?:-feiras)?|seg)\b/i },
+  { day: 2, regex: /\b(terca(?:-feira)?|tercas(?:-feiras)?|ter)\b/i },
+  { day: 3, regex: /\b(quarta(?:-feira)?|quartas(?:-feiras)?|qua)\b/i },
+  { day: 4, regex: /\b(quinta(?:-feira)?|quintas(?:-feiras)?|qui)\b/i },
+  { day: 5, regex: /\b(sexta(?:-feira)?|sextas(?:-feiras)?|sex)\b/i },
+  { day: 6, regex: /\b(sabado|sabados|sab)\b/i },
+];
+
+/**
+ * Extrai dias da semana (0=Dom..6=Sáb) mencionados no nome ou descrição de um plano
+ * (ex: "Plano Off-Peak Terça e Quarta", "Ter-Qua", "Segunda a Quarta").
+ */
+export function parseWeekdaysFromText(rawText) {
+  if (!rawText || typeof rawText !== 'string') return [];
+  const norm = rawText
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const found = new Set();
+
+  // Suporte a intervalos do tipo "segunda a quarta" ou "seg a qua"
+  const dayNamesPattern =
+    '(domingo|dom|segunda(?:-feira)?|seg|terca(?:-feira)?|ter|quarta(?:-feira)?|qua|quinta(?:-feira)?|qui|sexta(?:-feira)?|sex|sabado|sab)';
+  const rangeRegex = new RegExp(`\\b${dayNamesPattern}\\s+(?:a|ate)\\s+${dayNamesPattern}\\b`, 'gi');
+
+  const resolveTokenToDay = (token) => {
+    for (const item of WEEKDAY_TOKEN_MAP) {
+      if (item.regex.test(token)) return item.day;
+    }
+    return null;
+  };
+
+  let match;
+  while ((match = rangeRegex.exec(norm)) !== null) {
+    const startDay = resolveTokenToDay(match[1]);
+    const endDay = resolveTokenToDay(match[2]);
+    if (startDay !== null && endDay !== null && startDay <= endDay) {
+      for (let d = startDay; d <= endDay; d++) {
+        found.add(d);
+      }
+    }
+  }
+
+  for (const item of WEEKDAY_TOKEN_MAP) {
+    if (item.regex.test(norm)) {
+      found.add(item.day);
+    }
+  }
+
+  return Array.from(found).sort((a, b) => a - b);
+}
+
+function sanitizeWeekdaysArray(arr) {
+  if (!Array.isArray(arr)) return [];
+  const valid = arr
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+  return Array.from(new Set(valid)).sort((a, b) => a - b);
+}
+
+/**
+ * Identifica os dias da semana permitidos (0=Dom .. 6=Sáb) para um plano de cliente ou assinatura.
+ * Retorna um array ordenado de dias permitidos (ex: [2, 3] para Terça e Quarta) ou null se todos os dias forem permitidos.
+ */
+export function resolvePlanAllowedWeekdays(plan = null, subscription = null) {
+  const meta =
+    (plan?.limits && typeof plan.limits === 'object' && plan.limits._customer_plan_meta) || {};
+
+  // 1. Verifica campos explícitos de restrição (allowed_weekdays, days_of_week, valid_days)
+  const explicitCandidates = [
+    plan?.allowed_weekdays,
+    plan?.days_of_week,
+    plan?.valid_days,
+    meta?.allowed_weekdays,
+    meta?.days_of_week,
+    meta?.valid_days,
+    subscription?.allowed_weekdays,
+    subscription?.days_of_week,
+    subscription?.valid_days,
+  ];
+
+  // 2. Verifica menção explícita de dias no título/descrição do plano ou snapshot da assinatura
+  const combinedText = [
+    plan?.name,
+    plan?.description,
+    subscription?.plan_name,
+    subscription?.plan_name_snapshot,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const parsedFromText = parseWeekdaysFromText(combinedText);
+
+  for (const cand of explicitCandidates) {
+    const clean = sanitizeWeekdaysArray(cand);
+    if (clean.length > 0 && clean.length < 7) {
+      const isDefaultMonFri =
+        clean.length === 5 && clean.every((d, idx) => d === idx + 1);
+      if (isDefaultMonFri && parsedFromText.length > 0 && parsedFromText.length < 5) {
+        return parsedFromText;
+      }
+      return clean;
+    }
+  }
+
+  // 3. Verifica off_peak_weekdays e texto do plano
+  const isOffPeak = Boolean(
+    plan?.off_peak ||
+      plan?.off_peak_enabled ||
+      meta?.off_peak ||
+      meta?.off_peak_enabled ||
+      subscription?.off_peak ||
+      subscription?.off_peak_enabled ||
+      /off[\s-]?peak/i.test(combinedText)
+  );
+
+  const offPeakDays = sanitizeWeekdaysArray(
+    plan?.off_peak_weekdays ||
+      meta?.off_peak_weekdays ||
+      subscription?.off_peak_weekdays
+  );
+
+  if (parsedFromText.length > 0 && parsedFromText.length < 7) {
+    const isDefaultMonFri =
+      offPeakDays.length === 5 && offPeakDays.every((d, idx) => d === idx + 1);
+    if (offPeakDays.length > 0 && offPeakDays.length < 7 && !isDefaultMonFri) {
+      return offPeakDays;
+    }
+    return parsedFromText;
+  }
+
+  if (isOffPeak) {
+    if (offPeakDays.length > 0 && offPeakDays.length < 7) {
+      return offPeakDays;
+    }
+    return [2, 3];
+  }
+
+  return null;
+}
+
+const WEEKDAY_PLURAL_LABELS = {
+  0: { text: 'domingos', masc: true },
+  1: { text: 'segundas', masc: false },
+  2: { text: 'terças', masc: false },
+  3: { text: 'quartas', masc: false },
+  4: { text: 'quintas', masc: false },
+  5: { text: 'sextas', masc: false },
+  6: { text: 'sábados', masc: true },
+};
+
+const WEEKDAY_SHORT_LABELS = {
+  0: 'Dom',
+  1: 'Seg',
+  2: 'Ter',
+  3: 'Qua',
+  4: 'Qui',
+  5: 'Sex',
+  6: 'Sáb',
+};
+
+/**
+ * Formata a mensagem de erro oficial de restrição de dias do plano:
+ * Ex para [2, 3]: "O seu plano só permite agendamentos às terças e quartas-feiras."
+ */
+export function formatAllowedWeekdaysError(allowedWeekdays) {
+  const clean = sanitizeWeekdaysArray(allowedWeekdays);
+  if (clean.length === 0 || clean.length >= 7) {
+    return 'Dia não disponível para o seu plano.';
+  }
+
+  const allFem = clean.every((d) => !WEEKDAY_PLURAL_LABELS[d]?.masc);
+  const allMasc = clean.every((d) => WEEKDAY_PLURAL_LABELS[d]?.masc);
+
+  if (allFem) {
+    const names = clean.map((d, idx) => {
+      const base = WEEKDAY_PLURAL_LABELS[d].text;
+      return idx === clean.length - 1 ? `${base}-feiras` : base;
+    });
+    const joined =
+      names.length === 1
+        ? names[0]
+        : `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
+    return `O seu plano só permite agendamentos às ${joined}.`;
+  }
+
+  if (allMasc) {
+    const names = clean.map((d) => WEEKDAY_PLURAL_LABELS[d].text);
+    const joined =
+      names.length === 1
+        ? names[0]
+        : `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
+    return `O seu plano só permite agendamentos aos ${joined}.`;
+  }
+
+  const names = clean.map((d) => {
+    const info = WEEKDAY_PLURAL_LABELS[d];
+    return info.masc ? info.text : `${info.text}-feiras`;
+  });
+  const joined =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
+  return `O seu plano só permite agendamentos em: ${joined}.`;
+}
+
+export function formatAllowedWeekdaysShort(allowedWeekdays) {
+  const clean = sanitizeWeekdaysArray(allowedWeekdays);
+  if (clean.length === 0 || clean.length >= 7) return '';
+  return clean.map((d) => WEEKDAY_SHORT_LABELS[d]).join(', ');
+}
+
+export function isDateAllowedByPlan(dateInput, allowedWeekdays) {
+  const clean = sanitizeWeekdaysArray(allowedWeekdays);
+  if (clean.length === 0 || clean.length >= 7) return true;
+  if (!dateInput) return false;
+  const { dayOfWeek } = toBrasiliaDateParts(dateInput);
+  return clean.includes(dayOfWeek);
+}
+
+

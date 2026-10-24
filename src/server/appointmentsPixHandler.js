@@ -1,6 +1,11 @@
 // src/server/appointmentsPixHandler.js
 // Handler para geração de código Pix real no Asaas, gravação e confirmação estrita do agendamento no Supabase.
 import { supabase } from '../lib/supabaseClient.js';
+import {
+  resolvePlanAllowedWeekdays,
+  formatAllowedWeekdaysError,
+  toBrasiliaDateParts,
+} from '../lib/businessHours.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function toSafeUuid(val) {
@@ -1360,3 +1365,132 @@ export async function handlePaymentStatus(paymentId, appointmentId, companyId, b
     };
   }
 }
+
+/**
+ * Valida no servidor se a data do agendamento (scheduled_at) respeita os dias da semana permitidos pelo plano do cliente.
+ */
+export async function validateSubscriptionWeekdayServerSide(payload = {}) {
+  const isSubscriptionBooking = Boolean(
+    payload?.subscription_id ||
+      payload?.subscriptionId ||
+      payload?.use_subscription ||
+      payload?.payment_method === 'subscription'
+  );
+
+  if (!isSubscriptionBooking) {
+    return { allowed: true };
+  }
+
+  const scheduledRaw =
+    payload?.scheduled_at ||
+    payload?.start_time ||
+    payload?.startTime ||
+    (payload?.date ? `${payload.date}T${payload.time || '12:00'}:00-03:00` : null);
+
+  if (!scheduledRaw) {
+    return { allowed: true };
+  }
+
+  const parsedDate = new Date(scheduledRaw);
+  const dayOfWeek = !Number.isNaN(parsedDate.getTime())
+    ? toBrasiliaDateParts(scheduledRaw).dayOfWeek ?? parsedDate.getDay()
+    : toBrasiliaDateParts(scheduledRaw).dayOfWeek;
+
+  let subRow = null;
+  let planRow = null;
+
+  const subId = toSafeUuid(payload?.subscription_id || payload?.subscriptionId);
+  let planId = toSafeUuid(payload?.plan_id || payload?.planId);
+
+  if (supabase && subId) {
+    try {
+      const { data: s } = await supabase
+        .from('customer_subscriptions')
+        .select('*')
+        .eq('id', subId)
+        .maybeSingle();
+      if (s) {
+        subRow = s;
+        if (!planId && s.plan_id) planId = toSafeUuid(s.plan_id);
+      }
+    } catch (_) {}
+  }
+
+  if (supabase && planId) {
+    try {
+      const { data: p } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('id', planId)
+        .maybeSingle();
+      if (p) {
+        planRow = p;
+      }
+    } catch (_) {}
+  }
+
+  const combinedSub = {
+    ...(subRow || {}),
+    plan_name: payload?.plan_name || subRow?.plan_name || subRow?.plan_name_snapshot,
+    plan_name_snapshot: payload?.plan_name_snapshot || payload?.plan_name || subRow?.plan_name_snapshot || subRow?.plan_name,
+    allowed_weekdays: payload?.allowed_weekdays || subRow?.allowed_weekdays,
+    off_peak_weekdays: payload?.off_peak_weekdays || subRow?.off_peak_weekdays,
+  };
+
+  const allowedWeekdays = resolvePlanAllowedWeekdays(planRow, combinedSub);
+  if (
+    Array.isArray(allowedWeekdays) &&
+    allowedWeekdays.length > 0 &&
+    allowedWeekdays.length < 7 &&
+    !allowedWeekdays.includes(dayOfWeek)
+  ) {
+    const errorMsg = formatAllowedWeekdaysError(allowedWeekdays);
+    return {
+      allowed: false,
+      status: 400,
+      error: errorMsg,
+      allowedWeekdays,
+      dayOfWeek,
+    };
+  }
+
+  return { allowed: true, allowedWeekdays, dayOfWeek };
+}
+
+export async function handleCreateAppointment(body = {}) {
+  try {
+    const check = await validateSubscriptionWeekdayServerSide(body);
+    if (!check.allowed) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          error: check.error,
+          message: check.error,
+        },
+      };
+    }
+
+    // Se for uma requisição de criação direta com Pix (sem assinatura), delega ao handleCreatePix
+    if (body?.clientCpf || body?.customer_cpf || body?.billingType === 'PIX') {
+      return await handleCreatePix(body);
+    }
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        allowed: true,
+      },
+    };
+  } catch (err) {
+    return {
+      status: 500,
+      body: {
+        success: false,
+        error: err.message || 'Erro ao validar agendamento no servidor.',
+      },
+    };
+  }
+}
+

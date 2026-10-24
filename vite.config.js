@@ -5,6 +5,7 @@ import { handleAsaasSubscription } from './src/server/subscribeHandler.js';
 import {
   handleCreatePix,
   handleCreateCardPayment,
+  handleCreateAppointment,
   handlePaymentStatus,
 } from './src/server/appointmentsPixHandler.js';
 import { handleTestConnection } from './src/server/asaasTestConnectionHandler.js';
@@ -62,6 +63,8 @@ function asaasApiDevPlugin() {
                 try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
                 const result = url === '/api/appointments/create-card'
                   ? await handleCreateCardPayment(parsedBody)
+                  : url === '/api/appointments/create'
+                  ? await handleCreateAppointment(parsedBody)
                   : await handleCreatePix(parsedBody);
                 res.writeHead(result.status, {
                   'Content-Type': 'application/json',
@@ -146,6 +149,8 @@ function asaasApiDevPlugin() {
             try { parsedBody = JSON.parse(bodyStr); } catch (_) {}
             const result = url === '/api/appointments/create-card'
               ? await handleCreateCardPayment(parsedBody)
+              : url === '/api/appointments/create'
+              ? await handleCreateAppointment(parsedBody)
               : await handleCreatePix(parsedBody);
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result.body));

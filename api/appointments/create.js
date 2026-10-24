@@ -1,5 +1,5 @@
 // /api/appointments/create.js — Serverless endpoint para Vercel / Node
-import { handleCreatePix } from '../../src/server/appointmentsPixHandler.js';
+import { handleCreateAppointment } from '../../src/server/appointmentsPixHandler.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -31,6 +31,6 @@ export default async function handler(req, res) {
     } catch (_) {}
   }
 
-  const result = await handleCreatePix(body || {});
+  const result = await handleCreateAppointment(body || {});
   return res.status(result.status).json(result.body);
 }

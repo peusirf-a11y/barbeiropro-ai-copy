@@ -9,6 +9,7 @@ import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import CustomerConsentSection from '@/components/public/CustomerConsentSection';
 import CustomerPlanPayModal from '@/components/public/CustomerPlanPayModal';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { resolvePlanAllowedWeekdays, formatAllowedWeekdaysError } from '@/lib/businessHours';
 
 export default function CustomerDashboard() {
   const params = useParams();
@@ -311,6 +312,7 @@ function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending 
   const isUnlimited = !sub.plan_type_snapshot || sub.plan_type_snapshot === 'unlimited';
   const planName = sub.plan_name || sub.plan_name_snapshot || 'Plano Ativo';
   const planPrice = sub.plan_price_snapshot ?? sub.price;
+  const allowedDays = resolvePlanAllowedWeekdays(null, sub);
   return (
     <div className={`${tw.card} rounded-2xl p-5`}>
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -324,6 +326,11 @@ function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending 
             <div className={`text-[11px] ${tw.textMuted} mt-1 flex items-center gap-1.5`}>
               <CreditCard className="w-3.5 h-3.5" />
               <span>{sub.card_brand ? `${sub.card_brand} ` : ''}•••• {sub.card_last_digits}</span>
+            </div>
+          )}
+          {allowedDays && allowedDays.length > 0 && allowedDays.length < 7 && (
+            <div className="text-[11px] text-amber-400 font-medium mt-1.5">
+              {formatAllowedWeekdaysError(allowedDays)}
             </div>
           )}
         </div>
