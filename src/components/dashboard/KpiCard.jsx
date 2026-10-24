@@ -15,11 +15,11 @@ export default function KpiCard({ label, value, sub, icon: Icon, tone = 'blue', 
   const t = TONES[tone] || TONES.blue;
   const isPositive = typeof delta === 'number' && delta >= 0;
   return (
-    <div className="group relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 overflow-hidden transition-all duration-300 hover:border-white/15 hover:-translate-y-0.5 hover:bg-white/[0.04]">
+    <div className="group relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-3.5 sm:p-5 overflow-hidden transition-all duration-300 hover:border-white/15 hover:-translate-y-0.5 hover:bg-white/[0.04]">
       {/* Tint gradiente do tom no canto */}
       <div className={`absolute inset-0 bg-gradient-to-br ${t.tint} to-transparent opacity-60 pointer-events-none`} />
 
-      <div className="relative flex items-start justify-between mb-3">
+      <div className="relative flex items-start justify-between mb-2.5 sm:mb-3">
         <div className={`relative w-10 h-10 rounded-xl bg-white/[0.04] ring-1 ${t.ring} flex items-center justify-center`}>
           <span
             className="absolute inset-0 rounded-xl blur-md opacity-60"

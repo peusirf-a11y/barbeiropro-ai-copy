@@ -367,7 +367,7 @@ export default function AppConfiguracoes() {
 
         {/* Public link */}
         {form.slug && (
-          <div className="relative rounded-2xl border border-blue-400/25 bg-gradient-to-br from-blue-500/15 to-transparent backdrop-blur-xl p-5 mb-6 flex items-center gap-4 shadow-[0_8px_24px_rgba(37,99,235,0.2)] overflow-hidden">
+          <div className="relative rounded-2xl border border-blue-400/25 bg-gradient-to-br from-blue-500/15 to-transparent backdrop-blur-xl p-3.5 sm:p-5 mb-5 flex items-center gap-3.5 sm:gap-4 shadow-[0_8px_24px_rgba(37,99,235,0.2)] overflow-hidden">
             <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#60A5FA]/20 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
             <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center flex-shrink-0 ring-1 ring-white/15 shadow-[0_4px_12px_rgba(37,99,235,0.4)]">
               <Globe className="w-5 h-5 text-white" />
@@ -383,10 +383,10 @@ export default function AppConfiguracoes() {
           </div>
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Basic info */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-            <h2 className="font-bold text-white mb-5">Informações básicas</h2>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-4 sm:p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <h2 className="font-bold text-white mb-4 sm:mb-5">Informações básicas</h2>
 
             {/* Logo upload */}
             <div className="mb-5">

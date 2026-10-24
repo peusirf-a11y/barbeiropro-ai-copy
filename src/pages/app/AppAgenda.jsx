@@ -551,11 +551,11 @@ export default function AppAgenda() {
           </div>
         )}
 
-        {/* Seletor de dias da semana — pílulas */}
-        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+        {/* Seletor de dias da semana — pílulas compactas (densidade 87%) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-3.5 sm:mb-4 overflow-x-auto pb-1">
           <button
             onClick={() => setCurrentDate(d => addDays(d, -7))}
-            className="p-2 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex-shrink-0 backdrop-blur-sm"
+            className="p-1.5 sm:p-2 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex-shrink-0 backdrop-blur-sm"
             aria-label="Semana anterior"
           >
             <ChevronLeft className="w-4 h-4 text-white/60" />
@@ -568,20 +568,20 @@ export default function AppAgenda() {
               <button
                 key={day.toISOString()}
                 onClick={() => setCurrentDate(day)}
-                className={`flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border transition-all min-w-[64px] backdrop-blur-sm ${
+                className={`flex-shrink-0 flex flex-col items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border transition-all min-w-[54px] sm:min-w-[64px] backdrop-blur-sm ${
                   active
-                    ? 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white border-white/15 shadow-[0_8px_24px_rgba(37,99,235,0.45)]'
+                    ? 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white border-white/15 shadow-[0_6px_18px_rgba(37,99,235,0.42)]'
                     : 'bg-white/[0.03] border-white/8 text-white/70 hover:bg-white/[0.06] hover:border-[#60A5FA]/30'
                 }`}
               >
-                <span className={`text-[10px] uppercase tracking-wide font-semibold ${active ? 'text-white/85' : 'text-white/40'}`}>
+                <span className={`text-[10px] uppercase tracking-wide font-semibold leading-tight ${active ? 'text-white/85' : 'text-white/40'}`}>
                   {format(day, 'EEE', { locale: ptBR })}
                 </span>
-                <span className={`text-lg font-bold ${active ? 'text-white' : isTodayDay ? 'text-[#93C5FD]' : 'text-white'}`}>
+                <span className={`text-base sm:text-lg font-bold leading-tight mt-0.5 ${active ? 'text-white' : isTodayDay ? 'text-[#93C5FD]' : 'text-white'}`}>
                   {format(day, 'd')}
                 </span>
                 {dayCount > 0 && (
-                  <span className={`text-[10px] font-semibold mt-0.5 ${active ? 'text-white/85' : 'text-[#93C5FD]'}`}>
+                  <span className={`text-[9px] sm:text-[10px] font-semibold mt-0.5 leading-none ${active ? 'text-white/85' : 'text-[#93C5FD]'}`}>
                     {dayCount} ag.
                   </span>
                 )}
@@ -590,7 +590,7 @@ export default function AppAgenda() {
           })}
           <button
             onClick={() => setCurrentDate(d => addDays(d, 7))}
-            className="p-2 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex-shrink-0 backdrop-blur-sm"
+            className="p-1.5 sm:p-2 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex-shrink-0 backdrop-blur-sm"
             aria-label="Próxima semana"
           >
             <ChevronRight className="w-4 h-4 text-white/60" />
@@ -624,8 +624,8 @@ export default function AppAgenda() {
             />
           )
         ) : (
-          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-12 text-center text-white/50">
-            <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6 sm:p-10 text-center text-white/50">
+            <Calendar className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2.5 opacity-30" />
             <p className="text-sm">Nenhum profissional cadastrado.</p>
           </div>
         )}

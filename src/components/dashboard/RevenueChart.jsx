@@ -40,7 +40,7 @@ export default function RevenueChart({ financial = [] }) {
   const hasData = data.some(d => d.total > 0);
 
   return (
-    <div className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 sm:p-6 overflow-hidden">
+    <div className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4 sm:p-6 overflow-hidden">
       {/* Glow sutil no topo */}
       <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-3/4 h-40 bg-[#2563EB]/15 blur-3xl pointer-events-none" />
 

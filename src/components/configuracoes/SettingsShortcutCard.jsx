@@ -12,7 +12,7 @@ export default function SettingsShortcutCard({
   className = '',
 }) {
   return (
-    <div className={`mt-6 rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] ${className}`}>
+    <div className={`mt-5 rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-4 sm:p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] ${className}`}>
       <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
         <h2 className="font-bold text-white">{title}</h2>
         {statusBadge}

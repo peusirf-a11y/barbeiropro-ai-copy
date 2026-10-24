@@ -11,7 +11,7 @@ export default function TodayAgendaList({ appointments = [] }) {
   const hasFutureAppts = sorted.some(a => !isSameDay(new Date(a.scheduled_at), new Date()));
 
   return (
-    <div className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 sm:p-6 h-full overflow-hidden">
+    <div className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4 sm:p-6 h-full overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="relative">

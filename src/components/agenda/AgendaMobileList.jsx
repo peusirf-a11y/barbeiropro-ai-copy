@@ -50,8 +50,8 @@ export default function AgendaMobileList({
 
   if (!dayAppts.length) {
     return (
-      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-10 text-center text-white/55">
-        <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
+      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6 sm:p-8 text-center text-white/55">
+        <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
         <p className="text-sm font-medium">Nenhum agendamento neste dia</p>
         <p className="text-xs mt-1 text-white/35">Toque em "Novo" para criar</p>
       </div>
@@ -86,7 +86,7 @@ export default function AgendaMobileList({
                 onCardClick?.(appt);
               }
             }}
-            className="w-full flex items-stretch gap-3 px-4 py-3 text-left active:bg-white/[0.04] transition-colors cursor-pointer"
+            className="w-full flex items-stretch gap-2.5 sm:gap-3 px-3.5 py-2.5 sm:px-4 sm:py-3 text-left active:bg-white/[0.04] transition-colors cursor-pointer"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {/* Coluna do horário */}

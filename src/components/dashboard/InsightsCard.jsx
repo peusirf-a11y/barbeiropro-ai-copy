@@ -12,7 +12,7 @@ const LEVEL_STYLES = {
 
 export default function InsightsCard({ alerts = [] }) {
   return (
-    <div className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 sm:p-6 overflow-hidden">
+    <div className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4 sm:p-6 overflow-hidden">
       <div className="flex items-center gap-2 mb-1">
         <div className="relative w-7 h-7 rounded-lg bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center ring-1 ring-white/15">
           <div className="absolute inset-0 rounded-lg bg-[#60A5FA] blur-md opacity-40" />

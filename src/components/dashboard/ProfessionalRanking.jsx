@@ -6,7 +6,7 @@ export default function ProfessionalRanking({ data = [] }) {
   const max = Math.max(...data.map(d => d.count), 1);
 
   return (
-    <div className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 sm:p-6 h-full overflow-hidden">
+    <div className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4 sm:p-6 h-full overflow-hidden">
       <div className="flex items-center gap-2 mb-4">
         <div className="relative">
           <div className="absolute inset-0 rounded-md bg-amber-400/40 blur-md" />
