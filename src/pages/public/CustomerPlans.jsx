@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Scissors, ArrowLeft, Check, AlertCircle, Infinity as InfinityIcon, Sun, Moon } from 'lucide-react';
+import { Scissors, ArrowLeft, Check, AlertCircle, Infinity as InfinityIcon, Sun, Moon, CreditCard } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
 import { filterCustomerPlansVisibleToCustomer } from '@/lib/planVisibility';
+import CustomerPlanPayModal from '@/components/public/CustomerPlanPayModal';
 
 export default function CustomerPlans() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isDark, toggle, tw } = usePublicTheme();
 
   const { data: companies = [], isLoading: loadingCo } = useQuery({
@@ -38,32 +40,16 @@ export default function CustomerPlans() {
     queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: company.id, customer_id: customer.id }),
     enabled: !!company?.id && !!customer?.id,
   });
-  const hasActiveOrPending = existingSubs.some(s => ['active', 'pending_payment', 'paused'].includes(s.status));
+  const hasActiveOrPaused = existingSubs.some(s => ['active', 'paused'].includes(s.status));
 
-  const [submittingPlanId, setSubmittingPlanId] = useState(null);
-
-  const checkoutMutation = useMutation({
-    mutationFn: ({ plan_id }) => base44.functions.invoke('createAsaasCustomerPlanCheckout', {
-      company_id: company.id, token, plan_id,
-    }),
-    onSuccess: (res) => {
-      const data = res?.data || {};
-      const url = data.url;
-      if (url) { window.location.href = url; return; }
-      alert(data.message || 'Não foi possível abrir o checkout.');
-      setSubmittingPlanId(null);
-    },
-    onError: (err) => {
-      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Erro ao iniciar pagamento';
-      alert(msg);
-      setSubmittingPlanId(null);
-    },
-  });
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const handleSubscribe = (plan) => {
-    if (!customer) { navigate(`/cliente/${slug}/login`); return; }
-    setSubmittingPlanId(plan.id);
-    checkoutMutation.mutate({ plan_id: plan.id });
+    if (!customer) {
+      navigate(`/cliente/${slug}/login?next=${encodeURIComponent(`/cliente/${slug}/planos`)}`);
+      return;
+    }
+    setSelectedPlan(plan);
   };
 
   if (loadingCo || loadingAuth) {
@@ -105,11 +91,11 @@ export default function CustomerPlans() {
 
       <div className="max-w-2xl mx-auto px-6 py-6">
         <h1 className={`text-2xl font-black ${tw.text} mb-2`}>Planos disponíveis</h1>
-        <p className={`text-sm ${tw.textMuted} mb-6`}>Cortes garantidos com mensalidade fixa.</p>
+        <p className={`text-sm ${tw.textMuted} mb-6`}>Cortes garantidos com assinatura mensal no cartão de crédito.</p>
 
-        {hasActiveOrPending && (
+        {hasActiveOrPaused && (
           <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-            Você já tem uma assinatura ativa ou pendente. <Link to={`/cliente/${slug}`} className="font-bold underline">Ver minha conta</Link>.
+            Você já possui uma assinatura ativa. <Link to={`/cliente/${slug}`} className="font-bold underline">Ver minha conta</Link>.
           </div>
         )}
 
@@ -138,10 +124,17 @@ export default function CustomerPlans() {
                     <><Check className="w-4 h-4" style={{ color: primaryColor }} /><span><strong>{p.usage_limit} cortes</strong> por mês</span></>
                   )}
                 </div>
-                <button onClick={() => handleSubscribe(p)} disabled={hasActiveOrPending || submittingPlanId === p.id}
-                  className="w-full font-bold py-3 rounded-xl text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-                  <span style={{ color: '#FFFFFF' }}>{submittingPlanId === p.id ? 'Processando...' : hasActiveOrPending ? 'Você já possui um plano' : 'Assinar este plano'}</span>
+                <button
+                  type="button"
+                  onClick={() => handleSubscribe(p)}
+                  disabled={hasActiveOrPaused}
+                  className="w-full font-bold py-3 rounded-xl text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                  style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
+                >
+                  <CreditCard className="w-4 h-4" style={{ color: '#FFFFFF' }} />
+                  <span style={{ color: '#FFFFFF' }}>
+                    {hasActiveOrPaused ? 'Você já possui um plano' : 'Assinar este plano'}
+                  </span>
                 </button>
               </div>
             ))}
@@ -149,9 +142,25 @@ export default function CustomerPlans() {
         )}
 
         <p className={`text-[11px] ${tw.textFaint} text-center mt-6`}>
-          Pagamento mensal recorrente no cartão. Cancele a qualquer momento na sua conta.
+          Pagamento mensal recorrente no cartão de crédito. Cancele a qualquer momento na sua conta.
         </p>
       </div>
+
+      <CustomerPlanPayModal
+        isOpen={Boolean(selectedPlan)}
+        onClose={() => setSelectedPlan(null)}
+        onPaid={async () => {
+          setSelectedPlan(null);
+          await queryClient.invalidateQueries({ queryKey: ['customer-subscriptions-self'] });
+          await queryClient.invalidateQueries({ queryKey: ['public-customer-subscriptions'] });
+          navigate(`/cliente/${slug}`);
+        }}
+        companyId={company.id}
+        token={token}
+        plan={selectedPlan}
+        primaryColor={primaryColor}
+        customer={customer}
+      />
     </div>
   );
 }

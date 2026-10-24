@@ -1,6 +1,5 @@
-// Modal de pagamento de plano com cartão (tokenização nativa Asaas).
-// Substitui o redirect para invoiceUrl. Usado quando o cliente tem uma
-// CustomerSubscription com status 'pending_payment' no CustomerDashboard.
+// Modal de assinatura recorrente de plano com cartão de crédito (Asaas /v3/subscriptions).
+// Usado tanto ao selecionar um plano em /cliente/:slug/planos quanto no painel do cliente.
 
 import { useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -9,8 +8,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
 
 export default function CustomerPlanPayModal({
-  isOpen, onClose, onPaid,
-  companyId, token, subscription, primaryColor, customer,
+  isOpen,
+  onClose,
+  onPaid,
+  companyId,
+  token,
+  plan,
+  subscription,
+  primaryColor,
+  customer,
 }) {
   useEffect(() => {
     if (!isOpen) return;
@@ -19,24 +25,38 @@ export default function CustomerPlanPayModal({
     return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
 
-  if (!isOpen || !subscription) return null;
+  const targetPlan = plan || subscription;
+  if (!isOpen || !targetPlan) return null;
+
+  const resolvedPlanId = plan?.id || subscription?.plan_id;
+  const resolvedPlanName =
+    plan?.name ||
+    subscription?.plan_name ||
+    subscription?.plan_name_snapshot ||
+    'Plano Mensal';
+  const resolvedPlanPrice = Number(
+    plan?.price_monthly ?? plan?.price ?? subscription?.plan_price_snapshot ?? 0
+  );
 
   const handleSubmit = async (card) => {
     const res = await base44.functions.invoke('chargeCustomerPlanWithCard', {
       company_id: companyId,
       token,
-      plan_id: subscription.plan_id,
-      subscription_id: subscription.id,
+      customer_id: customer?.id || subscription?.customer_id || null,
+      plan_id: resolvedPlanId,
+      plan_name: resolvedPlanName,
+      plan_price: resolvedPlanPrice,
+      subscription_id: subscription?.id || null,
       card,
     });
     const data = res?.data;
     if (data?.error || !data?.success) {
-      throw new Error(data?.message || data?.error || 'Falha ao processar o pagamento.');
+      throw new Error(data?.message || data?.error || 'Falha ao autorizar a assinatura no cartão.');
     }
     onPaid?.(data);
   };
 
-  const priceLabel = `Pagar R$ ${Number(subscription.plan_price_snapshot || 0).toFixed(2).replace('.', ',')}`;
+  const priceLabel = `Assinar R$ ${resolvedPlanPrice.toFixed(2).replace('.', ',')}/mês`;
 
   return (
     <AnimatePresence>
@@ -58,9 +78,9 @@ export default function CustomerPlanPayModal({
 
           <div className="flex items-start justify-between px-5 py-3 border-b border-black/5">
             <div>
-              <h3 className="font-black text-[#111827] text-base">Pagar plano</h3>
+              <h3 className="font-black text-[#111827] text-base">Assinar plano no cartão</h3>
               <p className="text-xs text-gray-500 mt-0.5 truncate">
-                {subscription.plan_name_snapshot} · R$ {Number(subscription.plan_price_snapshot || 0).toFixed(2)}/mês
+                {resolvedPlanName} · R$ {resolvedPlanPrice.toFixed(2).replace('.', ',')}/mês
               </p>
             </div>
             <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition">
@@ -72,7 +92,7 @@ export default function CustomerPlanPayModal({
             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 mb-4 flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
               <p className="text-[12px] text-emerald-900 leading-relaxed">
-                Após confirmação, seu plano é ativado <strong>na hora</strong>. Próximas cobranças automáticas todo mês.
+                Assinatura recorrente no cartão de crédito. Seu plano é ativado <strong>na hora</strong> e renova automaticamente a cada 30 dias.
               </p>
             </div>
 
@@ -80,6 +100,7 @@ export default function CustomerPlanPayModal({
               onSubmit={handleSubmit}
               primaryColor={primaryColor}
               amountLabel={priceLabel}
+              defaultCpf={customer?.cpf || ''}
               defaultName={customer?.name || ''}
               defaultEmail={customer?.email || ''}
               defaultPhone={customer?.phone || ''}

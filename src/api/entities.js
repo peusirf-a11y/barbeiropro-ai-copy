@@ -255,6 +255,32 @@ export class EntityRepository {
       }
       return out;
     }
+    if (this.tableName === 'customer_subscriptions') {
+      const out = { ...row };
+      if (!out.plan_name && out.plan_name_snapshot) out.plan_name = out.plan_name_snapshot;
+      if (!out.plan_name_snapshot && out.plan_name) out.plan_name_snapshot = out.plan_name;
+      if (!out.plan_name && out.plan_id) {
+        try {
+          const localPlans = getLocalTable('plans');
+          const matchedPlan = localPlans.find(p => String(p.id) === String(out.plan_id));
+          if (matchedPlan) {
+            out.plan_name = matchedPlan.name;
+            out.plan_name_snapshot = matchedPlan.name;
+            if (out.plan_price_snapshot === undefined) {
+              out.plan_price_snapshot = Number(matchedPlan.price_monthly ?? matchedPlan.price ?? 0);
+            }
+            if (!out.plan_type_snapshot) {
+              out.plan_type_snapshot = matchedPlan.type || 'unlimited';
+            }
+          }
+        } catch (_) {}
+      }
+      if (!out.current_period_end && out.current_cycle_end) out.current_period_end = out.current_cycle_end;
+      if (!out.current_cycle_end && out.current_period_end) out.current_cycle_end = out.current_period_end;
+      if (!out.current_period_start && out.current_cycle_start) out.current_period_start = out.current_cycle_start;
+      if (!out.current_cycle_start && out.current_period_start) out.current_cycle_start = out.current_period_start;
+      return out;
+    }
     if (this.tableName !== 'appointments') return row;
     const out = { ...row };
 
@@ -713,7 +739,26 @@ export class EntityRepository {
 
     try {
       const selectCols = this.tableName === 'companies' ? BASE_COMPANY_COLUMNS : '*';
-      const { data: inserted, error } = await supabase.from(this.tableName).insert([dbPayload]).select(selectCols);
+      let currentPayload = { ...dbPayload };
+      let inserted = null;
+      let error = null;
+
+      for (let attempt = 0; attempt < 15; attempt++) {
+        const res = await supabase.from(this.tableName).insert([currentPayload]).select(selectCols);
+        inserted = res.data;
+        error = res.error;
+        if (!error) break;
+        const msg = String(error.message || '');
+        const colMatch =
+          msg.match(/Could not find the '([^']+)' column/i) ||
+          msg.match(/column "([^"]+)" of relation/i);
+        if (colMatch && colMatch[1] && colMatch[1] in currentPayload) {
+          delete currentPayload[colMatch[1]];
+          continue;
+        }
+        break;
+      }
+
       if (error) {
         if (
           error.code === '42501' ||
@@ -731,7 +776,7 @@ export class EntityRepository {
       }
 
       const localItems = getLocalTable(this.tableName).filter(i => String(i.id) !== String(rawNewItem.id));
-      const savedItem = inserted && inserted[0] ? inserted[0] : dbPayload;
+      const savedItem = inserted && inserted[0] ? { ...rawNewItem, ...inserted[0] } : rawNewItem;
       localItems.unshift(savedItem);
       saveLocalTable(this.tableName, localItems);
 
@@ -781,20 +826,33 @@ export class EntityRepository {
 
     try {
       const selectCols = this.tableName === 'companies' ? BASE_COMPANY_COLUMNS : '*';
-      let { data: updated, error } = await supabase.from(this.tableName).update(dbPatch).eq('id', id).select(selectCols);
-      if (error) {
-        const cleanPatch = this._prepareDbPayload({ ...patchData }, true);
-        const retryRes = await supabase.from(this.tableName).update(cleanPatch).eq('id', id).select(selectCols);
-        updated = retryRes.data;
-        error = retryRes.error;
+      let currentPatch = { ...dbPatch };
+      let updated = null;
+      let error = null;
+
+      for (let attempt = 0; attempt < 15; attempt++) {
+        const res = await supabase.from(this.tableName).update(currentPatch).eq('id', id).select(selectCols);
+        updated = res.data;
+        error = res.error;
+        if (!error) break;
+        const msg = String(error.message || '');
+        const colMatch =
+          msg.match(/Could not find the '([^']+)' column/i) ||
+          msg.match(/column "([^"]+)" of relation/i);
+        if (colMatch && colMatch[1] && colMatch[1] in currentPatch) {
+          delete currentPatch[colMatch[1]];
+          continue;
+        }
+        break;
       }
+
       if (error) throw error;
       if (updated && updated[0]) {
         const mergedItems = getLocalTable(this.tableName).map(item =>
           String(item.id) === String(id) ? { ...item, ...updated[0], ...rawPatch } : item
         );
         saveLocalTable(this.tableName, mergedItems);
-        return this._normalizeRow(updated[0]);
+        return this._normalizeRow({ ...updated[0], ...rawPatch });
       }
       return this._normalizeRow(updatedLocalItem || { id, ...rawPatch });
     } catch (err) {

@@ -526,53 +526,263 @@ export async function handleCreateCardPayment(body = {}) {
         : '11987654321';
     const validEmail = clientEmail.includes('@') ? clientEmail : 'cliente@barbearia.com';
 
-    const createCustRes = await fetch(`${baseUrl}/customers`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        name: clientName || holderName || 'Cliente',
-        cpfCnpj: validCpf,
-        email: validEmail,
-        mobilePhone: validPhone,
-      }),
-    });
-    const createCustData = await createCustRes.json().catch(() => null);
+    // Tenta buscar cliente existente por CPF/CNPJ para evitar duplicidades
+    try {
+      const searchRes = await fetch(`${baseUrl}/customers?cpfCnpj=${encodeURIComponent(validCpf)}`, {
+        method: 'GET',
+        headers,
+      });
+      if (searchRes.ok) {
+        const searchData = await searchRes.json().catch(() => null);
+        if (Array.isArray(searchData?.data) && searchData.data.length > 0 && searchData.data[0]?.id) {
+          customerId = searchData.data[0].id;
+        }
+      }
+    } catch (_) {}
 
-    if (createCustRes.ok && createCustData?.id) {
-      customerId = createCustData.id;
-    } else {
-      const retryCustRes = await fetch(`${baseUrl}/customers`, {
+    if (!customerId) {
+      const createCustRes = await fetch(`${baseUrl}/customers`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
           name: clientName || holderName || 'Cliente',
           cpfCnpj: validCpf,
+          email: validEmail,
+          mobilePhone: validPhone,
         }),
       });
-      const retryCustData = await retryCustRes.json().catch(() => null);
-      if (retryCustRes.ok && retryCustData?.id) {
-        customerId = retryCustData.id;
+      const createCustData = await createCustRes.json().catch(() => null);
+
+      if (createCustRes.ok && createCustData?.id) {
+        customerId = createCustData.id;
       } else {
-        const custErr =
-          retryCustData?.errors?.map((e) => e.description).filter(Boolean).join(' ') ||
-          createCustData?.errors?.map((e) => e.description).filter(Boolean).join(' ') ||
-          'Não foi possível validar o cadastro do titular no Asaas.';
-        return {
-          status: 400,
-          body: {
-            success: false,
-            error: custErr,
-            message: custErr,
-          },
-        };
+        const retryCustRes = await fetch(`${baseUrl}/customers`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: clientName || holderName || 'Cliente',
+            cpfCnpj: validCpf,
+          }),
+        });
+        const retryCustData = await retryCustRes.json().catch(() => null);
+        if (retryCustRes.ok && retryCustData?.id) {
+          customerId = retryCustData.id;
+        } else {
+          const custErr =
+            retryCustData?.errors?.map((e) => e.description).filter(Boolean).join(' ') ||
+            createCustData?.errors?.map((e) => e.description).filter(Boolean).join(' ') ||
+            'Não foi possível validar o cadastro do titular no Asaas.';
+          return {
+            status: 400,
+            body: {
+              success: false,
+              error: custErr,
+              message: custErr,
+            },
+          };
+        }
       }
     }
 
-    // 2º PASSO: Cria e captura a cobrança com Cartão de Crédito no Asaas (POST /v3/payments)
     const today = new Date().toISOString().split('T')[0];
     const postalCode = String(card?.postalCode || '01310100').replace(/\D/g, '') || '01310100';
     const addressNumber = String(card?.addressNumber || '100').trim() || '100';
 
+    // SE FOR ASSINATURA RECORRENTE DE PLANO DE CLIENTE:
+    // Chama POST https://api.asaas.com/v3/subscriptions com billingType: 'CREDIT_CARD', cycle: 'MONTHLY', nextDueDate: today
+    const isCustomerPlanSub =
+      Boolean(body.isCustomerPlan) ||
+      body.action === 'customer_subscription' ||
+      body.cycle === 'MONTHLY';
+
+    if (isCustomerPlanSub) {
+      const planId = toSafeUuid(body.planId || body.plan_id || booking?.plan_id);
+      const planName = String(body.planName || body.plan_name || booking?.plan_name || 'Plano Mensal').trim();
+      const subscriptionDescription =
+        body.description || booking?.description || `Assinatura Plano ${planName} - ${clientName}`;
+
+      const buildSubscriptionBody = (val) => ({
+        customer: customerId,
+        billingType: 'CREDIT_CARD',
+        cycle: 'MONTHLY',
+        value: Number(val),
+        nextDueDate: today,
+        description: subscriptionDescription,
+        creditCard: {
+          holderName,
+          number: cardNumber,
+          expiryMonth,
+          expiryYear,
+          ccv,
+        },
+        creditCardHolderInfo: {
+          name: holderName,
+          email: validEmail,
+          cpfCnpj: validCpf,
+          postalCode,
+          addressNumber,
+          phone: validPhone,
+          mobilePhone: validPhone,
+        },
+      });
+
+      let subRes = await fetch(`${baseUrl}/subscriptions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(buildSubscriptionBody(servicePrice)),
+      });
+      let subData = await subRes.json().catch(() => null);
+
+      if (!subRes.ok && servicePrice < 5) {
+        subRes = await fetch(`${baseUrl}/subscriptions`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(buildSubscriptionBody(5.0)),
+        });
+        subData = await subRes.json().catch(() => null);
+      }
+
+      if (!subRes.ok || !subData?.id) {
+        const asaasErr =
+          subData?.errors?.map((e) => e.description).filter(Boolean).join(' ') ||
+          subData?.message ||
+          'Cartão não autorizado para assinatura recorrente pelo banco emissor.';
+        return {
+          status: 400,
+          body: {
+            success: false,
+            error: asaasErr,
+            message: asaasErr,
+          },
+        };
+      }
+
+      const asaasSubscriptionId = subData.id;
+      const cardLastDigits =
+        subData?.creditCard?.creditCardNumber?.slice(-4) || cardNumber.slice(-4);
+      const cardBrand =
+        subData?.creditCard?.creditCardBrand ||
+        (/^4/.test(cardNumber)
+          ? 'VISA'
+          : /^(5[1-5]|2[2-7])/.test(cardNumber)
+          ? 'MASTERCARD'
+          : 'CARTAO');
+      const nowIso = new Date().toISOString();
+      const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      // Persiste na tabela customer_subscriptions do Supabase com fallback resiliente de colunas
+      let savedSubscription = null;
+      if (supabase && companyId) {
+        try {
+          const ensuredCustomer = await ensureCustomerInSupabase({
+            companyId,
+            customerId: body.customerId || body.customer_id || booking?.customer_id,
+            name: clientName,
+            phone: clientPhone,
+            email: clientEmail,
+            cpf: validCpf,
+          });
+          const resolvedCustomerId =
+            ensuredCustomer?.id ||
+            toSafeUuid(body.customerId || body.customer_id || booking?.customer_id);
+
+          if (resolvedCustomerId) {
+            // Remove eventuais assinaturas pendentes antigas deste cliente na barbearia
+            await supabase
+              .from('customer_subscriptions')
+              .delete()
+              .eq('company_id', companyId)
+              .eq('customer_id', resolvedCustomerId)
+              .eq('status', 'pending_payment');
+
+            const fullSubRecord = {
+              company_id: companyId,
+              customer_id: resolvedCustomerId,
+              plan_id: planId,
+              plan_name: planName,
+              plan_name_snapshot: planName,
+              plan_price_snapshot: Number(servicePrice),
+              plan_type_snapshot: body.plan_type || 'limited',
+              plan_usage_limit_snapshot: Number(body.usage_limit ?? 0),
+              status: 'active',
+              asaas_subscription_id: asaasSubscriptionId,
+              card_last_digits: cardLastDigits,
+              card_brand: cardBrand,
+              current_period_start: nowIso,
+              current_period_end: currentPeriodEnd,
+              current_cycle_start: nowIso,
+              current_cycle_end: currentPeriodEnd,
+              uses_remaining: Number(body.usage_limit ?? 0),
+              uses_consumed_total: 0,
+              last_payment_status: 'pago',
+              updated_at: nowIso,
+            };
+
+            const existingSubId = toSafeUuid(body.subscriptionId || body.subscription_id);
+            const saveSubWithFallback = async (targetId, record) => {
+              const copy = { ...record };
+              for (let attempt = 0; attempt < 20; attempt++) {
+                const res = targetId
+                  ? await supabase
+                      .from('customer_subscriptions')
+                      .update(copy)
+                      .eq('id', targetId)
+                      .select()
+                      .maybeSingle()
+                  : await supabase
+                      .from('customer_subscriptions')
+                      .insert([copy])
+                      .select()
+                      .maybeSingle();
+
+                if (!res.error) {
+                  return res.data || { id: targetId, ...copy };
+                }
+
+                const matchCol =
+                  res.error.message?.match(/Could not find the '([^']+)' column/) ||
+                  res.error.message?.match(/column "([^"]+)" of relation/);
+                if (matchCol && matchCol[1] && matchCol[1] in copy) {
+                  delete copy[matchCol[1]];
+                  continue;
+                }
+                break;
+              }
+              return null;
+            };
+
+            savedSubscription = await saveSubWithFallback(existingSubId, fullSubRecord);
+          }
+        } catch (subErr) {
+          console.warn('[create-card] Aviso ao gravar customer_subscriptions no Supabase:', subErr);
+        }
+      }
+
+      return {
+        status: 200,
+        body: {
+          success: true,
+          confirmed: true,
+          status: subData.status || 'ACTIVE',
+          billingType: 'CREDIT_CARD',
+          payment_method: 'credit_card',
+          subscriptionId: asaasSubscriptionId,
+          asaas_subscription_id: asaasSubscriptionId,
+          customerId,
+          asaas_customer_id: customerId,
+          card_last_digits: cardLastDigits,
+          card_brand: cardBrand,
+          current_period_end: currentPeriodEnd,
+          creditCard: subData.creditCard || {
+            creditCardNumber: cardLastDigits,
+            creditCardBrand: cardBrand,
+          },
+          subscription: savedSubscription,
+        },
+      };
+    }
+
+    // 2º PASSO (Agendamento avulso): Cria e captura a cobrança com Cartão de Crédito no Asaas (POST /v3/payments)
     const buildPaymentBody = (val) => ({
       customer: customerId,
       billingType: 'CREDIT_CARD',
@@ -643,8 +853,8 @@ export async function handleCreateCardPayment(body = {}) {
       };
     }
 
-    // Se for cobrança de plano de assinatura de cliente (skipAppointmentRecord), não cria agendamento avulso
-    if (body.skipAppointmentRecord || body.isCustomerPlan) {
+    // Se for cobrança sem registro de agendamento, retorna diretamente
+    if (body.skipAppointmentRecord) {
       return {
         status: 200,
         body: {

@@ -147,13 +147,20 @@ CREATE TABLE IF NOT EXISTS customer_subscriptions (
     customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
     plan_id UUID REFERENCES plans(id) ON DELETE SET NULL,
     company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    plan_name VARCHAR(255),
     status VARCHAR(50) DEFAULT 'active', -- 'active' | 'overdue' | 'canceled'
     current_period_start TIMESTAMPTZ DEFAULT NOW(),
     current_period_end TIMESTAMPTZ,
     asaas_subscription_id VARCHAR(100),
+    card_last_digits VARCHAR(10),
+    card_brand VARCHAR(50),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE customer_subscriptions ADD COLUMN IF NOT EXISTS plan_name VARCHAR(255);
+ALTER TABLE customer_subscriptions ADD COLUMN IF NOT EXISTS card_last_digits VARCHAR(10);
+ALTER TABLE customer_subscriptions ADD COLUMN IF NOT EXISTS card_brand VARCHAR(50);
 
 CREATE INDEX IF NOT EXISTS idx_cust_subs_customer ON customer_subscriptions(customer_id);
 CREATE INDEX IF NOT EXISTS idx_cust_subs_company ON customer_subscriptions(company_id);

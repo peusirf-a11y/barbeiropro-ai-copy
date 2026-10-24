@@ -200,8 +200,9 @@ export default function PublicBooking() {
   const subscriptionBlocker = (() => {
     if (!activeSubscription) return null;
     const sub = activeSubscription;
-    if (new Date(sub.current_cycle_end) <= new Date()) return 'Sua assinatura está com o ciclo vencido.';
-    if (sub.plan_type_snapshot !== 'unlimited' && (sub.uses_remaining ?? 0) <= 0) return 'Você já usou todos os seus cortes deste mês.';
+    const periodEnd = sub.current_period_end || sub.current_cycle_end;
+    if (periodEnd && new Date(periodEnd) <= new Date()) return 'Sua assinatura está com o ciclo vencido.';
+    if (sub.plan_type_snapshot && sub.plan_type_snapshot !== 'unlimited' && (sub.uses_remaining ?? 1) <= 0) return 'Você já usou todos os seus cortes deste mês.';
     return null;
   })();
   const canUseSubscription = !!activeSubscription && !subscriptionBlocker;

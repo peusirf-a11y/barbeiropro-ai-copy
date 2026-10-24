@@ -1430,140 +1430,14 @@ export async function invokeFunction(functionName, payload = {}) {
         };
       }
 
-      case 'createAsaasCustomerPlanCheckout': {
-        const companyId = payload.company_id || (await resolveCompanyId(payload));
-        const planId = payload.plan_id;
-        const tokenArg = String(payload.token || '').trim();
-
-        if (!companyId || !planId) {
-          return {
-            data: {
-              success: false,
-              error: 'PLAN_OR_COMPANY_MISSING',
-              message: 'Plano ou barbearia não informados para iniciar o checkout.',
-            },
-          };
-        }
-
-        const plan = await CustomerPlan.get(planId);
-        if (!plan) {
-          return {
-            data: {
-              success: false,
-              error: 'PLAN_NOT_FOUND',
-              message: 'Plano não encontrado.',
-            },
-          };
-        }
-
-        const company = await Company.get(companyId);
-        const uuidMatch = tokenArg.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0] || null;
-        let customer = uuidMatch ? await Customer.get(uuidMatch) : null;
-        if (!customer && typeof window !== 'undefined') {
-          try {
-            const cached = JSON.parse(localStorage.getItem(`bt_customer_profile_${companyId}`) || 'null');
-            if (cached?.id) {
-              customer = (await Customer.get(cached.id)) || cached;
-            }
-          } catch (_) {}
-        }
-
-        const planPrice = Number(plan.price_monthly || plan.price || 0);
-        const isUnlimited = plan.type === 'unlimited';
-        const now = new Date();
-        const cycleEnd = new Date(now);
-        cycleEnd.setMonth(cycleEnd.getMonth() + 1);
-
-        // Cria cobrança real no Asaas usando a asaas_api_key da barbearia
-        const checkoutRes = await fetch('/api/appointments/create-pix', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'plan_checkout',
-            isCustomerPlan: true,
-            skipAppointmentRecord: true,
-            companyId,
-            company_id: companyId,
-            price: planPrice > 0 ? planPrice : 35,
-            clientName: customer?.name || 'Assinante',
-            clientPhone: customer?.phone || '',
-            clientEmail: customer?.email || '',
-            clientCpf: customer?.cpf || '',
-            description: `Assinatura Plano ${plan.name} - ${company?.name || 'Barbearia'}`,
-          }),
-        });
-
-        const checkoutData = await checkoutRes.json().catch(() => null);
-        if (!checkoutRes.ok || !checkoutData?.success || !checkoutData?.paymentId) {
-          return {
-            data: {
-              success: false,
-              error: checkoutData?.error || 'ASAAS_CHECKOUT_ERROR',
-              message:
-                checkoutData?.message ||
-                checkoutData?.error ||
-                'Não foi possível criar a cobrança do plano no Asaas. Verifique a chave de API da barbearia.',
-            },
-          };
-        }
-
-        // Registra a assinatura do cliente com status pending_payment vinculada ao paymentId real do Asaas
-        let subscription = null;
-        if (customer?.id) {
-          const existingSubs = await CustomerSubscription.filter({
-            company_id: companyId,
-            customer_id: customer.id,
-          });
-          const pendingExisting = (existingSubs || []).find((s) => s.status === 'pending_payment');
-
-          const subPayload = {
-            company_id: companyId,
-            customer_id: customer.id,
-            plan_id: plan.id,
-            plan_name_snapshot: plan.name,
-            plan_price_snapshot: planPrice,
-            plan_type_snapshot: plan.type || 'limited',
-            plan_usage_limit_snapshot: isUnlimited ? 9999 : Number(plan.usage_limit || 0),
-            status: 'pending_payment',
-            started_at: now.toISOString(),
-            current_cycle_start: now.toISOString(),
-            current_cycle_end: cycleEnd.toISOString(),
-            uses_remaining: isUnlimited ? 9999 : Number(plan.usage_limit || 0),
-            uses_consumed_total: 0,
-            last_payment_status: 'pendente',
-            asaas_payment_id: checkoutData.paymentId,
-            invoice_url: checkoutData.invoiceUrl || null,
-          };
-
-          if (pendingExisting?.id) {
-            subscription = await CustomerSubscription.update(pendingExisting.id, subPayload);
-          } else {
-            subscription = await CustomerSubscription.create(subPayload);
-          }
-        }
-
-        const slugTarget = company?.slug || localStorage.getItem('bt_last_slug') || '';
-        const targetUrl =
-          checkoutData.invoiceUrl ||
-          (slugTarget ? `/cliente/${slugTarget}` : `/minha-conta`);
-
-        return {
-          data: {
-            success: true,
-            payment_id: checkoutData.paymentId,
-            subscription_id: subscription?.id || null,
-            invoice_url: checkoutData.invoiceUrl || null,
-            url: targetUrl,
-          },
-        };
-      }
-
+      case 'createAsaasCustomerPlanCheckout':
+      case 'createCustomerSubscription':
       case 'chargeCustomerPlanWithCard': {
         const companyId = payload.company_id || (await resolveCompanyId(payload));
         const planId = payload.plan_id;
         const subscriptionId = payload.subscription_id;
         const tokenArg = String(payload.token || '').trim();
-        const card = payload.card || {};
+        const card = payload.card || payload.creditCard || {};
 
         if (!companyId) {
           return {
@@ -1579,8 +1453,19 @@ export async function invokeFunction(functionName, payload = {}) {
         const resolvedPlanId = planId || existingSub?.plan_id;
         const plan = resolvedPlanId ? await CustomerPlan.get(resolvedPlanId) : null;
 
-        const planName = plan?.name || existingSub?.plan_name_snapshot || 'Plano Mensal';
-        const planPrice = Number(plan?.price_monthly ?? existingSub?.plan_price_snapshot ?? 0);
+        const planName =
+          plan?.name ||
+          payload.plan_name ||
+          existingSub?.plan_name ||
+          existingSub?.plan_name_snapshot ||
+          'Plano Mensal';
+        const planPrice = Number(
+          plan?.price_monthly ??
+            plan?.price ??
+            payload.plan_price ??
+            existingSub?.plan_price_snapshot ??
+            0
+        );
         const planType = plan?.type || existingSub?.plan_type_snapshot || 'limited';
         const isUnlimited = planType === 'unlimited';
         const usageLimit = isUnlimited
@@ -1588,7 +1473,7 @@ export async function invokeFunction(functionName, payload = {}) {
           : Number(plan?.usage_limit ?? existingSub?.plan_usage_limit_snapshot ?? 0);
 
         const uuidMatch = tokenArg.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0] || null;
-        let customerId = existingSub?.customer_id || uuidMatch || payload.customer_id || null;
+        let customerId = payload.customer_id || existingSub?.customer_id || uuidMatch || null;
         let customer = customerId ? await Customer.get(customerId) : null;
 
         if (!customer && typeof window !== 'undefined') {
@@ -1601,22 +1486,36 @@ export async function invokeFunction(functionName, payload = {}) {
           } catch (_) {}
         }
 
-        // Cobrança real no Asaas usando a asaas_api_key da barbearia dona do plano
+        // Assinatura Recorrente no Asaas (POST /v3/subscriptions) usando a asaas_api_key da barbearia dona do plano
         const chargeRes = await fetch('/api/appointments/create-card', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'card',
+            action: 'customer_subscription',
             isCustomerPlan: true,
+            cycle: 'MONTHLY',
             skipAppointmentRecord: true,
             companyId,
             company_id: companyId,
-            price: planPrice > 0 ? planPrice : 35,
+            customerId,
+            customer_id: customerId,
+            planId: resolvedPlanId,
+            plan_id: resolvedPlanId,
+            planName,
+            plan_name: planName,
+            plan_type: planType,
+            usage_limit: usageLimit,
+            subscriptionId: existingSub?.id || null,
+            subscription_id: existingSub?.id || null,
+            price: planPrice > 0 ? planPrice : 12,
             description: `Assinatura Plano ${planName}`,
             booking: {
               companyId,
               company_id: companyId,
-              price: planPrice > 0 ? planPrice : 35,
+              customer_id: customerId,
+              plan_id: resolvedPlanId,
+              plan_name: planName,
+              price: planPrice > 0 ? planPrice : 12,
               description: `Assinatura Plano ${planName}`,
               clientName: card.holderName || customer?.name || 'Cliente',
               clientPhone: card.phone || customer?.phone || '',
@@ -1640,30 +1539,67 @@ export async function invokeFunction(functionName, payload = {}) {
         }
 
         const now = new Date();
-        const cycleEnd = new Date(now);
-        cycleEnd.setMonth(cycleEnd.getMonth() + 1);
+        const periodEnd30Days =
+          chargeData.current_period_end ||
+          new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const asaasSubId =
+          chargeData.asaas_subscription_id ||
+          chargeData.subscriptionId ||
+          chargeData.subscription?.asaas_subscription_id ||
+          null;
+        const cardLastDigits =
+          chargeData.card_last_digits ||
+          chargeData.creditCard?.creditCardNumber?.slice(-4) ||
+          String(card.number || '').replace(/\D/g, '').slice(-4) ||
+          null;
+        const cardBrand =
+          chargeData.card_brand ||
+          chargeData.creditCard?.creditCardBrand ||
+          null;
 
         const activeSubPayload = {
+          ...(chargeData.subscription?.id ? { id: chargeData.subscription.id } : {}),
           company_id: companyId,
           customer_id: customerId,
           plan_id: resolvedPlanId,
+          plan_name: planName,
           plan_name_snapshot: planName,
           plan_price_snapshot: planPrice,
           plan_type_snapshot: planType,
           plan_usage_limit_snapshot: usageLimit,
           status: 'active',
+          asaas_subscription_id: asaasSubId,
+          card_last_digits: cardLastDigits,
+          card_brand: cardBrand,
           started_at: existingSub?.started_at || now.toISOString(),
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd30Days,
           current_cycle_start: now.toISOString(),
-          current_cycle_end: cycleEnd.toISOString(),
+          current_cycle_end: periodEnd30Days,
           uses_remaining: usageLimit,
           uses_consumed_total: Number(existingSub?.uses_consumed_total || 0),
           last_payment_status: 'pago',
-          asaas_payment_id: chargeData.paymentId || chargeData.payment_id,
         };
 
+        // Remove qualquer registro antigo pending_payment deste cliente
+        if (customerId) {
+          try {
+            const allSubs = await CustomerSubscription.filter({
+              company_id: companyId,
+              customer_id: customerId,
+            });
+            for (const s of allSubs || []) {
+              if (s.status === 'pending_payment' && s.id !== existingSub?.id && s.id !== chargeData.subscription?.id) {
+                await CustomerSubscription.delete(s.id);
+              }
+            }
+          } catch (_) {}
+        }
+
         let savedSubscription = null;
-        if (existingSub?.id) {
-          savedSubscription = await CustomerSubscription.update(existingSub.id, activeSubPayload);
+        const targetSubId = existingSub?.id || chargeData.subscription?.id || null;
+        if (targetSubId) {
+          savedSubscription = await CustomerSubscription.update(targetSubId, activeSubPayload);
         } else {
           savedSubscription = await CustomerSubscription.create(activeSubPayload);
         }
@@ -1688,8 +1624,11 @@ export async function invokeFunction(functionName, payload = {}) {
         return {
           data: {
             success: true,
-            status: chargeData.status || 'CONFIRMED',
-            payment_id: chargeData.paymentId || chargeData.payment_id,
+            status: 'ACTIVE',
+            asaas_subscription_id: asaasSubId,
+            card_last_digits: cardLastDigits,
+            card_brand: cardBrand,
+            current_period_end: periodEnd30Days,
             subscription: savedSubscription || activeSubPayload,
           },
         };

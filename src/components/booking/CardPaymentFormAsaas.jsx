@@ -168,6 +168,10 @@ export default function CardPaymentFormAsaas({
             <>
               <strong>7 dias grátis.</strong> Cancele quando quiser. A primeira fatura só será debitada em 7 dias após a validação do cartão.
             </>
+          ) : String(amountLabel || '').toLowerCase().includes('assinar') || String(amountLabel || '').toLowerCase().includes('/mês') ? (
+            <>
+              <strong>Assinatura mensal no cartão via Asaas.</strong> Seu plano é ativado na hora após a aprovação do cartão.
+            </>
           ) : (
             <>
               <strong>Pagamento seguro via Asaas.</strong> Seu agendamento é confirmado imediatamente após a aprovação do cartão.
@@ -254,25 +258,39 @@ export default function CardPaymentFormAsaas({
         </div>
       </div>
 
-      {/* CPF ou CNPJ do Titular */}
+      {/* CPF/CNPJ e Telefone do Titular */}
       {showCpf && (
-        <div>
-          <label className="block text-[11px] uppercase tracking-wide font-bold text-gray-600 mb-1.5">
-            CPF ou CNPJ do Titular do Cartão <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={form.cpf}
-            onChange={e => set('cpf', maskCpfCnpj(e.target.value))}
-            placeholder="000.000.000-00 ou 00.000.000/0000-00"
-            maxLength={18}
-            style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
-            className="w-full px-4 py-3 border border-black/15 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
-          />
-          <p className="text-[11px] text-gray-500 mt-1">
-            Preenchido automaticamente com base no documento informado no cadastro.
-          </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] uppercase tracking-wide font-bold text-gray-600 mb-1.5">
+              CPF ou CNPJ do Titular <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={form.cpf}
+              onChange={e => set('cpf', maskCpfCnpj(e.target.value))}
+              placeholder="000.000.000-00"
+              maxLength={18}
+              style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+              className="w-full px-4 py-3 border border-black/15 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] uppercase tracking-wide font-bold text-gray-600 mb-1.5">
+              Telefone do Titular
+            </label>
+            <input
+              type="tel"
+              inputMode="tel"
+              value={form.phone}
+              onChange={e => set('phone', e.target.value)}
+              placeholder="(11) 99999-9999"
+              maxLength={16}
+              style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
+              className="w-full px-4 py-3 border border-black/15 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            />
+          </div>
         </div>
       )}
 

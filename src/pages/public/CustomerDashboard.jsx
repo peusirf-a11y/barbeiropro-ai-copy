@@ -228,17 +228,6 @@ export default function CustomerDashboard() {
               onCancel={() => { if (confirm('Tem certeza que deseja cancelar sua assinatura?')) subActionMutation.mutate({ action: 'cancel', subscription_id: activeSub.id }); }}
               isPending={subActionMutation.isPending}
             />
-          ) : pendingSub ? (
-            <button
-              type="button"
-              onClick={() => setPayModalOpen(true)}
-              className="w-full text-left block bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 hover:bg-amber-500/15 transition-colors">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1">
-                <AlertCircle className="w-4 h-4" />
-                Finalize o pagamento do seu plano
-              </div>
-              <p className="text-xs text-amber-400/70">{pendingSub.plan_name_snapshot} — R${pendingSub.plan_price_snapshot}/mês · Toque para pagar agora</p>
-            </button>
           ) : pausedSub ? (
             <PausedCard sub={pausedSub} primaryColor={primaryColor} tw={tw}
               onResume={(id) => subActionMutation.mutate({ action: 'resume', subscription_id: id })}
@@ -317,15 +306,26 @@ export default function CustomerDashboard() {
 }
 
 function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending }) {
-  const cycleEnd = sub.current_cycle_end ? new Date(sub.current_cycle_end) : null;
-  const isUnlimited = sub.plan_type_snapshot === 'unlimited';
+  const periodEndRaw = sub.current_period_end || sub.current_cycle_end;
+  const cycleEnd = periodEndRaw ? new Date(periodEndRaw) : null;
+  const isUnlimited = !sub.plan_type_snapshot || sub.plan_type_snapshot === 'unlimited';
+  const planName = sub.plan_name || sub.plan_name_snapshot || 'Plano Ativo';
+  const planPrice = sub.plan_price_snapshot ?? sub.price;
   return (
     <div className={`${tw.card} rounded-2xl p-5`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: primaryColor }}>Plano ativo</div>
-          <div className={`font-black text-lg ${tw.text}`}>{sub.plan_name_snapshot}</div>
-          <div className={`text-xs ${tw.textMuted}`}>R${sub.plan_price_snapshot}/mês</div>
+          <div className={`font-black text-lg ${tw.text}`}>{planName}</div>
+          {planPrice !== undefined && planPrice !== null && (
+            <div className={`text-xs ${tw.textMuted}`}>R${planPrice}/mês</div>
+          )}
+          {sub.card_last_digits && (
+            <div className={`text-[11px] ${tw.textMuted} mt-1 flex items-center gap-1.5`}>
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>{sub.card_brand ? `${sub.card_brand} ` : ''}•••• {sub.card_last_digits}</span>
+            </div>
+          )}
         </div>
         <div className="text-right">
           {isUnlimited ? (
@@ -338,7 +338,7 @@ function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending 
           )}
         </div>
       </div>
-      {cycleEnd && (
+      {cycleEnd && !Number.isNaN(cycleEnd.getTime()) && (
         <div className={`text-xs ${tw.textFaint} border-t ${tw.divider} pt-3 mb-3`}>
           Renova em {format(cycleEnd, "d 'de' MMM", { locale: ptBR })}
         </div>
@@ -361,7 +361,7 @@ function PausedCard({ sub, onResume, isPending, primaryColor, tw }) {
   return (
     <div className={`${tw.card} rounded-2xl p-5`}>
       <div className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-1`}>Plano pausado</div>
-      <div className={`font-bold ${tw.text}`}>{sub.plan_name_snapshot}</div>
+      <div className={`font-bold ${tw.text}`}>{sub.plan_name || sub.plan_name_snapshot || 'Plano'}</div>
       <button onClick={() => onResume(sub.id)} disabled={isPending}
         className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-xl disabled:opacity-50 transition-all"
         style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
