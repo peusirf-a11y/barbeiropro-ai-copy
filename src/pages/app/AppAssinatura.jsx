@@ -81,8 +81,23 @@ function enrichCompanyBillingFields(rawCompany) {
 
   out.trial_ends_at =
     out.trial_ends_at ||
+    billingMeta.trial_ends_at ||
     (matchesLocal ? localCheckout?.trial_ends_at : null) ||
     null;
+
+  if ((!out.subscription_status || out.subscription_status === 'trialing') && billingMeta.subscription_status) {
+    out.subscription_status = billingMeta.subscription_status;
+  }
+  if (!out.billing_status && billingMeta.billing_status) {
+    out.billing_status = billingMeta.billing_status;
+  }
+  if (!out.current_period_end && billingMeta.current_period_end) {
+    out.current_period_end = billingMeta.current_period_end;
+  }
+  if (!out.asaas_payment_link_url && billingMeta.asaas_payment_link_url) {
+    out.asaas_payment_link_url = billingMeta.asaas_payment_link_url;
+  }
+  out._billingMeta = billingMeta;
 
   return out;
 }
@@ -104,6 +119,8 @@ export default function AppAssinatura() {
         (activeCompanyId && activeCompanyId !== 'comp_demo_01' ? activeCompanyId : null) ||
         (await resolveCompanyId({ company_id: activeCompanyId }));
 
+      let baseCompany = null;
+
       if (isSupabaseConfigured && supabase) {
         if (resolvedId && resolvedId !== 'comp_demo_01') {
           const explicitRes = await supabase
@@ -113,50 +130,80 @@ export default function AppAssinatura() {
             .maybeSingle();
 
           if (!explicitRes.error && explicitRes.data) {
-            return enrichCompanyBillingFields(explicitRes.data);
-          }
+            baseCompany = enrichCompanyBillingFields(explicitRes.data);
+          } else {
+            const baseRes = await supabase
+              .from('companies')
+              .select('id, name, slug, logo_url, phone, owner_email, business_hours, created_at')
+              .eq('id', resolvedId)
+              .maybeSingle();
 
-          const baseRes = await supabase
-            .from('companies')
-            .select('id, name, slug, logo_url, phone, owner_email, business_hours, created_at')
-            .eq('id', resolvedId)
-            .maybeSingle();
-
-          if (!baseRes.error && baseRes.data) {
-            return enrichCompanyBillingFields(baseRes.data);
+            if (!baseRes.error && baseRes.data) {
+              baseCompany = enrichCompanyBillingFields(baseRes.data);
+            }
           }
         }
 
-        const { data: allRows } = await supabase
-          .from('companies')
-          .select('id, name, slug, logo_url, phone, owner_email, business_hours, created_at')
-          .order('created_at', { ascending: false });
+        if (!baseCompany) {
+          const { data: allRows } = await supabase
+            .from('companies')
+            .select('id, name, slug, logo_url, phone, owner_email, business_hours, created_at')
+            .order('created_at', { ascending: false });
 
-        if (Array.isArray(allRows) && allRows.length > 0) {
-          const normalizedRows = allRows.map(enrichCompanyBillingFields);
-          const byEmail =
-            user?.email &&
-            normalizedRows.find((c) => c.owner_email?.toLowerCase() === user.email.toLowerCase());
-          const withSub = normalizedRows.find((c) => c.asaas_subscription_id || c.card_last_digits);
-          return byEmail || withSub || normalizedRows[0];
+          if (Array.isArray(allRows) && allRows.length > 0) {
+            const normalizedRows = allRows.map(enrichCompanyBillingFields);
+            const byEmail =
+              user?.email &&
+              normalizedRows.find((c) => c.owner_email?.toLowerCase() === user.email.toLowerCase());
+            const withSub = normalizedRows.find((c) => c.asaas_subscription_id || c.card_last_digits);
+            baseCompany = byEmail || withSub || normalizedRows[0];
+          }
         }
       }
 
-      const list = await Company.list();
-      const normalizedList = list.map(enrichCompanyBillingFields);
-      return (
-        normalizedList.find((c) => user?.email && c.owner_email?.toLowerCase() === user.email.toLowerCase()) ||
-        normalizedList.find((c) => c.id === resolvedId) ||
-        normalizedList.find((c) => c.asaas_subscription_id || c.card_last_digits) ||
-        normalizedList[0] ||
-        null
-      );
+      if (!baseCompany) {
+        const list = await Company.list();
+        const normalizedList = list.map(enrichCompanyBillingFields);
+        baseCompany =
+          normalizedList.find((c) => user?.email && c.owner_email?.toLowerCase() === user.email.toLowerCase()) ||
+          normalizedList.find((c) => c.id === resolvedId) ||
+          normalizedList.find((c) => c.asaas_subscription_id || c.card_last_digits) ||
+          normalizedList[0] ||
+          null;
+      }
+
+      // Sincroniza em tempo real com a API do Asaas se houver assinatura vinculada
+      if (baseCompany && (baseCompany.asaas_subscription_id || baseCompany.id)) {
+        try {
+          const syncRes = await fetch('/api/asaas/subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'sync',
+              company_id: baseCompany.id,
+              subscription_id: baseCompany.asaas_subscription_id,
+              email: baseCompany.owner_email || user?.email,
+            }),
+          });
+          if (syncRes.ok) {
+            const syncJson = await syncRes.json().catch(() => null);
+            if (syncJson?.company) {
+              baseCompany = enrichCompanyBillingFields({
+                ...baseCompany,
+                ...syncJson.company,
+              });
+            }
+          }
+        } catch (_) {}
+      }
+
+      return baseCompany;
     },
   });
 
   const company = enrichCompanyBillingFields(fetchedCompany || activeCompany) || {};
   const planName = company.plan_name || 'Starter';
-  const status = company.subscription_status || 'trialing';
+  const rawStatus = company.subscription_status || 'trialing';
   const billingStatus = String(company.billing_status || '').toUpperCase();
   const subStatusUpper = String(company.subscription_status || '').toUpperCase();
 
@@ -164,12 +211,12 @@ export default function AppAssinatura() {
   const isOverdueOrFailed =
     billingStatus === 'OVERDUE' ||
     subStatusUpper === 'OVERDUE' ||
-    status === 'past_due' ||
-    status === 'unpaid' ||
+    rawStatus === 'past_due' ||
+    rawStatus === 'unpaid' ||
     billingStatus === 'PAST_DUE' ||
     billingStatus === 'PAYMENT_FAILED';
 
-  const isTrialStatus = status === 'trialing' || Boolean(company.trial_ends_at);
+  const hasCardOrSubscription = Boolean(company.card_last_digits || company.asaas_subscription_id);
 
   const getTrialEndDate = () => {
     if (company?.trial_ends_at) {
@@ -199,31 +246,70 @@ export default function AppAssinatura() {
 
   const daysLeft = calculateDaysLeft();
 
+  // Se o período de teste já encerrou (daysLeft <= 0) e a barbearia possui cartão/assinatura ativa sem atraso,
+  // ou se o status já foi atualizado para 'active' pela cobrança no cartão, a assinatura está ATIVA e paga.
+  const isPaidOrRenewed =
+    !isOverdueOrFailed &&
+    (rawStatus === 'active' ||
+      Boolean(company._billingMeta?.last_payment_id) ||
+      (hasCardOrSubscription && daysLeft !== null && daysLeft <= 0));
+
+  const isTrialActive =
+    !isOverdueOrFailed &&
+    !isPaidOrRenewed &&
+    (rawStatus === 'trialing' || Boolean(company.trial_ends_at)) &&
+    (daysLeft === null || daysLeft > 0);
+
   const formattedTrialEndDate = trialEndDate
     ? format(trialEndDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })
     : '';
+
+  const getNextBillingDate = () => {
+    if (company?.current_period_end) {
+      const parsed = new Date(company.current_period_end);
+      if (!Number.isNaN(parsed.getTime())) {
+        // Se current_period_end era apenas a data do fim do trial que já passou e o plano já renovou, soma 1 mês
+        if (isPaidOrRenewed && trialEndDate && Math.abs(parsed.getTime() - trialEndDate.getTime()) < 86400000) {
+          const next = new Date(parsed);
+          next.setMonth(next.getMonth() + 1);
+          return next;
+        }
+        return parsed;
+      }
+    }
+    if (isPaidOrRenewed && trialEndDate) {
+      const next = new Date(trialEndDate);
+      next.setMonth(next.getMonth() + 1);
+      return next;
+    }
+    return null;
+  };
+
+  const nextBillingDate = getNextBillingDate();
 
   const getBadgeConfig = () => {
     if (isOverdueOrFailed) {
       return STATUS_LABEL.overdue;
     }
-    if (isTrialStatus && daysLeft !== null) {
-      if (daysLeft > 0) {
-        return {
-          label: `${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'} de teste restantes`,
-          color: 'bg-blue-400/15 text-blue-300 ring-1 ring-blue-400/30',
-        };
-      }
+    if (isPaidOrRenewed) {
+      return STATUS_LABEL.active;
+    }
+    if (isTrialActive && daysLeft !== null && daysLeft > 0) {
+      return {
+        label: `${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'} de teste restantes`,
+        color: 'bg-blue-400/15 text-blue-300 ring-1 ring-blue-400/30',
+      };
+    }
+    if (!hasCardOrSubscription && daysLeft !== null && daysLeft <= 0) {
       return {
         label: 'Teste expirado',
         color: 'bg-red-500/15 text-red-300 ring-1 ring-red-400/35',
       };
     }
-    return STATUS_LABEL[status] || STATUS_LABEL.trialing;
+    return STATUS_LABEL[rawStatus] || STATUS_LABEL.active;
   };
 
   const statusInfo = getBadgeConfig();
-  const hasCardOrSubscription = Boolean(company.card_last_digits || company.asaas_subscription_id);
 
   const handleOpenInvoice = () => {
     if (company?.asaas_payment_link_url) {
@@ -278,25 +364,32 @@ export default function AppAssinatura() {
             </span>
           </div>
 
-          {/* 3. Card de Aviso de Cartão e Fim de Teste */}
+          {/* 3. Card de Aviso de Cartão e Status da Assinatura */}
           {hasCardOrSubscription ? (
             <div className="space-y-3 mb-4">
-              {formattedTrialEndDate && (
-                <div
-                  className={`relative rounded-xl p-3.5 border text-xs sm:text-sm leading-relaxed flex items-start gap-2.5 ${
-                    daysLeft === null || daysLeft > 0
-                      ? 'bg-blue-500/10 border-blue-400/25 text-blue-100/90'
-                      : 'bg-red-500/10 border-red-400/30 text-red-200'
-                  }`}
-                >
-                  {daysLeft === null || daysLeft > 0 ? (
-                    <Zap className="w-4 h-4 text-[#60A5FA] flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                  )}
+              {isTrialActive && formattedTrialEndDate && (
+                <div className="relative rounded-xl p-3.5 border text-xs sm:text-sm leading-relaxed flex items-start gap-2.5 bg-blue-500/10 border-blue-400/25 text-blue-100/90">
+                  <Zap className="w-4 h-4 text-[#60A5FA] flex-shrink-0 mt-0.5" />
                   <span>
                     O seu período de teste de 7 dias termina em{' '}
                     <strong className="text-white font-semibold">{formattedTrialEndDate}</strong>. A partir desta data, a renovação do plano será efetuada automaticamente no cartão indicado.
+                  </span>
+                </div>
+              )}
+
+              {isPaidOrRenewed && (
+                <div className="relative rounded-xl p-3.5 border text-xs sm:text-sm leading-relaxed flex items-start gap-2.5 bg-emerald-500/10 border-emerald-400/25 text-emerald-100/90">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <span>
+                    Assinatura ativa e pagamento confirmado no cartão de crédito.
+                    {nextBillingDate && (
+                      <>
+                        {' '}A próxima renovação automática ocorrerá em{' '}
+                        <strong className="text-white font-semibold">
+                          {format(nextBillingDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        </strong>.
+                      </>
+                    )}
                   </span>
                 </div>
               )}
@@ -338,11 +431,11 @@ export default function AppAssinatura() {
           )}
 
           <div className="relative grid sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/8">
-            {company?.current_period_end && (
+            {nextBillingDate && (
               <InfoRow
                 icon={Calendar}
                 label="Próxima cobrança"
-                value={format(new Date(company.current_period_end), "d 'de' MMM, yyyy", { locale: ptBR })}
+                value={format(nextBillingDate, "d 'de' MMM, yyyy", { locale: ptBR })}
               />
             )}
             <InfoRow

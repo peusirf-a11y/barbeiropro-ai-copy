@@ -262,6 +262,18 @@ export class EntityRepository {
       if (!out.asaas_customer_id && billingMeta.asaas_customer_id) {
         out.asaas_customer_id = billingMeta.asaas_customer_id;
       }
+      if ((!out.subscription_status || out.subscription_status === 'trialing') && billingMeta.subscription_status) {
+        out.subscription_status = billingMeta.subscription_status;
+      }
+      if (!out.billing_status && billingMeta.billing_status) {
+        out.billing_status = billingMeta.billing_status;
+      }
+      if (!out.current_period_end && billingMeta.current_period_end) {
+        out.current_period_end = billingMeta.current_period_end;
+      }
+      if (!out.asaas_payment_link_url && billingMeta.asaas_payment_link_url) {
+        out.asaas_payment_link_url = billingMeta.asaas_payment_link_url;
+      }
       return out;
     }
     if (this.tableName === 'customer_subscriptions') {

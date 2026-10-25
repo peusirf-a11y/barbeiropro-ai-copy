@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { handleAsaasSubscription } from './src/server/subscribeHandler.js';
+import { handleAsaasSubscription, handleSyncAsaasSubscription } from './src/server/subscribeHandler.js';
 import {
   handleCreatePix,
   handleCreateCardPayment,
@@ -30,6 +30,25 @@ function asaasApiDevPlugin() {
         }
 
         if (url === '/api/subscribe' || url === '/api/asaas/subscription') {
+          if (req.method === 'GET') {
+            try {
+              const result = await handleSyncAsaasSubscription({
+                company_id: query.companyId || query.company_id,
+                subscription_id: query.subscriptionId || query.subscription_id,
+                email: query.email,
+              });
+              res.writeHead(result.status, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+              });
+              res.end(JSON.stringify(result.body));
+              return;
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: err.message || 'Erro interno no servidor' }));
+              return;
+            }
+          }
           if (req.method === 'POST') {
             try {
               let bodyStr = '';
@@ -177,6 +196,16 @@ function asaasApiDevPlugin() {
         }
 
         if (url === '/api/subscribe' || url === '/api/asaas/subscription') {
+          if (req.method === 'GET') {
+            const result = await handleSyncAsaasSubscription({
+              company_id: query.companyId || query.company_id,
+              subscription_id: query.subscriptionId || query.subscription_id,
+              email: query.email,
+            });
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result.body));
+            return;
+          }
           if (req.method === 'POST') {
             let bodyStr = '';
             req.on('data', (chunk) => { bodyStr += chunk; });
