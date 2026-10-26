@@ -469,27 +469,235 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'getCompany360': {
-        const companyId = payload.company_id;
-        const company = companyId ? await Company.get(companyId) : null;
+        const rawCompanyId = payload.company_id;
+        const company = rawCompanyId ? await Company.get(rawCompanyId) : null;
         if (!company) {
           return { data: { success: false, error: 'NOT_FOUND' } };
         }
-        const plan = (await Plan.get(company.plan_id || 'starter')) || { name: company.plan_id || 'Starter', price_monthly: 99 };
-        const custs = (await Customer.list()).filter((c) => c.company_id === companyId);
-        const appts = (await Appointment.list()).filter((a) => a.company_id === companyId);
-        const fin = (await FinancialEntry.list()).filter((f) => f.company_id === companyId);
+
+        // 1. Validação do Identificador Exato (UUID) da Empresa
+        const companyId = String(company.id || rawCompanyId).trim();
+
+        const plan = (await Plan.get(company.plan_id || 'starter')) || {
+          name: company.plan_id || 'Starter',
+          price_monthly: 49,
+        };
+
+        // 2. Contagens Exatas e Leitura Direta no Supabase por company_id
+        let appointmentsCount = 0;
+        let customersCount = 0;
+        let appts = [];
+        let custs = [];
+
+        if (isSupabaseConfigured && supabase) {
+          try {
+            const [apptCountRes, custCountRes, apptRowsRes, custRowsRes] = await Promise.all([
+              supabase
+                .from('appointments')
+                .select('*', { count: 'exact', head: true })
+                .eq('company_id', companyId),
+              supabase
+                .from('customers')
+                .select('*', { count: 'exact', head: true })
+                .eq('company_id', companyId),
+              supabase
+                .from('appointments')
+                .select('*')
+                .eq('company_id', companyId),
+              supabase
+                .from('customers')
+                .select('*')
+                .eq('company_id', companyId),
+            ]);
+
+            appointmentsCount = Number(apptCountRes?.count || 0);
+            customersCount = Number(custCountRes?.count || 0);
+            if (Array.isArray(apptRowsRes?.data)) appts = apptRowsRes.data;
+            if (Array.isArray(custRowsRes?.data)) custs = custRowsRes.data;
+          } catch (err) {
+            console.warn('[getCompany360] Erro ao consultar tabelas por company_id:', err);
+          }
+
+          // Fallback via RPC SECURITY DEFINER (caso exista no banco e RLS restrinja SELECT direto)
+          if (appointmentsCount === 0 && customersCount === 0 && appts.length === 0 && custs.length === 0) {
+            try {
+              const { data: rpcStats, error: rpcErr } = await supabase.rpc('get_company_stats', {
+                target_company_id: companyId,
+              });
+              if (!rpcErr && rpcStats) {
+                appointmentsCount = Math.max(
+                  appointmentsCount,
+                  Number(rpcStats.total_appointments ?? rpcStats.appointments ?? 0)
+                );
+                customersCount = Math.max(
+                  customersCount,
+                  Number(rpcStats.total_customers ?? rpcStats.customers ?? 0)
+                );
+              }
+            } catch {
+              // RPC opcional caso ainda não tenha sido aplicada no banco
+            }
+          }
+        }
+
+        // Fallback complementar com entidades locais/híbridas
+        if (appts.length === 0) {
+          const allLocalAppts = await Appointment.list('-created_at', 1000);
+          appts = allLocalAppts.filter((a) => String(a.company_id || '').trim() === companyId);
+        }
+        if (custs.length === 0) {
+          const allLocalCusts = await Customer.list('-created_at', 1000);
+          custs = allLocalCusts.filter((c) => String(c.company_id || '').trim() === companyId);
+        }
+
+        // Fallback via rota server-side com SUPABASE_SERVICE_ROLE_KEY se contagens seguirem zeradas
+        let serverStats = null;
+        if (appointmentsCount === 0 && customersCount === 0 && appts.length === 0 && custs.length === 0) {
+          try {
+            const resp = await fetch('/api/asaas/subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'company_stats', company_id: companyId }),
+            });
+            if (resp.ok) {
+              const json = await resp.json().catch(() => null);
+              if (json?.success) {
+                serverStats = json;
+              }
+            }
+          } catch {
+            // Ignora falha de rede silenciosamente
+          }
+        }
+
+        // Se ainda não houver clientes na tabela customers mas houver clientes únicos nos agendamentos da barbearia, contabiliza clientes distintos
+        let distinctCustomersFromAppts = 0;
+        if (appts.length > 0) {
+          const uniqueKeys = new Set(
+            appts
+              .map((a) =>
+                String(
+                  a.customer_id ||
+                    a.customer_email ||
+                    a.customer_phone ||
+                    a.client_phone ||
+                    a.customer_name ||
+                    a.client_name ||
+                    ''
+                )
+                  .trim()
+                  .toLowerCase()
+              )
+              .filter(Boolean)
+          );
+          distinctCustomersFromAppts = uniqueKeys.size;
+        }
+
+        const totalAppointments = Math.max(
+          appointmentsCount,
+          appts.length,
+          Number(serverStats?.counters?.total_appointments || 0)
+        );
+        const totalCustomers = Math.max(
+          customersCount,
+          custs.length,
+          Number(serverStats?.counters?.total_customers || 0),
+          distinctCustomersFromAppts
+        );
+
+        // 3. Cálculo de Receita Gerada e Receita 30D
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+        const isPaidOrConfirmedAppointment = (a) => {
+          const st = String(a?.status || '').trim().toLowerCase();
+          const paySt = String(a?.payment_status || '').trim().toLowerCase();
+          if (['cancelado', 'canceled', 'cancelled'].includes(st)) return false;
+          return (
+            ['paid', 'confirmed', 'confirmed_pix', 'confirmed_card', 'paid_card', 'received'].includes(paySt) ||
+            ['concluido', 'concluído', 'confirmado', 'confirmed', 'completed'].includes(st) ||
+            a?.paid === true
+          );
+        };
+
+        const getAppointmentAmount = (a) => {
+          const rawVal = a?.price ?? a?.total_amount ?? a?.amount ?? a?.service_price ?? 0;
+          const parsed = Number(rawVal);
+          return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+        };
+
+        const getAppointmentDate = (a) => {
+          const rawDate = a?.date || a?.scheduled_at || a?.start_time || a?.created_at;
+          if (!rawDate) return null;
+          const d = new Date(rawDate);
+          return Number.isNaN(d.getTime()) ? null : d;
+        };
+
+        let eligibleRevenueAppts = appts.filter(isPaidOrConfirmedAppointment);
+        // Se houver agendamentos ativos não cancelados mas nenhum marcado ainda como concluído/paid, soma os não-cancelados para refletir a receita agendada/gerada
+        if (eligibleRevenueAppts.length === 0 && appts.length > 0) {
+          eligibleRevenueAppts = appts.filter(
+            (a) => !['cancelado', 'canceled', 'cancelled'].includes(String(a?.status || '').trim().toLowerCase())
+          );
+        }
+
+        const apptsGeneratedRevenue = eligibleRevenueAppts.reduce(
+          (sum, a) => sum + getAppointmentAmount(a),
+          0
+        );
+
+        const apptsRevenue30d = eligibleRevenueAppts
+          .filter((a) => {
+            const d = getAppointmentDate(a);
+            return !d || d >= thirtyDaysAgo;
+          })
+          .reduce((sum, a) => sum + getAppointmentAmount(a), 0);
+
+        const fin = (await FinancialEntry.list()).filter(
+          (f) => String(f.company_id || '').trim() === companyId && f.type === 'entrada'
+        );
+        const finTotalRevenue = fin.reduce((s, f) => s + Number(f.amount || 0), 0);
+        const finRevenue30d = fin
+          .filter((f) => {
+            const d = f.created_at || f.date ? new Date(f.created_at || f.date) : null;
+            return !d || Number.isNaN(d.getTime()) || d >= thirtyDaysAgo;
+          })
+          .reduce((s, f) => s + Number(f.amount || 0), 0);
+
+        const generatedRevenue = Math.max(
+          apptsGeneratedRevenue,
+          finTotalRevenue,
+          Number(serverStats?.financial?.generated_revenue || 0)
+        );
+        const revenue30d = Math.max(
+          apptsRevenue30d,
+          finRevenue30d,
+          Number(serverStats?.financial?.revenue_30d || 0)
+        );
+
+        const completedAppointmentsCount =
+          appts.filter(isPaidOrConfirmedAppointment).length ||
+          Number(serverStats?.counters?.completed_appointments || 0) ||
+          totalAppointments;
+
+        const mrrValue = Number(plan.price_monthly || company.mrr || 49);
+
         return {
           data: {
             success: true,
             company,
             plan,
             counters: {
-              customers: custs.length,
-              appointments: appts.length,
+              total_customers: totalCustomers,
+              customers: totalCustomers,
+              total_appointments: totalAppointments,
+              appointments: totalAppointments,
+              completed_appointments: completedAppointmentsCount,
             },
             financial: {
-              mrr: plan.price_monthly || 99,
-              total_revenue: fin.reduce((s, f) => s + (f.type === 'entrada' ? f.amount : 0), 0),
+              mrr: mrrValue,
+              generated_revenue: generatedRevenue,
+              total_revenue: generatedRevenue,
+              revenue_30d: revenue30d,
             },
             audit_log: [],
             last_activity: company.updated_at || new Date().toISOString(),

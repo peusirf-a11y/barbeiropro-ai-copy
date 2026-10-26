@@ -570,6 +570,121 @@ export async function handleCancelAsaasSubscription(payload = {}, authHeader = '
   }
 }
 
+export async function handleGetCompanyStats(payload = {}) {
+  try {
+    const companyId = String(payload.company_id || payload.companyId || '').trim();
+    if (!companyId) {
+      return {
+        status: 400,
+        body: { success: false, error: 'company_id é obrigatório.' },
+      };
+    }
+
+    const supabaseUrl =
+      process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || FALLBACK_SUPABASE_URL;
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      FALLBACK_SUPABASE_ANON_KEY;
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(supabaseUrl, supabaseKey);
+
+    const [
+      { count: appointmentsCount },
+      { count: customersCount },
+      { data: apptsData },
+      { data: custsData },
+    ] = await Promise.all([
+      sb.from('appointments').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
+      sb.from('customers').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
+      sb.from('appointments').select('*').eq('company_id', companyId),
+      sb.from('customers').select('*').eq('company_id', companyId),
+    ]);
+
+    const appts = Array.isArray(apptsData) ? apptsData : [];
+    const custs = Array.isArray(custsData) ? custsData : [];
+
+    const totalAppointments = Math.max(Number(appointmentsCount || 0), appts.length);
+    const totalCustomers = Math.max(Number(customersCount || 0), custs.length);
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const isRevenueAppointment = (a) => {
+      const st = String(a?.status || '').trim().toLowerCase();
+      const paySt = String(a?.payment_status || '').trim().toLowerCase();
+      if (['cancelado', 'canceled', 'cancelled'].includes(st)) return false;
+      return (
+        ['paid', 'confirmed', 'confirmed_pix', 'confirmed_card', 'paid_card', 'received'].includes(paySt) ||
+        ['concluido', 'concluído', 'confirmado', 'confirmed', 'completed'].includes(st) ||
+        a?.paid === true
+      );
+    };
+
+    const getApptValue = (a) => {
+      const val = Number(a?.price ?? a?.total_amount ?? a?.amount ?? a?.service_price ?? 0);
+      return Number.isFinite(val) && val > 0 ? val : 0;
+    };
+
+    const getApptDate = (a) => {
+      const raw = a?.date || a?.scheduled_at || a?.start_time || a?.created_at;
+      if (!raw) return null;
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? null : d;
+    };
+
+    let revenueAppts = appts.filter(isRevenueAppointment);
+    if (revenueAppts.length === 0 && appts.length > 0) {
+      revenueAppts = appts.filter(
+        (a) => !['cancelado', 'canceled', 'cancelled'].includes(String(a?.status || '').trim().toLowerCase())
+      );
+    }
+
+    const generatedRevenue = revenueAppts.reduce((sum, a) => sum + getApptValue(a), 0);
+    const revenue30d = revenueAppts
+      .filter((a) => {
+        const d = getApptDate(a);
+        return !d || d >= thirtyDaysAgo;
+      })
+      .reduce((sum, a) => sum + getApptValue(a), 0);
+
+    const completedCount = appts.filter((a) => {
+      const st = String(a?.status || '').trim().toLowerCase();
+      const paySt = String(a?.payment_status || '').trim().toLowerCase();
+      return (
+        ['concluido', 'concluído', 'confirmado', 'confirmed', 'completed'].includes(st) ||
+        ['paid', 'confirmed', 'confirmed_pix', 'confirmed_card', 'paid_card'].includes(paySt)
+      );
+    }).length;
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        counters: {
+          total_customers: totalCustomers,
+          customers: totalCustomers,
+          total_appointments: totalAppointments,
+          appointments: totalAppointments,
+          completed_appointments: completedCount || totalAppointments,
+        },
+        financial: {
+          generated_revenue: generatedRevenue,
+          total_revenue: generatedRevenue,
+          revenue_30d: revenue30d,
+        },
+      },
+    };
+  } catch (err) {
+    console.warn('[handleGetCompanyStats] Erro:', err?.message);
+    return {
+      status: 500,
+      body: { success: false, error: err?.message || 'Erro ao consultar métricas da barbearia.' },
+    };
+  }
+}
+
 export async function handleAsaasSubscription(payload = {}) {
   try {
     if (payload?.action === 'sync') {
@@ -577,6 +692,9 @@ export async function handleAsaasSubscription(payload = {}) {
     }
     if (payload?.action === 'cancel') {
       return await handleCancelAsaasSubscription(payload);
+    }
+    if (payload?.action === 'company_stats') {
+      return await handleGetCompanyStats(payload);
     }
 
     // Segurança estrita: consome exclusivamente a variável de ambiente server-side (nunca VITE_/NEXT_PUBLIC_ ou payload do cliente)

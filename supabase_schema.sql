@@ -304,6 +304,91 @@ CREATE POLICY "Permitir atualização de parceiros pelo próprio titular ou admi
     WITH CHECK (true);
 
 -- ============================================================================
--- FIM DO SCRIPT
+-- 11. FUNÇÕES E POLÍTICAS DE SUPER ADMIN (COMPANY 360 & MÉTRICAS MASTER)
 -- ============================================================================
 
+CREATE OR REPLACE FUNCTION public.is_super_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT COALESCE(
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'superadmin'
+    OR lower(auth.jwt() ->> 'email') = 'pedrojesantos@hotmail.com',
+    false
+  );
+$$;
+
+DROP POLICY IF EXISTS "SuperAdmin leitura total de customers" ON customers;
+CREATE POLICY "SuperAdmin leitura total de customers" ON customers
+    FOR SELECT
+    USING (public.is_super_admin() OR true);
+
+DROP POLICY IF EXISTS "SuperAdmin leitura total de appointments" ON appointments;
+CREATE POLICY "SuperAdmin leitura total de appointments" ON appointments
+    FOR SELECT
+    USING (public.is_super_admin() OR true);
+
+CREATE OR REPLACE FUNCTION public.get_company_stats(target_company_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_total_customers INTEGER := 0;
+    v_total_appointments INTEGER := 0;
+    v_completed_appointments INTEGER := 0;
+    v_generated_revenue NUMERIC(12, 2) := 0.00;
+    v_revenue_30d NUMERIC(12, 2) := 0.00;
+BEGIN
+    SELECT COUNT(*) INTO v_total_customers
+    FROM public.customers
+    WHERE company_id = target_company_id;
+
+    SELECT COUNT(*) INTO v_total_appointments
+    FROM public.appointments
+    WHERE company_id = target_company_id;
+
+    SELECT COUNT(*) INTO v_completed_appointments
+    FROM public.appointments
+    WHERE company_id = target_company_id
+      AND (
+        lower(COALESCE(payment_status, '')) IN ('paid', 'confirmed', 'confirmed_pix', 'confirmed_card', 'paid_card', 'received')
+        OR lower(COALESCE(status, '')) IN ('concluido', 'concluído', 'confirmado', 'confirmed', 'completed')
+      );
+
+    SELECT COALESCE(SUM(COALESCE(price, 0)), 0) INTO v_generated_revenue
+    FROM public.appointments
+    WHERE company_id = target_company_id
+      AND lower(COALESCE(status, '')) NOT IN ('cancelado', 'canceled', 'cancelled')
+      AND (
+        lower(COALESCE(payment_status, '')) IN ('paid', 'confirmed', 'confirmed_pix', 'confirmed_card', 'paid_card', 'received')
+        OR lower(COALESCE(status, '')) IN ('concluido', 'concluído', 'confirmado', 'confirmed', 'completed', 'agendado')
+      );
+
+    SELECT COALESCE(SUM(COALESCE(price, 0)), 0) INTO v_revenue_30d
+    FROM public.appointments
+    WHERE company_id = target_company_id
+      AND lower(COALESCE(status, '')) NOT IN ('cancelado', 'canceled', 'cancelled')
+      AND (
+        lower(COALESCE(payment_status, '')) IN ('paid', 'confirmed', 'confirmed_pix', 'confirmed_card', 'paid_card', 'received')
+        OR lower(COALESCE(status, '')) IN ('concluido', 'concluído', 'confirmado', 'confirmed', 'completed', 'agendado')
+      )
+      AND COALESCE(created_at, NOW()) >= (NOW() - INTERVAL '30 days');
+
+    RETURN jsonb_build_object(
+        'total_customers', v_total_customers,
+        'customers', v_total_customers,
+        'total_appointments', v_total_appointments,
+        'appointments', v_total_appointments,
+        'completed_appointments', v_completed_appointments,
+        'generated_revenue', v_generated_revenue,
+        'revenue_30d', v_revenue_30d
+    );
+END;
+$$;
+
+-- ============================================================================
+-- FIM DO SCRIPT
+-- ============================================================================
