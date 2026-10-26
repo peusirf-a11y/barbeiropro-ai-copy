@@ -195,12 +195,23 @@ export async function handleSyncAsaasSubscription(payload = {}) {
       billingMeta.card_brand ||
       null;
 
+    const alreadyCanceled =
+      String(compRow?.subscription_status || '').toLowerCase() === 'canceled' ||
+      String(compRow?.billing_status || '').toUpperCase() === 'CANCELED' ||
+      String(billingMeta.subscription_status || '').toLowerCase() === 'canceled' ||
+      String(billingMeta.billing_status || '').toUpperCase() === 'CANCELED' ||
+      String(subData?.status || '').toUpperCase() === 'INACTIVE' ||
+      subData?.deleted === true;
+
     let subscriptionStatus = compRow?.subscription_status || 'trialing';
     let billingStatus = compRow?.billing_status || 'ACTIVE';
     let currentPeriodEnd = compRow?.current_period_end || null;
     let paymentLinkUrl = compRow?.asaas_payment_link_url || null;
 
-    if (overduePayments.length > 0 && !latestConfirmed) {
+    if (alreadyCanceled) {
+      subscriptionStatus = 'canceled';
+      billingStatus = 'CANCELED';
+    } else if (overduePayments.length > 0 && !latestConfirmed) {
       subscriptionStatus = 'overdue';
       billingStatus = 'OVERDUE';
       paymentLinkUrl = overduePayments[0]?.invoiceUrl || paymentLinkUrl;
@@ -332,10 +343,240 @@ export async function handleSyncAsaasSubscription(payload = {}) {
   }
 }
 
+export async function handleCancelAsaasSubscription(payload = {}, authHeader = '') {
+  try {
+    let companyId = payload.company_id || payload.companyId || null;
+    const subscriptionIdParam = payload.subscription_id || payload.subscriptionId || null;
+    let ownerEmail = payload.email ? String(payload.email).trim().toLowerCase() : null;
+
+    const supabaseUrl =
+      process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || FALLBACK_SUPABASE_URL;
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      FALLBACK_SUPABASE_ANON_KEY;
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(supabaseUrl, supabaseKey);
+
+    // Se houver Bearer token e não tiver email/company_id explícito, resolve usuário autenticado
+    if (!companyId && !ownerEmail && authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+        if (token) {
+          const { data: userData } = await sb.auth.getUser(token);
+          if (userData?.user?.email) {
+            ownerEmail = userData.user.email.trim().toLowerCase();
+          }
+        }
+      } catch (_) {}
+    }
+
+    let compRow = null;
+    if (companyId && companyId !== 'comp_demo_01') {
+      const { data } = await sb.from('companies').select('*').eq('id', companyId).maybeSingle();
+      if (data) compRow = data;
+    }
+    if (!compRow && subscriptionIdParam) {
+      const { data } = await sb
+        .from('companies')
+        .select('*')
+        .eq('asaas_subscription_id', subscriptionIdParam)
+        .maybeSingle();
+      if (data) compRow = data;
+    }
+    if (!compRow && ownerEmail) {
+      const { data } = await sb
+        .from('companies')
+        .select('*')
+        .ilike('owner_email', ownerEmail)
+        .maybeSingle();
+      if (data) compRow = data;
+    }
+
+    if (!compRow && !companyId && !subscriptionIdParam) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          error: 'Empresa não identificada para cancelamento da assinatura.',
+        },
+      };
+    }
+
+    const billingMeta = compRow?.business_hours?._billing || compRow?.opening_hours?._billing || {};
+    const subId =
+      subscriptionIdParam ||
+      compRow?.asaas_subscription_id ||
+      billingMeta.asaas_subscription_id ||
+      null;
+
+    const rawEnvKey = (process.env.ASAAS_API_KEY || '').trim();
+    const isEnvKeyValid =
+      rawEnvKey &&
+      rawEnvKey.length > 40 &&
+      !rawEnvKey.toLowerCase().includes('fake') &&
+      !rawEnvKey.toLowerCase().includes('sua_chave') &&
+      !rawEnvKey.toLowerCase().includes('your_key') &&
+      !rawEnvKey.toLowerCase().includes('placeholder');
+
+    let companyApiKey = (compRow?.asaas_api_key || '').trim();
+    if (!companyApiKey) {
+      const { data: keyRows } = await sb
+        .from('companies')
+        .select('asaas_api_key')
+        .not('asaas_api_key', 'is', null)
+        .limit(1);
+      if (keyRows?.[0]?.asaas_api_key) {
+        companyApiKey = String(keyRows[0].asaas_api_key).trim();
+      }
+    }
+
+    const candidateKeys = [
+      ...(isEnvKeyValid ? [rawEnvKey] : []),
+      ...(companyApiKey && companyApiKey !== rawEnvKey ? [companyApiKey] : []),
+    ];
+
+    let asaasDeleted = false;
+    let asaasNote = null;
+
+    if (subId && candidateKeys.length > 0) {
+      for (const keyCandidate of candidateKeys) {
+        const isHmlg = keyCandidate.startsWith('$aact_hmlg_') || keyCandidate.includes('sandbox');
+        const baseUrl = (
+          process.env.ASAAS_BASE_URL ||
+          (isHmlg ? 'https://api-sandbox.asaas.com/v3' : 'https://api.asaas.com/v3')
+        ).trim();
+
+        const headers = {
+          'Content-Type': 'application/json',
+          access_token: keyCandidate,
+          'User-Agent': 'OCorte-SaaS/1.0',
+        };
+
+        try {
+          // 1. Cancela cobranças pendentes futuras vinculadas à assinatura para impedir qualquer débito
+          const payListRes = await fetch(
+            `${baseUrl}/subscriptions/${encodeURIComponent(subId)}/payments`,
+            { method: 'GET', headers }
+          );
+          if (payListRes.ok) {
+            const payListJson = await payListRes.json().catch(() => null);
+            const openPayments = (payListJson?.data || []).filter((p) =>
+              ['PENDING', 'OVERDUE'].includes(String(p?.status || '').toUpperCase())
+            );
+            for (const pendingPay of openPayments) {
+              if (pendingPay?.id) {
+                await fetch(`${baseUrl}/payments/${encodeURIComponent(pendingPay.id)}`, {
+                  method: 'DELETE',
+                  headers,
+                }).catch(() => {});
+              }
+            }
+          }
+
+          // 2. Executa DELETE /v3/subscriptions/{asaas_subscription_id} no Asaas
+          const delRes = await fetch(
+            `${baseUrl}/subscriptions/${encodeURIComponent(subId)}`,
+            { method: 'DELETE', headers }
+          );
+
+          if (delRes.ok) {
+            asaasDeleted = true;
+            break;
+          }
+
+          // Tratamento seguro para 404 / 400 (assinatura já removida ou inexistente no Asaas)
+          if (delRes.status === 404 || delRes.status === 400) {
+            const errJson = await delRes.json().catch(() => ({}));
+            asaasNote = extractAsaasError(errJson) || `Asaas retornou HTTP ${delRes.status}`;
+            asaasDeleted = true;
+            break;
+          }
+        } catch (reqErr) {
+          console.warn('[handleCancelAsaasSubscription] Aviso ao chamar Asaas DELETE:', reqErr?.message);
+        }
+      }
+    }
+
+    const canceledAtIso = new Date().toISOString();
+    const hasFuturePeriodEnd =
+      compRow?.current_period_end && new Date(compRow.current_period_end) > new Date();
+    const nextCompanyStatus = payload.immediate === true || !hasFuturePeriodEnd ? 'inactive' : 'active';
+
+    const updatedFields = {
+      subscription_status: 'canceled',
+      billing_status: 'CANCELED',
+      status: nextCompanyStatus,
+      asaas_subscription_id: null,
+      business_hours: {
+        ...(compRow?.business_hours || {}),
+        _billing: {
+          ...billingMeta,
+          subscription_status: 'canceled',
+          billing_status: 'CANCELED',
+          canceled_at: canceledAtIso,
+          previous_asaas_subscription_id: subId,
+          asaas_subscription_id: null,
+        },
+      },
+      updated_at: canceledAtIso,
+    };
+
+    const targetCompanyId = compRow?.id || companyId;
+    if (targetCompanyId && targetCompanyId !== 'comp_demo_01') {
+      const payloadCopy = { ...updatedFields };
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const res = await sb.from('companies').update(payloadCopy).eq('id', targetCompanyId);
+        if (!res.error) break;
+        const matchCol =
+          res.error.message?.match(/Could not find the '([^']+)' column/) ||
+          res.error.message?.match(/column "([^"]+)" of relation/);
+        if (matchCol && matchCol[1] && matchCol[1] in payloadCopy) {
+          delete payloadCopy[matchCol[1]];
+          continue;
+        }
+        break;
+      }
+    }
+
+    const updatedCompany = {
+      ...(compRow || {}),
+      id: targetCompanyId,
+      ...updatedFields,
+    };
+    delete updatedCompany.asaas_api_key;
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        asaas_deleted: asaasDeleted,
+        asaas_note: asaasNote,
+        message: 'Assinatura cancelada com sucesso no Asaas e na plataforma.',
+        company: updatedCompany,
+      },
+    };
+  } catch (err) {
+    console.error('[handleCancelAsaasSubscription] Erro inesperado:', err);
+    return {
+      status: 500,
+      body: {
+        success: false,
+        error: err?.message || 'Erro ao cancelar assinatura.',
+      },
+    };
+  }
+}
+
 export async function handleAsaasSubscription(payload = {}) {
   try {
     if (payload?.action === 'sync') {
       return await handleSyncAsaasSubscription(payload);
+    }
+    if (payload?.action === 'cancel') {
+      return await handleCancelAsaasSubscription(payload);
     }
 
     // Segurança estrita: consome exclusivamente a variável de ambiente server-side (nunca VITE_/NEXT_PUBLIC_ ou payload do cliente)

@@ -9,7 +9,7 @@ export default function SubscriptionHealthBar({ revenue, churn }) {
   const navigate = useNavigate();
   const items = [
     { key: 'paying',   label: 'Pagantes',      count: churn?.paying_now,   icon: CheckCircle2, color: 'emerald', amount: revenue?.mrr },
-    { key: 'trialing', label: 'Em trial',      count: null,                icon: Clock,        color: 'amber',   amount: revenue?.mrr_trialing },
+    { key: 'trialing', label: 'Em trial',      count: churn?.trialing,     icon: Clock,        color: 'amber',   amount: revenue?.mrr_trialing },
     { key: 'past_due', label: 'Inadimplentes', count: churn?.past_due,     icon: AlertTriangle, color: 'rose',   amount: revenue?.mrr_past_due },
     { key: 'canceled', label: 'Cancelados 30d', count: churn?.canceled_30d, icon: XCircle,      color: 'gray',    amount: churn?.lost_mrr_30d },
   ];

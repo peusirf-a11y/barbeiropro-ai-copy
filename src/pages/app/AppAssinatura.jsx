@@ -1,13 +1,14 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Company } from '@/api/entities';
 import { resolveCompanyId } from '@/api/functions';
+import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
-import { CreditCard, CheckCircle, ExternalLink, Calendar, Zap, AlertTriangle } from 'lucide-react';
+import { CreditCard, CheckCircle, ExternalLink, Calendar, Zap, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,6 +16,8 @@ import { useImpersonation } from '@/hooks/useImpersonation';
 import ImpersonationLockNotice from '@/components/ImpersonationLockNotice';
 import UpgradePlanCard from '@/components/billing/UpgradePlanCard';
 import SaasPaymentModal from '@/components/billing/SaasPaymentModal';
+import StandardModal from '@/components/ui/standard-modal';
+import { useToast } from '@/components/ui/use-toast';
 
 const STATUS_LABEL = {
   trialing: { label: 'Em período grátis', color: 'bg-blue-400/15 text-blue-300 ring-1 ring-blue-400/30' },
@@ -59,11 +62,18 @@ function enrichCompanyBillingFields(rawCompany) {
     (matchesLocal ? localCheckout?.card_brand : '') ||
     '';
 
-  out.asaas_subscription_id =
-    out.asaas_subscription_id ||
-    billingMeta.asaas_subscription_id ||
-    (matchesLocal ? localCheckout?.asaas_subscription_id : null) ||
-    null;
+  const isExplicitlyCanceled =
+    String(out.subscription_status || '').toLowerCase() === 'canceled' ||
+    String(out.billing_status || '').toUpperCase() === 'CANCELED' ||
+    String(billingMeta.subscription_status || '').toLowerCase() === 'canceled' ||
+    String(billingMeta.billing_status || '').toUpperCase() === 'CANCELED';
+
+  out.asaas_subscription_id = isExplicitlyCanceled
+    ? null
+    : out.asaas_subscription_id ||
+      billingMeta.asaas_subscription_id ||
+      (matchesLocal ? localCheckout?.asaas_subscription_id : null) ||
+      null;
 
   out.asaas_customer_id =
     out.asaas_customer_id ||
@@ -85,11 +95,16 @@ function enrichCompanyBillingFields(rawCompany) {
     (matchesLocal ? localCheckout?.trial_ends_at : null) ||
     null;
 
-  if ((!out.subscription_status || out.subscription_status === 'trialing') && billingMeta.subscription_status) {
-    out.subscription_status = billingMeta.subscription_status;
-  }
-  if (!out.billing_status && billingMeta.billing_status) {
-    out.billing_status = billingMeta.billing_status;
+  if (isExplicitlyCanceled) {
+    out.subscription_status = 'canceled';
+    out.billing_status = 'CANCELED';
+  } else {
+    if ((!out.subscription_status || out.subscription_status === 'trialing') && billingMeta.subscription_status) {
+      out.subscription_status = billingMeta.subscription_status;
+    }
+    if (!out.billing_status && billingMeta.billing_status) {
+      out.billing_status = billingMeta.billing_status;
+    }
   }
   if (!out.current_period_end && billingMeta.current_period_end) {
     out.current_period_end = billingMeta.current_period_end;
@@ -105,14 +120,19 @@ function enrichCompanyBillingFields(rawCompany) {
 export default function AppAssinatura() {
   const { user } = useAuth();
   const { company: activeCompany, companyId: activeCompanyId } = useCompany();
+  const qc = useQueryClient();
+  const { toast } = useToast();
   const [loading] = useState(false);
   const [error, setError] = useState('');
   const [showUpdateCardModal, setShowUpdateCardModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
+  const [canceledLocalOverride, setCanceledLocalOverride] = useState(false);
   const { isImpersonating } = useImpersonation();
   const location = useLocation();
   const showUpgradeHighlight = new URLSearchParams(location.search).get('upgrade') === '1';
 
-  const { data: fetchedCompany } = useQuery({
+  const { data: fetchedCompany, refetch: refetchCompany } = useQuery({
     queryKey: ['subscription-company-details', activeCompanyId, user?.email],
     queryFn: async () => {
       const resolvedId =
@@ -172,8 +192,13 @@ export default function AppAssinatura() {
           null;
       }
 
-      // Sincroniza em tempo real com a API do Asaas se houver assinatura vinculada
-      if (baseCompany && (baseCompany.asaas_subscription_id || baseCompany.id)) {
+      // Sincroniza em tempo real com a API do Asaas se houver assinatura vinculada e não estiver cancelada
+      if (
+        baseCompany &&
+        String(baseCompany.subscription_status || '').toLowerCase() !== 'canceled' &&
+        String(baseCompany.billing_status || '').toUpperCase() !== 'CANCELED' &&
+        (baseCompany.asaas_subscription_id || baseCompany.id)
+      ) {
         try {
           const syncRes = await fetch('/api/asaas/subscription', {
             method: 'POST',
@@ -203,18 +228,25 @@ export default function AppAssinatura() {
 
   const company = enrichCompanyBillingFields(fetchedCompany || activeCompany) || {};
   const planName = company.plan_name || 'Starter';
-  const rawStatus = company.subscription_status || 'trialing';
-  const billingStatus = String(company.billing_status || '').toUpperCase();
-  const subStatusUpper = String(company.subscription_status || '').toUpperCase();
+  const rawStatus = canceledLocalOverride ? 'canceled' : company.subscription_status || 'trialing';
+  const billingStatus = canceledLocalOverride ? 'CANCELED' : String(company.billing_status || '').toUpperCase();
+  const subStatusUpper = canceledLocalOverride ? 'CANCELED' : String(company.subscription_status || '').toUpperCase();
+
+  const isCanceled =
+    canceledLocalOverride ||
+    String(rawStatus).toLowerCase() === 'canceled' ||
+    billingStatus === 'CANCELED' ||
+    subStatusUpper === 'CANCELED';
 
   // Verificação preventiva D+2 de falha de pagamento / OVERDUE
   const isOverdueOrFailed =
-    billingStatus === 'OVERDUE' ||
-    subStatusUpper === 'OVERDUE' ||
-    rawStatus === 'past_due' ||
-    rawStatus === 'unpaid' ||
-    billingStatus === 'PAST_DUE' ||
-    billingStatus === 'PAYMENT_FAILED';
+    !isCanceled &&
+    (billingStatus === 'OVERDUE' ||
+      subStatusUpper === 'OVERDUE' ||
+      rawStatus === 'past_due' ||
+      rawStatus === 'unpaid' ||
+      billingStatus === 'PAST_DUE' ||
+      billingStatus === 'PAYMENT_FAILED');
 
   const hasCardOrSubscription = Boolean(company.card_last_digits || company.asaas_subscription_id);
 
@@ -249,12 +281,14 @@ export default function AppAssinatura() {
   // Se o período de teste já encerrou (daysLeft <= 0) e a barbearia possui cartão/assinatura ativa sem atraso,
   // ou se o status já foi atualizado para 'active' pela cobrança no cartão, a assinatura está ATIVA e paga.
   const isPaidOrRenewed =
+    !isCanceled &&
     !isOverdueOrFailed &&
     (rawStatus === 'active' ||
       Boolean(company._billingMeta?.last_payment_id) ||
       (hasCardOrSubscription && daysLeft !== null && daysLeft <= 0));
 
   const isTrialActive =
+    !isCanceled &&
     !isOverdueOrFailed &&
     !isPaidOrRenewed &&
     (rawStatus === 'trialing' || Boolean(company.trial_ends_at)) &&
@@ -265,10 +299,10 @@ export default function AppAssinatura() {
     : '';
 
   const getNextBillingDate = () => {
+    if (isCanceled) return null;
     if (company?.current_period_end) {
       const parsed = new Date(company.current_period_end);
       if (!Number.isNaN(parsed.getTime())) {
-        // Se current_period_end era apenas a data do fim do trial que já passou e o plano já renovou, soma 1 mês
         if (isPaidOrRenewed && trialEndDate && Math.abs(parsed.getTime() - trialEndDate.getTime()) < 86400000) {
           const next = new Date(parsed);
           next.setMonth(next.getMonth() + 1);
@@ -288,6 +322,9 @@ export default function AppAssinatura() {
   const nextBillingDate = getNextBillingDate();
 
   const getBadgeConfig = () => {
+    if (isCanceled) {
+      return STATUS_LABEL.canceled;
+    }
     if (isOverdueOrFailed) {
       return STATUS_LABEL.overdue;
     }
@@ -316,6 +353,54 @@ export default function AppAssinatura() {
       window.open(company.asaas_payment_link_url, '_blank', 'noopener');
     } else {
       setError('Fatura ainda não foi gerada. Verifique seu email ou aguarde a próxima cobrança automática no cartão.');
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (cancelingSubscription) return;
+    setError('');
+    setCancelingSubscription(true);
+    try {
+      const res = await base44.functions.invoke('cancelCompanySubscription', {
+        company_id: company?.id || activeCompanyId,
+        subscription_id: company?.asaas_subscription_id || null,
+        email: company?.owner_email || user?.email || null,
+      });
+
+      if (!res?.data?.success) {
+        throw new Error(res?.data?.error || 'Não foi possível cancelar a assinatura.');
+      }
+
+      try {
+        const rawLocal = localStorage.getItem('barberpass_checkout_data');
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          localStorage.setItem(
+            'barberpass_checkout_data',
+            JSON.stringify({
+              ...parsed,
+              asaas_subscription_id: null,
+              subscription_status: 'canceled',
+              billing_status: 'CANCELED',
+            })
+          );
+        }
+      } catch (_) {}
+
+      setCanceledLocalOverride(true);
+      setShowCancelModal(false);
+      qc.invalidateQueries({ queryKey: ['subscription-company-details'] });
+      qc.invalidateQueries({ queryKey: ['my-company'] });
+      await refetchCompany();
+
+      toast({
+        title: 'Assinatura cancelada',
+        description: res.data.message || 'Assinatura cancelada com sucesso no Asaas e na plataforma.',
+      });
+    } catch (err) {
+      setError(err?.message || 'Erro ao cancelar assinatura. Tente novamente.');
+    } finally {
+      setCancelingSubscription(false);
     }
   };
 
@@ -365,7 +450,16 @@ export default function AppAssinatura() {
           </div>
 
           {/* 3. Card de Aviso de Cartão e Status da Assinatura */}
-          {hasCardOrSubscription ? (
+          {isCanceled ? (
+            <div className="space-y-3 mb-4">
+              <div className="relative rounded-xl p-3.5 border text-xs sm:text-sm leading-relaxed flex items-start gap-2.5 bg-red-500/10 border-red-400/30 text-red-200">
+                <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <span>
+                  Sua assinatura foi <strong>cancelada</strong> e as cobranças recorrentes automáticas no cartão foram encerradas no Asaas. Para reativar seu acesso completo aos agendamentos, selecione um plano abaixo.
+                </span>
+              </div>
+            </div>
+          ) : hasCardOrSubscription ? (
             <div className="space-y-3 mb-4">
               {isTrialActive && formattedTrialEndDate && (
                 <div className="relative rounded-xl p-3.5 border text-xs sm:text-sm leading-relaxed flex items-start gap-2.5 bg-blue-500/10 border-blue-400/25 text-blue-100/90">
@@ -420,13 +514,41 @@ export default function AppAssinatura() {
                   Alterar cartão
                 </button>
               </div>
+
+              {/* Botão secundário abaixo dos dados do cartão: Cancelar assinatura */}
+              <div className="pt-1 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelModal(true)}
+                  disabled={isImpersonating || cancelingSubscription}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-300/80 hover:text-red-300 hover:bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-400/20 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  Cancelar assinatura
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="relative rounded-xl p-3.5 mb-4 border bg-amber-500/10 border-amber-400/25 text-amber-100 text-xs sm:text-sm leading-relaxed flex items-start gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0 mt-0.5" />
-              <span>
-                Nenhum cartão cadastrado. Escolha um plano abaixo para manter o acesso.
-              </span>
+            <div className="space-y-3 mb-4">
+              <div className="relative rounded-xl p-3.5 border bg-amber-500/10 border-amber-400/25 text-amber-100 text-xs sm:text-sm leading-relaxed flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0 mt-0.5" />
+                <span>
+                  Nenhum cartão cadastrado. Escolha um plano abaixo para manter o acesso.
+                </span>
+              </div>
+              {!isCanceled && (
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelModal(true)}
+                    disabled={isImpersonating || cancelingSubscription}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-300/80 hover:text-red-300 hover:bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-400/20 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Cancelar assinatura
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -532,6 +654,53 @@ export default function AppAssinatura() {
           }}
         />
       )}
+
+      <StandardModal
+        open={showCancelModal}
+        onClose={() => !cancelingSubscription && setShowCancelModal(false)}
+        title="Cancelar assinatura da barbearia?"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowCancelModal(false)}
+              disabled={cancelingSubscription}
+              className="flex-1 px-4 py-2.5 border border-border rounded-xl text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Manter meu plano
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelSubscription}
+              disabled={cancelingSubscription}
+              className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+            >
+              {cancelingSubscription ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Cancelando…</span>
+                </>
+              ) : (
+                <span>Confirmar cancelamento</span>
+              )}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-xs text-red-400 leading-relaxed font-medium">
+            Atenção: Ao cancelar sua assinatura, sua barbearia perderá o acesso ao link de agendamentos online, gestão de clientes e controle financeiro ao término do ciclo vigente.
+          </div>
+          <div className="text-xs text-muted-foreground space-y-1.5">
+            <p>
+              • A cobrança recorrente automática no seu cartão de crédito será <strong>interrompida imediatamente</strong> no Asaas.
+            </p>
+            <p>
+              • Nenhum novo débito será efetuado no seu cartão após a confirmação.
+            </p>
+          </div>
+        </div>
+      </StandardModal>
     </AppLayout>
   );
 }

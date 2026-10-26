@@ -13,6 +13,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdmin } from '@/lib/permissions';
 
 const COMPANY_CACHE_KEYS = [
   'my-company', 'appointments', 'customers', 'customer-subscriptions',
@@ -50,12 +52,33 @@ const ImpersonationContext = createContext({
 });
 
 export function ImpersonationProvider({ children }) {
+  const { user, isLoadingAuth } = useAuth();
+  const canImpersonate = isSuperAdmin(user);
   const [state, setState] = useState(() => readStorage());
   const queryClient = useQueryClient();
 
+  // Revoga imediatamente qualquer estado de impersonação se o usuário autenticado não for SuperAdmin
+  useEffect(() => {
+    if (!isLoadingAuth && !canImpersonate) {
+      if (localStorage.getItem(STORAGE_KEY)) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+      if (state) {
+        setState(null);
+      }
+    }
+  }, [isLoadingAuth, canImpersonate, state]);
+
   // Sincroniza com localStorage (outra aba ou TTL expirado)
   useEffect(() => {
-    const sync = () => setState(readStorage());
+    const sync = () => {
+      if (!canImpersonate) {
+        localStorage.removeItem(STORAGE_KEY);
+        setState(null);
+        return;
+      }
+      setState(readStorage());
+    };
     window.addEventListener('impersonation-changed', sync);
     window.addEventListener('storage', sync);
     const tick = setInterval(sync, 30_000);
@@ -64,9 +87,21 @@ export function ImpersonationProvider({ children }) {
       window.removeEventListener('storage', sync);
       clearInterval(tick);
     };
-  }, []);
+  }, [canImpersonate]);
 
   const startImpersonation = useCallback(({ company_id, company_name, token, expires_at }) => {
+    const allowed =
+      user &&
+      (String(user.email || '').trim().toLowerCase() === 'pedrojesantos@hotmail.com' ||
+        user.app_metadata?.role === 'superadmin');
+
+    if (!allowed) {
+      console.error('[ImpersonationContext] Tentativa de impersonação bloqueada: usuário sem privilégio SuperAdmin.');
+      localStorage.removeItem(STORAGE_KEY);
+      setState(null);
+      return;
+    }
+
     const data = {
       active: true,
       company_id,
@@ -79,7 +114,7 @@ export function ImpersonationProvider({ children }) {
     window.dispatchEvent(new Event('impersonation-changed'));
     // Limpa cache completo ao iniciar impersonação para evitar dados do tenant anterior
     queryClient.clear();
-  }, [queryClient]);
+  }, [queryClient, user]);
 
   const stopImpersonation = useCallback(() => {
     const current = readStorage();
@@ -96,11 +131,11 @@ export function ImpersonationProvider({ children }) {
   }, [queryClient]);
 
   const value = {
-    isImpersonating: !!state?.active,
-    impersonatedCompanyId: state?.company_id || null,
-    impersonatedCompanyName: state?.company_name || null,
-    impersonationToken: state?.token || null,
-    impersonationExpiresAt: state?.expires_at || null,
+    isImpersonating: canImpersonate && !!state?.active,
+    impersonatedCompanyId: canImpersonate ? (state?.company_id || null) : null,
+    impersonatedCompanyName: canImpersonate ? (state?.company_name || null) : null,
+    impersonationToken: canImpersonate ? (state?.token || null) : null,
+    impersonationExpiresAt: canImpersonate ? (state?.expires_at || null) : null,
     startImpersonation,
     stopImpersonation,
   };

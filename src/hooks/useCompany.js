@@ -49,11 +49,18 @@ export function useCompany() {
     retry: 1,
   });
 
-  // Se empresa bloqueada, desloga imediatamente
+  // Se empresa bloqueada, persiste o aviso de bloqueio e desloga mantendo o alerta na tela de login
   useEffect(() => {
     if (error?.code === 'COMPANY_BLOCKED') {
+      try {
+        sessionStorage.setItem('ocorte_blocked_account_notice', '1');
+        localStorage.removeItem('admin_logged_user');
+        localStorage.removeItem('barberpass_auth_email');
+      } catch (_) {}
       logout(false);
-      base44.auth.logout();
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.replace('/login?blocked=1');
+      }
     }
   }, [error, logout]);
 

@@ -75,14 +75,30 @@ export default function PrivateRoute({ children }) {
   const myCompany = isTeamMemberOnly ? (teamCompany || { id: teamMember?.company_id, name: 'Minha Barbearia', active: true, onboarding_completed: true }) : ownerCompany;
 
   const blocked = !!myCompany && isCompanyBlocked(myCompany);
-  const isManuallyBlocked = !!myCompany && myCompany.status === 'blocked';
+  const isManuallyBlocked =
+    !!myCompany &&
+    (String(myCompany.status || '').trim().toLowerCase() === 'blocked' ||
+      String(myCompany.billing_status || '').trim().toUpperCase() === 'BLOCKED');
   const loggedOutRef = useRef(false);
 
   useEffect(() => {
     if (isManuallyBlocked && !loggedOutRef.current) {
       loggedOutRef.current = true;
+      try {
+        sessionStorage.setItem('ocorte_blocked_account_notice', '1');
+        localStorage.removeItem('admin_logged_user');
+        localStorage.removeItem('barberpass_auth_email');
+      } catch (_) {}
       qc.clear();
-      base44.auth.logout();
+      if (supabase) {
+        supabase.auth.signOut().finally(() => {
+          if (typeof window !== 'undefined') {
+            window.location.replace('/login?blocked=1');
+          }
+        });
+      } else if (typeof window !== 'undefined') {
+        window.location.replace('/login?blocked=1');
+      }
     }
   }, [isManuallyBlocked, qc]);
 

@@ -1,9 +1,10 @@
 // Util de permissão — fonte única de verdade para Super Admin.
-// Reconhece is_super_admin = true e o email oficial do Administrador Master.
+// Reconhece exclusivamente app_metadata.role === 'superadmin' ou o e-mail oficial do Administrador Master.
 
 export function isSuperAdmin(user) {
   if (!user) return false;
-  if (user.is_super_admin === true) return true;
-  if (user.email && String(user.email).trim().toLowerCase() === 'pedrojesantos@hotmail.com') return true;
+  const email = String(user.email || '').trim().toLowerCase();
+  if (email === 'pedrojesantos@hotmail.com') return true;
+  if (user.app_metadata?.role === 'superadmin') return true;
   return false;
 }

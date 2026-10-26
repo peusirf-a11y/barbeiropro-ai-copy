@@ -1,7 +1,11 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { handleAsaasSubscription, handleSyncAsaasSubscription } from './src/server/subscribeHandler.js';
+import {
+  handleAsaasSubscription,
+  handleSyncAsaasSubscription,
+  handleCancelAsaasSubscription,
+} from './src/server/subscribeHandler.js';
 import {
   handleCreatePix,
   handleCreateCardPayment,
@@ -22,11 +26,42 @@ function asaasApiDevPlugin() {
         if (req.method === 'OPTIONS' && url.startsWith('/api/')) {
           res.writeHead(200, {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
           });
           res.end();
           return;
+        }
+
+        if (url === '/api/asaas/cancel-subscription' && (req.method === 'POST' || req.method === 'DELETE')) {
+          try {
+            let bodyStr = '';
+            req.on('data', (chunk) => { bodyStr += chunk; });
+            req.on('end', async () => {
+              let parsedBody = {};
+              try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
+              const authHeader = req.headers?.authorization || '';
+              const result = await handleCancelAsaasSubscription(
+                {
+                  ...parsedBody,
+                  company_id: parsedBody.company_id || parsedBody.companyId || query.company_id || query.companyId,
+                  subscription_id: parsedBody.subscription_id || parsedBody.subscriptionId || query.subscription_id || query.subscriptionId,
+                  email: parsedBody.email || query.email,
+                },
+                authHeader
+              );
+              res.writeHead(result.status, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+              });
+              res.end(JSON.stringify(result.body));
+            });
+            return;
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message || 'Erro interno ao cancelar assinatura' }));
+            return;
+          }
         }
 
         if (url === '/api/subscribe' || url === '/api/asaas/subscription') {
@@ -159,6 +194,28 @@ function asaasApiDevPlugin() {
         const [rawUrl, queryString = ''] = (req.url || '').split('?');
         const url = rawUrl;
         const query = Object.fromEntries(new URLSearchParams(queryString));
+
+        if (url === '/api/asaas/cancel-subscription' && (req.method === 'POST' || req.method === 'DELETE')) {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsedBody = {};
+            try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
+            const authHeader = req.headers?.authorization || '';
+            const result = await handleCancelAsaasSubscription(
+              {
+                ...parsedBody,
+                company_id: parsedBody.company_id || parsedBody.companyId || query.company_id || query.companyId,
+                subscription_id: parsedBody.subscription_id || parsedBody.subscriptionId || query.subscription_id || query.subscriptionId,
+                email: parsedBody.email || query.email,
+              },
+              authHeader
+            );
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result.body));
+          });
+          return;
+        }
 
         if ((url === '/api/appointments/create-pix' || url === '/api/appointments/create-card' || url === '/api/appointments/create') && req.method === 'POST') {
           let bodyStr = '';

@@ -16,6 +16,55 @@ const statusConfig = {
   blocked: { label: 'Bloqueada', color: 'bg-red-500/15 text-red-500 border border-red-500/30' },
 };
 
+const subscriptionStatusConfig = {
+  TRIAL: { label: 'TRIAL', color: 'bg-amber-500/15 text-amber-500 border border-amber-500/30' },
+  ACTIVE: { label: 'ACTIVE', color: 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' },
+  OVERDUE: { label: 'OVERDUE · Inadimplente', color: 'bg-red-500/20 text-red-500 border border-red-500/40 font-bold' },
+  PAST_DUE: { label: 'PAST_DUE · Atrasada', color: 'bg-amber-500/20 text-amber-500 border border-amber-500/40 font-bold' },
+  CANCELED: { label: 'CANCELED · Cancelada', color: 'bg-red-500/15 text-red-400 border border-red-500/30' },
+  BLOCKED: { label: 'BLOCKED', color: 'bg-red-500/20 text-red-500 border border-red-500/40' },
+};
+
+function resolveSubscriptionStatus(company) {
+  const subStatus = String(company?.subscription_status || '').trim().toLowerCase();
+  const billStatus = String(company?.billing_status || '').trim().toUpperCase();
+  const rawStatus = String(company?.status || '').trim().toLowerCase();
+
+  const hasCardOrSubscription = Boolean(
+    (company?.card_last_digits && String(company.card_last_digits).trim() !== '') ||
+      (company?.asaas_subscription_id && String(company.asaas_subscription_id).trim() !== '')
+  );
+  const isTrialExpired = Boolean(company?.trial_ends_at && new Date(company.trial_ends_at) < new Date());
+
+  if (rawStatus === 'blocked' || billStatus === 'BLOCKED') return 'BLOCKED';
+  if (
+    rawStatus === 'canceled' ||
+    rawStatus === 'cancelled' ||
+    rawStatus === 'inactive' ||
+    subStatus === 'canceled' ||
+    subStatus === 'cancelled' ||
+    billStatus === 'CANCELED' ||
+    billStatus === 'CANCELLED'
+  ) {
+    return 'CANCELED';
+  }
+  if (rawStatus === 'overdue' || subStatus === 'overdue' || billStatus === 'OVERDUE') return 'OVERDUE';
+  if (rawStatus === 'past_due' || subStatus === 'past_due' || billStatus === 'PAST_DUE') return 'PAST_DUE';
+
+  const isPaying =
+    rawStatus === 'active' &&
+    (subStatus === 'active' || billStatus === 'ACTIVE') &&
+    hasCardOrSubscription;
+
+  if (isPaying) return 'ACTIVE';
+
+  if (isTrialExpired && !hasCardOrSubscription) {
+    return 'OVERDUE';
+  }
+
+  return 'TRIAL';
+}
+
 export default function CompaniesTable() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -80,15 +129,14 @@ export default function CompaniesTable() {
       }
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       queryClient.invalidateQueries({ queryKey: ['master-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['master-audit-log'] });
       queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
-      const total = Object.values(data?.counters || {}).reduce((s, n) => s + (n || 0), 0);
       toast({
         title: 'Empresa excluída',
-        description: `${total} registros relacionados removidos. Ação registrada no log.`,
+        description: 'A empresa foi removida do banco de dados e a ação foi registrada no log.',
       });
       setDeleteTarget(null);
     },
@@ -135,98 +183,107 @@ export default function CompaniesTable() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px]">
+        <table className="w-full min-w-[900px]">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {['Empresa', 'Slug / Link', 'Plano', 'Onboarding', 'Status', 'Ações'].map(h => (
+              {['Empresa', 'Slug / Link', 'Plano', 'Cobrança (Assinatura)', 'Onboarding', 'Status Conta', 'Ações'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {items.map(c => (
-              <tr key={c.id} className="border-b border-border hover:bg-muted/40 transition-colors duration-150">
-                <td className="px-4 py-3">
-                  <div className="font-semibold text-sm text-foreground">{c.name}</div>
-                  {c.owner_email && <div className="text-xs text-muted-foreground mt-0.5">{c.owner_email}</div>}
-                </td>
-                <td className="px-4 py-3">
-                  {c.slug ? (
-                    <a href={`/agendar/${c.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-[#2563EB] hover:underline font-medium">
-                      <Globe className="w-3 h-3" />/agendar/{c.slug}
-                    </a>
-                  ) : <span className="text-xs text-muted-foreground">–</span>}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-blue-500/15 text-blue-500 rounded-full border border-blue-500/30">{c.plan_name || 'Starter'}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1.5">
-                    {c.onboarding_completed
-                      ? <><CheckCircle className="w-4 h-4 text-emerald-500" /><span className="text-xs text-emerald-500 font-medium">Completo</span></>
-                      : <><Clock className="w-4 h-4 text-amber-500" /><span className="text-xs text-amber-500 font-medium">Etapa {c.onboarding_step || 1}</span></>
-                    }
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${(statusConfig[c.status] || statusConfig.active).color}`}>
-                    {(statusConfig[c.status] || statusConfig.active).label}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      onClick={() => navigate(`/master/barbearias/${c.id}`)}
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-blue-500/15 text-blue-500 hover:bg-blue-500/25 border border-blue-500/30 flex items-center gap-1 transition-colors"
-                      title="Detalhes da empresa (funcionalidades, plano, etc.)"
-                    >
-                      <ExternalLink className="w-3 h-3" /> Detalhes
-                    </button>
-                    <button
-                      onClick={() => impersonate.mutate(c)}
-                      disabled={impersonate.isPending}
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-amber-500/15 text-amber-500 hover:bg-amber-500/25 border border-amber-500/30 flex items-center gap-1 disabled:opacity-50 transition-colors"
-                      title="Visualizar como esta empresa (15min)"
-                    >
-                      {impersonate.isPending && impersonate.variables?.id === c.id
-                        ? <Loader2 className="w-3 h-3 animate-spin" />
-                        : <Eye className="w-3 h-3" />}
-                      Visualizar
-                    </button>
-                    <button
-                      disabled={toggleStatus.isPending}
-                      onClick={() => {
-                        if (c.status === 'active') {
-                          // Confirmação forte: digitar nome
-                          setConfirmTarget(c);
-                        } else {
-                          toggleStatus.mutate({ id: c.id, nextStatus: 'active' });
-                        }
-                      }}
-                      className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold disabled:opacity-50 inline-flex items-center gap-1 transition-colors border ${c.status === 'active' ? 'bg-red-500/15 text-red-500 hover:bg-red-500/25 border-red-500/30' : 'bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25 border-emerald-500/30'}`}>
-                      {toggleStatus.isPending && toggleStatus.variables?.id === c.id && <Loader2 className="w-3 h-3 animate-spin" />}
-                      {c.status === 'active' ? 'Bloquear' : 'Ativar'}
-                    </button>
-                    <button
-                      disabled={deleteCompany.isPending}
-                      onClick={() => setDeleteTarget(c)}
-                      title="Excluir empresa permanentemente (irreversível)"
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/40 inline-flex items-center gap-1 disabled:opacity-50 transition-colors"
-                    >
-                      {deleteCompany.isPending && deleteCompany.variables?.id === c.id
-                        ? <Loader2 className="w-3 h-3 animate-spin" />
-                        : <Trash2 className="w-3 h-3" />}
-                      Excluir
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {items.map(c => {
+              const subStatusKey = resolveSubscriptionStatus(c);
+              const subCfg = subscriptionStatusConfig[subStatusKey] || subscriptionStatusConfig.ACTIVE;
+              return (
+                <tr key={c.id} className="border-b border-border hover:bg-muted/40 transition-colors duration-150">
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-sm text-foreground">{c.name}</div>
+                    {c.owner_email && <div className="text-xs text-muted-foreground mt-0.5">{c.owner_email}</div>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.slug ? (
+                      <a href={`/agendar/${c.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-[#2563EB] hover:underline font-medium">
+                        <Globe className="w-3 h-3" />/agendar/{c.slug}
+                      </a>
+                    ) : <span className="text-xs text-muted-foreground">–</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-blue-500/15 text-blue-500 rounded-full border border-blue-500/30">{c.plan_name || 'Starter'}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${subCfg.color}`}>
+                      {subCfg.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      {c.onboarding_completed
+                        ? <><CheckCircle className="w-4 h-4 text-emerald-500" /><span className="text-xs text-emerald-500 font-medium">Completo</span></>
+                        : <><Clock className="w-4 h-4 text-amber-500" /><span className="text-xs text-amber-500 font-medium">Etapa {c.onboarding_step || 1}</span></>
+                      }
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${(statusConfig[c.status] || statusConfig.active).color}`}>
+                      {(statusConfig[c.status] || statusConfig.active).label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => navigate(`/master/barbearias/${c.id}`)}
+                        className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-blue-500/15 text-blue-500 hover:bg-blue-500/25 border border-blue-500/30 flex items-center gap-1 transition-colors"
+                        title="Detalhes da empresa (funcionalidades, plano, etc.)"
+                      >
+                        <ExternalLink className="w-3 h-3" /> Detalhes
+                      </button>
+                      <button
+                        onClick={() => impersonate.mutate(c)}
+                        disabled={impersonate.isPending}
+                        className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-amber-500/15 text-amber-500 hover:bg-amber-500/25 border border-amber-500/30 flex items-center gap-1 disabled:opacity-50 transition-colors"
+                        title="Visualizar como esta empresa (15min)"
+                      >
+                        {impersonate.isPending && impersonate.variables?.id === c.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Eye className="w-3 h-3" />}
+                        Visualizar
+                      </button>
+                      <button
+                        disabled={toggleStatus.isPending}
+                        onClick={() => {
+                          if (c.status === 'active') {
+                            // Confirmação forte: digitar nome
+                            setConfirmTarget(c);
+                          } else {
+                            toggleStatus.mutate({ id: c.id, nextStatus: 'active' });
+                          }
+                        }}
+                        className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold disabled:opacity-50 inline-flex items-center gap-1 transition-colors border ${c.status === 'active' ? 'bg-red-500/15 text-red-500 hover:bg-red-500/25 border-red-500/30' : 'bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25 border-emerald-500/30'}`}>
+                        {toggleStatus.isPending && toggleStatus.variables?.id === c.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                        {c.status === 'active' ? 'Bloquear' : 'Ativar'}
+                      </button>
+                      <button
+                        disabled={deleteCompany.isPending}
+                        onClick={() => setDeleteTarget(c)}
+                        title="Excluir empresa permanentemente (irreversível)"
+                        className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/40 inline-flex items-center gap-1 disabled:opacity-50 transition-colors"
+                      >
+                        {deleteCompany.isPending && deleteCompany.variables?.id === c.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Trash2 className="w-3 h-3" />}
+                        Excluir
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {!isLoading && items.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">Nenhuma empresa encontrada</td></tr>
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-sm">Nenhuma empresa encontrada</td></tr>
             )}
             {isLoading && (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">Carregando…</td></tr>
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-sm">Carregando…</td></tr>
             )}
           </tbody>
         </table>

@@ -196,6 +196,9 @@ export class EntityRepository {
 
   _normalizeRow(row) {
     if (!row || typeof row !== 'object') return row;
+    if (row.created_at && !row.created_date) {
+      row = { ...row, created_date: row.created_at };
+    }
     if (this.tableName === 'plans') {
       const meta = (row.limits && typeof row.limits === 'object' && row.limits._customer_plan_meta) || {};
       const out = { ...row, ...meta };
@@ -563,7 +566,7 @@ export class EntityRepository {
       }
       let { data, error } = await query;
       if (error && this.tableName === 'companies') {
-        let fbQuery = supabase.from('companies').select(BASE_COMPANY_COLUMNS);
+        let fbQuery = supabase.from('companies').select('*');
         if (limit && limit > 0) fbQuery = fbQuery.limit(limit);
         const fbRes = await fbQuery;
         data = fbRes.data;

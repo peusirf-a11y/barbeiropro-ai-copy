@@ -5,10 +5,11 @@ import { Mail, Send, CheckCircle, AlertCircle, AlertTriangle, RefreshCw } from '
 import { useToast } from '@/components/ui/use-toast';
 
 const HEALTH_CONFIG = {
-  healthy:  { label: 'Provedor Online',     color: 'text-emerald-500',  bg: 'bg-emerald-500/10',  border: 'border-emerald-500/30',  dot: 'bg-emerald-500',  icon: CheckCircle },
-  degraded: { label: 'Falhas detectadas',   color: 'text-amber-500',    bg: 'bg-amber-500/10',    border: 'border-amber-500/30',    dot: 'bg-amber-500',    icon: AlertTriangle },
-  down:     { label: 'Provedor com erro',   color: 'text-red-500',      bg: 'bg-red-500/10',      border: 'border-red-500/30',      dot: 'bg-red-500',      icon: AlertCircle },
-  unknown:  { label: 'Sem envios recentes', color: 'text-muted-foreground', bg: 'bg-muted/30',    border: 'border-border',          dot: 'bg-muted-foreground', icon: Mail },
+  healthy:        { label: 'Provedor Online',         color: 'text-emerald-500',  bg: 'bg-emerald-500/10',  border: 'border-emerald-500/30',  dot: 'bg-emerald-500',  icon: CheckCircle },
+  degraded:       { label: 'Falhas detectadas',       color: 'text-amber-500',    bg: 'bg-amber-500/10',    border: 'border-amber-500/30',    dot: 'bg-amber-500',    icon: AlertTriangle },
+  down:           { label: 'Provedor com erro',       color: 'text-red-500',      bg: 'bg-red-500/10',      border: 'border-red-500/30',      dot: 'bg-red-500',      icon: AlertCircle },
+  not_configured: { label: 'Não configurado',         color: 'text-muted-foreground', bg: 'bg-muted/30',    border: 'border-border',          dot: 'bg-muted-foreground', icon: Mail },
+  unknown:        { label: 'Sem envios recentes',     color: 'text-muted-foreground', bg: 'bg-muted/30',    border: 'border-border',          dot: 'bg-muted-foreground', icon: Mail },
 };
 
 export default function EmailHealthCard() {
@@ -25,8 +26,8 @@ export default function EmailHealthCard() {
     refetchInterval: 30000,
   });
 
-  const health = data?.health || 'unknown';
-  const cfg = HEALTH_CONFIG[health];
+  const health = data?.health || 'not_configured';
+  const cfg = HEALTH_CONFIG[health] || HEALTH_CONFIG.not_configured;
   const Icon = cfg.icon;
 
   const handleSendTest = async () => {

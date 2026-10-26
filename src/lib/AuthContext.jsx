@@ -51,24 +51,16 @@ export const AuthProvider = ({ children }) => {
 
         if (session?.user) {
           const u = session.user;
-          u.is_super_admin = u.app_metadata?.role === 'superadmin' || u.user_metadata?.role === 'superadmin' || u.email === 'pedrojesantos@hotmail.com';
+          const normalizedEmail = String(u.email || '').trim().toLowerCase();
+          u.is_super_admin = u.app_metadata?.role === 'superadmin' || normalizedEmail === 'pedrojesantos@hotmail.com';
           setUser(u);
           setIsAuthenticated(true);
         } else {
-          const mockUserStr = localStorage.getItem('barberpass_mock_user');
-          if (mockUserStr) {
-            try {
-              const mockUser = JSON.parse(mockUserStr);
-              setUser(mockUser);
-              setIsAuthenticated(true);
-            } catch (e) {
-              setUser(null);
-              setIsAuthenticated(false);
-            }
-          } else {
-            setUser(null);
-            setIsAuthenticated(false);
-          }
+          try {
+            localStorage.removeItem('barberpass_mock_user');
+          } catch (_) {}
+          setUser(null);
+          setIsAuthenticated(false);
         }
 
         try {
@@ -76,7 +68,8 @@ export const AuthProvider = ({ children }) => {
             console.log("[Supabase Auth] onAuthStateChange event:", _event, "| Session:", currentSession);
             if (currentSession?.user) {
               const u = currentSession.user;
-              u.is_super_admin = u.app_metadata?.role === 'superadmin' || u.user_metadata?.role === 'superadmin' || u.email === 'pedrojesantos@hotmail.com';
+              const normalizedEmail = String(u.email || '').trim().toLowerCase();
+              u.is_super_admin = u.app_metadata?.role === 'superadmin' || normalizedEmail === 'pedrojesantos@hotmail.com';
               setUser(u);
               setIsAuthenticated(true);
             } else {

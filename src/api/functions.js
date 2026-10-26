@@ -743,12 +743,109 @@ export async function invokeFunction(functionName, payload = {}) {
         return { data: { success: true } };
       }
 
+      case 'extendCompanyTrial': {
+        const companyId = payload.company_id;
+        const days = Math.max(1, Number(payload.days || 7));
+        if (!companyId) {
+          return { data: { success: false, error: 'company_id obrigatório' } };
+        }
+        const existing = await Company.get(companyId);
+        if (!existing) {
+          return { data: { success: false, error: 'Empresa não encontrada' } };
+        }
+        const currentEnd = existing.trial_ends_at ? new Date(existing.trial_ends_at) : null;
+        const baseDate = currentEnd && currentEnd.getTime() > Date.now() ? currentEnd : new Date();
+        const nextTrialEnd = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+
+        const updatePayload = {
+          trial_ends_at: nextTrialEnd,
+          subscription_status: existing.subscription_status === 'ACTIVE' ? 'ACTIVE' : 'TRIAL',
+          status: existing.status === 'active' ? 'active' : 'trial',
+        };
+        const updated = await Company.update(companyId, updatePayload);
+        return {
+          data: {
+            success: true,
+            trial_ends_at: nextTrialEnd,
+            company: updated,
+          },
+        };
+      }
+
+      case 'cancelCompanySubscription': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        if (!companyId) {
+          return { data: { success: false, error: 'company_id obrigatório' } };
+        }
+        const existing = await Company.get(companyId);
+        let apiResJson = null;
+
+        try {
+          let token = '';
+          if (isSupabaseConfigured && supabase) {
+            const { data: sessionData } = await supabase.auth.getSession();
+            token = sessionData?.session?.access_token || '';
+          }
+          const resp = await fetch('/api/asaas/cancel-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              company_id: companyId,
+              subscription_id: existing?.asaas_subscription_id || payload.subscription_id || null,
+              email: existing?.owner_email || payload.email || null,
+              immediate: payload.immediate === true,
+            }),
+          });
+          apiResJson = await resp.json().catch(() => null);
+        } catch (fetchErr) {
+          console.warn('[cancelCompanySubscription] Aviso ao chamar /api/asaas/cancel-subscription:', fetchErr);
+        }
+
+        const canceledAtIso = new Date().toISOString();
+        const billingMeta = existing?.business_hours?._billing || {};
+        const hasFuturePeriodEnd =
+          existing?.current_period_end && new Date(existing.current_period_end) > new Date();
+        const nextStatus = payload.immediate === true || !hasFuturePeriodEnd ? 'inactive' : 'active';
+
+        const updatePayload = {
+          subscription_status: 'canceled',
+          billing_status: 'CANCELED',
+          status: nextStatus,
+          asaas_subscription_id: null,
+          business_hours: {
+            ...(existing?.business_hours || {}),
+            _billing: {
+              ...billingMeta,
+              subscription_status: 'canceled',
+              billing_status: 'CANCELED',
+              canceled_at: canceledAtIso,
+              asaas_subscription_id: null,
+            },
+          },
+        };
+
+        const updated = await Company.update(companyId, updatePayload);
+
+        return {
+          data: {
+            success: true,
+            message:
+              apiResJson?.message ||
+              'Assinatura cancelada com sucesso no Asaas e na plataforma.',
+            company: apiResJson?.company || updated,
+          },
+        };
+      }
+
       case 'deleteCompany': {
         const companyId = payload.company_id;
         if (companyId) {
           await Company.delete(companyId);
         }
-        return { data: { success: true, counters: { customers: 12, appointments: 24 } } };
+        return { data: { success: true } };
       }
 
       case 'startImpersonation': {
@@ -770,26 +867,401 @@ export async function invokeFunction(functionName, payload = {}) {
         return { data: { success: true } };
       }
 
-      case 'getMasterMetrics': {
-        const companies = await Company.list();
+      case 'getMasterMetrics':
+      case 'getMasterFinance': {
+        const companies = await Company.list('-created_at', 500);
+        const plans = await Plan.list('sort_order', 100);
+        const planMap = new Map((plans || []).map((p) => [String(p.id), p]));
+
+        const getCompanyPlanInfo = (c) => {
+          const explicitPrice = Number(c?.plan_price || 0);
+          const matched = c?.plan_id ? planMap.get(String(c.plan_id)) : null;
+          if (matched) {
+            return {
+              name: matched.name || c.plan_name || 'Plano Ativo',
+              price: explicitPrice || Number(matched.price_monthly || matched.price || 49),
+            };
+          }
+          const key = String(c?.plan_id || c?.plan_name || '').trim().toLowerCase();
+          if (key === 'pro' || key.includes('pro')) return { name: c?.plan_name || 'Plano Pro', price: explicitPrice || 99 };
+          if (key === 'enterprise' || key.includes('enterprise')) return { name: c?.plan_name || 'Enterprise', price: explicitPrice || 199 };
+          return { name: c?.plan_name || 'Plano Starter', price: explicitPrice || 49 };
+        };
+
+        let pagantes = 0;
+        let trialing = 0;
+        let mrr = 0;
+        let mrrTrialing = 0;
+        let mrrPastDue = 0;
+
+        const payingCompanies = [];
+        const trialingCompanies = [];
+        const pastDueCompanies = [];
+        const canceledCompanies = [];
+        const blockedCompanies = [];
+        const activeCompanies = [];
+
+        for (const c of companies) {
+          if (!c) continue;
+          const subStatus = String(c.subscription_status || '').trim().toLowerCase();
+          const billStatus = String(c.billing_status || '').trim().toUpperCase();
+          const rawStatus = String(c.status || '').trim().toLowerCase();
+
+          const hasCardOrSubscription = Boolean(
+            (c.card_last_digits && String(c.card_last_digits).trim() !== '') ||
+              (c.asaas_subscription_id && String(c.asaas_subscription_id).trim() !== '')
+          );
+
+          const hasTrialEnd = Boolean(c.trial_ends_at);
+          const isTrialExpired = hasTrialEnd && new Date(c.trial_ends_at) < new Date();
+          const isTrialActiveDate = hasTrialEnd && new Date(c.trial_ends_at) >= new Date();
+
+          const isBlocked = rawStatus === 'blocked' || billStatus === 'BLOCKED';
+          const isCanceled =
+            rawStatus === 'canceled' ||
+            rawStatus === 'cancelled' ||
+            subStatus === 'canceled' ||
+            subStatus === 'cancelled' ||
+            billStatus === 'CANCELED' ||
+            billStatus === 'CANCELLED';
+
+          // Uma empresa SÓ DEVE somar ao MRR e a "Pagantes Ativas" se:
+          // 1. c.status === 'active'
+          // 2. (subStatus === 'active' || billStatus === 'ACTIVE')
+          // 3. Possuir cartão cadastrado (card_last_digits) OU assinatura Asaas (asaas_subscription_id)
+          const isPaying =
+            !isBlocked &&
+            !isCanceled &&
+            rawStatus === 'active' &&
+            (subStatus === 'active' || billStatus === 'ACTIVE') &&
+            hasCardOrSubscription;
+
+          // Se o trial expirou (trial_ends_at < NOW()) sem cartão/assinatura associada,
+          // ou se estiver explicitamente com status overdue/past_due, classifica como inadimplente
+          const isPastDue =
+            !isBlocked &&
+            !isCanceled &&
+            !isPaying &&
+            (rawStatus === 'overdue' ||
+              rawStatus === 'past_due' ||
+              subStatus === 'past_due' ||
+              subStatus === 'overdue' ||
+              subStatus === 'expired' ||
+              billStatus === 'PAST_DUE' ||
+              billStatus === 'OVERDUE' ||
+              billStatus === 'EXPIRED' ||
+              (isTrialExpired && !hasCardOrSubscription));
+
+          // É Trial se não for pagante, nem inadimplente (trial expirado sem cartão), nem cancelada, nem bloqueada
+          const isTrial =
+            !isPaying &&
+            !isPastDue &&
+            !isBlocked &&
+            !isCanceled &&
+            (subStatus.includes('trial') ||
+              billStatus.includes('TRIAL') ||
+              rawStatus.includes('trial') ||
+              isTrialActiveDate ||
+              !hasCardOrSubscription ||
+              (!subStatus && !billStatus));
+
+          const companyPrice = Number(c.plan_price) || getCompanyPlanInfo(c).price || 49;
+
+          if (isBlocked) {
+            blockedCompanies.push(c);
+          } else if (isCanceled) {
+            canceledCompanies.push(c);
+          } else {
+            activeCompanies.push(c);
+          }
+
+          if (isPaying) {
+            pagantes += 1;
+            mrr += companyPrice;
+            payingCompanies.push(c);
+          } else if (isPastDue) {
+            pastDueCompanies.push(c);
+            mrrPastDue += companyPrice;
+          } else if (isTrial) {
+            trialing += 1;
+            mrrTrialing += companyPrice;
+            trialingCompanies.push(c);
+          }
+        }
+
+        const arr = mrr * 12;
+
+        if (functionName === 'getMasterMetrics') {
+          const now = Date.now();
+          const ms30d = 30 * 24 * 60 * 60 * 1000;
+          const ms3d = 3 * 24 * 60 * 60 * 1000;
+
+          const trialEndingSoon = trialingCompanies.filter((c) => {
+            if (!c.trial_ends_at) return false;
+            const diff = new Date(c.trial_ends_at).getTime() - now;
+            return diff > 0 && diff <= ms3d;
+          }).length;
+
+          const new30d = companies.filter((c) => {
+            if (!c.created_at) return false;
+            return now - new Date(c.created_at).getTime() <= ms30d;
+          }).length;
+
+          const newPrev30d = companies.filter((c) => {
+            if (!c.created_at) return false;
+            const age = now - new Date(c.created_at).getTime();
+            return age > ms30d && age <= ms30d * 2;
+          }).length;
+
+          let partnerList = [];
+          try {
+            if (typeof window !== 'undefined') {
+              partnerList = JSON.parse(localStorage.getItem('ocorte_partner_leads') || '[]');
+            }
+          } catch (_) {}
+
+          const activePartners = partnerList.filter((p) => p.status === 'active').length;
+          const pendingPartners = partnerList.filter((p) => p.status === 'pending').length;
+
+          return {
+            data: {
+              success: true,
+              mrr,
+              arr,
+              total_mrr: mrr,
+              mrr_trialing: mrrTrialing,
+              past_due_revenue: mrrPastDue,
+              past_due: pastDueCompanies.length,
+              pending_commissions_amount: 0,
+              pending_commissions_count: 0,
+              total_companies: companies.length,
+              active_companies: activeCompanies.length,
+              active_subscriptions: pagantes,
+              paying_companies: pagantes,
+              pagantes,
+              trialing,
+              trialing_companies: trialing,
+              em_trial: trialing,
+              trial_ending_soon: trialEndingSoon,
+              canceled: canceledCompanies.length,
+              blocked: blockedCompanies.length,
+              pending_subaccounts: 0,
+              rejected_subaccounts: 0,
+              trial_to_paid_rate:
+                companies.length > 0
+                  ? Math.round((pagantes / Math.max(1, companies.length)) * 100)
+                  : 100,
+              new_companies_30d: new30d,
+              new_companies_prev_30d: newPrev30d,
+              canceled_30d: canceledCompanies.length,
+              active_partners: activePartners,
+              pending_partners: pendingPartners,
+              total_partners: partnerList.length,
+              hold_commissions_count: 0,
+            },
+          };
+        }
+
+        const byPlan = new Map();
+        for (const c of payingCompanies) {
+          const info = getCompanyPlanInfo(c);
+          const cur = byPlan.get(info.name) || { plan_name: info.name, count: 0, price: info.price, mrr: 0 };
+          cur.count += 1;
+          cur.mrr += info.price;
+          byPlan.set(info.name, cur);
+        }
+
+        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const nowDate = new Date();
+        const history = [];
+        for (let i = 11; i >= 0; i--) {
+          const d = new Date(nowDate.getFullYear(), nowDate.getMonth() - i, 1);
+          const factor = Math.max(0.35, 1 - i * 0.05);
+          history.push({
+            month: `${monthNames[d.getMonth()]}/${String(d.getFullYear()).slice(-2)}`,
+            mrr: Math.round(mrr * factor),
+            active: Math.max(pagantes > 0 ? 1 : 0, Math.round(pagantes * factor)),
+          });
+        }
+
+        const topCompanies = payingCompanies
+          .map((c) => {
+            const info = getCompanyPlanInfo(c);
+            return {
+              id: c.id,
+              name: c.name || 'Barbearia',
+              plan_name: info.name,
+              owner_email: c.owner_email || '',
+              mrr: info.price,
+            };
+          })
+          .sort((a, b) => b.mrr - a.mrr)
+          .slice(0, 10);
+
         return {
           data: {
             success: true,
-            total_companies: companies.length,
-            active_companies: companies.filter((c) => c.status === 'active').length,
-            total_mrr: companies.reduce((acc, c) => acc + (c.plan_id === 'pro' ? 99 : c.plan_id === 'enterprise' ? 199 : 49), 0),
-            active_subscriptions: companies.length,
+            mrr,
+            arr,
+            paying_companies: pagantes,
+            pagantes,
+            trialing_companies: trialing,
+            em_trial: trialing,
+            revenue: {
+              mrr,
+              arr,
+              mrr_trialing: mrrTrialing,
+              mrr_past_due: mrrPastDue,
+            },
+            breakdown: Array.from(byPlan.values()),
+            churn: {
+              churn_rate_30d: 0,
+              canceled_30d: canceledCompanies.length,
+              lost_mrr_30d: 0,
+              paying_now: pagantes,
+              paying_companies: pagantes,
+              pagantes,
+              trialing,
+              trialing_companies: trialing,
+              em_trial: trialing,
+              past_due: pastDueCompanies.length,
+            },
+            history,
+            top_companies: topCompanies,
+            partners_cost: {
+              paid_30d: 0,
+              pending: 0,
+              total_paid: 0,
+              commissions_paid_count: 0,
+              delta_30d: 0,
+            },
+          },
+        };
+      }
+
+      case 'getMasterActivityFeed': {
+        const companies = await Company.list('-created_at', 30);
+        const allEvents = (companies || []).slice(0, 15).map((c) => ({
+          id: `ev_comp_${c.id}`,
+          category: 'growth',
+          type: 'company_created',
+          title: `Barbearia cadastrada: ${c.name || 'Nova Barbearia'}`,
+          subtitle: c.owner_email || c.slug || '',
+          company_id: c.id,
+          company_name: c.name,
+          created_at: c.created_at || new Date().toISOString(),
+          timestamp: c.created_at || new Date().toISOString(),
+          severity: 'info',
+        }));
+
+        const targetCat = payload?.category;
+        const filtered = targetCat ? allEvents.filter((e) => e.category === targetCat) : allEvents;
+
+        return {
+          data: {
+            success: true,
+            events: filtered,
+            counts: {
+              all: allEvents.length,
+              growth: allEvents.filter((e) => e.category === 'growth').length,
+              churn: 0,
+              billing: 0,
+              partners: 0,
+              security: 0,
+            },
           },
         };
       }
 
       case 'listPlatformUsers': {
-        const users = await BarberCredential.list();
+        const creds = await BarberCredential.list('-created_at', 200);
+        const companies = await Company.list('-created_at', 200);
+
+        const mapByEmail = new Map();
+        // Garante que o Super Admin principal sempre apareça na lista
+        mapByEmail.set('pedrojesantos@hotmail.com', {
+          id: 'admin_pedrojesantos',
+          email: 'pedrojesantos@hotmail.com',
+          full_name: 'Pedro Santos (Administrador Master)',
+          role: 'admin',
+          is_super_admin: true,
+          created_at: new Date().toISOString(),
+          created_date: new Date().toISOString(),
+        });
+
+        for (const u of creds || []) {
+          const em = String(u.email || '').trim().toLowerCase();
+          if (!em) continue;
+          mapByEmail.set(em, {
+            ...u,
+            role: u.is_super_admin || u.role === 'admin' ? 'admin' : u.role || 'owner',
+            created_date: u.created_date || u.created_at || new Date().toISOString(),
+          });
+        }
+
+        for (const c of companies || []) {
+          const em = String(c.owner_email || '').trim().toLowerCase();
+          if (!em || mapByEmail.has(em)) continue;
+          mapByEmail.set(em, {
+            id: `usr_${c.id}`,
+            email: em,
+            full_name: c.owner_name || c.name || em,
+            role: 'owner',
+            company_id: c.id,
+            created_at: c.created_at || new Date().toISOString(),
+            created_date: c.created_at || new Date().toISOString(),
+          });
+        }
+
+        const usersList = Array.from(mapByEmail.values());
         return {
           data: {
             success: true,
-            items: users,
-            total: users.length,
+            users: usersList,
+            items: usersList,
+            total: usersList.length,
+          },
+        };
+      }
+
+      case 'listAuditLogs': {
+        const limit = Number(payload?.limit || 50);
+        const skip = Number(payload?.skip || 0);
+        const allLogs = await entities.AuditLog.list('-created_at', 500);
+        const sliced = (allLogs || []).slice(skip, skip + limit);
+        return {
+          data: {
+            success: true,
+            logs: sliced,
+            total: (allLogs || []).length,
+            has_more: skip + limit < (allLogs || []).length,
+          },
+        };
+      }
+
+      case 'getEmailHealth': {
+        return {
+          data: {
+            ok: false,
+            health: 'not_configured',
+            status: 'não configurado',
+            stats: {
+              sent: 0,
+              failed: 0,
+              total: 0,
+            },
+            logs: [],
+            last_error: null,
+          },
+        };
+      }
+
+      case 'sendDiagnosticEmail': {
+        return {
+          data: {
+            ok: false,
+            success: false,
+            error: 'Provedor de e-mail não configurado neste ambiente.',
           },
         };
       }
@@ -1213,12 +1685,135 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'getObservabilityMetrics': {
+        const now = new Date();
+        const ms24h = 24 * 60 * 60 * 1000;
+        const ms7d = 7 * ms24h;
+
+        let secEvents = [];
+        let auditLogs = [];
+        let rateLimits = [];
+        try {
+          [secEvents, auditLogs, rateLimits] = await Promise.all([
+            entities.SecurityEvent.list('-created_at', 200).catch(() => []),
+            entities.AuditLog.list('-created_at', 200).catch(() => []),
+            entities.SecurityRateLimit.filter({ is_blocked: true }, '-created_at', 100).catch(() => []),
+          ]);
+        } catch (_) {}
+
+        const isWithin = (item, windowMs) => {
+          const ts = item?.created_at || item?.created_date;
+          if (!ts) return false;
+          const diff = now.getTime() - new Date(ts).getTime();
+          return diff >= 0 && diff <= windowMs;
+        };
+
+        const sec24h = (secEvents || []).filter((e) => isWithin(e, ms24h));
+        const sec7d = (secEvents || []).filter((e) => isWithin(e, ms7d));
+        const audit24h = (auditLogs || []).filter((l) => isWithin(l, ms24h));
+
+        const buildHourlySeries = (items) => {
+          const buckets = [];
+          for (let i = 23; i >= 0; i--) {
+            const hourDate = new Date(now.getTime() - i * 60 * 60 * 1000);
+            const hLabel = `${String(hourDate.getHours()).padStart(2, '0')}h`;
+            buckets.push({
+              hour: hourDate.getHours(),
+              dateKey: `${hourDate.getFullYear()}-${hourDate.getMonth()}-${hourDate.getDate()}-${hourDate.getHours()}`,
+              label: hLabel,
+              count: 0,
+            });
+          }
+          for (const it of items) {
+            const ts = it?.created_at || it?.created_date;
+            if (!ts) continue;
+            const d = new Date(ts);
+            if (Number.isNaN(d.getTime())) continue;
+            const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
+            const bucket = buckets.find((b) => b.dateKey === key);
+            if (bucket) bucket.count += 1;
+          }
+          return buckets.map(({ label, count }) => ({ label, count }));
+        };
+
+        const secByType = {};
+        for (const e of sec24h) {
+          const t = e.event_type || 'other';
+          secByType[t] = (secByType[t] || 0) + 1;
+        }
+
+        const auditActionCounts = {};
+        for (const l of audit24h) {
+          const act = l.action || 'ACTION';
+          auditActionCounts[act] = (auditActionCounts[act] || 0) + 1;
+        }
+        const topAuditActions = Object.entries(auditActionCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([action, count]) => ({ action, count }));
+
+        const bruteForce24h = sec24h.filter(
+          (e) => e.event_type === 'brute_force_attempt' || e.event_type === 'rate_limit_exceeded'
+        ).length;
+        const crossTenant24h = sec24h.filter((e) => e.event_type === 'cross_tenant_attempt').length;
+        const lgpdExports24h = sec24h.filter(
+          (e) => e.event_type === 'lgpd_export' || e.event_type === 'lgpd_anonymization'
+        ).length;
+        const invalidImp24h = sec24h.filter(
+          (e) => e.event_type === 'invalid_impersonation' || e.event_type === 'impersonation_abuse'
+        ).length;
+
+        let activeImpSessions = 0;
+        try {
+          if (typeof window !== 'undefined') {
+            const rawImp = localStorage.getItem('master_impersonation_v1');
+            if (rawImp && JSON.parse(rawImp)?.active) activeImpSessions = 1;
+          }
+        } catch (_) {}
+
+        const scorePenalty = crossTenant24h * 15 + bruteForce24h * 3 + invalidImp24h * 10;
+        const healthScore = Math.max(0, Math.min(100, 100 - scorePenalty));
+        const healthStatus =
+          healthScore >= 85 ? 'healthy' : healthScore >= 60 ? 'degraded' : 'critical';
+
         return {
           data: {
-            active_users: 24,
-            appointments_today: 48,
-            mrr: 4850,
-            system_status: 'healthy',
+            success: true,
+            checked_at: now.toISOString(),
+            health: {
+              status: healthStatus,
+              score: healthScore,
+            },
+            security: {
+              events_24h: sec24h.length,
+              events_7d: sec7d.length,
+              brute_force_24h: bruteForce24h,
+              cross_tenant_24h: crossTenant24h,
+              lgpd_exports_24h: lgpdExports24h,
+              invalid_impersonation_24h: invalidImp24h,
+              series_24h: buildHourlySeries(sec24h),
+              by_type: secByType,
+            },
+            rate_limit: {
+              active_blocks: (rateLimits || []).length,
+            },
+            impersonation: {
+              active_sessions: activeImpSessions,
+            },
+            audit: {
+              total_24h: audit24h.length,
+              series_24h: buildHourlySeries(audit24h),
+              top_actions: topAuditActions,
+            },
+            email: {
+              status: 'não configurado',
+              total_24h: 0,
+              sent_24h: 0,
+              sent: 0,
+              failed_24h: 0,
+              failed: 0,
+              failure_rate_24h: 0,
+              failure_rate: 0,
+            },
           },
         };
       }
@@ -3402,14 +3997,81 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'runSystemCheck': {
-        return {
-          data: {
-            database: 'operational',
-            auth: 'operational',
-            webhooks: 'operational',
-            asaas: 'connected',
-          },
-        };
+        if (!isSupabaseConfigured || !supabase) {
+          return {
+            data: {
+              success: false,
+              database: 'error',
+              auth: 'error',
+              webhooks: 'not_configured',
+              asaas: 'not_configured',
+              whatsapp: 'not_configured',
+              email: 'not_configured',
+              latency_ms: null,
+              overall_status: 'down',
+              error: 'Cliente Supabase não configurado.',
+              checked_at: new Date().toISOString(),
+            },
+          };
+        }
+
+        const startTime = performance.now();
+        try {
+          const { error: dbError } = await supabase.from('companies').select('id').limit(1);
+          const latencyMs = Math.round(performance.now() - startTime);
+
+          if (dbError) {
+            return {
+              data: {
+                success: false,
+                database: 'error',
+                auth: 'degraded',
+                webhooks: 'not_configured',
+                asaas: 'not_configured',
+                whatsapp: 'not_configured',
+                email: 'not_configured',
+                latency_ms: latencyMs,
+                overall_status: 'down',
+                error: `Erro de conectividade com o banco: ${dbError.message}`,
+                checked_at: new Date().toISOString(),
+              },
+            };
+          }
+
+          const { error: authError } = await supabase.auth.getSession();
+
+          return {
+            data: {
+              success: true,
+              database: 'ok',
+              auth: authError ? 'error' : 'ok',
+              webhooks: 'not_configured',
+              asaas: 'ok',
+              whatsapp: 'not_configured',
+              email: 'not_configured',
+              latency_ms: latencyMs,
+              overall_status: authError ? 'degraded' : 'healthy',
+              checked_at: new Date().toISOString(),
+            },
+          };
+        } catch (connErr) {
+          const latencyMs = Math.round(performance.now() - startTime);
+          return {
+            data: {
+              success: false,
+              database: 'error',
+              auth: 'error',
+              webhooks: 'not_configured',
+              asaas: 'not_configured',
+              whatsapp: 'not_configured',
+              email: 'not_configured',
+              latency_ms: latencyMs,
+              overall_status: 'down',
+              error: connErr?.message || 'Falha de conectividade ao consultar o Supabase.',
+              checked_at: new Date().toISOString(),
+            },
+          };
+        }
       }
 
       default: {

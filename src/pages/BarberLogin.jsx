@@ -3,8 +3,11 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
+import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
-import { AlertCircle, Loader2, Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { AlertCircle, ShieldAlert, Loader2, Lock, Mail, Eye, EyeOff, ArrowRight, X, MessageCircle } from 'lucide-react';
+
+const BLOCKED_STORAGE_KEY = 'ocorte_blocked_account_notice';
 
 export default function BarberLogin() {
   const navigate = useNavigate();
@@ -15,11 +18,36 @@ export default function BarberLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [blockedNotice, setBlockedNotice] = useState(() => {
+    try {
+      return (
+        params.get('blocked') === '1' ||
+        sessionStorage.getItem(BLOCKED_STORAGE_KEY) === '1'
+      );
+    } catch {
+      return false;
+    }
+  });
+
+  const dismissBlockedNotice = () => {
+    setBlockedNotice(false);
+    try {
+      sessionStorage.removeItem(BLOCKED_STORAGE_KEY);
+    } catch (_) {}
+  };
+
+  const triggerBlockedNotice = () => {
+    try {
+      sessionStorage.setItem(BLOCKED_STORAGE_KEY, '1');
+    } catch (_) {}
+    setBlockedNotice(true);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
     setError('');
+    dismissBlockedNotice();
 
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !password) {
@@ -79,7 +107,9 @@ export default function BarberLogin() {
       const user = session?.user;
 
       if (user) {
-        user.is_super_admin = user.email === 'pedrojesantos@hotmail.com' || user.app_metadata?.role === 'superadmin' || user.user_metadata?.role === 'superadmin';
+        user.is_super_admin =
+          user.app_metadata?.role === 'superadmin' ||
+          String(user.email || '').trim().toLowerCase() === 'pedrojesantos@hotmail.com';
 
         // Consulta team_members para carregar papel e permissões reais
         let teamRole = null;
@@ -99,6 +129,54 @@ export default function BarberLogin() {
             user.isBarbeiro = tm.role === 'barbeiro';
           }
         } catch (_) {}
+
+        // Verifica se a empresa vinculada está com status === 'blocked'
+        if (!user.is_super_admin) {
+          let associatedCompany = null;
+          try {
+            if (user.company_id) {
+              const { data: byId } = await supabase
+                .from('companies')
+                .select('id, name, status, billing_status, owner_email')
+                .eq('id', user.company_id)
+                .maybeSingle();
+              if (byId) associatedCompany = byId;
+            }
+            if (!associatedCompany) {
+              const { data: byEmail } = await supabase
+                .from('companies')
+                .select('id, name, status, billing_status, owner_email')
+                .ilike('owner_email', cleanEmail)
+                .maybeSingle();
+              if (byEmail) associatedCompany = byEmail;
+            }
+            if (!associatedCompany) {
+              const allCompanies = await base44.entities.Company.list();
+              associatedCompany =
+                allCompanies.find(
+                  (c) =>
+                    (user.company_id && c.id === user.company_id) ||
+                    c.owner_email?.toLowerCase().trim() === cleanEmail
+                ) || null;
+            }
+          } catch (_) {}
+
+          const compStatus = String(associatedCompany?.status || '').trim().toLowerCase();
+          const compBillStatus = String(associatedCompany?.billing_status || '').trim().toUpperCase();
+
+          if (compStatus === 'blocked' || compBillStatus === 'BLOCKED') {
+            triggerBlockedNotice();
+            try {
+              localStorage.removeItem('admin_logged_user');
+              localStorage.removeItem('barberpass_auth_email');
+              await supabase.auth.signOut();
+            } catch (_) {}
+            setUser?.(null);
+            setIsAuthenticated?.(false);
+            setSubmitting(false);
+            return;
+          }
+        }
 
         setUser?.(user);
         setIsAuthenticated?.(true);
@@ -120,7 +198,6 @@ export default function BarberLogin() {
         setError('Não foi possível obter a sessão do usuário. Tente novamente.');
         setSubmitting(false);
       }
-
     } catch (err) {
       console.warn('[Login] Exceção durante autenticação:', err);
       setError('Erro de conexão ao autenticar. Tente novamente.');
@@ -163,6 +240,55 @@ export default function BarberLogin() {
 
           {/* Login Card */}
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-200/40 p-6 sm:p-8">
+            {blockedNotice && (
+              <div
+                role="alert"
+                className="mb-6 rounded-2xl border-2 border-rose-500/40 bg-rose-50 p-4 sm:p-5 text-rose-950 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
+                      <ShieldAlert className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-2">
+                      <h2 className="text-sm font-extrabold text-rose-900 leading-snug">
+                        Acesso Temporariamente Suspenso
+                      </h2>
+                      <p className="text-xs sm:text-[13px] font-medium text-rose-800 leading-relaxed">
+                        Esta conta foi suspensa temporariamente pela administração da plataforma. Para regularizar seu acesso ou obter mais esclarecimentos, entre em contato com nosso suporte:
+                      </p>
+                      <div className="pt-1 flex flex-wrap items-center gap-2">
+                        <a
+                          href="mailto:suporte@ocorte.app?subject=Regulariza%C3%A7%C3%A3o%20de%20Conta%20-%20O%20CORTE"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          suporte@ocorte.app
+                        </a>
+                        <a
+                          href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20sobre%20o%20bloqueio%20da%20minha%20conta%20no%20O%20CORTE."
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          Falar no WhatsApp
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={dismissBlockedNotice}
+                    aria-label="Fechar aviso de bloqueio"
+                    className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-100 hover:text-rose-900 transition-colors flex-shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div>
