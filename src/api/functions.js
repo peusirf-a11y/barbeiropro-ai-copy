@@ -1,7 +1,7 @@
 // Funções de Backend O CORTE / BarberPass
 // Processa chamadas de funções de negócio de forma 100% autônoma.
 
-import { Plan, CustomerPlan, CustomerSubscription, Company, BarberCredential, Customer, Appointment, FinancialEntry, Service, Commission, Review, TeamMember, Professional } from './entities';
+import entities, { Plan, CustomerPlan, CustomerSubscription, Company, BarberCredential, Customer, Appointment, FinancialEntry, Service, Commission, Review, TeamMember, Professional } from './entities';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import {
   resolvePlanAllowedWeekdays,
@@ -271,10 +271,181 @@ export async function invokeFunction(functionName, payload = {}) {
         return { data: { success: true } };
       }
 
-      case 'getLandingMode': {
+      case 'setLandingMode': {
+        const nextMode = payload?.mode === 'launch' ? 'launch' : 'default';
+        const enabled = nextMode === 'launch';
+
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ocorte_landing_mode', nextMode);
+          }
+        } catch (_) {}
+
+        let flagRecord = null;
+        try {
+          const existingFlags = await entities.FeatureFlag.filter({ key: 'landing_mode' });
+          if (existingFlags && existingFlags[0]) {
+            flagRecord = await entities.FeatureFlag.update(existingFlags[0].id, {
+              enabled,
+              scope: 'global',
+            });
+          } else {
+            flagRecord = await entities.FeatureFlag.create({
+              key: 'landing_mode',
+              enabled,
+              scope: 'global',
+              description: 'Quando ativada, /landing exibe a landing de lançamento (R$ 49/mês).',
+            });
+          }
+        } catch (_) {}
+
+        if (isSupabaseConfigured && supabase) {
+          // Persiste em plans.limits._landing_mode (tabela pública acessível por visitantes não logados em qualquer dispositivo)
+          try {
+            const { data: planRows } = await supabase
+              .from('plans')
+              .select('id, limits, company_id')
+              .limit(50);
+            if (Array.isArray(planRows) && planRows.length > 0) {
+              const globalPlans = planRows.filter((p) => !p.company_id);
+              const targets = globalPlans.length > 0 ? globalPlans : [planRows[0]];
+              for (const plan of targets) {
+                const nextLimits = {
+                  ...(plan.limits && typeof plan.limits === 'object' ? plan.limits : {}),
+                  _landing_mode: nextMode,
+                };
+                await supabase.from('plans').update({ limits: nextLimits }).eq('id', plan.id);
+              }
+            }
+          } catch (_) {}
+
+          // Persiste também em companies.business_hours._landing_mode como redundância
+          try {
+            const { data: compRows } = await supabase
+              .from('companies')
+              .select('id, business_hours')
+              .limit(3);
+            if (Array.isArray(compRows) && compRows.length > 0) {
+              for (const comp of compRows) {
+                const nextBh = {
+                  ...(comp.business_hours && typeof comp.business_hours === 'object'
+                    ? comp.business_hours
+                    : {}),
+                  _landing_mode: nextMode,
+                };
+                await supabase
+                  .from('companies')
+                  .update({ business_hours: nextBh })
+                  .eq('id', comp.id);
+              }
+            }
+          } catch (_) {}
+        }
+
         return {
           data: {
-            mode: 'default',
+            success: true,
+            mode: nextMode,
+            flag_id: flagRecord?.id || null,
+          },
+        };
+      }
+
+      case 'getLandingMode': {
+        let remoteMode = null;
+
+        if (isSupabaseConfigured && supabase) {
+          // 1. Tenta ler da tabela feature_flags no Supabase
+          try {
+            const { data: ffRows, error: ffErr } = await supabase
+              .from('feature_flags')
+              .select('key, enabled')
+              .eq('key', 'landing_mode')
+              .limit(1);
+            if (!ffErr && Array.isArray(ffRows) && ffRows.length > 0) {
+              remoteMode = ffRows[0].enabled ? 'launch' : 'default';
+            }
+          } catch (_) {}
+
+          // 2. Tenta ler de plans.limits._landing_mode (sempre acessível para visitantes anônimos)
+          if (!remoteMode) {
+            try {
+              const { data: planRows, error: planErr } = await supabase
+                .from('plans')
+                .select('id, limits, company_id')
+                .limit(50);
+              if (!planErr && Array.isArray(planRows) && planRows.length > 0) {
+                const globalPlans = planRows.filter((p) => !p.company_id);
+                const ordered = [...globalPlans, ...planRows.filter((p) => p.company_id)];
+                const match = ordered.find(
+                  (p) =>
+                    p.limits &&
+                    typeof p.limits === 'object' &&
+                    (p.limits._landing_mode === 'launch' || p.limits._landing_mode === 'default')
+                );
+                if (match) {
+                  remoteMode = match.limits._landing_mode;
+                }
+              }
+            } catch (_) {}
+          }
+
+          // 3. Tenta ler de companies.business_hours._landing_mode
+          if (!remoteMode) {
+            try {
+              const { data: compRows, error: compErr } = await supabase
+                .from('companies')
+                .select('id, business_hours')
+                .limit(10);
+              if (!compErr && Array.isArray(compRows) && compRows.length > 0) {
+                const match = compRows.find(
+                  (c) =>
+                    c.business_hours &&
+                    typeof c.business_hours === 'object' &&
+                    (c.business_hours._landing_mode === 'launch' ||
+                      c.business_hours._landing_mode === 'default')
+                );
+                if (match) {
+                  remoteMode = match.business_hours._landing_mode;
+                }
+              }
+            } catch (_) {}
+          }
+        }
+
+        // 4. Fallback para FeatureFlag / localStorage local
+        let localMode = null;
+        try {
+          if (typeof window !== 'undefined') {
+            const direct = localStorage.getItem('ocorte_landing_mode');
+            if (direct === 'launch' || direct === 'default') {
+              localMode = direct;
+            }
+          }
+          if (!localMode) {
+            const flags = await entities.FeatureFlag.filter({ key: 'landing_mode' });
+            if (flags && flags[0]) {
+              localMode = flags[0].enabled ? 'launch' : 'default';
+            }
+          }
+        } catch (_) {}
+
+        const finalMode = remoteMode || localMode || 'default';
+
+        // Se havia configuração local ainda não sincronizada no Supabase, sincroniza em background
+        if (!remoteMode && localMode && isSupabaseConfigured && supabase) {
+          invokeFunction('setLandingMode', { mode: localMode }).catch(() => {});
+        }
+
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ocorte_landing_mode', finalMode);
+          }
+        } catch (_) {}
+
+        return {
+          data: {
+            mode: finalMode,
           },
         };
       }

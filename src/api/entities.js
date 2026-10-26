@@ -553,6 +553,9 @@ export class EntityRepository {
         if (this.tableName === 'appointments' && field === 'scheduled_at') {
           field = 'date';
         }
+        if (field === 'created_date') {
+          field = 'created_at';
+        }
         query = query.order(field, { ascending: !isDesc });
       }
       if (limit && limit > 0) {
@@ -659,10 +662,7 @@ export class EntityRepository {
         if (this.tableName === 'appointments' && field === 'scheduled_at') {
           field = 'date';
         }
-        if (this.tableName === 'customer_subscriptions' && field === 'created_date') {
-          field = 'created_at';
-        }
-        if (this.tableName === 'reviews' && field === 'created_date') {
+        if (field === 'created_date') {
           field = 'created_at';
         }
         query = query.order(field, { ascending: !isDesc });

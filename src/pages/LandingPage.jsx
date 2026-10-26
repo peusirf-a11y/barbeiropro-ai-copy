@@ -1,9 +1,6 @@
 // Landing premium dark cinematográfica — composta por componentes modulares.
 // Quando a FeatureFlag global `landing_mode` está ativa, exibe a LaunchLandingPage.
-import { Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/lib/AuthContext';
-import { isSuperAdmin } from '@/lib/permissions';
 import { base44 } from '@/api/base44Client';
 import LaunchLandingPage from './LaunchLandingPage';
 import PremiumBackground from '@/components/landing/PremiumBackground';
@@ -21,9 +18,23 @@ import PremiumFooter from '@/components/landing/PremiumFooter';
 
 import { captureReferralFromUrl } from '@/lib/referralTracking';
 
+function getInitialLandingMode() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const direct = localStorage.getItem('ocorte_landing_mode');
+    if (direct === 'launch' || direct === 'default') return direct;
+    const rawFlags = localStorage.getItem('barberpass_local_feature_flags');
+    if (rawFlags) {
+      const flags = JSON.parse(rawFlags);
+      const match = Array.isArray(flags) && flags.find((f) => f && f.key === 'landing_mode');
+      if (match) return match.enabled ? 'launch' : 'default';
+    }
+  } catch (_) {}
+  return null;
+}
+
 export default function LandingPage() {
-  const { isAuthenticated, isLoadingAuth, user } = useAuth();
-  const [landingMode, setLandingMode] = useState(null); // null | 'default' | 'launch'
+  const [landingMode, setLandingMode] = useState(() => getInitialLandingMode()); // null | 'default' | 'launch'
 
   // Captura código de indicação do parceiro (?ref=)
   useEffect(() => {
@@ -39,22 +50,28 @@ export default function LandingPage() {
     } catch (_) {}
   }, []);
 
-  // Lê a flag `landing_mode` via endpoint público
+  // Lê a flag `landing_mode` via endpoint público / Supabase
   useEffect(() => {
+    let mounted = true;
     (async () => {
       try {
         const { data } = await base44.functions.invoke('getLandingMode', {});
-        setLandingMode(data?.mode === 'launch' ? 'launch' : 'default');
+        if (mounted) {
+          setLandingMode(data?.mode === 'launch' ? 'launch' : 'default');
+        }
       } catch {
-        setLandingMode('default');
+        if (mounted) {
+          setLandingMode((prev) => prev || 'default');
+        }
       }
     })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // Usuário já logado: super admin → /master/dashboard, demais → /app/dashboard.
-  if (!isLoadingAuth && isAuthenticated && user) {
-    if (isSuperAdmin(user)) return <Navigate to="/master/dashboard" replace />;
-    return <Navigate to="/app/dashboard" replace />;
+  if (landingMode === null) {
+    return <div className="min-h-screen bg-[#070B14]" />;
   }
 
   if (landingMode === 'launch') return <LaunchLandingPage />;

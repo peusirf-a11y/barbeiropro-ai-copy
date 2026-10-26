@@ -6,9 +6,7 @@
 //
 // Para alternar entre /landing default e launch, ver `landing_mode` na FeatureFlag.
 
-import { Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 
 import PremiumBackground from '@/components/landing/PremiumBackground';
@@ -29,8 +27,6 @@ const VAGAS_TOTAIS = 10;
 import { captureReferralFromUrl } from '@/lib/referralTracking';
 
 export default function LaunchLandingPage() {
-  const { isAuthenticated, isLoadingAuth, user } = useAuth();
-
   useEffect(() => {
     try {
       captureReferralFromUrl();
@@ -72,7 +68,7 @@ export default function LaunchLandingPage() {
   useEffect(() => {
     (async () => {
       try {
-        const companies = await base44.entities.Company.filter({ status: 'active' }, '-created_date', 50);
+        const companies = await base44.entities.Company.filter({ status: 'active' }, '-created_at', 50);
         const usadas = Math.min(companies.length, VAGAS_TOTAIS);
         setVagasRestantes(Math.max(0, VAGAS_TOTAIS - usadas));
       } catch (e) {
@@ -80,12 +76,6 @@ export default function LaunchLandingPage() {
       }
     })();
   }, []);
-
-  // Usuário já logado: super admin → /master, demais → /app/dashboard.
-  if (!isLoadingAuth && isAuthenticated && user) {
-    if (user.is_super_admin) return <Navigate to="/master" replace />;
-    return <Navigate to="/app/dashboard" replace />;
-  }
 
   return (
     <div className="relative min-h-screen text-white font-inter antialiased selection:bg-[#2563EB]/40 selection:text-white">

@@ -1,14 +1,17 @@
 // Card de configuração — alterna entre landing principal e landing de lançamento.
-// Persiste num FeatureFlag global (key='landing_mode'): enabled=true → launch, false → default.
+// Persiste num FeatureFlag global (key='landing_mode') e nos metadados públicos do Supabase: enabled=true → launch, false → default.
 
 import { useEffect, useState } from 'react';
 import { Rocket, Globe, Check, Loader2, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { clearFeatureFlagCache } from '@/lib/featureFlags';
+import { useToast } from '@/components/ui/use-toast';
 
 const FLAG_KEY = 'landing_mode';
 
 export default function LandingModeCard() {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState('default'); // 'default' | 'launch'
@@ -17,11 +20,19 @@ export default function LandingModeCard() {
   useEffect(() => {
     (async () => {
       try {
-        const flags = await base44.entities.FeatureFlag.filter({ key: FLAG_KEY });
-        const flag = flags[0];
+        const [flags, modeRes] = await Promise.all([
+          base44.entities.FeatureFlag.filter({ key: FLAG_KEY }).catch(() => []),
+          base44.functions.invoke('getLandingMode', {}).catch(() => ({ data: null })),
+        ]);
+        const flag = flags?.[0];
         if (flag) {
           setFlagId(flag.id);
-          setMode(flag.enabled ? 'launch' : 'default');
+          const resolved = flag.enabled ? 'launch' : 'default';
+          setMode(resolved);
+          // Garante sincronização imediata com o Supabase caso estivesse salvo apenas localmente
+          base44.functions.invoke('setLandingMode', { mode: resolved }).catch(() => {});
+        } else if (modeRes?.data?.mode) {
+          setMode(modeRes.data.mode === 'launch' ? 'launch' : 'default');
         }
       } catch (e) {
         console.error('[LandingModeCard] load failed', e);
@@ -44,12 +55,30 @@ export default function LandingModeCard() {
           scope: 'global',
           description: 'Quando ativada, /landing exibe a landing de lançamento (R$ 49/mês).',
         });
-        setFlagId(created.id);
+        if (created?.id) setFlagId(created.id);
       }
+
+      const res = await base44.functions.invoke('setLandingMode', { mode: next });
+      if (res?.data?.flag_id && !flagId) {
+        setFlagId(res.data.flag_id);
+      }
+
+      clearFeatureFlagCache();
       setMode(next);
+      toast({
+        title: next === 'launch' ? 'Landing de lançamento ativada!' : 'Landing principal ativada!',
+        description:
+          next === 'launch'
+            ? 'A rota /landing e a raiz pública agora exibem a página de oferta de lançamento.'
+            : 'A rota /landing e a raiz pública agora exibem a landing principal oficial.',
+      });
     } catch (e) {
       console.error('[LandingModeCard] save failed', e);
-      alert('Não consegui salvar a alteração. Tente novamente.');
+      toast({
+        title: 'Erro ao salvar alteração',
+        description: 'Não foi possível alterar o modo da landing. Tente novamente.',
+        variant: 'destructive',
+      });
     } finally {
       setSaving(false);
     }
@@ -80,7 +109,7 @@ export default function LandingModeCard() {
 
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6">
-      <div className="flex items-start justify-between gap-4 mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-5">
         <div>
           <h3 className="font-bold text-white text-lg">Modo da landing pública</h3>
           <p className="text-sm text-white/55 mt-1 max-w-xl leading-relaxed">
@@ -89,12 +118,12 @@ export default function LandingModeCard() {
           </p>
         </div>
         <Link
-          to="/lancamento"
+          to="/landing"
           target="_blank"
           rel="noreferrer"
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white/80 border border-white/12 bg-white/[0.04] rounded-lg hover:bg-white/[0.08] transition-colors"
+          className="inline-flex self-start items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white/80 border border-white/12 bg-white/[0.04] rounded-lg hover:bg-white/[0.08] transition-colors shrink-0"
         >
-          Pré-visualizar lançamento <ExternalLink className="w-3 h-3" />
+          Ver /landing ativa <ExternalLink className="w-3 h-3" />
         </Link>
       </div>
 
