@@ -3,11 +3,91 @@ import { entities } from './entities';
 import { invokeFunction } from './functions';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
+async function compressImageToDataUrl(file, maxDimension = 512, quality = 0.86) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      reject(new Error('Nenhum arquivo selecionado.'));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Falha ao ler o arquivo de imagem.'));
+    reader.onload = (event) => {
+      const rawDataUrl = event?.target?.result;
+      if (typeof rawDataUrl !== 'string') {
+        reject(new Error('Formato de arquivo inválido.'));
+        return;
+      }
+
+      // Se for SVG ou não for imagem raster, retorna o Data URL diretamente
+      if (!file.type || !file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+        resolve(rawDataUrl);
+        return;
+      }
+
+      const img = new Image();
+      img.onerror = () => resolve(rawDataUrl);
+      img.onload = () => {
+        try {
+          let targetWidth = img.width || maxDimension;
+          let targetHeight = img.height || maxDimension;
+
+          if (targetWidth > maxDimension || targetHeight > maxDimension) {
+            if (targetWidth >= targetHeight) {
+              targetHeight = Math.max(1, Math.round((targetHeight * maxDimension) / targetWidth));
+              targetWidth = maxDimension;
+            } else {
+              targetWidth = Math.max(1, Math.round((targetWidth * maxDimension) / targetHeight));
+              targetHeight = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(rawDataUrl);
+            return;
+          }
+
+          ctx.clearRect(0, 0, targetWidth, targetHeight);
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+          // Usa WebP para manter transparência (PNG/WebP) com alta compressão
+          let outputDataUrl = canvas.toDataURL('image/webp', quality);
+          if (!outputDataUrl || !outputDataUrl.startsWith('data:image/webp')) {
+            const fallbackMime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            outputDataUrl = canvas.toDataURL(fallbackMime, quality);
+          }
+
+          resolve(outputDataUrl || rawDataUrl);
+        } catch (_) {
+          resolve(rawDataUrl);
+        }
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 class AppClient {
   constructor() {
     this.entities = entities;
     this.functions = {
       invoke: async (functionName, payload) => invokeFunction(functionName, payload),
+    };
+    this.integrations = {
+      Core: {
+        UploadFile: async ({ file } = {}) => {
+          if (!file) {
+            throw new Error('Nenhum arquivo enviado.');
+          }
+          const dataUrl = await compressImageToDataUrl(file, 512, 0.86);
+          return { file_url: dataUrl };
+        },
+      },
     };
     this.auth = {
       me: async () => {

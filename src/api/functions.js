@@ -4304,6 +4304,15 @@ export async function invokeFunction(functionName, payload = {}) {
         }
       }
 
+      case 'standardizeBarberPhoto': {
+        return {
+          data: {
+            success: true,
+            standardized_url: payload?.original_url || '',
+          },
+        };
+      }
+
       default: {
         return {
           data: {

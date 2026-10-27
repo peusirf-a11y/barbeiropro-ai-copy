@@ -142,11 +142,75 @@ export default function AppConfiguracoes() {
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: 'Arquivo muito grande',
+        description: 'Selecione uma imagem de até 10MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setUploadingLogo(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      if (!file_url) {
+        throw new Error('Não foi possível processar a imagem selecionada.');
+      }
+
       setForm(p => ({ ...p, logo_url: file_url }));
+
+      // Persiste imediatamente no Supabase e no cache local para evitar perda caso o usuário saia sem clicar em Salvar
+      const activeCompanyId = company?.id || await resolveActiveCompanyId();
+      if (activeCompanyId && supabase) {
+        const currentHours = company?.business_hours || form.business_hours || defaultHours;
+        const currentBranding = currentHours?._branding || {};
+        const nextHours = {
+          ...currentHours,
+          _branding: {
+            ...currentBranding,
+            primary_color: form.primary_color || currentBranding.primary_color || '#2563EB',
+            whatsapp: (form.whatsapp || currentBranding.whatsapp || '').trim(),
+            address: (form.address || currentBranding.address || '').trim(),
+            logo_url: file_url,
+          },
+        };
+
+        let logoUpdate = await supabase
+          .from('companies')
+          .update({ logo_url: file_url, business_hours: nextHours })
+          .eq('id', activeCompanyId);
+
+        if (logoUpdate.error && String(logoUpdate.error.message || '').includes('logo_url')) {
+          await supabase
+            .from('companies')
+            .update({ business_hours: nextHours })
+            .eq('id', activeCompanyId);
+        }
+
+        try {
+          const rawLocal = localStorage.getItem('barberpass_local_companies');
+          const localList = rawLocal ? JSON.parse(rawLocal) : [];
+          const exists = localList.some(item => item.id === activeCompanyId);
+          const nextLocal = exists
+            ? localList.map(item => (item.id === activeCompanyId ? { ...item, logo_url: file_url, business_hours: nextHours } : item))
+            : [{ ...(company || {}), id: activeCompanyId, logo_url: file_url, business_hours: nextHours }, ...localList];
+          localStorage.setItem('barberpass_local_companies', JSON.stringify(nextLocal));
+        } catch (_) {}
+
+        await queryClient.invalidateQueries({ queryKey: ['companies'] });
+        await queryClient.invalidateQueries({ queryKey: ['my-company'] });
+        await queryClient.invalidateQueries({ queryKey: ['company-by-slug'] });
+      }
+
+      toast({
+        title: 'Logo enviado com sucesso!',
+        description: 'A logo da sua barbearia foi atualizada.',
+      });
     } catch (err) {
+      console.error('[AppConfiguracoes] Erro no upload de logo:', err);
       toast({
         title: 'Erro ao enviar logo',
         description: err?.message || 'Não foi possível enviar a imagem.',
