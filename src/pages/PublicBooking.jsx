@@ -146,7 +146,23 @@ export default function PublicBooking() {
 
   const { data: activePlans = [] } = useQuery({
     queryKey: ['public-active-plans', company?.id],
-    queryFn: () => base44.entities.CustomerPlan.filter({ company_id: company.id, active: true }),
+    queryFn: async () => {
+      const companyId = company?.id;
+      if (!companyId) return [];
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('company_id', companyId);
+
+        if (!error && Array.isArray(data)) {
+          return data
+            .filter((p) => Boolean(p.company_id) && String(p.company_id) === String(companyId) && p.active !== false)
+            .map((p) => base44.entities.CustomerPlan._normalizeRow(p));
+        }
+      }
+      return base44.entities.CustomerPlan.filter({ company_id: companyId, active: true });
+    },
     enabled: !!company?.id,
   });
   const hasActivePlans = activePlans.length > 0;

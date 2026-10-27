@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Package } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import StandardModal from '@/components/ui/standard-modal';
@@ -52,7 +53,20 @@ export default function PlansManager() {
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['master-plans'],
-    queryFn: () => base44.entities.Plan.list('sort_order', 100),
+    queryFn: async () => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .is('company_id', null)
+          .order('order_index', { ascending: true });
+
+        if (!error && Array.isArray(data)) {
+          return data.filter((p) => !p.company_id);
+        }
+      }
+      return base44.entities.Plan.list('order_index', 100);
+    },
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['master-plans'] });
@@ -110,7 +124,7 @@ export default function PlansManager() {
       name: p.name || '',
       price_monthly: p.price_monthly || 0,
       active: p.active !== false,
-      sort_order: p.sort_order || p.display_order || 0,
+      sort_order: p.order_index ?? p.sort_order ?? p.display_order ?? 0,
       // Migra keys legadas para as canônicas ao abrir
       features: (Array.isArray(p.features) ? p.features : []).map(canonicalFeatureKey),
       limits: {
@@ -135,12 +149,15 @@ export default function PlansManager() {
       return;
     }
 
+    const orderVal = Number(form.sort_order) || 0;
     const payload = {
+      company_id: null,
       name: form.name.trim(),
       price_monthly: price,
       active: form.active,
-      sort_order: Number(form.sort_order) || 0,
-      display_order: Number(form.sort_order) || 0,
+      order_index: orderVal,
+      sort_order: orderVal,
+      display_order: orderVal,
       features: Array.isArray(form.features) ? form.features : [],
       limits: {
         barbers: Number(form.limits.barbers) || 0,

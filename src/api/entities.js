@@ -121,6 +121,7 @@ const PLAN_COLUMNS = new Set([
   'off_peak',
   'active',
   'sort_order',
+  'order_index',
   'created_at',
   'updated_at',
   'allowed_company_ids',
@@ -206,6 +207,8 @@ export class EntityRepository {
       out.is_active = out.active;
       out.price_monthly = Number(out.price_monthly ?? out.price ?? 0);
       out.price = out.price_monthly;
+      out.order_index = Number(out.order_index ?? out.sort_order ?? out.display_order ?? 0);
+      out.sort_order = Number(out.sort_order ?? out.order_index ?? out.display_order ?? 0);
       out.usage_limit = out.type === 'unlimited' ? 0 : Number(out.usage_limit ?? 0);
       out.off_peak = Boolean(out.off_peak ?? out.off_peak_enabled ?? false);
       out.off_peak_enabled = Boolean(out.off_peak_enabled ?? out.off_peak ?? false);
@@ -496,11 +499,19 @@ export class EntityRepository {
     }
 
     if (this.tableName === 'plans') {
+      if (this.name === 'Plan' && !isUpdate && item.company_id === undefined) {
+        item.company_id = null;
+      }
       if (item.price !== undefined && item.price_monthly === undefined) {
         item.price_monthly = Number(item.price || 0);
       }
       if (item.price_monthly !== undefined) {
         item.price_monthly = Number(item.price_monthly || 0);
+      }
+      if (item.sort_order !== undefined && item.order_index === undefined) {
+        item.order_index = Number(item.sort_order || 0);
+      } else if (item.order_index !== undefined && item.sort_order === undefined) {
+        item.sort_order = Number(item.order_index || 0);
       }
       if (item.active !== undefined && item.is_active === undefined) {
         item.is_active = Boolean(item.active);
@@ -545,11 +556,49 @@ export class EntityRepository {
 
   async list(sort = '-created_at', limit = 100) {
     if (!isSupabaseConfigured || !supabase) {
-      return getLocalTable(this.tableName);
+      const localItems = getLocalTable(this.tableName).map(r => this._normalizeRow(r));
+      if (this.name === 'Plan') return localItems.filter(r => !r.company_id);
+      if (this.name === 'CustomerPlan') return localItems.filter(r => Boolean(r.company_id));
+      return localItems;
     }
     try {
+      // Isolamento estrito na tabela public.plans:
+      // - Plan (SaaS O CORTE): .is('company_id', null).order('order_index', { ascending: true })
+      // - CustomerPlan (Clubes de Barbearias): company_id IS NOT NULL
+      if (this.name === 'Plan') {
+        let { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .is('company_id', null)
+          .order('order_index', { ascending: true });
+
+        if (error) {
+          const fbRes = await supabase
+            .from('plans')
+            .select('*')
+            .is('company_id', null)
+            .order('sort_order', { ascending: true });
+          if (!fbRes.error) {
+            data = fbRes.data;
+            error = null;
+          } else {
+            const plainRes = await supabase.from('plans').select('*').is('company_id', null);
+            data = plainRes.data;
+            error = plainRes.error;
+          }
+        }
+        if (error) throw error;
+        return (data || [])
+          .filter(r => !r.company_id)
+          .map(r => this._normalizeRow(r))
+          .sort((a, b) => (a.order_index ?? a.sort_order ?? 0) - (b.order_index ?? b.sort_order ?? 0));
+      }
+
       const selectCols = this.tableName === 'companies' ? SAFE_COMPANY_COLUMNS : '*';
       let query = supabase.from(this.tableName).select(selectCols);
+      if (this.name === 'CustomerPlan') {
+        query = query.not('company_id', 'is', null);
+      }
       if (sort) {
         const isDesc = sort.startsWith('-');
         let field = isDesc ? sort.substring(1) : sort;
@@ -577,9 +626,7 @@ export class EntityRepository {
         return await this._reconcileAndFilterAppointments(data || []);
       }
       let remoteRows = (data || []).map(r => this._normalizeRow(r));
-      if (this.name === 'Plan') {
-        remoteRows = remoteRows.filter(r => !r.company_id);
-      } else if (this.name === 'CustomerPlan') {
+      if (this.name === 'CustomerPlan') {
         remoteRows = remoteRows.filter(r => Boolean(r.company_id));
       }
       if (!CORE_REMOTE_ONLY_TABLES.has(this.tableName)) {
@@ -603,7 +650,10 @@ export class EntityRepository {
       return remoteRows;
     } catch (err) {
       console.warn(`[Supabase Warning] Falha ao listar ${this.name} (${err.message}), usando dados locais.`, err);
-      return getLocalTable(this.tableName).map(r => this._normalizeRow(r));
+      const localItems = getLocalTable(this.tableName).map(r => this._normalizeRow(r));
+      if (this.name === 'Plan') return localItems.filter(r => !r.company_id);
+      if (this.name === 'CustomerPlan') return localItems.filter(r => Boolean(r.company_id));
+      return localItems;
     }
   }
 
@@ -619,8 +669,11 @@ export class EntityRepository {
     }
 
     const matchLocalCriteria = (item) => {
+      if (this.name === 'Plan' && item.company_id) return false;
+      if (this.name === 'CustomerPlan' && !item.company_id) return false;
       return Object.entries(criteria).every(([k, v]) => {
-        if (v === undefined || v === null) return true;
+        if (v === undefined) return true;
+        if (v === null) return item[k] === null || item[k] === undefined;
         if (typeof v === 'object' && !Array.isArray(v)) {
           if (v.$ne !== undefined && item[k] === v.$ne) return false;
           if (v.$gte !== undefined && item[k] < v.$gte) return false;
@@ -636,6 +689,53 @@ export class EntityRepository {
       return items.filter(matchLocalCriteria);
     }
     try {
+      // 1. Isolamento estrito para Planos da Plataforma SaaS (company_id IS NULL)
+      if (this.name === 'Plan') {
+        let query = supabase.from('plans').select('*').is('company_id', null);
+        if (criteria.active !== undefined) {
+          query = query.eq('active', Boolean(criteria.active));
+        }
+        let { data, error } = await query.order('order_index', { ascending: true });
+        if (error) {
+          let fbQuery = supabase.from('plans').select('*').is('company_id', null);
+          if (criteria.active !== undefined) {
+            fbQuery = fbQuery.eq('active', Boolean(criteria.active));
+          }
+          const fbRes = await fbQuery.order('sort_order', { ascending: true });
+          if (!fbRes.error) {
+            data = fbRes.data;
+            error = null;
+          } else {
+            const plainRes = await supabase.from('plans').select('*').is('company_id', null);
+            data = plainRes.data;
+            error = plainRes.error;
+          }
+        }
+        if (error) throw error;
+        return (data || [])
+          .filter(r => !r.company_id)
+          .map(r => this._normalizeRow(r))
+          .filter(matchLocalCriteria)
+          .sort((a, b) => (a.order_index ?? a.sort_order ?? 0) - (b.order_index ?? b.sort_order ?? 0));
+      }
+
+      // 2. Isolamento estrito para Clubes/Planos de Barbearia (company_id = companyId)
+      if (this.name === 'CustomerPlan') {
+        const companyId = criteria.company_id;
+        if (!companyId) {
+          return [];
+        }
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('company_id', companyId);
+        if (error) throw error;
+        return (data || [])
+          .filter(r => Boolean(r.company_id) && String(r.company_id) === String(companyId))
+          .map(r => this._normalizeRow(r))
+          .filter(matchLocalCriteria);
+      }
+
       const isPublicSlugFilter =
         this.tableName === 'companies' &&
         Object.keys(criteria).length === 1 &&
@@ -648,7 +748,11 @@ export class EntityRepository {
           : '*';
       let query = supabase.from(this.tableName).select(selectCols);
       Object.entries(criteria).forEach(([key, val]) => {
-        if (val === undefined || val === null) return;
+        if (val === undefined) return;
+        if (val === null) {
+          query = query.is(key, null);
+          return;
+        }
         if (this.tableName === 'appointments' && key === 'scheduled_at') return;
         if (this.tableName === 'appointments' && key === 'customer_id' && !UUID_REGEX.test(String(val))) return;
         if (typeof val === 'object' && !Array.isArray(val)) {
@@ -693,11 +797,6 @@ export class EntityRepository {
         return await this._reconcileAndFilterAppointments(data || []);
       }
       let remoteRows = (data || []).map(r => this._normalizeRow(r));
-      if (this.name === 'Plan' && criteria.company_id === undefined) {
-        remoteRows = remoteRows.filter(r => !r.company_id);
-      } else if (this.name === 'CustomerPlan') {
-        remoteRows = remoteRows.filter(r => Boolean(r.company_id));
-      }
       if (!CORE_REMOTE_ONLY_TABLES.has(this.tableName)) {
         const allLocalRows = getLocalTable(this.tableName).map(r => this._normalizeRow(r));
         const localMap = new Map(
@@ -728,11 +827,49 @@ export class EntityRepository {
   }
 
   async get(id) {
+    if (!id) return null;
     if (!isSupabaseConfigured || !supabase) {
       const items = getLocalTable(this.tableName);
       return items.find(i => i.id === id) || null;
     }
     try {
+      // Se for consulta de Plano SaaS (Plan) por slug/nome textual (ex: 'starter', 'pro', 'classico') ou UUID
+      if (this.name === 'Plan') {
+        if (!UUID_REGEX.test(String(id))) {
+          const saasPlans = await this.list('order_index', 50);
+          const key = String(id).trim().toLowerCase();
+          return (
+            saasPlans.find(
+              p =>
+                String(p.id || '').toLowerCase() === key ||
+                String(p.slug || '').toLowerCase() === key ||
+                String(p.name || '').toLowerCase() === key ||
+                String(p.name || '').toLowerCase().includes(key)
+            ) || null
+          );
+        }
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .is('company_id', null)
+          .eq('id', id)
+          .maybeSingle();
+        if (error) throw error;
+        return data ? this._normalizeRow(data) : null;
+      }
+
+      if (this.name === 'CustomerPlan') {
+        if (!UUID_REGEX.test(String(id))) return null;
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .not('company_id', 'is', null)
+          .eq('id', id)
+          .maybeSingle();
+        if (error) throw error;
+        return data ? this._normalizeRow(data) : null;
+      }
+
       const selectCols = this.tableName === 'companies' ? SAFE_COMPANY_COLUMNS : '*';
       let { data, error } = await supabase.from(this.tableName).select(selectCols).eq('id', id).single();
       if (error && this.tableName === 'companies') {

@@ -44,7 +44,7 @@ export default function LaunchLandingPage() {
   // SEO + título
   useEffect(() => {
     const prevTitle = document.title;
-    document.title = 'O CORTE — Oferta de Lançamento · R$ 49/mês';
+    document.title = 'O CORTE — Oferta de Lançamento · Plano Master R$ 79,90/mês';
     const prevDesc = document.querySelector('meta[name="description"]')?.getAttribute('content');
     let metaDesc = document.querySelector('meta[name="description"]');
     if (!metaDesc) {
@@ -54,7 +54,7 @@ export default function LaunchLandingPage() {
     }
     metaDesc.setAttribute(
       'content',
-      'O sistema completo para modernizar sua barbearia. Agendamentos online, controle financeiro, equipe e pagamentos por R$ 49/mês durante 6 meses — oferta para os 10 primeiros clientes.'
+      'OFERTA DE LANÇAMENTO ATIVA: Plano Master com condição especial: R$ 79,90/mês nos primeiros 3 meses. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.'
     );
     return () => {
       document.title = prevTitle;

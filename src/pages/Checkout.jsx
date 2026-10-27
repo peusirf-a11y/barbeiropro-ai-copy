@@ -5,18 +5,35 @@ import { CheckCircle, ArrowLeft, Shield, Star, Zap, Lock, Rocket } from 'lucide-
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
 import { usePublicPlans } from '@/hooks/usePublicPlans';
 
-// Oferta de lançamento: R$ 49/mês durante os primeiros 6 meses, depois preço cheio do plano Pro.
+// Oferta de lançamento: Plano Master por R$ 79,90/mês nos primeiros 3 meses, depois R$ 119,00/mês, com 7 dias grátis.
 const LAUNCH_PROMO = {
   code: 'lancamento',
-  price: 49,
-  durationMonths: 6,
-  plan: 'pro',
+  price: 79.90,
+  priceFormatted: '79,90',
+  regularPrice: 119.00,
+  regularPriceFormatted: '119,00',
+  durationMonths: 3,
+  plan: 'master',
+  planName: 'Master',
 };
 
+function formatCurrencyBRL(val) {
+  const num = Number(val || 0);
+  return num.toLocaleString('pt-BR', {
+    minimumFractionDigits: num % 1 !== 0 ? 2 : 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function getPromoFromUrl() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') return LAUNCH_PROMO;
   const params = new URLSearchParams(window.location.search);
-  return params.get('promo') === LAUNCH_PROMO.code ? LAUNCH_PROMO : null;
+  const promoParam = (params.get('promo') || '').toLowerCase();
+  const planoParam = (params.get('plano') || params.get('plan') || '').toLowerCase();
+  if (promoParam === 'none' || promoParam === 'off') return null;
+  if (promoParam === LAUNCH_PROMO.code) return LAUNCH_PROMO;
+  if (!planoParam || planoParam === 'master' || planoParam === 'pro') return LAUNCH_PROMO;
+  return null;
 }
 
 function getReferralFromUrlOrStorage() {
@@ -34,53 +51,64 @@ function getReferralFromUrlOrStorage() {
   }
 }
 
-function planKeyFromName(name) {
-  const n = String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  if (n.includes('starter')) return 'starter';
-  if (n.includes('pro')) return 'pro';
-  if (n.includes('enterprise') || n.includes('premium')) return 'enterprise';
-  return n.split(/\s+/)[0] || 'pro';
+function planKeyFromName(name, slug = '') {
+  const n = `${String(name || '')} ${String(slug || '')}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (n.includes('classic') || n.includes('starter') || n.includes('basico')) return 'classico';
+  if (n.includes('master') || n.includes('pro')) return 'master';
+  if (n.includes('exclusiv') || n.includes('enterprise') || n.includes('premium')) return 'exclusivo';
+  return 'master';
 }
 
 const PLAN_DESC = {
-  starter: 'Para barbearias que estão começando',
-  pro: 'Para barbearias em crescimento',
-  enterprise: 'Para redes e estúdios premium',
+  classico: 'Para barbearias que estão começando',
+  master: 'Para barbearias em crescimento',
+  exclusivo: 'Para redes e estúdios premium',
+};
+
+const STATIC_FEATURE_COPY = {
+  classico: ['Até 2 profissionais', 'Agenda online', 'Link público de agendamento', 'Gestão de clientes', 'Financeiro básico'],
+  master: ['Até 8 profissionais', 'Tudo do Clássico', 'AI Growth Engine', 'Relatórios avançados', 'Suporte prioritário'],
+  exclusivo: ['Profissionais ilimitados', 'Tudo do Master', 'White-label total', 'Multi-unidade', 'Onboarding dedicado'],
 };
 
 const PLANS_FALLBACK = [
-  { key: 'starter', name: 'Starter', price: 0, desc: PLAN_DESC.starter, features: [] },
-  { key: 'pro', name: 'Pro', price: 0, desc: PLAN_DESC.pro, features: [], highlight: true },
-  { key: 'enterprise', name: 'Enterprise', price: 0, desc: PLAN_DESC.enterprise, features: [] },
+  { id: 'classico', key: 'classico', slug: 'classico', name: 'Clássico', price: 69.00, desc: PLAN_DESC.classico, features: STATIC_FEATURE_COPY.classico },
+  { id: 'master', key: 'master', slug: 'master', name: 'Master', price: 119.00, desc: PLAN_DESC.master, features: STATIC_FEATURE_COPY.master, highlight: true },
+  { id: 'exclusivo', key: 'exclusivo', slug: 'exclusivo', name: 'Exclusivo', price: 249.00, desc: PLAN_DESC.exclusivo, features: STATIC_FEATURE_COPY.exclusivo },
 ];
-
-const STATIC_FEATURE_COPY = {
-  starter: ['Até 2 profissionais', 'Agenda online', 'Link público de agendamento', 'Gestão de clientes', 'Financeiro básico'],
-  pro: ['Até 8 profissionais', 'Tudo do Starter', 'AI Growth Engine', 'Relatórios avançados', 'Suporte prioritário'],
-  enterprise: ['Profissionais ilimitados', 'Tudo do Pro', 'White-label total', 'Multi-unidade', 'Onboarding dedicado'],
-};
 
 function mapDbPlansToUi(dbPlans) {
   if (!Array.isArray(dbPlans) || dbPlans.length === 0) return PLANS_FALLBACK;
   return dbPlans.map(p => {
-    const key = planKeyFromName(p.name);
+    const key = planKeyFromName(p.name, p.slug);
+    const defaultPrice = key === 'master' ? 119.00 : key === 'classico' ? 69.00 : 249.00;
     return {
+      id: p.id || key,
       key,
-      name: p.name,
-      price: Number(p.price_monthly) || 0,
-      desc: PLAN_DESC[key] || '',
-      features: STATIC_FEATURE_COPY[key] || [],
-      highlight: key === 'pro',
+      slug: p.slug || key,
+      name: key === 'master' ? 'Master' : (p.name || 'Master'),
+      price: Number(p.price_monthly || p.price) || defaultPrice,
+      desc: p.description || PLAN_DESC[key] || '',
+      features: Array.isArray(p.features) && p.features.length > 0
+        ? p.features.map(f => String(f).replace(/_/g, ' '))
+        : (STATIC_FEATURE_COPY[key] || STATIC_FEATURE_COPY.master),
+      highlight: key === 'master' || Boolean(p.is_recommended),
     };
   });
 }
 
 function getInitialPlan() {
-  if (typeof window === 'undefined') return 'pro';
+  if (typeof window === 'undefined') return 'master';
   const params = new URLSearchParams(window.location.search);
   if (params.get('promo') === LAUNCH_PROMO.code) return LAUNCH_PROMO.plan;
-  const p = params.get('plano');
-  return ['starter', 'pro', 'enterprise'].includes(p) ? p : 'pro';
+  const p = (params.get('plano') || params.get('plan') || '').toLowerCase();
+  if (p === 'starter' || p === 'classico') return 'classico';
+  if (p === 'enterprise' || p === 'exclusivo') return 'exclusivo';
+  if (p === 'pro' || p === 'master') return 'master';
+  return 'master';
 }
 
 // Máscara dinâmica que se adapta tanto para CPF (11 dígitos) quanto para CNPJ (14 dígitos)
@@ -90,7 +118,7 @@ function maskCpfCnpj(value) {
     return d
       .replace(/^(\d{3})(\d)/, '$1.$2')
       .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d{1,2})$/, '$1-$2');
+      .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
   }
   return d
     .replace(/^(\d{2})(\d)/, '$1.$2')
@@ -103,7 +131,6 @@ export default function Checkout() {
   const [selectedPlan, setSelectedPlan] = useState(getInitialPlan());
   const [promo] = useState(getPromoFromUrl());
   const [referredBy] = useState(getReferralFromUrlOrStorage());
-  const isLaunch = !!promo;
   const { plans: dbPlans, isLoading: loadingPlans } = usePublicPlans();
   const PLANS = mapDbPlansToUi(dbPlans);
   const [form, setForm] = useState({
@@ -116,8 +143,19 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [stage, setStage] = useState('form'); // 'form' = dados cadastrais | 'method' = cartão de crédito
 
-  const plan = PLANS.find(p => p.key === selectedPlan) || PLANS[0];
-  const effectivePrice = isLaunch ? promo.price : plan.price;
+  const isLaunch = Boolean(promo) && (selectedPlan === 'master' || selectedPlan === 'pro');
+  const masterPlan = PLANS.find(p => p.key === 'master') || PLANS_FALLBACK[1];
+  const plan = isLaunch
+    ? {
+        ...masterPlan,
+        key: 'master',
+        name: 'Master',
+        price: Number(masterPlan.price) > 0 ? Number(masterPlan.price) : LAUNCH_PROMO.regularPrice,
+      }
+    : (PLANS.find(p => p.key === selectedPlan) || masterPlan);
+
+  const effectivePrice = isLaunch ? LAUNCH_PROMO.price : plan.price;
+  const regularMasterPrice = isLaunch ? LAUNCH_PROMO.regularPrice : plan.price;
 
   const validate = () => {
     if (!form.business_name.trim()) return 'Informe o nome da barbearia';
@@ -148,13 +186,18 @@ export default function Checkout() {
     const cleanCpfCnpj = form.cpf_cnpj.replace(/\D/g, '');
 
     const cleanCardDigits = String(card.number || '').replace(/\D/g, '');
+    const targetPlanSlug = isLaunch ? 'master' : (plan.slug || plan.key || 'master');
+    const targetPlanName = isLaunch ? 'Master' : (plan.name || 'Master');
+
     const checkoutData = {
       business_name: form.business_name.trim(),
       owner_name: form.owner_name.trim(),
       email: form.email.trim().toLowerCase(),
       phone: form.phone.trim(),
       cnpj: cleanCpfCnpj,
-      plan: selectedPlan,
+      plan: targetPlanSlug,
+      plan_id: plan.id || targetPlanSlug,
+      plan_name: targetPlanName,
       payment_method: 'card',
       card_last_digits: cleanCardDigits.slice(-4),
       card_brand: card.brand || undefined,
@@ -173,8 +216,11 @@ export default function Checkout() {
         phone: form.phone.trim(),
       },
       plan: {
-        name: plan.name,
+        id: plan.id || targetPlanSlug,
+        slug: targetPlanSlug,
+        name: targetPlanName,
         value: effectivePrice,
+        regular_value: regularMasterPrice,
       },
       creditCard: {
         holderName: card.holderName,
@@ -197,9 +243,11 @@ export default function Checkout() {
       email: form.email.trim().toLowerCase(),
       phone: form.phone.trim(),
       cpf_cnpj: cleanCpfCnpj,
-      plan_name: plan.name,
+      plan_id: plan.id || targetPlanSlug,
+      plan_slug: targetPlanSlug,
+      plan_name: targetPlanName,
       value: effectivePrice,
-      promo: isLaunch ? promo.code : undefined,
+      promo: isLaunch ? LAUNCH_PROMO.code : undefined,
       referred_by: referredBy || undefined,
     };
 
@@ -241,7 +289,7 @@ export default function Checkout() {
 
     const queryParams = new URLSearchParams({
       email: form.email.trim().toLowerCase(),
-      plano: selectedPlan,
+      plano: targetPlanSlug,
       business: form.business_name.trim(),
       owner: form.owner_name.trim(),
       phone: form.phone.trim(),
@@ -278,7 +326,7 @@ export default function Checkout() {
             }`}>
               {isLaunch ? <Rocket className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
               {isLaunch
-                ? 'Oferta de lançamento — R$ 49/mês por 6 meses'
+                ? `OFERTA DE LANÇAMENTO ATIVA · R$ ${LAUNCH_PROMO.priceFormatted}/mês`
                 : '7 dias grátis · Cancele quando quiser'}
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-[#0F172A] leading-tight mb-3">
@@ -286,7 +334,9 @@ export default function Checkout() {
             </h1>
             <p className="text-gray-500 mb-8">
               {isLaunch ? (
-                <>Plano <strong>Pro completo</strong> por <strong>R$ {promo.price}/mês durante os primeiros {promo.durationMonths} meses</strong>. Depois desse período, migra automaticamente para o preço oficial vigente.</>
+                <>
+                  Plano <strong>Master</strong> com condição especial: <strong>R$ {LAUNCH_PROMO.priceFormatted}/mês nos primeiros {LAUNCH_PROMO.durationMonths} meses</strong>. Depois, R$ {LAUNCH_PROMO.regularPriceFormatted}/mês. Experimente com <strong>7 dias grátis</strong>.
+                </>
               ) : (
                 <>Cadastre sua barbearia, escolha o plano e ganhe <strong>7 dias grátis</strong>. A primeira fatura só será debitada em 7 dias.</>
               )}
@@ -299,21 +349,21 @@ export default function Checkout() {
               {isLaunch && (
                 <div className="flex items-center gap-2 mb-3 -mt-1">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
-                    <Rocket className="w-3 h-3" /> Promo de lançamento
+                    <Rocket className="w-3 h-3" /> Oferta de lançamento ativa
                   </span>
                 </div>
               )}
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Plano selecionado</div>
-                  <div className="text-xl font-black text-[#0F172A]">O CORTE · {plan.name}</div>
+                  <div className="text-xl font-black text-[#0F172A]">O CORTE · {isLaunch ? 'Master' : plan.name}</div>
                 </div>
                 <div className="text-right">
-                  {isLaunch && plan.price > 0 && (
-                    <div className="text-xs text-gray-400 line-through">R${plan.price}/mês</div>
+                  {isLaunch && (
+                    <div className="text-xs text-gray-400 line-through">R$ {LAUNCH_PROMO.regularPriceFormatted}/mês</div>
                   )}
                   <div className="text-2xl font-black text-[#0F172A]">
-                    {loadingPlans && !isLaunch ? '—' : `R$${effectivePrice}`}
+                    {loadingPlans && !isLaunch ? '—' : `R$ ${formatCurrencyBRL(effectivePrice)}`}
                   </div>
                   <div className="text-xs text-gray-400">/mês</div>
                 </div>
@@ -327,13 +377,13 @@ export default function Checkout() {
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t border-black/5 flex items-center justify-between text-sm">
-                <span className="text-gray-500 font-medium">Cobrança hoje (Trial)</span>
+                <span className="text-gray-500 font-medium">Cobrança hoje (Trial de 7 dias)</span>
                 <span className="font-bold text-emerald-600">R$ 0,00</span>
               </div>
-              <div className="text-xs text-gray-400 mt-1">
+              <div className="text-xs text-gray-500 mt-1.5 leading-relaxed">
                 {isLaunch
-                  ? `Após 7 dias grátis: R$${promo.price}/mês pelos primeiros ${promo.durationMonths} meses.`
-                  : `Após 7 dias grátis: R$${plan.price}/mês`}
+                  ? `Você não será cobrado nos primeiros 7 dias. Após o período gratuito: R$ ${LAUNCH_PROMO.priceFormatted}/mês nos primeiros ${LAUNCH_PROMO.durationMonths} meses. Depois, R$ ${LAUNCH_PROMO.regularPriceFormatted}/mês.`
+                  : `Você não será cobrado nos primeiros 7 dias. Após 7 dias grátis: R$ ${formatCurrencyBRL(plan.price)}/mês.`}
               </div>
             </div>
 
@@ -384,7 +434,7 @@ export default function Checkout() {
                         )}
                         <div className="text-xs font-bold text-[#0F172A]">{p.name}</div>
                         <div className="text-base font-black text-[#0F172A] mt-0.5">
-                          {loadingPlans ? '—' : `R$${p.price}`}
+                          {loadingPlans ? '—' : `R$ ${formatCurrencyBRL(p.price)}`}
                         </div>
                         <div className="text-[10px] text-gray-400">/mês</div>
                       </button>
@@ -402,10 +452,10 @@ export default function Checkout() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                        Oferta de lançamento ativa
+                        OFERTA DE LANÇAMENTO ATIVA
                       </div>
                       <div className="text-sm text-amber-900 mt-0.5 leading-snug">
-                        Plano <strong>Pro</strong> por <strong>R$ {promo.price}/mês</strong> nos primeiros <strong>{promo.durationMonths} meses</strong>. Depois, R$ {plan.price}/mês.
+                        Plano <strong>Master</strong> com condição especial: <strong>R$ 79,90/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
                       </div>
                     </div>
                   </div>
@@ -434,7 +484,7 @@ export default function Checkout() {
                     type="email"
                     value={form.email}
                     onChange={v => setForm(f => ({ ...f, email: v }))}
-                    placeholder="voce@exemplo.com"
+                    placeholder="voce@suabarbearia.com"
                   />
                   <Field
                     label="WhatsApp"
@@ -489,7 +539,7 @@ export default function Checkout() {
                     <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Como deseja pagar?</div>
                     <h2 className="text-base font-black text-[#0F172A]">Cartão de Crédito</h2>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      7 dias grátis. Cancele quando quiser. A primeira fatura só será debitada em 7 dias.
+                      Você não será cobrado nos primeiros 7 dias. Cancele quando quiser. A primeira fatura só será debitada após os 7 dias de avaliação gratuita.
                     </p>
                   </div>
 
@@ -503,8 +553,8 @@ export default function Checkout() {
                     primaryColor="#2563EB"
                     amountLabel={
                       isLaunch
-                        ? `Iniciar 7 dias grátis — depois R$${promo.price}/mês por ${promo.durationMonths} meses`
-                        : `Iniciar 7 dias grátis — depois R$${plan.price}/mês`
+                        ? `Iniciar 7 dias grátis — depois R$ ${LAUNCH_PROMO.priceFormatted}/mês nos primeiros ${LAUNCH_PROMO.durationMonths} meses`
+                        : `Iniciar 7 dias grátis — depois R$ ${formatCurrencyBRL(plan.price)}/mês`
                     }
                     defaultName={form.owner_name}
                     defaultEmail={form.email}
@@ -514,7 +564,7 @@ export default function Checkout() {
                   />
 
                   <p className="text-[11px] text-gray-400 text-center leading-relaxed">
-                    Você não será cobrado hoje. Período de teste de 7 dias grátis.<br />
+                    Você não será cobrado nos primeiros 7 dias. Período de avaliação gratuita de 7 dias.<br />
                     Ao continuar, você concorda com os{' '}
                     <Link to="/termos-de-uso" className="underline hover:text-[#2563EB]">Termos de Uso</Link>
                     {' '}e a{' '}

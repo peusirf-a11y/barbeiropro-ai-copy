@@ -766,9 +766,12 @@ export async function handleAsaasSubscription(payload = {}) {
       phone: payload.phone,
     };
 
+    const isLaunchPromo = Boolean(payload.promo);
     const plan = payload.plan || {
-      name: payload.plan_name || payload.plan || 'Pro',
-      value: payload.value || payload.price || (payload.promo ? 49.00 : 89.00),
+      id: payload.plan_id || 'master',
+      slug: payload.plan_slug || 'master',
+      name: isLaunchPromo ? 'Master' : (payload.plan_name || payload.plan || 'Master'),
+      value: payload.value || payload.price || (isLaunchPromo ? 79.90 : 119.00),
     };
 
     const creditCard = payload.creditCard || payload.card || {};
@@ -915,8 +918,9 @@ export async function handleAsaasSubscription(payload = {}) {
     const trialDate = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
     const nextDueDate = trialDate.toISOString().split('T')[0];
 
-    const planValue = Number(plan.value || 89.00);
-    const planName = typeof plan === 'string' ? plan : (plan.name || 'Pro');
+    const planValue = Number(plan.value || (isLaunchPromo ? 79.90 : 119.00));
+    const planName = isLaunchPromo ? 'Master' : (typeof plan === 'string' ? plan : (plan.name || 'Master'));
+    const planSlug = isLaunchPromo ? 'master' : String(plan.slug || payload.plan_slug || planName).toLowerCase();
     const expYear = String(creditCard.expiryYear).length === 2 ? `20${creditCard.expiryYear}` : String(creditCard.expiryYear);
     const billingCycle = String(payload.cycle || 'MONTHLY').toUpperCase() === 'YEARLY' ? 'YEARLY' : 'MONTHLY';
 
@@ -1000,7 +1004,7 @@ export async function handleAsaasSubscription(payload = {}) {
       owner_cpf_cnpj: cleanCpfCnpj,
       phone: cleanPhone,
       whatsapp: cleanPhone,
-      plan_id: String(planName).toLowerCase(),
+      plan_id: plan.id && plan.id !== planSlug ? plan.id : planSlug,
       plan_name: planName,
       status: 'active',
       billing_status: 'ACTIVE',

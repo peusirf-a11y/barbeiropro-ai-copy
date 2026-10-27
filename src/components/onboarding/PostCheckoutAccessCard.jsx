@@ -22,7 +22,7 @@ export default function PostCheckoutAccessCard({ email, planName }) {
 
       const searchParams = new URLSearchParams(window.location.search);
       const effEmail = email || searchParams.get('email') || checkoutData.email || '';
-      const effPlan = planName || searchParams.get('plano') || searchParams.get('plan') || checkoutData.plan || 'pro';
+      const effPlan = planName || searchParams.get('plano') || searchParams.get('plan') || checkoutData.plan || 'master';
       const effBusiness = searchParams.get('business') || checkoutData.business_name || '';
       const effOwner = searchParams.get('owner') || checkoutData.owner_name || '';
       const effPhone = searchParams.get('phone') || checkoutData.phone || '';

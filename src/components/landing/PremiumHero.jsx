@@ -29,13 +29,23 @@ export default function PremiumHero() {
             </span>
           </h1>
 
-          <p className="text-base md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed mb-10">
+          <p className="text-base md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed mb-6">
             Agenda, financeiro, planos mensais e uma <span className="text-white/90 font-semibold">IA que detecta clientes sumindo</span> e
             recupera receita automaticamente. Tudo num só lugar.
           </p>
 
+          <div className="max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 mb-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              OFERTA DE LANÇAMENTO ATIVA
+            </div>
+            <p className="text-xs sm:text-sm text-amber-100/95 leading-relaxed">
+              Plano <strong>Master</strong> com condição especial: <strong>R$ 79,90/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+            </p>
+          </div>
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14">
-            <Link to="/checkout">
+            <Link to="/checkout?promo=lancamento">
               <GlowButton className="w-full sm:w-auto">Começar agora — 7 dias grátis</GlowButton>
             </Link>
             <Link to="/login">

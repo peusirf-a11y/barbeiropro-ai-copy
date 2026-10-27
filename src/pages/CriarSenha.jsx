@@ -17,7 +17,14 @@ import {
   Building2,
 } from 'lucide-react';
 
-const PLAN_LABEL = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
+const PLAN_LABEL = {
+  classico: 'Clássico',
+  master: 'Master',
+  exclusivo: 'Exclusivo',
+  starter: 'Starter',
+  pro: 'Master',
+  enterprise: 'Enterprise',
+};
 
 function passwordStrength(p) {
   if (!p) return { ok: false, msg: '' };
@@ -39,8 +46,8 @@ export default function CriarSenha() {
   } catch (_) {}
 
   const initialEmail = (params.get('email') || localCheckout.email || localStorage.getItem('barberpass_auth_email') || '').trim().toLowerCase();
-  const planKey = (params.get('plan') || localCheckout.plan || 'pro').toLowerCase();
-  const planName = PLAN_LABEL[planKey] || 'Pro';
+  const planKey = (params.get('plan') || params.get('plano') || localCheckout.plan || 'master').toLowerCase();
+  const planName = PLAN_LABEL[planKey] || 'Master';
   const nomeBarbearia = (params.get('business') || localCheckout.business_name || '').trim();
   const nomeResponsavel = (params.get('owner') || localCheckout.owner_name || '').trim();
   const whatsapp = (params.get('phone') || localCheckout.phone || '').trim();
@@ -110,7 +117,9 @@ export default function CriarSenha() {
           phone: whatsapp || null,
           whatsapp: whatsapp || null,
           cnpj: cnpj || null,
-          plan: planKey || 'pro',
+          plan: planKey || 'master',
+          plan_id: localCheckout.plan_id || planKey || 'master',
+          plan_name: planName,
           active: true,
           payment_status: 'paid',
           onboarding_completed: true,

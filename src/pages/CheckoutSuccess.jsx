@@ -1,12 +1,19 @@
 import PostCheckoutAccessCard, { PostCheckoutPageShell } from '@/components/onboarding/PostCheckoutAccessCard';
 
-const PLAN_LABELS = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
+const PLAN_LABELS = {
+  classico: 'Clássico',
+  master: 'Master',
+  exclusivo: 'Exclusivo',
+  starter: 'Starter',
+  pro: 'Master',
+  enterprise: 'Enterprise',
+};
 
 export default function CheckoutSuccess() {
   const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   const email = params.get('email') || '';
-  const planKey = params.get('plano') || '';
-  const planName = PLAN_LABELS[planKey] || null;
+  const planKey = (params.get('plano') || params.get('plan') || 'master').toLowerCase();
+  const planName = PLAN_LABELS[planKey] || 'Master';
 
   return (
     <PostCheckoutPageShell>

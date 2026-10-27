@@ -27,6 +27,7 @@ import LaunchLandingPage from './pages/LaunchLandingPage';
 import PublicBooking from './pages/PublicBooking';
 import Onboarding from './pages/Onboarding';
 import Checkout from './pages/Checkout';
+import Register from './pages/Register';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import AcessarConta from './pages/AcessarConta';
 import AtivarAcesso from './pages/AtivarAcesso';
@@ -153,6 +154,7 @@ function App() {
             <Route path="/confirma/:token" element={<ConfirmAppointment />} />
             <Route path="/avaliar/:token" element={<ReviewAppointment />} />
             <Route path="/cadastro" element={<Checkout />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/sucesso" element={<CheckoutSuccess />} />
             <Route path="/acessar-conta" element={<AcessarConta />} />

@@ -20,15 +20,15 @@ export default function LaunchOffer({ vagasRestantes }) {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <div className="flex justify-center mb-5">
-            <SectionBadge icon={Zap}>Oferta exclusiva de lançamento</SectionBadge>
+            <SectionBadge icon={Zap}>OFERTA DE LANÇAMENTO ATIVA</SectionBadge>
           </div>
           <h2 className="text-4xl md:text-5xl font-black tracking-[-0.02em] mb-4">
             <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
-              Garanta R$ 49/mês por 6 meses
+              Plano Master por R$ 79,90/mês nos primeiros 3 meses
             </span>
           </h2>
           <p className="text-base text-white/60 max-w-xl mx-auto">
-            Preço promocional travado pelos primeiros 6 meses. Depois disso, migra para o valor oficial vigente — sem surpresas.
+            Plano Master com condição especial: R$ 79,90/mês nos primeiros 3 meses. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
           </p>
         </div>
 
@@ -51,31 +51,34 @@ export default function LaunchOffer({ vagasRestantes }) {
             <div className="relative grid md:grid-cols-2 gap-10 items-center">
               {/* Coluna preço */}
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/15 border border-amber-400/30 text-[10px] font-bold uppercase tracking-wider text-amber-200 mb-4">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/15 border border-amber-400/30 text-[10px] font-bold uppercase tracking-wider text-amber-200 mb-3">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
-                  Restam {vagasRestantes} vagas
+                  OFERTA DE LANÇAMENTO ATIVA · Restam {vagasRestantes} vagas
+                </div>
+
+                <div className="text-xs font-semibold text-white/45 line-through mb-1">
+                  De R$ 119,00/mês por
                 </div>
 
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-white/55">R$</span>
-                  <span className="text-7xl md:text-8xl font-black bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent leading-none">
-                    49
+                  <span className="text-6xl md:text-7xl font-black bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent leading-none">
+                    79,90
                   </span>
                   <span className="text-white/55 font-semibold">/mês</span>
                 </div>
 
                 <p className="text-sm text-white/65 mb-6 leading-relaxed">
-                  Pelos primeiros <span className="text-white font-semibold">6 meses</span>. Depois, o preço oficial vigente.
-                  Cancele quando quiser.
+                  Plano <span className="text-white font-semibold">Master</span> com condição especial: <span className="text-white font-semibold">R$ 79,90/mês nos primeiros 3 meses</span>. Depois, R$ 119,00/mês. Experimente com <span className="text-emerald-300 font-semibold">7 dias grátis</span>.
                 </p>
 
                 <Link to="/checkout?promo=lancamento">
-                  <GlowButton className="w-full">Quero entrar agora</GlowButton>
+                  <GlowButton className="w-full">Experimentar 7 dias grátis</GlowButton>
                 </Link>
 
                 <div className="flex items-center gap-2 mt-4 text-[11px] text-white/50">
                   <Shield className="w-3.5 h-3.5 text-emerald-300" />
-                  Sem fidelidade · Cancele a qualquer momento
+                  7 dias grátis · Sem fidelidade · Cancele a qualquer momento
                 </div>
               </div>
 

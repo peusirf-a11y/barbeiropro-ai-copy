@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Scissors, ArrowLeft, Check, AlertCircle, Infinity as InfinityIcon, Sun, Moon, CreditCard } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
@@ -26,9 +27,26 @@ export default function CustomerPlans() {
 
   // IMPORTANTE: cache key inclui customer.id para evitar leak entre sessões
   // (cliente A não pode ver planos privados liberados só pro cliente B).
+  // Consulta isolada estritamente pelos clubes da barbearia (.eq('company_id', companyId))
   const { data: rawPlans = [] } = useQuery({
     queryKey: ['public-plans', company?.id, customer?.id || 'anon'],
-    queryFn: () => base44.entities.CustomerPlan.filter({ company_id: company.id, active: true }),
+    queryFn: async () => {
+      const companyId = company?.id;
+      if (!companyId) return [];
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('company_id', companyId);
+
+        if (!error && Array.isArray(data)) {
+          return data
+            .filter((p) => Boolean(p.company_id) && String(p.company_id) === String(companyId) && p.active !== false)
+            .map((p) => base44.entities.CustomerPlan._normalizeRow(p));
+        }
+      }
+      return base44.entities.CustomerPlan.filter({ company_id: companyId, active: true });
+    },
     enabled: !!company?.id,
   });
   // Filtra: público + private onde customer.id está em allowed_customer_ids.

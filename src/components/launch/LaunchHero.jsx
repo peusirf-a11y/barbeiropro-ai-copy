@@ -26,8 +26,8 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
           transition={{ duration: 0.7 }}
           className="text-center max-w-4xl mx-auto"
         >
-          <div className="flex justify-center mb-7">
-            <SectionBadge icon={Rocket}>Oferta de lançamento · R$ 49/mês</SectionBadge>
+          <div className="flex justify-center mb-6">
+            <SectionBadge icon={Rocket}>OFERTA DE LANÇAMENTO ATIVA · Plano Master R$ 79,90/mês</SectionBadge>
           </div>
 
           <h1 className="text-[40px] sm:text-6xl md:text-7xl lg:text-[80px] font-black leading-[0.97] tracking-[-0.03em] mb-6">
@@ -39,9 +39,20 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
             </span>
           </h1>
 
-          <p className="text-base md:text-xl text-white/65 max-w-2xl mx-auto leading-relaxed mb-10">
+          <p className="text-base md:text-xl text-white/65 max-w-2xl mx-auto leading-relaxed mb-6">
             Agendamentos online, controle financeiro, equipe, clientes e pagamentos em um único lugar.
           </p>
+
+          {/* Banner amarelo de destaque da Oferta de Lançamento */}
+          <div className="max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 mb-1">
+              <Rocket className="w-3.5 h-3.5 text-amber-300" />
+              OFERTA DE LANÇAMENTO ATIVA
+            </div>
+            <p className="text-xs sm:text-sm text-amber-100/95 leading-relaxed">
+              Plano <strong>Master</strong> com condição especial: <strong>R$ 79,90/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+            </p>
+          </div>
 
           {/* Highlights checkmark grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 max-w-3xl mx-auto mb-10">
@@ -58,7 +69,7 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
             <Link to="/checkout?promo=lancamento">
-              <GlowButton className="w-full sm:w-auto">Quero garantir minha vaga</GlowButton>
+              <GlowButton className="w-full sm:w-auto">Experimentar 7 dias grátis</GlowButton>
             </Link>
             <Link to="/login">
               <GlowButton variant="ghost" className="w-full sm:w-auto border border-white/20 bg-white/5 hover:bg-white/10">Entrar na minha conta</GlowButton>

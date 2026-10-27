@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Loader2, ArrowUpCircle, Check, Zap, Sparkles, CreditCard } from 'lucide-react';
 import { filterPlansVisibleToCompany } from '@/lib/planVisibility';
 import SaasPaymentModal from './SaasPaymentModal';
@@ -12,7 +13,20 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
 
   const { data: rawPlans = [], isLoading } = useQuery({
     queryKey: ['plans-list', companyId || 'no-company'],
-    queryFn: () => base44.entities.Plan.filter({ active: true }, 'sort_order', 50),
+    queryFn: async () => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .is('company_id', null)
+          .order('order_index', { ascending: true });
+
+        if (!error && Array.isArray(data)) {
+          return data.filter((p) => !p.company_id && p.active !== false);
+        }
+      }
+      return base44.entities.Plan.filter({ company_id: null, active: true }, 'order_index', 50);
+    },
     staleTime: 5 * 60_000,
   });
 

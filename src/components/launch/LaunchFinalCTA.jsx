@@ -46,12 +46,12 @@ export default function LaunchFinalCTA() {
             </h2>
 
             <p className="text-base md:text-lg text-white/65 max-w-xl mx-auto mb-10 leading-relaxed">
-              Garanta sua condição especial de lançamento. R$ 49/mês pelos primeiros 6 meses.
+              Plano Master com condição especial: R$ 79,90/mês nos primeiros 3 meses. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link to="/checkout?promo=lancamento">
-                <GlowButton className="w-full sm:w-auto">Começar agora</GlowButton>
+                <GlowButton className="w-full sm:w-auto">Começar agora — 7 dias grátis</GlowButton>
               </Link>
               <Link to="/demo/dashboard">
                 <GlowButton variant="ghost" className="w-full sm:w-auto">Ver demonstração</GlowButton>

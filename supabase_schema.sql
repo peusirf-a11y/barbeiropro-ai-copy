@@ -78,9 +78,12 @@ CREATE TABLE IF NOT EXISTS plans (
     off_peak BOOLEAN DEFAULT FALSE,
     active BOOLEAN DEFAULT TRUE,
     sort_order INTEGER DEFAULT 0,
+    order_index INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE plans ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_plans_company ON plans(company_id);
 

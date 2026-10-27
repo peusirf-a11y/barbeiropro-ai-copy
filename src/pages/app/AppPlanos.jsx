@@ -2,6 +2,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import { base44 } from '@/api/base44Client';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
@@ -22,7 +23,22 @@ export default function AppPlanos() {
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['customer-plans', companyId],
-    queryFn: () => base44.entities.CustomerPlan.filter({ company_id: companyId }),
+    queryFn: async () => {
+      if (!companyId) return [];
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('company_id', companyId);
+
+        if (!error && Array.isArray(data)) {
+          return data
+            .filter((p) => Boolean(p.company_id) && String(p.company_id) === String(companyId))
+            .map((p) => base44.entities.CustomerPlan._normalizeRow(p));
+        }
+      }
+      return base44.entities.CustomerPlan.filter({ company_id: companyId });
+    },
     enabled: !!companyId,
   });
 

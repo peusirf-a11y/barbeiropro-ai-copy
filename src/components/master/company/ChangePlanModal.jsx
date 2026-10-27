@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import StandardModal from '@/components/ui/standard-modal';
 import { useToast } from '@/components/ui/use-toast';
 import { CheckCircle2, Loader2 } from 'lucide-react';
@@ -15,7 +16,20 @@ export default function ChangePlanModal({ open, onClose, company, onSuccess }) {
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['master-plans-all'],
-    queryFn: () => base44.entities.Plan.list('sort_order', 100),
+    queryFn: async () => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .is('company_id', null)
+          .order('order_index', { ascending: true });
+
+        if (!error && Array.isArray(data)) {
+          return data.filter((p) => !p.company_id);
+        }
+      }
+      return base44.entities.Plan.list('order_index', 100);
+    },
     enabled: open,
   });
 

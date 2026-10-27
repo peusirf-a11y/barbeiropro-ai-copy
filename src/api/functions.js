@@ -102,14 +102,29 @@ export async function invokeFunction(functionName, payload = {}) {
   try {
     switch (functionName) {
       case 'getPublicPlans': {
-        const plans = await Plan.list('sort_order', 50);
+        let plans = [];
+        if (isSupabaseConfigured && supabase) {
+          const { data } = await supabase
+            .from('plans')
+            .select('*')
+            .is('company_id', null)
+            .order('order_index', { ascending: true });
+          if (Array.isArray(data) && data.length > 0) {
+            plans = data.filter((p) => !p.company_id);
+          }
+        }
+        if (plans.length === 0) {
+          plans = await Plan.list('order_index', 50);
+        }
         return {
           data: {
-            plans: plans.map((p) => ({
-              ...p,
-              price: Number(p.price_monthly || p.price || 49),
-              price_monthly: Number(p.price_monthly || p.price || 49),
-            })),
+            plans: plans
+              .filter((p) => !p.company_id)
+              .map((p) => ({
+                ...p,
+                price: Number(p.price_monthly || p.price || 49),
+                price_monthly: Number(p.price_monthly || p.price || 49),
+              })),
           },
         };
       }
@@ -300,21 +315,24 @@ export async function invokeFunction(functionName, payload = {}) {
         } catch (_) {}
 
         if (isSupabaseConfigured && supabase) {
-          // Persiste em plans.limits._landing_mode (tabela pública acessível por visitantes não logados em qualquer dispositivo)
+          // Persiste exclusivamente nos planos da plataforma SaaS (company_id IS NULL)
           try {
             const { data: planRows } = await supabase
               .from('plans')
               .select('id, limits, company_id')
+              .is('company_id', null)
               .limit(50);
             if (Array.isArray(planRows) && planRows.length > 0) {
-              const globalPlans = planRows.filter((p) => !p.company_id);
-              const targets = globalPlans.length > 0 ? globalPlans : [planRows[0]];
-              for (const plan of targets) {
+              for (const plan of planRows) {
                 const nextLimits = {
                   ...(plan.limits && typeof plan.limits === 'object' ? plan.limits : {}),
                   _landing_mode: nextMode,
                 };
-                await supabase.from('plans').update({ limits: nextLimits }).eq('id', plan.id);
+                await supabase
+                  .from('plans')
+                  .update({ limits: nextLimits })
+                  .eq('id', plan.id)
+                  .is('company_id', null);
               }
             }
           } catch (_) {}
@@ -367,17 +385,16 @@ export async function invokeFunction(functionName, payload = {}) {
             }
           } catch (_) {}
 
-          // 2. Tenta ler de plans.limits._landing_mode (sempre acessível para visitantes anônimos)
+          // 2. Tenta ler de plans.limits._landing_mode (somente planos da plataforma: company_id IS NULL)
           if (!remoteMode) {
             try {
               const { data: planRows, error: planErr } = await supabase
                 .from('plans')
                 .select('id, limits, company_id')
+                .is('company_id', null)
                 .limit(50);
               if (!planErr && Array.isArray(planRows) && planRows.length > 0) {
-                const globalPlans = planRows.filter((p) => !p.company_id);
-                const ordered = [...globalPlans, ...planRows.filter((p) => p.company_id)];
-                const match = ordered.find(
+                const match = planRows.find(
                   (p) =>
                     p.limits &&
                     typeof p.limits === 'object' &&
@@ -2633,7 +2650,7 @@ export async function invokeFunction(functionName, payload = {}) {
         const ownerName = String(payload.owner_name || 'Proprietário').trim();
         const phone = String(payload.phone || '').trim();
         const cleanCpfCnpj = String(payload.cpf_cnpj || payload.card?.cpfCnpj || '').replace(/\D/g, '');
-        const planKey = String(payload.plan || 'pro').toLowerCase();
+        const planKey = String(payload.promo ? 'master' : (payload.plan || 'master')).toLowerCase();
         const card = payload.card || {};
 
         // Captura código de indicação (?ref=CODIGO) da URL, payload ou localStorage
@@ -2672,12 +2689,17 @@ export async function invokeFunction(functionName, payload = {}) {
 
         // Determina preço do plano
         const plans = await Plan.list();
-        const targetPlan = plans.find((p) => String(p.id).toLowerCase() === planKey || String(p.name).toLowerCase().includes(planKey)) || {
+        const targetPlan = plans.find(
+          (p) =>
+            String(p.id).toLowerCase() === planKey ||
+            String(p.slug || '').toLowerCase() === planKey ||
+            String(p.name).toLowerCase().includes(planKey)
+        ) || {
           id: planKey,
-          name: planKey.toUpperCase(),
-          price_monthly: payload.promo ? 49 : 89,
+          name: planKey === 'master' ? 'Master' : planKey.toUpperCase(),
+          price_monthly: payload.promo ? 79.90 : 119.00,
         };
-        const planPrice = Number(payload.promo ? 49 : (targetPlan.price_monthly || targetPlan.price || 89));
+        const planPrice = Number(payload.promo ? 79.90 : (targetPlan.price_monthly || targetPlan.price || 119.00));
 
         // 4. Integração real com API Asaas executada exclusivamente via rota de API server-side (/api/asaas/subscription)
         let asaasCustomerId = null;
