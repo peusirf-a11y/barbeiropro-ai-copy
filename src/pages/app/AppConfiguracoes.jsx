@@ -678,13 +678,8 @@ export default function AppConfiguracoes() {
           />
         )}
 
-        {/* Zona de risco — sair / excluir conta */}
-        {company && (
-          <DeleteAccountSection
-            company={company}
-            isOwner={!!user?.email && company.owner_email === user.email}
-          />
-        )}
+        {/* Conta & Sessão — sair da conta */}
+        <DeleteAccountSection company={company} />
       </div>
     </AppLayout>
   );

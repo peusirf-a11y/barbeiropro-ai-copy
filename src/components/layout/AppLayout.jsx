@@ -216,13 +216,18 @@ export default function AppLayout({ children }) {
       <NavList items={navItems} />
 
       <div className="px-3 py-4 border-t border-white/5">
+        {user?.email && (
+          <div className="px-3 pb-2 text-xs text-gray-500 truncate">
+            {user.email}
+          </div>
+        )}
         <button
           onClick={() => logout()}
           aria-label="Sair da conta"
-          className="flex items-center gap-3 text-sm text-gray-400 hover:text-red-400 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 font-medium"
+          className="flex items-center gap-3 text-sm text-gray-300 hover:text-white transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-white/10 font-medium"
         >
           <LogOut className="w-[18px] h-[18px]" aria-hidden="true" />
-          Sair
+          Sair da conta
         </button>
       </div>
     </>
