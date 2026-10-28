@@ -8,6 +8,11 @@ import {
   formatAllowedWeekdaysError,
   toBrasiliaDateParts,
 } from '@/lib/businessHours';
+import {
+  standardizeBarberPhotoCanvas,
+  getBarberStudioStandardizationPrompt,
+  buildProfessionalBioTemplates,
+} from '@/lib/barberPhotoStudio';
 
 export async function resolveCompanyId(payload = {}) {
   if (payload?.company_id) {
@@ -4165,18 +4170,24 @@ export async function invokeFunction(functionName, payload = {}) {
       case 'generateProfessionalBio': {
         const proId = payload.professional_id || payload.id;
         const pro = proId ? await Professional.get(proId) : null;
-        const name = pro?.name || 'Profissional';
-        const spec = pro?.specialty || (Array.isArray(pro?.specialties) && pro.specialties[0]) || 'cortes clássicos e modernos';
-        const bioShort = `${name} — Especialista em ${spec}, com atendimento personalizado e acabamento de precisão.`.slice(0, 150);
-        const bioMedium = `${name} é especialista em ${spec}. Focado em excelência técnica, visagismo prático e experiência confortável em cada atendimento.`.slice(0, 300);
-        const bioFull = `${name} atua com foco em ${spec}, unindo técnica apurada, atenção aos detalhes e atendimento de alto padrão. Cada serviço é realizado de forma personalizada para valorizar o estilo de cada cliente com pontualidade e qualidade.`.slice(0, 600);
+        const liveName = String(payload?.name || '').trim();
+        const liveSpec = String(payload?.specialty || '').trim();
+        const name = liveName || pro?.name || 'Profissional';
+        const spec =
+          liveSpec ||
+          pro?.specialty ||
+          (Array.isArray(pro?.specialties) && pro.specialties[0]) ||
+          'cortes clássicos e modernos';
+
+        const templates = buildProfessionalBioTemplates(name, spec);
 
         return {
           data: {
             success: true,
-            bio_short: bioShort,
-            bio_medium: bioMedium,
-            bio_full: bioFull,
+            bio: templates.bio,
+            bio_short: templates.bio_short,
+            bio_medium: templates.bio_medium,
+            bio_full: templates.bio_full,
             generated_at: new Date().toISOString(),
           },
         };
@@ -4568,10 +4579,24 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'standardizeBarberPhoto': {
+        const originalUrl = String(payload?.original_url || '').trim();
+        const shirtColor = payload?.shirt_color === 'white' ? 'white' : 'black';
+        if (!originalUrl) {
+          return {
+            data: {
+              success: false,
+              error: 'A imagem original é obrigatória para padronização.',
+            },
+          };
+        }
+        const standardizedUrl = await standardizeBarberPhotoCanvas(originalUrl, shirtColor);
         return {
           data: {
             success: true,
-            standardized_url: payload?.original_url || '',
+            original_url: originalUrl,
+            standardized_url: standardizedUrl || originalUrl,
+            shirt_color: shirtColor,
+            prompt_instructions: getBarberStudioStandardizationPrompt(shirtColor),
           },
         };
       }

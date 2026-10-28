@@ -231,6 +231,27 @@ export class EntityRepository {
       out.category = out.category || (out.type === 'saida' ? 'Despesa' : 'Atendimento');
       return out;
     }
+    if (this.tableName === 'professionals') {
+      const out = { ...row };
+      try {
+        const localPros = getLocalTable('professionals');
+        const localMatch = localPros.find(lp => out.id && String(lp.id) === String(out.id));
+        if (localMatch) {
+          if (!out.photo_url && !out.avatar_url && (localMatch.photo_url || localMatch.avatar_url)) {
+            out.photo_url = localMatch.photo_url || localMatch.avatar_url;
+            out.avatar_url = localMatch.avatar_url || localMatch.photo_url;
+          }
+          if (!out.work_schedule && localMatch.work_schedule) out.work_schedule = localMatch.work_schedule;
+          if (!out.services && localMatch.services) out.services = localMatch.services;
+          if (!out.service_ids && localMatch.service_ids) out.service_ids = localMatch.service_ids;
+          if (!out.specialties && localMatch.specialties) out.specialties = localMatch.specialties;
+        }
+      } catch (_) {}
+      const resolvedPhoto = out.photo_url || out.avatar_url || '';
+      out.photo_url = resolvedPhoto;
+      out.avatar_url = resolvedPhoto;
+      return out;
+    }
     if (this.tableName === 'companies') {
       const out = { ...row };
       // Proteção estrita: garante que o campo sensível asaas_api_key NUNCA trafegue para o browser

@@ -1,27 +1,41 @@
-// BarberPhotoStandardizer — Upload de foto de barbeiro com padronização IA.
+// BarberPhotoStandardizer — Upload de foto de barbeiro com padronização inteligente de estúdio.
 //
 // Fluxo:
 // 1. Barbearia faz upload da foto original
-// 2. Imagem é enviada à IA (standardizeBarberPhoto) — preserva identidade,
-//    aplica camisa preta lisa, fundo neutro
-// 3. Mostra "Processando..." durante a geração
-// 4. Exibe Original vs Padronizada lado a lado
-// 5. Barbearia escolhe: aprovar padronizada, refazer, ou usar original
-// 6. onChange só é chamado com a URL aprovada
-//
-// Uso: <BarberPhotoStandardizer value={photoUrl} onChange={setUrl} fallbackText="João" />
+// 2. Imagem é padronizada automaticamente (neutralização de luz neon/colorida,
+//    fundo de estúdio neutro e padronização de camisa Preta ou Branca)
+// 3. Vincula imediatamente a versão padronizada ao formulário (onChange) para que,
+//    mesmo se o usuário clicar direto em "Salvar" no rodapé do modal, a foto seja persistida.
+// 4. Exibe comparativo Original vs Padronizada permitindo alternar a cor da camisa
+//    em tempo real, aprovar a padronizada ou optar pela foto original.
 
 import { useRef, useState } from 'react';
-import { Upload, X, Loader2, Camera, Sparkles, RefreshCcw, Check, AlertCircle } from 'lucide-react';
+import {
+  Upload,
+  X,
+  Loader2,
+  Camera,
+  Sparkles,
+  RefreshCcw,
+  Check,
+  AlertCircle,
+} from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const MAX_SIZE_MB = 5;
-const TARGET_SIZE = 1024; // maior para a IA ter mais qualidade pra trabalhar
+const TARGET_SIZE = 768;
 
 function getInitials(text) {
   if (!text) return '?';
-  return text.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('') || '?';
+  return (
+    text
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() || '')
+      .join('') || '?'
+  );
 }
 
 async function processImage(file) {
@@ -43,11 +57,13 @@ async function processImage(file) {
         canvas.toBlob(
           (blob) => {
             if (!blob) return reject(new Error('Falha ao processar imagem'));
-            const processed = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            const processed = new File([blob], `photo-${Date.now()}.jpg`, {
+              type: 'image/jpeg',
+            });
             resolve(processed);
           },
           'image/jpeg',
-          0.9
+          0.88
         );
       };
       img.src = e.target.result;
@@ -56,11 +72,23 @@ async function processImage(file) {
   });
 }
 
-export default function BarberPhotoStandardizer({ value, onChange, fallbackText = '', disabled = false }) {
-  const [phase, setPhase] = useState('idle'); // idle | uploading | standardizing | review | error
+async function dataUrlToFile(dataUrl, filename = `barber-studio-${Date.now()}.webp`) {
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type || 'image/webp' });
+}
+
+export default function BarberPhotoStandardizer({
+  value,
+  onChange,
+  fallbackText = '',
+  disabled = false,
+}) {
+  const [phase, setPhase] = useState('idle'); // idle | uploading | standardizing | approving | review | error
   const [originalUrl, setOriginalUrl] = useState('');
   const [standardizedUrl, setStandardizedUrl] = useState('');
   const [shirtColor, setShirtColor] = useState('black'); // 'black' | 'white'
+  const [approvedBadge, setApprovedBadge] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef(null);
 
@@ -71,8 +99,37 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
     setError('');
   };
 
+  const runStandardization = async (sourceUrl, targetShirtColor) => {
+    setError('');
+    setApprovedBadge(false);
+    setPhase('standardizing');
+    try {
+      // Pequeno yield para garantir renderização imediata do estado de carregamento na UI
+      await new Promise((r) => setTimeout(r, 60));
+      const { data } = await base44.functions.invoke('standardizeBarberPhoto', {
+        original_url: sourceUrl,
+        shirt_color: targetShirtColor,
+      });
+
+      if (!data?.success || !data?.standardized_url) {
+        throw new Error(data?.error || 'Não foi possível padronizar a imagem.');
+      }
+
+      setStandardizedUrl(data.standardized_url);
+      // Vincula imediatamente ao formulário para que o botão "Salvar" do modal já tenha a foto pronta
+      onChange(data.standardized_url);
+      setPhase('review');
+    } catch (e) {
+      console.error('[BarberPhotoStandardizer] standardize error:', e);
+      setError(e?.message || 'Falha ao padronizar foto. Usando foto original.');
+      onChange(sourceUrl);
+      setPhase('error');
+    }
+  };
+
   const handleFile = async (file) => {
     setError('');
+    setApprovedBadge(false);
     if (!file) return;
 
     if (!ACCEPTED_TYPES.includes(file.type)) {
@@ -85,60 +142,66 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
     }
 
     try {
-      // 1. Upload original
       setPhase('uploading');
       const processed = await processImage(file);
       const { file_url } = await base44.integrations.Core.UploadFile({ file: processed });
       setOriginalUrl(file_url);
+      onChange(file_url);
 
-      // 2. Padroniza via IA
-      setPhase('standardizing');
-      const { data } = await base44.functions.invoke('standardizeBarberPhoto', {
-        original_url: file_url,
-        shirt_color: shirtColor,
-      });
-
-      if (!data?.success || !data?.standardized_url) {
-        throw new Error(data?.error || 'A IA não conseguiu gerar a foto padronizada.');
-      }
-
-      setStandardizedUrl(data.standardized_url);
-      setPhase('review');
+      await runStandardization(file_url, shirtColor);
     } catch (e) {
-      console.error('[BarberPhotoStandardizer]', e);
-      setError(e?.message || 'Falha ao processar foto. Tente novamente.');
-      setPhase(originalUrl ? 'error' : 'idle');
+      console.error('[BarberPhotoStandardizer] upload error:', e);
+      setError(e?.message || 'Falha ao carregar foto. Tente novamente.');
+      setPhase('idle');
+    }
+  };
+
+  const handleShirtColorSwitch = async (nextColor) => {
+    setShirtColor(nextColor);
+    if (originalUrl && (phase === 'review' || phase === 'error')) {
+      await runStandardization(originalUrl, nextColor);
     }
   };
 
   const handleRegenerate = async () => {
     if (!originalUrl) return;
-    setError('');
+    await runStandardization(originalUrl, shirtColor);
+  };
+
+  const approveStandardized = async () => {
+    if (!standardizedUrl) {
+      reset();
+      return;
+    }
+    setPhase('approving');
     try {
-      setPhase('standardizing');
-      const { data } = await base44.functions.invoke('standardizeBarberPhoto', {
-        original_url: originalUrl,
-        shirt_color: shirtColor,
-      });
-      if (!data?.success || !data?.standardized_url) {
-        throw new Error(data?.error || 'Falha ao gerar nova versão.');
+      let finalPhotoUrl = standardizedUrl;
+      if (standardizedUrl.startsWith('data:image/')) {
+        try {
+          const fileObj = await dataUrlToFile(
+            standardizedUrl,
+            `barber-standardized-${shirtColor}-${Date.now()}.webp`
+          );
+          const uploaded = await base44.integrations.Core.UploadFile({ file: fileObj });
+          if (uploaded?.file_url) {
+            finalPhotoUrl = uploaded.file_url;
+          }
+        } catch (_) {
+          finalPhotoUrl = standardizedUrl;
+        }
       }
-      setStandardizedUrl(data.standardized_url);
-      setPhase('review');
-    } catch (e) {
-      console.error('[BarberPhotoStandardizer] regenerate', e);
-      setError(e?.message || 'Falha ao gerar nova versão.');
-      setPhase('error');
+      onChange(finalPhotoUrl);
+      setApprovedBadge(true);
+    } finally {
+      reset();
     }
   };
 
-  const approveStandardized = () => {
-    onChange(standardizedUrl);
-    reset();
-  };
-
   const useOriginal = () => {
-    onChange(originalUrl);
+    if (originalUrl) {
+      onChange(originalUrl);
+    }
+    setApprovedBadge(false);
     reset();
   };
 
@@ -151,60 +214,128 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
   const onRemove = () => {
     if (disabled) return;
     onChange('');
+    setApprovedBadge(false);
     reset();
   };
 
   const initials = getInitials(fallbackText);
 
-  // ── ESTADO: REVIEW (mostra original vs padronizada) ──────────────────
-  if (phase === 'review' || phase === 'standardizing' || phase === 'error') {
+  // ── ESTADO: REVIEW / STANDARDIZING / APPROVING / ERROR ────────────────
+  if (
+    phase === 'review' ||
+    phase === 'standardizing' ||
+    phase === 'approving' ||
+    phase === 'error'
+  ) {
+    const isBusy = phase === 'standardizing' || phase === 'approving';
     return (
-      <div className="rounded-xl border border-[#60A5FA]/25 bg-[#0B1226] p-4 space-y-3">
-        <div className="flex items-center gap-2 text-[#93C5FD]">
-          <Sparkles className="w-4 h-4" />
-          <span className="text-xs font-bold uppercase tracking-wider">
-            {phase === 'standardizing' ? 'Padronizando com IA…' : 'Revisar padronização'}
-          </span>
+      <div className="rounded-xl border border-[#2563EB]/30 bg-card p-4 space-y-3.5 shadow-sm">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 text-[#2563EB] dark:text-[#93C5FD]">
+            {isBusy ? (
+              <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 shrink-0" />
+            )}
+            <span className="text-xs font-bold uppercase tracking-wider">
+              {phase === 'standardizing'
+                ? 'Segmentando rosto, uniforme e fundo de estúdio…'
+                : phase === 'approving'
+                  ? 'Salvando versão padronizada…'
+                  : 'Revisar padronização'}
+            </span>
+          </div>
+
+          {/* Seletor de camisa ativo também durante a revisão */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Camisa:
+            </span>
+            <button
+              type="button"
+              onClick={() => handleShirtColorSwitch('black')}
+              disabled={disabled || isBusy}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                shirtColor === 'black'
+                  ? 'bg-[#2563EB]/15 border-[#2563EB] text-[#2563EB] dark:text-white shadow-sm'
+                  : 'bg-background border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-950 border border-slate-500 shrink-0" />
+              Preta
+            </button>
+            <button
+              type="button"
+              onClick={() => handleShirtColorSwitch('white')}
+              disabled={disabled || isBusy}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                shirtColor === 'white'
+                  ? 'bg-[#2563EB]/15 border-[#2563EB] text-[#2563EB] dark:text-white shadow-sm'
+                  : 'bg-background border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-white border border-slate-400 shrink-0" />
+              Branca
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           {/* Original */}
           <div className="space-y-1.5">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-white/50">Original</div>
-            <div className="aspect-square rounded-xl overflow-hidden bg-black/30 border border-white/10">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Original
+            </div>
+            <div className="aspect-square rounded-xl overflow-hidden bg-muted/40 border border-border">
               {originalUrl ? (
                 <img src={originalUrl} alt="Original" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white/30 text-xs">—</div>
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                  —
+                </div>
               )}
             </div>
           </div>
 
           {/* Padronizada */}
           <div className="space-y-1.5">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#93C5FD] flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> Padronizada
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB] dark:text-[#93C5FD] flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Padronizada ({shirtColor === 'white' ? 'Camisa Branca' : 'Camisa Preta'})
             </div>
-            <div className="aspect-square rounded-xl overflow-hidden bg-black/30 border border-[#60A5FA]/30 relative">
-              {phase === 'standardizing' ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#1D4ED8]/20 to-[#3B82F6]/20">
-                  <Loader2 className="w-8 h-8 text-[#93C5FD] animate-spin" />
-                  <span className="text-[11px] text-white/70 font-semibold">Processando…</span>
-                  <span className="text-[9px] text-white/40">leva ~10s</span>
+            <div className="aspect-square rounded-xl overflow-hidden bg-muted/40 border-2 border-[#2563EB] relative shadow-sm">
+              {isBusy ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center bg-background/85 backdrop-blur-sm">
+                  <Loader2 className="w-8 h-8 text-[#2563EB] animate-spin" />
+                  <span className="text-[11px] text-foreground font-semibold leading-tight">
+                    {phase === 'approving'
+                      ? 'Aplicando foto padronizada…'
+                      : 'Aplicando uniforme e fundo de estúdio…'}
+                  </span>
                 </div>
               ) : standardizedUrl ? (
-                <img src={standardizedUrl} alt="Padronizada" className="w-full h-full object-cover" />
+                <>
+                  <img
+                    src={standardizedUrl}
+                    alt="Padronizada"
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-emerald-600/90 text-white text-[10px] font-bold shadow">
+                    Ativa
+                  </span>
+                </>
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white/30 text-xs">—</div>
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                  —
+                </div>
               )}
             </div>
           </div>
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 p-2 rounded-lg bg-rose-500/10 border border-rose-400/25">
-            <AlertCircle className="w-4 h-4 text-rose-300 flex-shrink-0 mt-0.5" />
-            <span className="text-xs text-rose-200">{error}</span>
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/25">
+            <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+            <span className="text-xs text-rose-600 dark:text-rose-300">{error}</span>
           </div>
         )}
 
@@ -216,7 +347,7 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
                 type="button"
                 onClick={approveStandardized}
                 disabled={disabled}
-                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-lg text-sm font-bold hover:brightness-110 shadow-[0_8px_24px_rgba(16,185,129,0.35)] transition-all"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-[0_6px_18px_rgba(16,185,129,0.28)] transition-all"
               >
                 <Check className="w-4 h-4" /> Aprovar versão padronizada
               </button>
@@ -225,7 +356,7 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
                   type="button"
                   onClick={handleRegenerate}
                   disabled={disabled}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white/[0.04] border border-white/15 text-white/85 rounded-lg text-xs font-semibold hover:bg-white/[0.08] transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-background border border-border text-foreground rounded-xl text-xs font-semibold hover:bg-muted transition-colors"
                 >
                   <RefreshCcw className="w-3.5 h-3.5" /> Tentar outra
                 </button>
@@ -233,16 +364,16 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
                   type="button"
                   onClick={useOriginal}
                   disabled={disabled}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white/[0.04] border border-white/15 text-white/85 rounded-lg text-xs font-semibold hover:bg-white/[0.08] transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-background border border-border text-foreground rounded-xl text-xs font-semibold hover:bg-muted transition-colors"
                 >
                   Usar original
                 </button>
               </div>
               <button
                 type="button"
-                onClick={reset}
+                onClick={() => inputRef.current?.click()}
                 disabled={disabled}
-                className="text-[11px] text-white/45 hover:text-white/70 transition-colors"
+                className="text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
               >
                 Cancelar e enviar outra foto
               </button>
@@ -254,16 +385,16 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
               <button
                 type="button"
                 onClick={handleRegenerate}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#2563EB] text-white rounded-lg text-xs font-bold hover:brightness-110 transition-all"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#2563EB] text-white rounded-xl text-xs font-bold hover:bg-[#1d4ed8] transition-all"
               >
                 <RefreshCcw className="w-3.5 h-3.5" /> Tentar novamente
               </button>
               <button
                 type="button"
                 onClick={useOriginal}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white/[0.04] border border-white/15 text-white/85 rounded-lg text-xs font-semibold hover:bg-white/[0.08] transition-colors"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-background border border-border text-foreground rounded-xl text-xs font-semibold hover:bg-muted transition-colors"
               >
-                Usar original mesmo assim
+                Usar original
               </button>
             </div>
           )}
@@ -283,14 +414,14 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
   // ── ESTADO: IDLE / UPLOADING (mostra foto salva ou área de upload) ───
   return (
     <div>
-      <div className="flex items-center gap-4 p-3 rounded-xl border-2 border-dashed border-white/15 bg-white/[0.025]">
-        {/* Avatar / preview da foto SALVA (não da que está em revisão) */}
+      <div className="flex items-center gap-4 p-3.5 rounded-xl border-2 border-dashed border-border bg-muted/20">
+        {/* Avatar / preview da foto SALVA */}
         <div className="relative w-20 h-20 flex-shrink-0">
           {value ? (
             <img
               src={value}
-              alt="Preview"
-              className="w-20 h-20 rounded-xl object-cover ring-2 ring-white/15 shadow-sm"
+              alt="Preview do barbeiro"
+              className="w-20 h-20 rounded-xl object-cover ring-2 ring-[#2563EB]/30 shadow-sm"
             />
           ) : (
             <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white text-xl font-bold shadow-sm">
@@ -302,6 +433,11 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
               <Loader2 className="w-6 h-6 text-white animate-spin" />
             </div>
           )}
+          {value && approvedBadge && phase === 'idle' && (
+            <span className="absolute -bottom-1.5 -right-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] font-bold shadow">
+              <Check className="w-2.5 h-2.5" /> IA
+            </span>
+          )}
         </div>
 
         {/* Ações */}
@@ -311,7 +447,7 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={disabled || phase === 'uploading'}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2563EB] text-white rounded-lg text-xs font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2563EB] text-white rounded-xl text-xs font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors shadow-sm"
             >
               {value ? <Camera className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
               {value ? 'Trocar foto' : 'Enviar foto'}
@@ -321,49 +457,54 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
                 type="button"
                 onClick={onRemove}
                 disabled={disabled || phase === 'uploading'}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/[0.04] border border-white/15 text-white/75 rounded-lg text-xs font-semibold hover:bg-white/[0.08] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-background border border-border text-foreground rounded-xl text-xs font-semibold hover:bg-muted disabled:opacity-50 transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
                 Remover
               </button>
             )}
           </div>
-          <p className="text-[11px] text-[#93C5FD]/80 mt-1.5 flex items-center gap-1">
-            <Sparkles className="w-3 h-3" /> Padronizamos automaticamente com a IA
+          <p className="text-[11px] text-[#2563EB] dark:text-[#93C5FD] font-medium mt-1.5 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 shrink-0" />{' '}
+            {approvedBadge && value
+              ? 'Versão padronizada aprovada e pronta para salvar'
+              : 'Padronizamos automaticamente com a IA'}
           </p>
 
-          {/* Seletor de cor da camisa */}
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/55">Camisa:</span>
+          {/* Seletor de cor da camisa com contraste perfeito no tema claro e escuro */}
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Camisa:
+            </span>
             <button
               type="button"
               onClick={() => setShirtColor('black')}
               disabled={disabled || phase === 'uploading'}
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
                 shirtColor === 'black'
-                  ? 'bg-[#60A5FA]/15 border-[#60A5FA]/40 text-white'
-                  : 'bg-white/[0.03] border-white/10 text-white/55 hover:text-white/85'
+                  ? 'bg-[#2563EB]/15 border-[#2563EB] text-[#2563EB] dark:text-white shadow-sm'
+                  : 'bg-background border-border text-muted-foreground hover:text-foreground'
               }`}
             >
-              <span className="w-2.5 h-2.5 rounded-full bg-black ring-1 ring-white/30" />
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-950 border border-slate-500 shrink-0" />
               Preta
             </button>
             <button
               type="button"
               onClick={() => setShirtColor('white')}
               disabled={disabled || phase === 'uploading'}
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
                 shirtColor === 'white'
-                  ? 'bg-[#60A5FA]/15 border-[#60A5FA]/40 text-white'
-                  : 'bg-white/[0.03] border-white/10 text-white/55 hover:text-white/85'
+                  ? 'bg-[#2563EB]/15 border-[#2563EB] text-[#2563EB] dark:text-white shadow-sm'
+                  : 'bg-background border-border text-muted-foreground hover:text-foreground'
               }`}
             >
-              <span className="w-2.5 h-2.5 rounded-full bg-white ring-1 ring-white/30" />
+              <span className="w-2.5 h-2.5 rounded-full bg-white border border-slate-400 shrink-0" />
               Branca
             </button>
           </div>
 
-          <p className="text-[10px] text-white/40 mt-1.5">
+          <p className="text-[10px] text-muted-foreground mt-1.5">
             JPG, PNG ou WEBP até {MAX_SIZE_MB}MB
           </p>
         </div>
@@ -378,7 +519,7 @@ export default function BarberPhotoStandardizer({ value, onChange, fallbackText 
       </div>
 
       {error && (
-        <p className="text-xs text-rose-300 mt-1.5">{error}</p>
+        <p className="text-xs text-rose-600 dark:text-rose-300 mt-1.5 font-medium">{error}</p>
       )}
     </div>
   );

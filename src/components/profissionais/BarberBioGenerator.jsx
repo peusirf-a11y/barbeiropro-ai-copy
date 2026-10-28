@@ -14,6 +14,8 @@ const LIMITS = { bio_short: 150, bio_medium: 300, bio_full: 600 };
 
 export default function BarberBioGenerator({
   professionalId,
+  name = '',
+  specialty = '',
   values,
   generatedAt,
   onChange,
@@ -22,9 +24,11 @@ export default function BarberBioGenerator({
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
 
+  const canGenerate = Boolean(professionalId || String(name || '').trim());
+
   const generate = async () => {
-    if (!professionalId) {
-      setError('Salve o profissional primeiro para gerar a biografia com IA.');
+    if (!canGenerate) {
+      setError('Preencha o nome do profissional primeiro para gerar a biografia com IA.');
       return;
     }
     setError('');
@@ -32,9 +36,12 @@ export default function BarberBioGenerator({
     try {
       const { data } = await base44.functions.invoke('generateProfessionalBio', {
         professional_id: professionalId,
+        name: String(name || '').trim(),
+        specialty: String(specialty || '').trim(),
       });
       if (!data?.success) throw new Error(data?.error || 'Falha ao gerar.');
       onChange({
+        bio: data.bio_full || data.bio_medium || data.bio_short,
         bio_short: data.bio_short,
         bio_medium: data.bio_medium,
         bio_full: data.bio_full,
@@ -64,7 +71,7 @@ export default function BarberBioGenerator({
             <span className="text-xs font-bold uppercase tracking-wider">Biografia profissional</span>
           </div>
           <p className="text-[11px] text-white/55 mt-1 leading-snug">
-            A IA usa só os dados reais do barbeiro (nome, especialidade, serviços, atendimentos, avaliações). Nunca inventa cursos ou anos de carreira.
+            A IA usa dinamicamente o Nome ({name?.trim() || 'Profissional'}) e a Especialidade atuais do barbeiro.
           </p>
           {generatedAt && (
             <p className="text-[10px] text-white/40 mt-1">
@@ -75,8 +82,8 @@ export default function BarberBioGenerator({
         <button
           type="button"
           onClick={generate}
-          disabled={disabled || generating || !professionalId}
-          title={!professionalId ? 'Salve o profissional primeiro' : ''}
+          disabled={disabled || generating || !canGenerate}
+          title={!canGenerate ? 'Preencha o nome do profissional primeiro' : ''}
           className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-lg text-xs font-bold hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_24px_rgba(37,99,235,0.35)] transition-all"
         >
           {generating ? (
@@ -98,11 +105,11 @@ export default function BarberBioGenerator({
         </button>
       </div>
 
-      {!professionalId && (
+      {!canGenerate && (
         <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-400/10 border border-amber-400/25">
           <AlertCircle className="w-4 h-4 text-amber-300 flex-shrink-0 mt-0.5" />
           <span className="text-[11px] text-amber-100">
-            Salve o profissional para liberar a geração automática.
+            Informe o nome do profissional na aba Dados para liberar a geração automática.
           </span>
         </div>
       )}
@@ -114,7 +121,7 @@ export default function BarberBioGenerator({
         </div>
       )}
 
-      {(hasAny || professionalId) && (
+      {(hasAny || canGenerate) && (
         <div className="space-y-3">
           <BioField
             label="Curta"

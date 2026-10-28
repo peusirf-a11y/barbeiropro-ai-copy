@@ -12,7 +12,7 @@
 // Manter mínimo necessário — cada adição é superfície de ataque.
 const CSP_DIRECTIVES = {
   'default-src':     ["'self'"],
-  'script-src':      ["'self'", 'https://maps.googleapis.com'],
+  'script-src':      ["'self'", 'https://maps.googleapis.com', 'https://va.vercel-scripts.com'],
   'style-src':       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
   'font-src':        ["'self'", 'https://fonts.gstatic.com'],
   'img-src':         ["'self'", 'data:', 'https:', 'blob:'],
@@ -23,6 +23,8 @@ const CSP_DIRECTIVES = {
     'https://*.base44.com',
     'https://media.base44.com',
     'wss://*.base44.com',
+    'https://vitals.vercel-insights.com',
+    'https://va.vercel-scripts.com',
   ],
   'frame-src':       ["'self'"],
   'worker-src':      ["'self'", 'blob:'],

@@ -15,6 +15,7 @@ import StandardModal from '@/components/ui/standard-modal';
 import BarberPhotoStandardizer from '@/components/profissionais/BarberPhotoStandardizer';
 import BarberBioGenerator from '@/components/profissionais/BarberBioGenerator';
 import BarberSpecialtiesAnalyzer from '@/components/profissionais/BarberSpecialtiesAnalyzer';
+import { syncBioTextWithNameAndSpecialty } from '@/lib/barberPhotoStudio';
 
 const DAYS = [
   { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
@@ -48,36 +49,107 @@ const emptyForm = {
   specialties_analyzed_at: '',
 };
 
+function getLocalProfessionalMap() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('barberpass_local_professionals');
+    const arr = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(arr)) return {};
+    return arr.reduce((acc, item) => {
+      if (item?.id) acc[item.id] = item;
+      return acc;
+    }, {});
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveLocalProfessionalOverride(record) {
+  if (typeof window === 'undefined' || !record?.id) return;
+  try {
+    const key = 'barberpass_local_professionals';
+    const raw = localStorage.getItem(key);
+    const list = raw ? JSON.parse(raw) : [];
+    const safeList = Array.isArray(list) ? list : [];
+    const idx = safeList.findIndex(item => item?.id === record.id);
+    if (idx >= 0) {
+      safeList[idx] = { ...safeList[idx], ...record, updated_at: new Date().toISOString() };
+    } else {
+      safeList.unshift({ ...record, updated_at: new Date().toISOString() });
+    }
+    localStorage.setItem(key, JSON.stringify(safeList));
+  } catch (_) {}
+}
+
 function normalizeProfessional(p) {
   if (!p) return p;
-  const isActive = p.is_active !== undefined
-    ? Boolean(p.is_active)
-    : (p.active !== undefined ? Boolean(p.active) : true);
-  const commVal = Number(p.commission_rate ?? p.commission_value ?? p.commission_pct ?? 0);
-  const commType = p.commission_type || 'percent';
-  const rawSpecs = Array.isArray(p.specialties)
-    ? p.specialties
-    : (p.specialty ? String(p.specialty).split(/[,/]/).map(s => s.trim()).filter(Boolean) : []);
+  const localMap = getLocalProfessionalMap();
+  const localItem = p.id ? localMap[p.id] : null;
+  const merged = localItem ? { ...localItem, ...p } : p;
+
+  const isActive = merged.is_active !== undefined
+    ? Boolean(merged.is_active)
+    : (merged.active !== undefined ? Boolean(merged.active) : true);
+  const commVal = Number(
+    merged.commission_rate ??
+    merged.commission_value ??
+    merged.commission_pct ??
+    localItem?.commission_rate ??
+    0
+  );
+  const commType = merged.commission_type || localItem?.commission_type || 'percent';
+  const rawSpecs = Array.isArray(merged.specialties) && merged.specialties.length > 0
+    ? merged.specialties
+    : (Array.isArray(localItem?.specialties) && localItem.specialties.length > 0
+        ? localItem.specialties
+        : (merged.specialty ? String(merged.specialty).split(/[,/]/).map(s => s.trim()).filter(Boolean) : []));
   const specialtiesArr = rawSpecs
     .map(s => (typeof s === 'string' ? s.trim() : String(s?.tag || s?.name || s?.specialty || '').trim()))
     .filter(Boolean);
-  const servicesArr = Array.isArray(p.services)
-    ? p.services
-    : (Array.isArray(p.service_ids) ? p.service_ids : []);
-  const bioText = p.bio || p.bio_short || p.bio_medium || p.bio_full || '';
+  const servicesArr = Array.isArray(merged.services) && merged.services.length > 0
+    ? merged.services
+    : (Array.isArray(merged.service_ids) && merged.service_ids.length > 0
+        ? merged.service_ids
+        : (Array.isArray(localItem?.services) ? localItem.services : []));
+  const primarySpecialty = merged.specialty || specialtiesArr[0] || '';
+  const rawBioText = merged.bio || merged.bio_short || merged.bio_medium || merged.bio_full || localItem?.bio || '';
+  const bioText = syncBioTextWithNameAndSpecialty(rawBioText, merged.name, primarySpecialty);
+  const bioShortText = syncBioTextWithNameAndSpecialty(
+    merged.bio_short || localItem?.bio_short || bioText,
+    merged.name,
+    primarySpecialty
+  );
+  const bioMediumText = syncBioTextWithNameAndSpecialty(
+    merged.bio_medium || localItem?.bio_medium || '',
+    merged.name,
+    primarySpecialty
+  );
+  const bioFullText = syncBioTextWithNameAndSpecialty(
+    merged.bio_full || localItem?.bio_full || '',
+    merged.name,
+    primarySpecialty
+  );
+  const photoUrl = p.photo_url || p.avatar_url || localItem?.photo_url || localItem?.avatar_url || '';
 
   return {
-    ...p,
+    ...merged,
+    photo_url: photoUrl,
+    avatar_url: photoUrl,
     is_active: isActive,
     active: isActive,
     commission_rate: commVal,
     commission_value: commVal,
+    commission_pct: commVal,
     commission_type: commType,
     specialties: specialtiesArr,
     services: servicesArr,
-    service_ids: Array.isArray(p.service_ids) ? p.service_ids : servicesArr,
+    service_ids: Array.isArray(merged.service_ids) && merged.service_ids.length > 0 ? merged.service_ids : servicesArr,
+    work_schedule: merged.work_schedule || localItem?.work_schedule || defaultSchedule,
+    unit_ids: Array.isArray(merged.unit_ids) ? merged.unit_ids : (Array.isArray(localItem?.unit_ids) ? localItem.unit_ids : []),
     bio: bioText,
-    bio_short: p.bio_short || bioText,
+    bio_short: bioShortText,
+    bio_medium: bioMediumText,
+    bio_full: bioFullText,
   };
 }
 
@@ -331,25 +403,88 @@ export default function AppProfissionais() {
             : (form.specialty ? form.specialty.split(/[,/]/).map(s => s.trim()).filter(Boolean) : []));
 
       const bioString = (form.bio || form.bio_medium || form.bio_short || form.bio_full || '').trim();
+      const photoValue = (form.photo_url || form.avatar_url || '').trim();
+      const isActiveFlag = Boolean(
+        form.is_active !== undefined ? form.is_active : (form.active !== undefined ? form.active : true)
+      );
 
       const payload = {
         company_id: activeCompanyId,
         name: form.name.trim(),
         specialty: form.specialty ? form.specialty.trim() : (specialtiesArray[0] || 'Barbeiro'),
+        photo_url: photoValue || null,
+        avatar_url: photoValue || null,
         commission_type: form.commission_type || 'percent',
         commission_rate: commissionRateNum,
-        is_active: Boolean(form.is_active !== undefined ? form.is_active : (form.active !== undefined ? form.active : true)),
+        commission_pct: commissionRateNum,
+        is_active: isActiveFlag,
+        active: isActiveFlag,
         bio: bioString,
         specialties: specialtiesArray,
         services: servicesArray,
       };
 
+      const fullLocalRecord = {
+        ...payload,
+        photo_url: photoValue,
+        avatar_url: photoValue,
+        service_ids: servicesArray,
+        work_schedule: form.work_schedule || defaultSchedule,
+        unit_ids: Array.isArray(form.unit_ids) ? form.unit_ids : [],
+        bio_short: form.bio_short || bioString,
+        bio_medium: form.bio_medium || '',
+        bio_full: form.bio_full || '',
+        bio_generated_at: form.bio_generated_at || '',
+        suggested_specialties: Array.isArray(form.suggested_specialties) ? form.suggested_specialties : specialtiesArray,
+        specialties_analyzed_at: form.specialties_analyzed_at || '',
+      };
+
+      // Função auxiliar resiliente para salvar no Supabase removendo apenas colunas ausentes no schema remoto
+      const executeResilientMutation = async (mode, recordId, initialData) => {
+        if (!supabase) {
+          const fallbackId = recordId || `prof_${Date.now()}`;
+          saveLocalProfessionalOverride({ ...fullLocalRecord, id: fallbackId });
+          return { data: [{ ...fullLocalRecord, id: fallbackId }], error: null };
+        }
+
+        let currentPayload = { ...initialData };
+        let lastError = null;
+
+        for (let attempt = 0; attempt < 10; attempt++) {
+          const query = mode === 'update'
+            ? supabase.from('professionals').update(currentPayload).eq('id', recordId).select()
+            : supabase.from('professionals').insert(currentPayload).select();
+
+          const { data, error } = await query;
+          if (!error) {
+            const savedRow = Array.isArray(data) ? data[0] : data;
+            const finalId = savedRow?.id || recordId;
+            if (finalId) {
+              saveLocalProfessionalOverride({ ...fullLocalRecord, ...(savedRow || {}), id: finalId, photo_url: photoValue, avatar_url: photoValue });
+            }
+            return { data, error: null };
+          }
+
+          lastError = error;
+          const errMsg = String(error.message || '') + ' ' + String(error.details || '');
+          const colMatch =
+            errMsg.match(/Could not find the '([^']+)' column/i) ||
+            errMsg.match(/column "([^"]+)" of relation "[^"]+" does not exist/i) ||
+            errMsg.match(/column '([^']+)' does not exist/i);
+
+          if (colMatch && colMatch[1] && Object.prototype.hasOwnProperty.call(currentPayload, colMatch[1])) {
+            const missingCol = colMatch[1];
+            delete currentPayload[missingCol];
+            continue;
+          }
+          break;
+        }
+
+        return { data: null, error: lastError };
+      };
+
       if (editing?.id) {
-        const { data: updated, error } = await supabase
-          .from('professionals')
-          .update(payload)
-          .eq('id', editing.id)
-          .select();
+        const { error } = await executeResilientMutation('update', editing.id, payload);
 
         if (error) {
           console.error('[AppProfissionais] Erro ao atualizar profissional no Supabase:', error);
@@ -368,10 +503,7 @@ export default function AppProfissionais() {
           description: `"${payload.name}" foi atualizado.`,
         });
       } else {
-        const { data: inserted, error } = await supabase
-          .from('professionals')
-          .insert(payload)
-          .select();
+        const { error } = await executeResilientMutation('insert', null, payload);
 
         // Tratamento e exibição imediata de erros devolvidos pelo Supabase
         if (error) {
@@ -600,7 +732,17 @@ export default function AppProfissionais() {
                     <input
                       type="text"
                       value={form.name}
-                      onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                      onChange={e => {
+                        const nextName = e.target.value;
+                        setForm(p => ({
+                          ...p,
+                          name: nextName,
+                          bio: syncBioTextWithNameAndSpecialty(p.bio, nextName, p.specialty, p.name),
+                          bio_short: syncBioTextWithNameAndSpecialty(p.bio_short, nextName, p.specialty, p.name),
+                          bio_medium: syncBioTextWithNameAndSpecialty(p.bio_medium, nextName, p.specialty, p.name),
+                          bio_full: syncBioTextWithNameAndSpecialty(p.bio_full, nextName, p.specialty, p.name),
+                        }));
+                      }}
                       placeholder="Ex: Carlos Silva"
                       className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
                     />
@@ -616,6 +758,10 @@ export default function AppProfissionais() {
                           ...p,
                           specialty: val,
                           specialties: val ? val.split(/[,/]/).map(s => s.trim()).filter(Boolean) : [],
+                          bio: syncBioTextWithNameAndSpecialty(p.bio, p.name, val, p.name),
+                          bio_short: syncBioTextWithNameAndSpecialty(p.bio_short, p.name, val, p.name),
+                          bio_medium: syncBioTextWithNameAndSpecialty(p.bio_medium, p.name, val, p.name),
+                          bio_full: syncBioTextWithNameAndSpecialty(p.bio_full, p.name, val, p.name),
                         }));
                       }}
                       placeholder="Ex: Barba & Navalha"
@@ -695,6 +841,8 @@ export default function AppProfissionais() {
                   </div>
                   <BarberBioGenerator
                     professionalId={editing?.id}
+                    name={form.name}
+                    specialty={form.specialty}
                     values={{
                       bio_short: form.bio_short,
                       bio_medium: form.bio_medium,
@@ -702,7 +850,7 @@ export default function AppProfissionais() {
                     }}
                     generatedAt={form.bio_generated_at}
                     onChange={(patch) => {
-                      const updatedBio = patch.bio_full || patch.bio_medium || patch.bio_short || form.bio;
+                      const updatedBio = patch.bio || patch.bio_full || patch.bio_medium || patch.bio_short || form.bio;
                       setForm(p => ({ ...p, ...patch, bio: updatedBio }));
                     }}
                   />
@@ -723,6 +871,10 @@ export default function AppProfissionais() {
                         ...p,
                         specialty: tag,
                         specialties: nextSpecs,
+                        bio: syncBioTextWithNameAndSpecialty(p.bio, p.name, tag, p.name),
+                        bio_short: syncBioTextWithNameAndSpecialty(p.bio_short, p.name, tag, p.name),
+                        bio_medium: syncBioTextWithNameAndSpecialty(p.bio_medium, p.name, tag, p.name),
+                        bio_full: syncBioTextWithNameAndSpecialty(p.bio_full, p.name, tag, p.name),
                       };
                     });
                     setTab('info');
