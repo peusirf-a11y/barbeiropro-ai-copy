@@ -14,17 +14,18 @@ const safeFmt = (dStr) => {
 const brl = (n) => 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ',');
 
 const REF_STATUS = {
-  pending: { label: 'Clicou', cls: 'bg-white/8 text-white/70 border-white/15' },
-  converted: { label: 'Trial', cls: 'bg-amber-500/15 text-amber-200 border-amber-400/30' },
-  active: { label: 'Pagando', cls: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' },
-  cancelled: { label: 'Cancelado', cls: 'bg-rose-500/10 text-rose-200 border-rose-400/25' },
-  fraud: { label: 'Fraude', cls: 'bg-rose-500/25 text-rose-200 border-rose-400/45' },
+  pending: { label: 'Em avaliação', cls: 'bg-white/8 text-white/70 border-white/15' },
+  converted: { label: 'Trial (7 dias)', cls: 'bg-amber-500/15 text-amber-200 border-amber-400/30' },
+  active: { label: 'Ativa (30%)', cls: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' },
+  completed: { label: 'Concluída (12/12)', cls: 'bg-blue-500/15 text-blue-200 border-blue-400/30' },
+  cancelled: { label: 'Cancelada', cls: 'bg-rose-500/10 text-rose-200 border-rose-400/25' },
+  fraud: { label: 'Irregular', cls: 'bg-rose-500/25 text-rose-200 border-rose-400/45' },
 };
 
 const COMM_STATUS = {
-  pending: { label: 'Hold', cls: 'bg-amber-500/15 text-amber-200 border-amber-400/30' },
-  approved: { label: 'Aprovado', cls: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' },
-  paid: { label: 'Pago', cls: 'bg-blue-500/15 text-blue-200 border-blue-400/30' },
+  pending: { label: 'Em Hold (Anti-fraude)', cls: 'bg-amber-500/15 text-amber-200 border-amber-400/30' },
+  approved: { label: 'A Pagar (Aprovadas)', cls: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' },
+  paid: { label: 'Pago via Pix', cls: 'bg-blue-500/15 text-blue-200 border-blue-400/30' },
   cancelled: { label: 'Cancelado', cls: 'bg-rose-500/10 text-rose-200 border-rose-400/25' },
 };
 

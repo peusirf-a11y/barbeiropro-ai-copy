@@ -47,18 +47,20 @@ export default function MasterPartnersPayoutsTab({ month, onMonthChange }) {
       {/* Header: seletor de mês + totais */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-white">Pagamentos do mês</h3>
-          <p className="text-xs text-white/55 mt-0.5">Agrupado por parceiro. Faça 1 PIX por parceiro e marque tudo pago.</p>
+          <h3 className="text-base font-bold text-white">Pagamentos do mês (Fecho dia 01 · Repasse Pix dias 05 a 10)</h3>
+          <p className="text-xs text-white/55 mt-0.5">
+            Comissão de 30% recorrente (teto 12 meses). Valor mínimo de transferência: R$ 50,00 (saldos inferiores acumulam para o ciclo seguinte).
+          </p>
         </div>
         <MonthPicker value={month} onChange={onMonthChange} />
       </div>
 
       {/* Totais do mês */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <SummaryCard label="A pagar" value={brl(totals.to_pay_amount)} sub={`${totals.partners_to_pay || 0} parceiro(s)`} icon={DollarSign} color="blue" highlight />
-        <SummaryCard label="Já pago no mês" value={brl(totals.paid_amount)} sub="dentro deste período" icon={CheckCircle2} color="emerald" />
-        <SummaryCard label="Em hold" value={brl(totals.hold_amount)} sub="aguardando liberação" icon={Clock} color="amber" />
-        <SummaryCard label="Mês" value={formatMonthLabel(month)} sub="período analisado" icon={DollarSign} color="violet" />
+        <SummaryCard label="A Pagar (Aprovadas)" value={brl(totals.to_pay_amount)} sub={`${totals.partners_to_pay || 0} parceiro(s) · mín. R$ 50`} icon={DollarSign} color="blue" highlight />
+        <SummaryCard label="Já pago no mês" value={brl(totals.paid_amount)} sub="repasses via Pix" icon={CheckCircle2} color="emerald" />
+        <SummaryCard label="Em Hold (Anti-fraude)" value={brl(totals.hold_amount)} sub="retenção 14 a 30 dias" icon={Clock} color="amber" />
+        <SummaryCard label="Ciclo de Fecho" value={formatMonthLabel(month)} sub="repasse dias 05 a 10" icon={DollarSign} color="violet" />
       </div>
 
       {/* Lista de parceiros */}

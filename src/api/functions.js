@@ -3509,6 +3509,8 @@ export async function invokeFunction(functionName, payload = {}) {
           pix_key,
           password,
           referral_code,
+          commission_percentage: 30,
+          commission_rate: 30,
           status: 'pending',
           created_at: new Date().toISOString(),
         };
@@ -3555,11 +3557,19 @@ export async function invokeFunction(functionName, payload = {}) {
             name: 'Parceiro O CORTE',
             email: 'parceiro@ocorte.com',
             referral_code: 'PARC100',
+            commission_percentage: 30,
+            commission_rate: 30,
             status: 'active',
             pix_key: '',
             phone: '',
             cpf_cnpj: '',
             created_at: new Date().toISOString(),
+          };
+        } else {
+          matched = {
+            ...matched,
+            commission_percentage: matched.commission_percentage || matched.commission_rate || 30,
+            commission_rate: matched.commission_rate || matched.commission_percentage || 30,
           };
         }
 
@@ -3600,10 +3610,10 @@ export async function invokeFunction(functionName, payload = {}) {
           };
         }
 
-        // Cálculo de KPIs dinâmicos (estritamente zerados se não houverem registros reais)
+        // Cálculo de KPIs dinâmicos conforme Programa de Parceiros Oficial (30% recorrente, até 12 meses)
         const total_referrals = partnerReferrals.length;
         const converted = partnerReferrals.filter((r) => r.status === 'active' || r.status === 'converted').length;
-        const active = partnerReferrals.filter((r) => r.status === 'active').length;
+        const active = partnerReferrals.filter((r) => r.status === 'active' && Number(r.cycles_paid || 0) < 12).length;
         const cancelled = partnerReferrals.filter((r) => r.status === 'cancelled').length;
 
         const conversion_rate = total_referrals > 0 ? Math.round((converted / total_referrals) * 100) : 0;
@@ -3621,8 +3631,9 @@ export async function invokeFunction(functionName, payload = {}) {
           .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
 
         const total_generated = balance_pending + balance_approved + balance_paid;
-        const revenue_for_ocorte = active * 240;
-        const mrr_estimated = active * 48;
+        // Base de cálculo: R$ 119,00/mês padrão -> 30% = R$ 35,70/mês (ou R$ 79,90 -> R$ 23,97/mês nos meses 1 a 3)
+        const revenue_for_ocorte = Number((active * 119.0).toFixed(2));
+        const mrr_estimated = Number((active * 35.7).toFixed(2));
 
         const goal_progress = matched.monthly_goal ? Math.min(Math.round((active / matched.monthly_goal) * 100), 100) : 0;
 
@@ -3643,6 +3654,8 @@ export async function invokeFunction(functionName, payload = {}) {
               conversion_rate,
               revenue_for_ocorte,
               mrr_estimated,
+              min_payout: 50,
+              max_cycles: 12,
               monthly_goal: matched.monthly_goal || 10,
               month_generated: active,
               goal_progress,
@@ -3689,7 +3702,7 @@ export async function invokeFunction(functionName, payload = {}) {
             data: {
               success: true,
               partners: partnerList.length > 0 ? partnerList : [
-                { id: 'part_demo_01', name: 'Lucas Silveira', email: 'lucas@barberpass.com', phone: '(11) 98888-7777', cpf_cnpj: '123.456.789-00', referral_code: 'LUCAS10', status: 'active', created_at: new Date().toISOString() }
+                { id: 'part_demo_01', name: 'Lucas Silveira', email: 'lucas@barberpass.com', phone: '(11) 98888-7777', cpf_cnpj: '123.456.789-00', referral_code: 'LUCAS10', commission_percentage: 30, commission_rate: 30, status: 'active', created_at: new Date().toISOString() }
               ],
             },
           };

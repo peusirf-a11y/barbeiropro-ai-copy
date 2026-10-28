@@ -183,8 +183,8 @@ export default function PartnerSettings() {
                 className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm font-mono text-emerald-300 placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
               />
             </div>
-            <p className="text-[11px] text-white/40 mt-1">
-              Suas comissões aprovadas são pagas diretamente nesta chave PIX.
+            <p className="text-[11px] text-white/45 mt-1 leading-relaxed">
+              Fecho do ciclo no dia 01 de cada mês. Repasse efetuado entre os dias 05 e 10 diretamente nesta chave PIX (valor mínimo de transferência: R$ 50,00).
             </p>
           </div>
 
@@ -247,7 +247,10 @@ export default function PartnerSettings() {
             <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/6">
               <span className="text-white/45 block text-[10px] uppercase font-bold">Taxa de Comissão</span>
               <span className="font-bold text-emerald-300 block mt-0.5">
-                {partner?.commission_percentage || partner?.commission_rate || 20}% Recorrente
+                {partner?.commission_percentage || partner?.commission_rate || 30}% Recorrente (12 meses)
+              </span>
+              <span className="text-[11px] text-white/45 block mt-0.5">
+                R$ 23,97/mês (mês 1–3) · R$ 35,70/mês (mês 4–12)
               </span>
             </div>
 

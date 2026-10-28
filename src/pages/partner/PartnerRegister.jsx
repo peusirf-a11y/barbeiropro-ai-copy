@@ -33,7 +33,7 @@ export default function PartnerRegister() {
     setLoading(true);
     try {
       const fingerprint = getDeviceFingerprint();
-      const res = await base44.functions.invoke('partnerRegister', { ...form, fingerprint });
+      const res = await base44.functions.invoke('partnerRegister', { ...form, commission_percentage: 30, fingerprint });
       if (res?.data?.success) {
         setSuccess(true);
       } else {
@@ -74,7 +74,9 @@ export default function PartnerRegister() {
         <h1 className="text-3xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent mb-2">
           Cadastro de parceiro
         </h1>
-        <p className="text-white/55 text-sm mb-7">Receba 20% recorrente sobre cada barbearia que você indicar.</p>
+        <p className="text-white/55 text-sm mb-7">
+          Receba <strong className="text-white">30% de comissão recorrente</strong> por 12 meses sobre cada barbearia ativa indicada (~R$ 393,21 por cliente no ano).
+        </p>
 
         <form onSubmit={submit} className="space-y-3.5">
           <Field label="Nome completo" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder="Seu nome" />

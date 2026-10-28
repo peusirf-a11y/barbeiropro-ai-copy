@@ -329,7 +329,7 @@ export default function PartnerDetailDrawer({
 
                   <InfoItem
                     label="Comissão do Parceiro"
-                    value={`${p.commission_percentage || p.commission_rate || 20}% recorrente por barbearia ativa`}
+                    value={`${p.commission_percentage || p.commission_rate || 30}% recorrente (teto de 12 mensalidades · R$ 23,97 m1–3 / R$ 35,70 m4–12)`}
                   />
                 </div>
               </div>

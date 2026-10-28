@@ -10,11 +10,12 @@ import { ptBR } from 'date-fns/locale';
 import { Users } from 'lucide-react';
 
 const STATUS_LABEL = {
-  pending: { label: 'Aguardando', cls: 'bg-white/[0.06] text-white/70 border-white/15' },
-  converted: { label: 'Trial ativo', cls: 'bg-amber-500/15 text-amber-200 border-amber-400/30' },
-  active: { label: 'Ativa', cls: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' },
-  cancelled: { label: 'Cancelada', cls: 'bg-rose-500/15 text-rose-200 border-rose-400/30' },
-  fraud: { label: 'Bloqueada', cls: 'bg-rose-500/20 text-rose-200 border-rose-400/40' },
+  pending:   { label: 'Indicação em avaliação',     cls: 'bg-white/[0.06] text-white/70 border-white/15' },
+  converted: { label: 'Em avaliação (Trial 7 dias)', cls: 'bg-amber-500/15 text-amber-200 border-amber-400/30' },
+  active:    { label: 'Ativa (Comissionando 30%)',  cls: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' },
+  completed: { label: 'Ciclo concluído (12/12)',    cls: 'bg-blue-500/15 text-blue-200 border-blue-400/30' },
+  cancelled: { label: 'Cancelada',                  cls: 'bg-rose-500/15 text-rose-200 border-rose-400/30' },
+  fraud:     { label: 'Irregular / Bloqueada',      cls: 'bg-rose-500/20 text-rose-200 border-rose-400/40' },
 };
 
 const PAGE_SIZE = 20;
@@ -45,16 +46,21 @@ export default function PartnerReferrals() {
     <PartnerLayout>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-2xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Indicações</h1>
-          <p className="text-white/50 text-sm mt-1">{items.length} indicação{items.length === 1 ? '' : 'ões'} no total.</p>
+          <h1 className="text-2xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+            Indicações ({items.length})
+          </h1>
+          <p className="text-white/50 text-sm mt-1">
+            Cada barbearia indicada usufrui de 7 dias de teste gratuito e gera 30% de comissão recorrente por até 12 mensalidades (~R$ 393,21/ano).
+          </p>
         </div>
         <FilterSelect value={status} onChange={(v) => { setStatus(v); setVisible(PAGE_SIZE); }}>
           <option value="all">Todos os status</option>
-          <option value="pending">Aguardando</option>
-          <option value="converted">Trial ativo</option>
-          <option value="active">Ativa</option>
+          <option value="pending">Indicação em avaliação</option>
+          <option value="converted">Trial 7 dias (Em avaliação)</option>
+          <option value="active">Ativa (Comissionando)</option>
+          <option value="completed">Ciclo concluído (12/12)</option>
           <option value="cancelled">Cancelada</option>
-          <option value="fraud">Bloqueada</option>
+          <option value="fraud">Irregular / Bloqueada</option>
         </FilterSelect>
       </div>
 
@@ -64,27 +70,38 @@ export default function PartnerReferrals() {
         ) : sliced.length === 0 ? (
           <div className="p-10 text-center text-white/50">
             <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Nenhuma indicação ainda. Compartilhe seu link!</p>
+            <p className="text-sm">Nenhuma indicação ainda. Compartilhe seu link com estabelecimentos da sua rota comercial!</p>
           </div>
         ) : (
           <table className="ds-table">
             <thead>
               <tr>
                 <th>Barbearia</th>
-                <th>Status</th>
+                <th>Status no Ciclo</th>
+                <th>Recorrência</th>
                 <th>Indicada em</th>
                 <th>1º pagamento</th>
               </tr>
             </thead>
             <tbody>
-              {sliced.map(r => {
+              {sliced.map((r) => {
                 const s = STATUS_LABEL[r.status] || STATUS_LABEL.pending;
+                const cyclesPaid = Number(r.cycles_paid ?? (r.status === 'active' ? 1 : 0));
                 return (
                   <tr key={r.id}>
-                    <td className="font-semibold">{r.referred_company_name || <span className="text-white/40 italic">Pendente</span>}</td>
+                    <td className="font-semibold">
+                      {r.referred_company_name || r.company_name || <span className="text-white/40 italic">Indicação em avaliação</span>}
+                    </td>
                     <td><span className={`ds-badge ${s.cls}`}>{s.label}</span></td>
-                    <td className="text-white/60">{format(new Date(r.created_date), 'dd MMM yyyy', { locale: ptBR })}</td>
-                    <td className="text-white/60">{r.first_payment_at ? format(new Date(r.first_payment_at), 'dd MMM yyyy', { locale: ptBR }) : '—'}</td>
+                    <td className="text-white/70 font-mono text-xs">
+                      {cyclesPaid}/12 mensalidades
+                    </td>
+                    <td className="text-white/60">
+                      {format(new Date(r.created_date || r.created_at || new Date()), 'dd MMM yyyy', { locale: ptBR })}
+                    </td>
+                    <td className="text-white/60">
+                      {r.first_payment_at ? format(new Date(r.first_payment_at), 'dd MMM yyyy', { locale: ptBR }) : '—'}
+                    </td>
                   </tr>
                 );
               })}
@@ -93,7 +110,9 @@ export default function PartnerReferrals() {
         )}
         {visible < items.length && (
           <div className="p-3 border-t border-white/8 text-center">
-            <button onClick={() => setVisible(v => v + PAGE_SIZE)} className="text-sm font-semibold text-[#93C5FD] hover:underline">Carregar mais</button>
+            <button onClick={() => setVisible((v) => v + PAGE_SIZE)} className="text-sm font-semibold text-[#93C5FD] hover:underline">
+              Carregar mais
+            </button>
           </div>
         )}
       </div>
