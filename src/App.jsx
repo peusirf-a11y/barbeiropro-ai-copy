@@ -209,7 +209,9 @@ function App() {
 
             {/* ── PARTNER PROGRAM (public landing + login + private painel) ── */}
             <Route path="/parceiro" element={<PartnerLanding />} />
+            <Route path="/parceiros" element={<PartnerLanding />} />
             <Route path="/parceiro/login" element={<PartnerLogin />} />
+            <Route path="/parceiros/login" element={<PartnerLogin />} />
             <Route path="/parceiro/esqueci-senha" element={<PartnerForgotPassword />} />
             <Route path="/parceiro/resetar-senha" element={<PartnerResetPassword />} />
             <Route path="/parceiro/dashboard" element={<PartnerGuard><PartnerDashboard /></PartnerGuard>} />

@@ -1,4 +1,4 @@
-// Landing pública do Programa de Parceiros Oficial — O CORTE
+// Landing de alta conversão do Programa de Parceiros Oficial — O CORTE
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
@@ -10,52 +10,18 @@ import {
   CheckCircle,
   Gift,
   TrendingUp,
-  Shield,
   AlertCircle,
   Eye,
   EyeOff,
-  Clock,
-  CheckCircle2,
-  Wallet,
-  Calendar,
-  Award,
-  Headphones,
-  Users,
+  Sparkles,
 } from 'lucide-react';
 import { getDeviceFingerprint } from '@/lib/referralTracking';
 
 const EARNINGS_PROJECTION = [
-  { count: '3 barbearias', monthly: 'R$ 107,10 / mês', yearly: '~R$ 1.179,63' },
-  { count: '5 barbearias', monthly: 'R$ 178,50 / mês', yearly: '~R$ 1.966,05' },
-  { count: '10 barbearias', monthly: 'R$ 357,00 / mês', yearly: '~R$ 3.932,10' },
-  { count: '20 barbearias', monthly: 'R$ 714,00 / mês', yearly: '~R$ 7.864,20' },
-];
-
-const LIFECYCLE_STEPS = [
-  {
-    step: '01',
-    icon: Clock,
-    title: 'Cadastro e Período de Testes (Trial)',
-    desc: 'A barbearia regista-se através do link ou código do parceiro e usufrui de 7 dias de teste gratuito. Durante este período, o estado no painel permanece como indicação em avaliação, sem gerar saldo financeiro.',
-  },
-  {
-    step: '02',
-    icon: Shield,
-    title: 'Hold Antifraude (14 a 30 dias)',
-    desc: 'Assim que a barbearia paga a primeira mensalidade, o valor de 30% é lançado na secção "Em Hold (Anti-fraude)". Este período protege o programa contra estornos de cartão, cancelamentos imediatos ou transações irregulares.',
-  },
-  {
-    step: '03',
-    icon: CheckCircle2,
-    title: 'Aprovação de Saldo',
-    desc: 'Terminado o prazo de hold com a assinatura confirmada, o valor é transferido automaticamente para "A Pagar (Aprovadas)".',
-  },
-  {
-    step: '04',
-    icon: Wallet,
-    title: 'Pagamento via Pix',
-    desc: 'Fecho do ciclo no dia 01 de cada mês. O repasse financeiro é efetuado entre os dias 05 e 10 diretamente para a chave Pix cadastrada no perfil do parceiro. Valor mínimo de transferência: R$ 50,00 (caso inferior, acumula para o ciclo seguinte).',
-  },
+  { count: '3 barbearias ativas', monthly: 'R$ 107,10 / mês', yearly: '~R$ 1.179 / ano' },
+  { count: '5 barbearias ativas', monthly: 'R$ 178,50 / mês', yearly: '~R$ 1.966 / ano' },
+  { count: '10 barbearias ativas', monthly: 'R$ 357,00 / mês', yearly: '~R$ 3.932 / ano' },
+  { count: '20 barbearias ativas', monthly: 'R$ 714,00 / mês', yearly: '~R$ 7.864 / ano' },
 ];
 
 export default function PartnerLanding() {
@@ -64,7 +30,6 @@ export default function PartnerLanding() {
     name: '',
     email: '',
     phone: '',
-    cpf_cnpj: '',
     pix_key: '',
     password: '',
   });
@@ -82,7 +47,7 @@ export default function PartnerLanding() {
     setError('');
 
     if (!form.name.trim()) {
-      setError('Por favor, informe seu nome completo.');
+      setError('Por favor, informe seu nome completo ou Razão Social.');
       return;
     }
 
@@ -93,12 +58,12 @@ export default function PartnerLanding() {
     }
 
     if (!form.phone.trim() || form.phone.trim().length < 8) {
-      setError('Por favor, informe seu número de WhatsApp com DDD.');
+      setError('Por favor, informe seu WhatsApp com DDD.');
       return;
     }
 
-    if (!form.cpf_cnpj.trim() || form.cpf_cnpj.trim().length < 11) {
-      setError('Por favor, informe um CPF ou CNPJ válido.');
+    if (!form.pix_key.trim()) {
+      setError('Por favor, informe sua chave Pix para receber as comissões.');
       return;
     }
 
@@ -126,7 +91,6 @@ export default function PartnerLanding() {
                 name: form.name.trim(),
                 full_name: form.name.trim(),
                 phone: form.phone.trim(),
-                cpf_cnpj: form.cpf_cnpj.trim(),
                 pix_key: form.pix_key.trim(),
                 referral_code: referralCode,
                 commission_rate: 30,
@@ -151,7 +115,6 @@ export default function PartnerLanding() {
             full_name: form.name.trim(),
             email: cleanEmail,
             phone: form.phone.trim(),
-            cpf_cnpj: form.cpf_cnpj.trim(),
             pix_key: form.pix_key.trim(),
             referral_code: referralCode,
             commission_rate: 30,
@@ -177,7 +140,6 @@ export default function PartnerLanding() {
         name: form.name.trim(),
         email: cleanEmail,
         phone: form.phone.trim(),
-        cpf_cnpj: form.cpf_cnpj.trim(),
         pix_key: form.pix_key.trim(),
         password: form.password,
         commission_percentage: 30,
@@ -188,7 +150,6 @@ export default function PartnerLanding() {
         name: form.name.trim(),
         email: cleanEmail,
         phone: form.phone.trim(),
-        cpf_cnpj: form.cpf_cnpj.trim(),
         referral_code: referralCode,
         commission_percentage: 30,
       };
@@ -208,15 +169,15 @@ export default function PartnerLanding() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 text-white">
+      <div className="min-h-screen flex items-center justify-center p-4 text-white font-inter">
         <AppBackgroundLayer />
-        <div className="relative max-w-md w-full rounded-3xl border border-emerald-400/30 bg-emerald-500/10 backdrop-blur-xl p-8 text-center shadow-2xl animate-fade-in">
+        <div className="relative max-w-md w-full rounded-3xl border border-emerald-400/30 bg-emerald-500/10 backdrop-blur-xl p-7 sm:p-8 text-center shadow-2xl animate-fade-in">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-400/20 flex items-center justify-center text-emerald-400 mb-4 shadow-sm">
             <CheckCircle className="w-9 h-9" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black mb-2 text-white">Cadastro recebido! 🎉</h1>
           <p className="text-sm text-white/80 mb-6 leading-relaxed">
-            Seu cadastro no Programa de Parceiros Oficial está em análise pela nossa equipe. Enviaremos um e-mail de aprovação assim que for liberado.
+            Seu cadastro no Programa de Parceiros Oficial está em análise. Enviaremos a confirmação por e-mail assim que for aprovado.
           </p>
 
           <div className="bg-white/[0.05] border border-white/10 rounded-2xl p-4 text-left text-sm space-y-2 mb-6">
@@ -234,7 +195,7 @@ export default function PartnerLanding() {
             </div>
             {success.referral_code && (
               <div className="flex justify-between items-center text-xs pt-2 border-t border-white/10">
-                <span className="text-white/50">Código provisório:</span>
+                <span className="text-white/50">Código de parceiro:</span>
                 <span className="font-mono font-bold text-[#93C5FD] bg-[#2563EB]/20 px-2 py-0.5 rounded">
                   {success.referral_code}
                 </span>
@@ -255,194 +216,211 @@ export default function PartnerLanding() {
   }
 
   return (
-    <div className="min-h-screen text-white font-inter">
+    <div className="min-h-screen flex flex-col justify-between text-white font-inter">
       <AppBackgroundLayer />
-      <header className="relative max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
+
+      {/* Header compacto */}
+      <header className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
         <Link to="/landing">
-          <BrandMark size={32} tone="dark" />
+          <BrandMark size={30} tone="dark" />
         </Link>
-        <Link to="/parceiro/login" className="text-sm font-semibold text-white/70 hover:text-white transition-colors">
+        <Link
+          to="/parceiro/login"
+          className="text-xs sm:text-sm font-semibold text-white/75 hover:text-white transition-colors px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10"
+        >
           Já tem conta? Entrar →
         </Link>
       </header>
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12 space-y-12">
-        {/* Topo: Proposta de Valor + Formulário de Adesão */}
-        <div className="grid lg:grid-cols-12 gap-10 items-start">
-          {/* Coluna da esquerda — Modelo de Remuneração */}
-          <div className="lg:col-span-7 space-y-6">
+      {/* Conteúdo Principal em 3 Blocos Enxutos */}
+      <main className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 lg:py-10 flex-1">
+        <div className="grid lg:grid-cols-12 gap-6 lg:gap-10 items-start">
+          {/* Coluna Esquerda: BLOCO 1 (Hero) + BLOCO 2 (Ganhos & Simulador Visual) */}
+          <div className="lg:col-span-7 space-y-5 sm:space-y-6">
+            {/* BLOCO 1: HERO & PROPOSTA DIRETA */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-[#2563EB]/15 border border-[#60A5FA]/25 text-[#93C5FD] text-xs font-bold px-3 py-1.5 rounded-full mb-4">
-                <Gift className="w-3.5 h-3.5" /> PROGRAMA DE PARCEIROS OFICIAL — O CORTE
+              <div className="inline-flex items-center gap-2 bg-[#2563EB]/15 border border-[#60A5FA]/30 text-[#93C5FD] text-[11px] sm:text-xs font-extrabold px-3 py-1.5 rounded-full mb-3.5 tracking-wide">
+                <Gift className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>PROGRAMA DE PARCEIROS OFICIAL — O CORTE</span>
               </div>
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight bg-gradient-to-b from-white to-white/75 bg-clip-text text-transparent mb-4 leading-tight">
-                30% de comissão recorrente em canais B2B.
+
+              <h1 className="text-2xl sm:text-4xl lg:text-[42px] font-black tracking-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent leading-[1.15] mb-3">
+                Ganhe 30% todo mês por cada barbearia indicada
               </h1>
+
               <p className="text-white/70 text-sm sm:text-base leading-relaxed">
-                O Programa de Parceiros de <strong className="text-white">O CORTE</strong> foi desenhado como um modelo de afiliação e canais B2B estruturado para remunerar de forma recorrente e previsível profissionais que possuem ligação direta com o ecossistema de barbearias (<strong className="text-white/90">vendedores de cosméticos, distribuidores, afiadores e barbeiros influentes</strong>).
+                Indique barbearias da sua região e receba comissão recorrente direto no seu Pix durante 1 ano inteiro por cada cliente ativo.
               </p>
             </div>
 
-            {/* 1. Resumo do Modelo de Remuneração */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-5 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <h2 className="text-sm font-black uppercase tracking-wider text-[#93C5FD] flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  1. Resumo do Modelo de Remuneração
-                </h2>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
-                  Recorrência: 12 meses consecutivos
-                </span>
-              </div>
+            {/* BLOCO 2: GANHOS & SIMULADOR VISUAL (Cards Compactos) */}
+            <div className="space-y-4">
+              {/* 1. Cartão de Valores Base */}
+              <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-4 sm:p-6 shadow-xl space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
+                      <TrendingUp className="w-4 h-4" />
+                    </div>
+                    <h2 className="text-sm sm:text-base font-extrabold text-white">
+                      30% de Comissão Recorrente
+                    </h2>
+                  </div>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                    12 meses consecutivos
+                  </span>
+                </div>
 
-              <div className="grid sm:grid-cols-3 gap-3">
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/8">
-                  <div className="text-[11px] font-bold uppercase text-white/50">Comissão</div>
-                  <div className="text-2xl font-black text-emerald-300 mt-0.5">30%</div>
-                  <div className="text-[11px] text-white/55 mt-0.5">Recorrente sobre cada mensalidade paga</div>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/8">
-                  <div className="text-[11px] font-bold uppercase text-white/50">Meses 1 a 3 (Pioneiros)</div>
-                  <div className="text-xl font-black text-white mt-0.5">R$ 23,97<span className="text-xs font-normal text-white/50">/mês</span></div>
-                  <div className="text-[11px] text-white/55 mt-0.5">Sobre mensalidade de R$ 79,90</div>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/8">
-                  <div className="text-[11px] font-bold uppercase text-white/50">Mês 4 ao 12 (Padrão)</div>
-                  <div className="text-xl font-black text-[#93C5FD] mt-0.5">R$ 35,70<span className="text-xs font-normal text-white/50">/mês</span></div>
-                  <div className="text-[11px] text-white/55 mt-0.5">Sobre mensalidade de R$ 119,00</div>
-                </div>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/8 flex items-center justify-between sm:block">
+                    <div className="text-xs text-white/60 font-medium">
+                      Meses 1 a 3 <span className="text-white/40">(Preço de Lançamento)</span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-black text-white sm:mt-1">
+                      R$ 23,97 <span className="text-xs font-normal text-white/50">/ mês</span>
+                    </div>
+                  </div>
 
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-[#2563EB]/15 to-emerald-500/10 border border-[#60A5FA]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <div className="text-xs font-bold text-white">Potencial Anual por Cliente Indicado</div>
-                  <div className="text-xs text-white/65">
-                    Cada barbearia ativa durante 1 ano (12 mensalidades) gera acumulado direto para você:
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/8 flex items-center justify-between sm:block">
+                    <div className="text-xs text-white/60 font-medium">
+                      Mês 4 a 12 <span className="text-white/40">(Plano Padrão)</span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-black text-[#93C5FD] sm:mt-1">
+                      R$ 35,70 <span className="text-xs font-normal text-white/50">/ mês</span>
+                    </div>
                   </div>
                 </div>
-                <div className="text-2xl font-black text-emerald-300 whitespace-nowrap">
-                  ~R$ 393,21
+
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#2563EB]/20 via-emerald-500/15 to-emerald-500/10 border border-emerald-400/30 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-white">
+                    <Sparkles className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+                    <span>Até <strong className="text-emerald-300">~R$ 393,21</strong> por barbearia ao longo de 1 ano</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* 2. Projeção de Ganhos em Escala */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-5 sm:p-6">
-              <h2 className="text-sm font-black uppercase tracking-wider text-[#93C5FD] flex items-center gap-2 mb-4">
-                <Users className="w-4 h-4" />
-                2. Projeção de Ganhos em Escala
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs sm:text-sm">
-                  <thead>
-                    <tr className="border-b border-white/10 text-white/50 text-[11px] uppercase tracking-wider">
-                      <th className="py-2.5 pr-3">Barbearias Ativas Indicadas</th>
-                      <th className="py-2.5 px-3">Comissão Mensal Estimada (Mês 4+)</th>
-                      <th className="py-2.5 pl-3 text-right">Retorno Acumulado em 12 Meses</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/8">
-                    {EARNINGS_PROJECTION.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-white/[0.02]">
-                        <td className="py-3 pr-3 font-bold text-white">{row.count}</td>
-                        <td className="py-3 px-3 font-semibold text-[#93C5FD]">{row.monthly}</td>
-                        <td className="py-3 pl-3 text-right font-black text-emerald-300">{row.yearly}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* 2. Tabela Rápida de Projeção (Compacta, focada em escala) */}
+              <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-4 sm:p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#93C5FD]">
+                    Simulador de Ganhos em Escala
+                  </h3>
+                  <span className="text-[11px] text-white/45">Projeção Mês 4+</span>
+                </div>
+
+                <div className="divide-y divide-white/8">
+                  {EARNINGS_PROJECTION.map((row, idx) => (
+                    <div
+                      key={idx}
+                      className="py-2.5 sm:py-3 flex items-center justify-between gap-2 text-xs sm:text-sm"
+                    >
+                      <span className="font-bold text-white">{row.count}</span>
+                      <div className="flex items-center gap-2 sm:gap-3 text-right">
+                        <span className="font-bold text-[#93C5FD]">{row.monthly}</span>
+                        <span className="text-[11px] sm:text-xs font-extrabold text-emerald-300 bg-emerald-500/10 border border-emerald-400/20 px-2 py-0.5 rounded-lg">
+                          {row.yearly}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Coluna da direita — Formulário */}
+          {/* Coluna Direita: BLOCO 3 (Formulário Enxuto de Cadastro) */}
           <form
             onSubmit={submit}
             noValidate
-            className="lg:col-span-5 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-2xl p-6 sm:p-8 shadow-2xl lg:sticky lg:top-6"
+            className="lg:col-span-5 rounded-2xl sm:rounded-3xl border border-white/12 bg-white/[0.045] backdrop-blur-2xl p-5 sm:p-7 shadow-2xl lg:sticky lg:top-6"
           >
-            <div className="text-xs font-bold text-white/70 uppercase tracking-wider mb-5 flex items-center justify-between">
-              <span>Cadastre-se como Parceiro</span>
-              <span className="text-[11px] text-emerald-300 font-bold normal-case">30% recorrente</span>
+            <div className="flex items-center justify-between gap-2 mb-5">
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                Cadastre-se como Parceiro
+              </h2>
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#2563EB]/20 border border-[#60A5FA]/30 text-[#93C5FD]">
+                30% recorrente
+              </span>
             </div>
 
             <div className="space-y-3.5 mb-5">
-              {/* Nome Completo */}
+              {/* 1. Nome completo ou Razão Social */}
               <div>
-                <label className="block text-[11px] font-semibold text-white/70 mb-1">Nome completo *</label>
+                <label className="block text-xs font-semibold text-white/75 mb-1">
+                  Nome completo ou Razão Social *
+                </label>
                 <input
                   type="text"
+                  required
                   value={form.name}
-                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Seu nome ou Razão Social"
+                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="Seu nome ou empresa"
                   className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
                 />
               </div>
 
-              {/* Email */}
+              {/* 2. E-mail */}
               <div>
-                <label className="block text-[11px] font-semibold text-white/70 mb-1">E-mail *</label>
+                <label className="block text-xs font-semibold text-white/75 mb-1">
+                  E-mail *
+                </label>
                 <input
                   type="email"
+                  required
                   value={form.email}
-                  onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   placeholder="seu.email@exemplo.com"
                   className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
                 />
               </div>
 
-              {/* WhatsApp */}
+              {/* 3. WhatsApp (com DDD) */}
               <div>
-                <label className="block text-[11px] font-semibold text-white/70 mb-1">WhatsApp com DDD *</label>
+                <label className="block text-xs font-semibold text-white/75 mb-1">
+                  WhatsApp (com DDD) *
+                </label>
                 <input
                   type="tel"
+                  required
                   value={form.phone}
-                  onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                  onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
                   placeholder="(11) 99999-9999"
                   className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
                 />
               </div>
 
-              {/* CPF ou CNPJ */}
+              {/* 4. Chave Pix */}
               <div>
-                <label className="block text-[11px] font-semibold text-white/70 mb-1">CPF ou CNPJ *</label>
+                <label className="block text-xs font-semibold text-white/75 mb-1">
+                  Chave Pix (para receber as comissões) *
+                </label>
                 <input
                   type="text"
-                  value={form.cpf_cnpj}
-                  onChange={e => setForm(p => ({ ...p, cpf_cnpj: e.target.value }))}
-                  placeholder="000.000.000-00 ou 00.000.000/0001-00"
-                  className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
-                />
-              </div>
-
-              {/* Chave PIX */}
-              <div>
-                <label className="block text-[11px] font-semibold text-white/70 mb-1">Chave PIX para receber comissões</label>
-                <input
-                  type="text"
+                  required
                   value={form.pix_key}
-                  onChange={e => setForm(p => ({ ...p, pix_key: e.target.value }))}
-                  placeholder="CPF, e-mail, telefone ou chave aleatória"
+                  onChange={(e) => setForm((p) => ({ ...p, pix_key: e.target.value }))}
+                  placeholder="CPF, CNPJ, e-mail, celular ou chave aleatória"
                   className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
                 />
               </div>
 
-              {/* Senha */}
+              {/* 5. Senha de acesso */}
               <div>
-                <label className="block text-[11px] font-semibold text-white/70 mb-1">
-                  Senha de acesso * (mínimo 8 caracteres)
+                <label className="block text-xs font-semibold text-white/75 mb-1">
+                  Senha de acesso (mínimo 8 caracteres) *
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    required
                     value={form.password}
-                    onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                    onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
                     placeholder="Crie sua senha segura"
                     className="w-full px-3.5 py-2.5 pr-10 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(v => !v)}
+                    onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1"
                     tabIndex={-1}
                   >
@@ -479,87 +457,21 @@ export default function PartnerLanding() {
             </button>
 
             <p className="text-[11px] text-white/50 text-center mt-3 leading-relaxed">
-              Repasses via Pix entre os dias 05 e 10 de cada mês (mínimo R$ 50,00). Sem taxa de adesão.
+              Repasses mensais via Pix • Sem taxa de adesão • Cancele quando quiser
             </p>
           </form>
         </div>
+      </main>
 
-        {/* 3. Ciclo de Vida da Indicação e Regras Operacionais */}
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 sm:p-8">
-          <div className="mb-6">
-            <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2.5">
-              <Calendar className="w-5 h-5 text-[#60A5FA]" />
-              3. Ciclo de Vida da Indicação e Regras Operacionais
-            </h2>
-            <p className="text-xs sm:text-sm text-white/60 mt-1">
-              O painel de gestão de parceiros acompanha cada indicação através de quatro etapas bem definidas:
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {LIFECYCLE_STEPS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.step}
-                  className="p-4 rounded-2xl bg-white/[0.03] border border-white/8 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#2563EB]/15 border border-[#60A5FA]/25 flex items-center justify-center">
-                        <Icon className="w-4 h-4 text-[#93C5FD]" />
-                      </div>
-                      <span className="text-xs font-mono font-black text-white/30">ETAPA {item.step}</span>
-                    </div>
-                    <h3 className="font-bold text-sm text-white mb-1.5">{item.title}</h3>
-                    <p className="text-xs text-white/60 leading-relaxed">{item.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 4. Condições e Encerramento do Contrato */}
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 sm:p-8">
-          <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2.5 mb-5">
-            <Award className="w-5 h-5 text-emerald-400" />
-            4. Condições e Encerramento do Contrato
-          </h2>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/8">
-              <div className="font-bold text-sm text-white mb-1.5 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#93C5FD]" />
-                Teto de 12 Mensalidades
-              </div>
-              <p className="text-xs text-white/60 leading-relaxed">
-                Cada barbearia gera exatamente até 12 repasses mensais de comissão. Ao completar 1 ano, aquela assinatura deixa de comissionar, mantendo a rentabilidade e o equilíbrio financeiro do SaaS a longo prazo.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/8">
-              <div className="font-bold text-sm text-white mb-1.5 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                Manutenção dos Rendimentos
-              </div>
-              <p className="text-xs text-white/60 leading-relaxed">
-                Para sustentar ou expandir o seu rendimento mensal, o parceiro é incentivado a continuar a apresentar a plataforma a novos estabelecimentos da sua rota comercial.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/8">
-              <div className="font-bold text-sm text-white mb-1.5 flex items-center gap-2">
-                <Headphones className="w-4 h-4 text-amber-300" />
-                Isenção de Suporte Técnico
-              </div>
-              <p className="text-xs text-white/60 leading-relaxed">
-                O parceiro atua estritamente como canal de recomendação comercial; toda a configuração inicial, suporte técnico, hospedagem e atualizações ficam sob responsabilidade direta de O CORTE.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Rodapé enxuto com link discreto */}
+      <footer className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 text-center border-t border-white/5 mt-8">
+        <Link
+          to="/termos-de-uso"
+          className="text-xs text-white/40 hover:text-white/70 transition-colors underline underline-offset-4"
+        >
+          Termos do Programa de Parceiros
+        </Link>
+      </footer>
     </div>
   );
 }
