@@ -726,3 +726,35 @@ html { scroll-behavior: smooth; }
 
 /* Toast container — auto fechamento já é gerido pelo Radix; só garantir z-index */
 [data-sonner-toaster], [data-radix-toast-viewport] { z-index: 9999 !important; }
+
+/* ----------------------------------------------------------------------
+   PUBLIC DARK SCOPE (.public-dark)
+   Garante que páginas públicas e modais em modo escuro não sofram override
+   de `.light` global no <html> nem do fundo branco forçado nos inputs.
+   ---------------------------------------------------------------------- */
+.public-dark input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+.public-dark textarea,
+.public-dark select {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: #FFFFFF !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.public-dark input::placeholder,
+.public-dark textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.light .public-dark .text-white { color: #FFFFFF !important; }
+.light .public-dark .text-white\/90 { color: rgba(255, 255, 255, 0.90) !important; }
+.light .public-dark .text-white\/80 { color: rgba(255, 255, 255, 0.80) !important; }
+.light .public-dark .text-white\/70 { color: rgba(255, 255, 255, 0.70) !important; }
+.light .public-dark .text-white\/60 { color: rgba(255, 255, 255, 0.60) !important; }
+.light .public-dark .text-white\/50 { color: rgba(255, 255, 255, 0.50) !important; }
+.light .public-dark .text-white\/40 { color: rgba(255, 255, 255, 0.40) !important; }
+.light .public-dark .text-white\/30 { color: rgba(255, 255, 255, 0.30) !important; }
+.light .public-dark .border-white\/10 { border-color: rgba(255, 255, 255, 0.10) !important; }
+.light .public-dark .border-white\/15 { border-color: rgba(255, 255, 255, 0.15) !important; }
+.light .public-dark .border-white\/20 { border-color: rgba(255, 255, 255, 0.20) !important; }
+.light .public-dark .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
+.light .public-dark .bg-white\/10 { background-color: rgba(255, 255, 255, 0.10) !important; }

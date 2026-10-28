@@ -370,7 +370,7 @@ export default function PublicBooking() {
   const heroOverlay = isDark ? 'to-[#0f0f1a]' : 'to-[#F7F8FB]';
 
   return (
-    <div className={`min-h-screen ${tw.bg} flex flex-col`}>
+    <div className={`min-h-screen ${tw.bg} ${tw.scope} flex flex-col`}>
       {/* ─── HERO / CAPA ─── */}
       <div className="relative">
         {company.logo_url ? (
@@ -381,27 +381,43 @@ export default function PublicBooking() {
         ) : (
           <div className="h-52 w-full" style={{ background: heroBg }}>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Scissors className={`w-20 h-20 ${isDark ? 'text-white/10' : 'text-black/5'}`} />
+              <Scissors className={`w-20 h-20 ${isDark ? 'text-[#FFFFFF]/10' : 'text-black/5'}`} />
             </div>
             <div className={`absolute inset-0 bg-gradient-to-b from-transparent ${heroOverlay}`} />
           </div>
         )}
 
         {/* Topo direito: login + toggle tema */}
-        <div className="absolute top-4 right-4 flex items-center gap-2">
+        <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
           <button
             onClick={toggle}
-            className={`w-8 h-8 rounded-full backdrop-blur-sm flex items-center justify-center border border-white/20 ${isDark ? 'bg-black/40 text-white/80' : 'bg-white/70 text-gray-600'}`}
+            className="w-9 h-9 rounded-full backdrop-blur-md flex items-center justify-center border transition-all shadow-lg"
+            style={{
+              backgroundColor: isDark ? 'rgba(15, 15, 26, 0.78)' : 'rgba(255, 255, 255, 0.88)',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.12)',
+              color: isDark ? '#FFFFFF' : '#1F2937',
+            }}
             title={isDark ? 'Tema claro' : 'Tema escuro'}
           >
-            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            {isDark ? (
+              <Sun className="w-4 h-4" style={{ color: '#FBBF24' }} />
+            ) : (
+              <Moon className="w-4 h-4" style={{ color: '#1F2937' }} />
+            )}
           </button>
           <Link
             to={loggedCustomer ? `/cliente/${slug}` : `/cliente/${slug}/login`}
-            className={`flex items-center gap-1.5 backdrop-blur-sm text-xs font-semibold px-3 py-2 rounded-full border ${isDark ? 'bg-black/40 text-white border-white/20' : 'bg-white/70 text-gray-700 border-black/10'}`}
+            className="flex items-center gap-1.5 backdrop-blur-md text-xs font-bold px-3.5 py-2 rounded-full border transition-all shadow-lg"
+            style={{
+              backgroundColor: isDark ? 'rgba(15, 15, 26, 0.78)' : 'rgba(255, 255, 255, 0.88)',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.12)',
+              color: isDark ? '#FFFFFF' : '#1F2937',
+            }}
           >
-            <UserCircle2 className="w-3.5 h-3.5" />
-            {loggedCustomer ? 'Minha conta' : 'Entrar'}
+            <UserCircle2 className="w-4 h-4" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }} />
+            <span style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
+              {loggedCustomer ? 'Minha conta' : 'Entrar'}
+            </span>
           </Link>
         </div>
       </div>

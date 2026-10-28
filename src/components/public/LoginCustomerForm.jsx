@@ -104,21 +104,26 @@ export default function LoginCustomerForm({ companyId, onSuccess, onGoToRegister
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-white/10" />
+          <div className={`w-full border-t ${tw.divider}`} />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className={`px-2 ${isDark ? 'bg-[#1a1a2e]' : 'bg-white'} ${tw.textFaint}`}>ou</span>
+          <span
+            className={`px-2 ${tw.textFaint}`}
+            style={{ backgroundColor: isDark ? '#1a1a2e' : '#FFFFFF' }}
+          >
+            ou
+          </span>
         </div>
       </div>
 
       <button type="button" onClick={onGoToRegister}
-        className="w-full py-3 rounded-xl font-bold text-white/80 border border-white/15 hover:bg-white/5 transition-colors" disabled={loading}>
+        className={`w-full py-3 rounded-xl font-bold transition-colors ${tw.secondaryBtn}`} disabled={loading}>
         Criar nova conta
       </button>
 
       <button type="button"
         onClick={() => document.dispatchEvent(new CustomEvent('switchToActivate'))}
-        className="w-full py-2 text-xs font-semibold text-white/30 hover:text-white/50 transition-colors" disabled={loading}>
+        className={`w-full py-2 text-xs font-semibold ${tw.textFaint} hover:opacity-80 transition-colors`} disabled={loading}>
         Tenho agendamentos antigos — ativar conta
       </button>
     </div>

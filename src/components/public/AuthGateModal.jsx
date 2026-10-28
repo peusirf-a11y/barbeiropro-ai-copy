@@ -72,17 +72,22 @@ export default function AuthGateModal({
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${tw.scope}`}
           >
-            <div className={`w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden ${isDark ? 'bg-[#1a1a2e] border border-white/10' : 'bg-white border border-black/8'}`}>
+            <div
+              className={`w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border ${
+                isDark ? 'bg-[#1a1a2e] border-[rgba(255,255,255,0.12)]' : 'bg-white border-black/8'
+              }`}
+              style={{ backgroundColor: isDark ? '#1a1a2e' : '#FFFFFF' }}
+            >
               {/* Header */}
               <div className={`px-6 py-5 flex items-center justify-between gap-4 border-b ${tw.divider}`}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0"
-                    style={{ backgroundColor: primaryColor }}
+                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
                   >
-                    <Lock className="w-5 h-5" />
+                    <Lock className="w-5 h-5" style={{ color: '#FFFFFF' }} />
                   </div>
                   <div className="min-w-0">
                     <div className={`text-xs font-semibold ${tw.textMuted}`}>Acesso seguro</div>

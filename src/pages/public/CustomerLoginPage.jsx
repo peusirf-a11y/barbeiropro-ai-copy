@@ -171,7 +171,7 @@ export default function CustomerLoginPage() {
   };
 
   return (
-    <div className={`min-h-screen ${tw.bg} flex flex-col`}>
+    <div className={`min-h-screen ${tw.bg} ${tw.scope} flex flex-col`}>
       <header className={`${tw.header} border-b px-6 py-4`}>
         <div className="max-w-md mx-auto flex items-center gap-3">
           <Link to={`/agendar/${slug}`} className={`p-1 -ml-1 rounded hover:opacity-70 ${tw.textMuted}`}>
@@ -181,8 +181,16 @@ export default function CustomerLoginPage() {
             <Scissors className="w-4 h-4" style={{ color: '#FFFFFF' }} />
           </div>
           <span className={`font-bold text-sm ${tw.text} flex-1 truncate`}>{company.name}</span>
-          <button onClick={toggle} className={`w-8 h-8 rounded-full flex items-center justify-center ${tw.logoutBtn}`}>
-            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          <button
+            onClick={toggle}
+            className="w-8 h-8 rounded-full flex items-center justify-center border transition-all"
+            style={{
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.10)' : '#F3F4F6',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.08)',
+              color: isDark ? '#FBBF24' : '#374151',
+            }}
+          >
+            {isDark ? <Sun className="w-3.5 h-3.5" style={{ color: '#FBBF24' }} /> : <Moon className="w-3.5 h-3.5" style={{ color: '#374151' }} />}
           </button>
         </div>
       </header>

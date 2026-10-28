@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { ChevronLeft, AlertCircle, RefreshCw, QrCode, CreditCard, Loader2 } from 'lucide-react';
 import PixPaymentBox from './PixPaymentBox';
 import CardPaymentFormAsaas from './CardPaymentFormAsaas';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
 
 const ASAAS_PIX_ERROR_MSG = 'Não foi possível gerar a cobrança Pix no Asaas. Verifique a chave de API da barbearia.';
 
@@ -20,6 +21,7 @@ function maskCpf(value) {
 }
 
 export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', onBack, onSucceeded }) {
+  const { isDark, tw } = usePublicTheme();
   const [stage, setStage] = useState('choose'); // 'choose' | 'creating' | 'pix' | 'card' | 'expired' | 'error'
   const [method, setMethod] = useState('pix');
   const [cpf, setCpf] = useState('');
@@ -168,18 +170,20 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
 
   return (
     <div>
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-gray-400 mb-4 hover:opacity-80">
+      <button onClick={onBack} className={`flex items-center gap-1 text-sm ${tw.textMuted} mb-4 hover:opacity-80`}>
         <ChevronLeft className="w-4 h-4" />Voltar
       </button>
 
       {/* ─── ESCOLHA DE MÉTODO (COMO PAGAR + CPF DO PAGADOR + CONTINUAR PARA PAGAMENTO) ─── */}
       {stage === 'choose' && (
         <div className="space-y-3">
-          <div className="bg-white rounded-2xl border border-black/8 p-4">
-            <div className="text-[11px] uppercase font-bold text-gray-500 tracking-wide mb-3">Como pagar</div>
+          <div className={`${tw.card} rounded-2xl p-4`}>
+            <div className={`text-[11px] uppercase font-bold ${tw.textMuted} tracking-wide mb-3`}>Como pagar</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <MethodOption
                 active={method === 'pix'}
+                isDark={isDark}
+                tw={tw}
                 primaryColor={primaryColor}
                 onClick={() => setMethod('pix')}
                 icon={QrCode}
@@ -188,6 +192,8 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
               />
               <MethodOption
                 active={method === 'card'}
+                isDark={isDark}
+                tw={tw}
                 primaryColor={primaryColor}
                 onClick={() => setMethod('card')}
                 icon={CreditCard}
@@ -197,8 +203,8 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-black/8 p-4">
-            <label className="text-[11px] uppercase font-bold text-gray-500 tracking-wide block mb-2">CPF do pagador</label>
+          <div className={`${tw.card} rounded-2xl p-4`}>
+            <label className={`text-[11px] uppercase font-bold ${tw.textMuted} tracking-wide block mb-2`}>CPF do pagador</label>
             <input
               type="text"
               inputMode="numeric"
@@ -206,13 +212,13 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
               onChange={(e) => setCpf(maskCpf(e.target.value))}
               placeholder="000.000.000-00"
               maxLength={14}
-              className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm bg-white text-[#1B1C1E]"
+              className={`w-full px-4 py-3 border rounded-xl text-sm ${tw.input}`}
             />
-            <p className="text-[11px] text-gray-400 mt-1.5">Necessário para emitir o comprovante de pagamento.</p>
+            <p className={`text-[11px] ${tw.textFaint} mt-1.5`}>Necessário para emitir o comprovante de pagamento.</p>
           </div>
 
           {errorMsg && (
-            <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-xl">
+            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/25 p-3 rounded-xl">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />{errorMsg}
             </div>
           )}
@@ -226,7 +232,7 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
           >
             <span style={{ color: '#FFFFFF' }}>Continuar para pagamento</span>
           </button>
-          <p className="text-[11px] text-gray-400 text-center">
+          <p className={`text-[11px] ${tw.textFaint} text-center`}>
             Seu agendamento só é confirmado após o pagamento ser aprovado.
           </p>
         </div>
@@ -234,10 +240,10 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
 
       {/* ─── GERANDO CÓDIGO PIX NO ASAAS ─── */}
       {stage === 'creating' && (
-        <div className="bg-white rounded-2xl border border-black/8 p-10 flex flex-col items-center justify-center">
+        <div className={`${tw.card} rounded-2xl p-10 flex flex-col items-center justify-center`}>
           <Loader2 className="w-8 h-8 animate-spin text-[#2563EB] mb-3" />
-          <p className="text-sm font-medium text-gray-700">Gerando código Pix…</p>
-          <p className="text-xs text-gray-400 mt-1">Conectando ao Asaas para emitir o QR Code</p>
+          <p className={`text-sm font-medium ${tw.text}`}>Gerando código Pix…</p>
+          <p className={`text-xs ${tw.textMuted} mt-1`}>Conectando ao Asaas para emitir o QR Code</p>
         </div>
       )}
 
@@ -348,17 +354,23 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
   );
 }
 
-function MethodOption({ active, primaryColor, onClick, icon: Icon, title, subtitle }) {
+function MethodOption({ active, isDark, tw, primaryColor, onClick, icon: Icon, title, subtitle }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`text-left px-4 py-3 rounded-xl border transition-all cursor-pointer ${active ? 'border-2 shadow-sm' : 'border-black/10 hover:border-gray-300'}`}
-      style={active ? { borderColor: primaryColor, backgroundColor: `${primaryColor}08` } : {}}
+      className={`text-left px-4 py-3 rounded-xl border transition-all cursor-pointer ${
+        active
+          ? 'border-2 shadow-sm'
+          : isDark
+          ? 'border-[rgba(255,255,255,0.14)] hover:border-[rgba(255,255,255,0.28)]'
+          : 'border-black/10 hover:border-gray-300'
+      }`}
+      style={active ? { borderColor: primaryColor, backgroundColor: `${primaryColor}14` } : {}}
     >
-      <Icon className="w-5 h-5 mb-1.5" style={{ color: active ? primaryColor : '#6B7280' }} />
-      <div className="font-bold text-sm text-[#1B1C1E]">{title}</div>
-      <div className="text-[11px] text-gray-500 mt-0.5">{subtitle}</div>
+      <Icon className="w-5 h-5 mb-1.5" style={{ color: active ? primaryColor : isDark ? 'rgba(255,255,255,0.65)' : '#6B7280' }} />
+      <div className={`font-bold text-sm ${tw?.text || ''}`}>{title}</div>
+      <div className={`text-[11px] ${tw?.textMuted || 'text-gray-500'} mt-0.5`}>{subtitle}</div>
     </button>
   );
 }

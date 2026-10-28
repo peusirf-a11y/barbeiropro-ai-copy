@@ -1,19 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = 'public_theme';
+const THEME_EVENT = 'public-theme-change';
 
 export function usePublicTheme() {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem(STORAGE_KEY) || 'dark';
+    try {
+      return localStorage.getItem(STORAGE_KEY) || 'dark';
+    } catch {
+      return 'dark';
+    }
   });
 
-  const toggle = () => {
-    setTheme(t => {
-      const next = t === 'dark' ? 'light' : 'dark';
-      localStorage.setItem(STORAGE_KEY, next);
+  useEffect(() => {
+    const handleThemeChange = (e) => {
+      const nextTheme = e?.detail || localStorage.getItem(STORAGE_KEY) || 'dark';
+      setTheme(nextTheme);
+    };
+
+    const handleStorage = (e) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        setTheme(e.newValue);
+      }
+    };
+
+    window.addEventListener(THEME_EVENT, handleThemeChange);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener(THEME_EVENT, handleThemeChange);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  const toggle = useCallback(() => {
+    setTheme((current) => {
+      const next = current === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem(STORAGE_KEY, next);
+      } catch (_) {}
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: next }));
+      }
       return next;
     });
-  };
+  }, []);
 
   const isDark = theme === 'dark';
 
@@ -34,12 +64,8 @@ export function usePublicTheme() {
   };
 
   // Tailwind classes baseadas no tema.
-  // IMPORTANTE: no dark, NÃO usamos `text-white` puro porque o tema global do app
-  // (.light em <html>) tem override `.light .text-white { color: #0F172A !important; }`
-  // que vaza para essas páginas públicas. Em vez disso usamos `text-[#FFFFFF]` (hex)
-  // e tons translúcidos com a sintaxe `text-[rgba(255,255,255,X)]` quando preciso —
-  // essas classes não sofrem override do tema global.
   const tw = {
+    scope: isDark ? 'public-dark' : 'public-light',
     bg: isDark ? 'bg-[#0f0f1a]' : 'bg-[#F7F8FB]',
     text: isDark ? 'text-[#FFFFFF]' : 'text-[#111827]',
     textMuted: isDark ? 'text-[rgba(255,255,255,0.78)]' : 'text-gray-500',
@@ -48,7 +74,12 @@ export function usePublicTheme() {
     cardHover: isDark ? 'hover:bg-[rgba(255,255,255,0.10)]' : 'hover:bg-gray-50',
     header: isDark ? 'bg-[#0f0f1a] border-[rgba(255,255,255,0.15)]' : 'bg-white border-black/10',
     divider: isDark ? 'border-[rgba(255,255,255,0.15)]' : 'border-black/8',
-    input: isDark ? 'bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.15)] text-[#FFFFFF] placeholder:text-[rgba(255,255,255,0.45)]' : 'bg-white border-black/10 text-[#111827] placeholder:text-gray-400',
+    input: isDark
+      ? 'bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.16)] text-[#FFFFFF] placeholder:text-[rgba(255,255,255,0.45)]'
+      : 'bg-white border-black/10 text-[#111827] placeholder:text-gray-400',
+    secondaryBtn: isDark
+      ? 'text-[#FFFFFF] border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.10)]'
+      : 'text-[#111827] border border-black/12 bg-gray-50 hover:bg-gray-100',
     sectionLabel: isDark ? 'text-[rgba(255,255,255,0.65)]' : 'text-gray-400',
     iconBg: isDark ? 'bg-[rgba(255,255,255,0.12)]' : 'bg-gray-100',
     iconText: isDark ? 'text-[rgba(255,255,255,0.75)]' : 'text-gray-400',
@@ -57,8 +88,8 @@ export function usePublicTheme() {
     tabInactive: isDark ? 'text-[rgba(255,255,255,0.6)] hover:text-[rgba(255,255,255,0.9)]' : 'text-gray-400 hover:text-gray-600',
     tabBorder: isDark ? 'border-[rgba(255,255,255,0.15)]' : 'border-black/8',
     themeBtn: isDark
-      ? 'bg-white/10 text-white/70 hover:bg-white/20'
-      : 'bg-black/5 text-gray-600 hover:bg-black/10',
+      ? 'bg-[rgba(15,15,26,0.75)] text-[#FFFFFF] hover:bg-[rgba(15,15,26,0.9)]'
+      : 'bg-white/85 text-gray-700 hover:bg-white',
   };
 
   return { theme, isDark, toggle, t, tw };

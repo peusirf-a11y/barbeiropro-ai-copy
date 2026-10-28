@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
 
 export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin, primaryColor = '#2563EB' }) {
+  const { isDark, tw } = usePublicTheme();
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -52,13 +54,13 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
     }
   };
 
-  const inputClass = "w-full px-4 py-3 border border-white/10 rounded-xl text-sm bg-white/5 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30";
+  const inputClass = `w-full px-4 py-3 border rounded-xl text-sm focus:outline-none ${tw.input}`;
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-black text-white mb-1">Criar conta</h3>
-        <p className="text-sm text-white/40">Rápido e seguro</p>
+        <h3 className={`text-lg font-black ${tw.text} mb-1`}>Criar conta</h3>
+        <p className={`text-sm ${tw.textMuted}`}>Rápido e seguro</p>
       </div>
 
       <form onSubmit={handleRegister} className="space-y-4">
@@ -67,7 +69,7 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
           { label: 'Email', key: 'email', type: 'email', placeholder: 'seu@email.com' },
         ].map(f => (
           <div key={f.key}>
-            <label className="text-xs font-semibold text-white/50 block mb-2">{f.label}</label>
+            <label className={`text-xs font-semibold ${tw.textMuted} block mb-2`}>{f.label}</label>
             <input type={f.type} value={form[f.key]}
               onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
               placeholder={f.placeholder} className={inputClass} disabled={loading} />
@@ -75,7 +77,7 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
         ))}
 
         <div>
-          <label className="text-xs font-semibold text-white/50 block mb-2">Telefone</label>
+          <label className={`text-xs font-semibold ${tw.textMuted} block mb-2`}>Telefone</label>
           <input type="tel" value={form.phone}
             onChange={(e) => { let val = e.target.value.replace(/\D/g, ''); if (val.length > 11) val = val.slice(0, 11); setForm({ ...form, phone: val }); }}
             placeholder="(11) 99999-9999" className={inputClass} disabled={loading} />
@@ -86,13 +88,13 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
           { label: 'Confirmar Senha', key: 'confirmPassword', show: showConfirm, toggle: () => setShowConfirm(p => !p), placeholder: 'Confirme a senha' },
         ].map(f => (
           <div key={f.key}>
-            <label className="text-xs font-semibold text-white/50 block mb-2">{f.label}</label>
+            <label className={`text-xs font-semibold ${tw.textMuted} block mb-2`}>{f.label}</label>
             <div className="relative">
               <input type={f.show ? 'text' : 'password'} value={form[f.key]}
                 onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                 placeholder={f.placeholder} className={`${inputClass} pr-10`} disabled={loading} />
               <button type="button" onClick={f.toggle}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60" disabled={loading}>
+                className={`absolute right-3 top-1/2 -translate-y-1/2 ${tw.textFaint} hover:opacity-70`} disabled={loading}>
                 {f.show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
@@ -103,11 +105,11 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
           <input type="checkbox" id="terms" checked={acceptedTerms}
             onChange={(e) => setAcceptedTerms(e.target.checked)}
             className="w-4 h-4 cursor-pointer mt-0.5" disabled={loading} />
-          <label htmlFor="terms" className="text-xs text-white/40 cursor-pointer">
+          <label htmlFor="terms" className={`text-xs ${tw.textMuted} cursor-pointer`}>
             Concordo com os{' '}
-            <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="underline text-white/60 hover:text-white">Termos de Uso</a>
+            <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className={`underline ${tw.text} hover:opacity-80`}>Termos de Uso</a>
             {' '}e{' '}
-            <a href="/politica-de-privacidade" target="_blank" rel="noopener noreferrer" className="underline text-white/60 hover:text-white">Política de Privacidade</a>
+            <a href="/politica-de-privacidade" target="_blank" rel="noopener noreferrer" className={`underline ${tw.text} hover:opacity-80`}>Política de Privacidade</a>
           </label>
         </div>
 
@@ -128,15 +130,20 @@ export default function RegisterCustomerForm({ companyId, onSuccess, onGoToLogin
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-white/10" />
+          <div className={`w-full border-t ${tw.divider}`} />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-[#1a1a2e] text-white/30">ou</span>
+          <span
+            className={`px-2 ${tw.textFaint}`}
+            style={{ backgroundColor: isDark ? '#1a1a2e' : '#FFFFFF' }}
+          >
+            ou
+          </span>
         </div>
       </div>
 
       <button type="button" onClick={onGoToLogin}
-        className="w-full py-3 rounded-xl font-bold text-white/80 border border-white/15 hover:bg-white/5 transition-colors" disabled={loading}>
+        className={`w-full py-3 rounded-xl font-bold transition-colors ${tw.secondaryBtn}`} disabled={loading}>
         Já tenho conta
       </button>
     </div>
