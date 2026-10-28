@@ -864,13 +864,219 @@ export async function invokeFunction(functionName, payload = {}) {
       case 'listReviews': {
         const companyId = await resolveCompanyId(payload);
         const items = await Review.list('-created_at', 500);
-        const companyReviews = items.filter(r => r.company_id === companyId);
+        const companyReviews = items
+          .filter(r => r.company_id === companyId)
+          .map(r => ({
+            ...r,
+            published: r.published !== undefined ? Boolean(r.published) : r.status === 'approved' || r.status === 'published',
+          }));
 
         return {
           data: {
             success: true,
             reviews: companyReviews,
             total: companyReviews.length,
+          },
+        };
+      }
+
+      case 'submitReview': {
+        const token = String(payload?.token || '').trim();
+        const action = payload?.action || 'fetch';
+        if (!token) {
+          return {
+            data: {
+              success: false,
+              error: 'Link de avaliação inválido.',
+            },
+          };
+        }
+
+        // 1. Localiza o agendamento pelo ID ou review_token
+        let appointment = await Appointment.get(token);
+        if (!appointment) {
+          const allAppts = await Appointment.list('-created_at', 500);
+          appointment = (allAppts || []).find(
+            a => String(a.id) === token || (a.review_token && String(a.review_token) === token)
+          ) || null;
+        }
+
+        // 2. Localiza a barbearia vinculada ao agendamento (ou diretamente caso o token seja slug/id da barbearia)
+        let company = null;
+        if (appointment?.company_id) {
+          company = await Company.get(appointment.company_id);
+        }
+        if (!company) {
+          company = await Company.get(token);
+        }
+        if (!company) {
+          const companies = await Company.list('-created_at', 200);
+          company =
+            (companies || []).find(
+              c =>
+                String(c.id) === String(appointment?.company_id || token) ||
+                String(c.slug || '').toLowerCase() === token.toLowerCase()
+            ) || null;
+        }
+
+        if (!appointment && !company) {
+          return {
+            data: {
+              success: false,
+              error: 'Agendamento não encontrado ou link de avaliação inválido.',
+            },
+          };
+        }
+
+        const safeAppointment = appointment || {
+          id: token,
+          company_id: company?.id || null,
+          service_name: 'Atendimento na Barbearia',
+          customer_name: 'Cliente',
+        };
+
+        const safeCompany = company || {
+          id: appointment?.company_id || null,
+          name: 'Barbearia',
+          primary_color: '#2563EB',
+        };
+
+        // 3. Verifica se já existe avaliação para este atendimento
+        let existingReview = null;
+        if (appointment?.id) {
+          const allReviews = await Review.list('-created_at', 500);
+          existingReview =
+            (allReviews || []).find(
+              r => r.appointment_id && String(r.appointment_id) === String(appointment.id)
+            ) || null;
+        }
+
+        const externalReviewUrl = String(safeCompany?.whatsapp_settings?.review_link || '').trim() || null;
+
+        if (action === 'fetch') {
+          return {
+            data: {
+              success: true,
+              appointment: safeAppointment,
+              company: safeCompany,
+              existing_review: existingReview,
+              google_review_url: externalReviewUrl,
+            },
+          };
+        }
+
+        if (action === 'submit') {
+          if (existingReview) {
+            return {
+              data: {
+                success: true,
+                review: existingReview,
+                google_review_url:
+                  Number(existingReview.nps_score ?? 10) >= 9 ? externalReviewUrl : null,
+              },
+            };
+          }
+
+          const rawNps = payload.nps_score != null ? Number(payload.nps_score) : 10;
+          const npsScore = Math.max(0, Math.min(10, Number.isNaN(rawNps) ? 10 : rawNps));
+          const npsStars = Math.max(1, Math.min(5, Math.ceil(Math.max(1, npsScore) / 2)));
+
+          const subRatings = [
+            payload.service_rating,
+            payload.punctuality_rating,
+            payload.environment_rating,
+          ]
+            .map(n => Number(n || 0))
+            .filter(n => n >= 1 && n <= 5);
+
+          const avgSub =
+            subRatings.length > 0
+              ? subRatings.reduce((a, b) => a + b, 0) / subRatings.length
+              : npsStars;
+
+          const finalRating = Math.max(1, Math.min(5, Math.round((npsStars + avgSub) / 2)));
+
+          const createdReview = await Review.create({
+            company_id: safeCompany.id || safeAppointment.company_id || null,
+            appointment_id: appointment?.id || null,
+            customer_id: appointment?.customer_id || null,
+            customer_name: appointment?.customer_name || appointment?.client_name || 'Cliente',
+            customer_phone: appointment?.customer_phone || appointment?.client_phone || '',
+            professional_id: appointment?.professional_id || null,
+            professional_name: appointment?.professional_name || '',
+            service_id: appointment?.service_id || null,
+            service_name: appointment?.service_name || 'Atendimento',
+            rating: finalRating,
+            nps_score: npsScore,
+            service_rating: Number(payload.service_rating || 0) || null,
+            punctuality_rating: Number(payload.punctuality_rating || 0) || null,
+            environment_rating: Number(payload.environment_rating || 0) || null,
+            comment: String(payload.comment || '').trim(),
+            published: false,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+          });
+
+          return {
+            data: {
+              success: true,
+              review: createdReview,
+              google_review_url: npsScore >= 9 ? externalReviewUrl : null,
+            },
+          };
+        }
+
+        return {
+          data: {
+            success: false,
+            error: 'Ação inválida.',
+          },
+        };
+      }
+
+      case 'confirmAppointment': {
+        const token = String(payload?.token || '').trim();
+        if (!token) {
+          return {
+            data: {
+              success: false,
+              error: 'Link de confirmação inválido.',
+            },
+          };
+        }
+
+        let appointment = await Appointment.get(token);
+        if (!appointment) {
+          const allAppts = await Appointment.list('-created_at', 500);
+          appointment =
+            (allAppts || []).find(
+              a => String(a.id) === token || (a.confirm_token && String(a.confirm_token) === token)
+            ) || null;
+        }
+
+        if (!appointment) {
+          return {
+            data: {
+              success: false,
+              error: 'Agendamento não encontrado.',
+            },
+          };
+        }
+
+        const company = appointment.company_id ? await Company.get(appointment.company_id) : null;
+        const alreadyConfirmed = appointment.status === 'confirmado' || appointment.status === 'concluido';
+
+        if (!alreadyConfirmed && appointment.status !== 'cancelado') {
+          appointment = await Appointment.update(appointment.id, { status: 'confirmado' });
+        }
+
+        return {
+          data: {
+            success: appointment.status !== 'cancelado',
+            error: appointment.status === 'cancelado' ? 'Este agendamento foi cancelado.' : '',
+            already_confirmed: alreadyConfirmed,
+            appointment,
+            company,
           },
         };
       }

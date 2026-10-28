@@ -12,6 +12,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Star, Loader2, CheckCircle2, XCircle, Send, ChevronRight, ChevronLeft, ExternalLink } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
+import { sanitizeHexColor } from '@/lib/colorUtils';
 
 // Escala NPS visual: 0-6 detrator (vermelho), 7-8 passivo (âmbar), 9-10 promotor (verde).
 const NPS_COLORS = {
@@ -59,6 +60,7 @@ export default function ReviewAppointment() {
           setData(data);
         }
         if (data?.success) {
+          if (data.google_review_url) setGoogleReviewUrl(data.google_review_url);
           if (data.existing_review) {
             // Review já enviada — mostra direto o sucesso.
             setSubmitted(true);
@@ -103,7 +105,7 @@ export default function ReviewAppointment() {
     }
   };
 
-  const accent = data?.company?.primary_color || '#2563EB';
+  const accent = sanitizeHexColor(data?.company?.primary_color, '#2563EB');
   const customerFirstName = data?.appointment?.customer_name?.split(' ')[0] || '';
 
   // --- Renderização --- //

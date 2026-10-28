@@ -11,7 +11,7 @@ import AppointmentSourceIcon from '@/components/agenda/AppointmentSourceIcon';
 import FirstVisitBadge from '@/components/agenda/FirstVisitBadge';
 import WhatsAppButton from '@/components/whatsapp/WhatsAppButton';
 import { useCompany } from '@/hooks/useCompany';
-import { buildConfirmationMessage, buildReminderMessage } from '@/lib/whatsappCompose';
+import { buildConfirmationMessage, buildReminderMessage, buildPostAppointmentMessage } from '@/lib/whatsappCompose';
 
 export default function AgendaMobileList({
   selectedDate,
@@ -144,17 +144,25 @@ export default function AgendaMobileList({
                 )}
                 <span className="ml-auto text-[10px] font-medium opacity-60">{token.label}</span>
                 {/* WhatsApp manual — usa template de confirmação se ainda não confirmado,
-                    senão lembrete. Para appointments concluídos, oculta (já houve o pós-atendimento). */}
-                {appt.customer_phone && !['concluido', 'cancelado', 'faltou'].includes(appt.status) && (
+                    lembrete se confirmado, ou avaliação se concluído. */}
+                {appt.customer_phone && !['cancelado', 'faltou'].includes(appt.status) && (
                   <span onClick={(e) => e.stopPropagation()}>
                     <WhatsAppButton
                       phone={appt.customer_phone}
                       message={
-                        appt.status === 'confirmado'
+                        appt.status === 'concluido'
+                          ? buildPostAppointmentMessage({ company, appointment: appt })
+                          : appt.status === 'confirmado'
                           ? buildReminderMessage({ company, appointment: appt })
                           : buildConfirmationMessage({ company, appointment: appt })
                       }
-                      title={appt.status === 'confirmado' ? 'Enviar lembrete' : 'Enviar confirmação'}
+                      title={
+                        appt.status === 'concluido'
+                          ? 'Enviar link de avaliação'
+                          : appt.status === 'confirmado'
+                          ? 'Enviar lembrete'
+                          : 'Enviar confirmação'
+                      }
                       className="w-7 h-7"
                     />
                   </span>

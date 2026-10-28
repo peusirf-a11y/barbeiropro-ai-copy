@@ -16,6 +16,7 @@ import {
   buildCancellationMessage,
   buildNoShowMessage,
   buildPostAppointmentMessage,
+  resolveReviewLink,
   openWhatsApp,
 } from '@/lib/whatsappCompose';
 import StatusActionSheet from '@/components/agenda/StatusActionSheet';
@@ -71,14 +72,13 @@ export default function EditAppointmentModal({
   const STATUS_NEEDS_WA = ['confirmado', 'cancelado', 'faltou', 'concluido'];
 
   const handleStatusClick = (key) => {
-    // Mesmo status → no-op
-    if (key === form.status) return;
     // Status que não pergunta nada → só altera
     if (!STATUS_NEEDS_WA.includes(key)) {
+      if (key === form.status) return;
       setForm(p => ({ ...p, status: key }));
       return;
     }
-    // Abre action sheet
+    // Abre action sheet (mesmo se já estiver no status, permite reenviar mensagem de WhatsApp)
     setPendingStatus({ key });
   };
 
@@ -97,25 +97,26 @@ export default function EditAppointmentModal({
     setForm(p => ({ ...p, status: key }));
     setPendingStatus(null);
 
-    if (!appointment.customer_phone) return;
+    const targetPhone = appointment.customer_phone || appointment.client_phone || customer?.phone || '';
+    if (!targetPhone) return;
+
+    const enrichedAppointment = {
+      ...appointment,
+      customer_name: appointment.customer_name || appointment.client_name || customer?.name || 'Cliente',
+    };
 
     let message = '';
     if (key === 'confirmado') {
-      message = buildConfirmationMessage({ company, appointment });
+      message = buildConfirmationMessage({ company, appointment: enrichedAppointment });
     } else if (key === 'cancelado') {
-      message = buildCancellationMessage({ company, appointment });
+      message = buildCancellationMessage({ company, appointment: enrichedAppointment });
     } else if (key === 'faltou') {
-      message = buildNoShowMessage({ company, appointment });
+      message = buildNoShowMessage({ company, appointment: enrichedAppointment });
     } else if (key === 'concluido') {
-      // Usa review_token já presente no appointment (gerado pelo onAppointmentConcluded)
-      // ou o link externo do Google configurado pela barbearia.
-      const baseUrl = window.location.origin;
-      const reviewLink = appointment.review_token
-        ? `${baseUrl}/avaliar/${appointment.review_token}`
-        : (company?.whatsapp_settings?.review_link || '');
-      message = buildPostAppointmentMessage({ company, appointment, reviewLink });
+      const reviewLink = resolveReviewLink({ company, appointment: enrichedAppointment });
+      message = buildPostAppointmentMessage({ company, appointment: enrichedAppointment, reviewLink });
     }
-    if (message) openWhatsApp(appointment.customer_phone, message);
+    if (message) openWhatsApp(targetPhone, message);
   };
 
   const service = safeServices.find(s => s.id === form.service_id);
@@ -369,7 +370,7 @@ export default function EditAppointmentModal({
       <StatusActionSheet
         open={!!pendingStatus}
         statusKey={pendingStatus?.key}
-        hasPhone={!!appointment.customer_phone}
+        hasPhone={!!(appointment.customer_phone || appointment.client_phone || customer?.phone)}
         onChooseOnly={handleStatusOnly}
         onChooseWithWhatsApp={handleStatusWithWhatsApp}
         onClose={() => setPendingStatus(null)}

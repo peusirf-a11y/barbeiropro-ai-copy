@@ -49,6 +49,37 @@ export const renderTemplate = interpolateTemplate;
 // Cada builder lê primeiro o template configurado pela barbearia em
 // Company.whatsapp_settings.* — se vazio, cai num default razoável.
 
+export function resolveReviewLink({ company, appointment, reviewLink } = {}) {
+  const explicit = String(reviewLink || '').trim();
+  if (explicit) return explicit;
+
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://ocorte.vercel.app';
+
+  const token =
+    appointment?.review_token ||
+    appointment?.id ||
+    '';
+
+  if (token) {
+    return `${origin}/avaliar/${token}`;
+  }
+
+  const externalReviewLink = String(company?.whatsapp_settings?.review_link || '').trim();
+  if (externalReviewLink) {
+    return externalReviewLink;
+  }
+
+  const companyIdentifier = company?.slug || company?.id || '';
+  if (companyIdentifier) {
+    return `${origin}/avaliar/${companyIdentifier}`;
+  }
+
+  return `${origin}/avaliar/atendimento`;
+}
+
 function appointmentVars({ company, appointment, reviewLink, bookingLink }) {
   // Guarda contra scheduled_at ausente OU inválido (ex: legado, drag em curso).
   // date-fns format() joga RangeError para Date inválido — protegemos com isNaN.
@@ -57,21 +88,34 @@ function appointmentVars({ company, appointment, reviewLink, bookingLink }) {
     const parsed = new Date(appointment.scheduled_at);
     if (!Number.isNaN(parsed.getTime())) dt = parsed;
   }
-  const fullName = appointment?.customer_name || '';
+  const fullName = appointment?.customer_name || appointment?.client_name || '';
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://ocorte.vercel.app';
+  const resolvedReviewLink = resolveReviewLink({ company, appointment, reviewLink });
+  const resolvedBookingLink =
+    bookingLink ||
+    (company?.slug
+      ? `${origin}/agendar/${company.slug}`
+      : company?.id
+      ? `${origin}/agendar/${company.id}`
+      : origin);
+
   return {
-    nome: fullName.split(' ')[0] || fullName,
-    nome_completo: fullName,
+    nome: fullName.split(' ')[0] || fullName || 'Cliente',
+    nome_completo: fullName || 'Cliente',
     barbearia: company?.name || '',
     data: dt ? format(dt, "dd 'de' MMMM", { locale: ptBR }) : '',
     hora: dt ? format(dt, 'HH:mm') : '',
     servico: appointment?.service_name || '',
     profissional: appointment?.professional_name || '',
-    link_avaliacao: reviewLink || '',
-    link_agendamento: bookingLink || '',
+    link_avaliacao: resolvedReviewLink,
+    link_agendamento: resolvedBookingLink,
     // Aliases em inglês — para devs futuros (não usados pelos templates do dono)
-    first_name: fullName.split(' ')[0] || fullName,
+    first_name: fullName.split(' ')[0] || fullName || 'Cliente',
     company_name: company?.name || '',
-    review_link: reviewLink || '',
+    review_link: resolvedReviewLink,
     service_name: appointment?.service_name || '',
     professional_name: appointment?.professional_name || '',
     date: dt ? format(dt, "dd 'de' MMMM", { locale: ptBR }) : '',
@@ -95,9 +139,16 @@ export function buildReminderMessage({ company, appointment, variant = '2h' }) {
 }
 
 export function buildPostAppointmentMessage({ company, appointment, reviewLink }) {
+  const resolvedReviewLink = resolveReviewLink({ company, appointment, reviewLink });
   const tpl = company?.whatsapp_settings?.msg_post_appointment
     || 'Olá {nome} 🙌\n\nComo foi sua experiência hoje na {barbearia}? Sua opinião é muito importante para nós.\n\nAvaliar atendimento: {link_avaliacao}';
-  return interpolateTemplate(tpl, appointmentVars({ company, appointment, reviewLink }));
+  let msg = interpolateTemplate(tpl, appointmentVars({ company, appointment, reviewLink: resolvedReviewLink }));
+  // Caso o dono tenha customizado msg_post_appointment e esquecido de colocar {link_avaliacao},
+  // garante que o link de avaliação ainda seja anexado ao final da mensagem.
+  if (resolvedReviewLink && !msg.includes(resolvedReviewLink)) {
+    msg = `${msg.trim()}\n\nAvaliar atendimento: ${resolvedReviewLink}`;
+  }
+  return msg;
 }
 
 // Cancelamento — não tem template no whatsapp_settings; usa default editorial.
