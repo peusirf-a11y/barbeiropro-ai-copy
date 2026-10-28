@@ -1,4 +1,4 @@
-// Mock Data centralizado do O CORTE / BarberPass
+// Mock Data centralizado do O CORTE
 // Fonte de dados inicial completa para desenvolvimento e ambiente autônomo.
 
 export const INITIAL_PLANS = [
@@ -70,7 +70,7 @@ export const INITIAL_PLANS = [
       'Tudo do plano Master',
       'Profissionais ilimitados',
       'Múltiplas unidades e relatórios consolidados',
-      'Módulo BarberPass (Benefício Corporativo)',
+      'Clube de Assinatura VIP e Planos Recorrentes',
       'Suporte prioritário 24/7',
       'Integrações via API e Webhooks Asaas',
     ],

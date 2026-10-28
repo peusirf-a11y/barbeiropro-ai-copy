@@ -118,7 +118,7 @@ export const demoFinancial = [
   // ── 2 a 5 dias atrás ──
   { id: 'f4',  type: 'saida',   description: 'Lâminas, toalhas e insumos',        amount: 180,  date: d(2),  category: 'Suprimentos', status: 'confirmado', origin: 'manual',      payment_method: 'pix',            company_id: 'demo-company' },
   { id: 'f5',  type: 'entrada', description: 'Corte + Barba - Fábio Rocha',       amount: 75,   date: d(2),  category: 'Atendimento', status: 'confirmado', origin: 'agendamento', payment_method: 'pix',            company_id: 'demo-company' },
-  { id: 'f5a', type: 'entrada', description: 'Repasse Corporativo BarberPass',     amount: 1850, date: d(2),  category: 'Atendimento', status: 'confirmado', origin: 'barberpass',  payment_method: 'pix',            company_id: 'demo-company' },
+  { id: 'f5a', type: 'entrada', description: 'Repasse Clube de Assinaturas VIP',  amount: 1850, date: d(2),  category: 'Assinatura',  status: 'confirmado', origin: 'assinatura',  payment_method: 'pix',            company_id: 'demo-company' },
   { id: 'f6',  type: 'entrada', description: 'Corte Clássico - Caio Martins',     amount: 45,   date: d(3),  category: 'Atendimento', status: 'confirmado', origin: 'agendamento', payment_method: 'dinheiro',        company_id: 'demo-company' },
   { id: 'f6a', type: 'entrada', description: 'Venda de Kits de Barba Premium',    amount: 320,  date: d(3),  category: 'Produto',     status: 'confirmado', origin: 'manual',      payment_method: 'cartao_credito',  company_id: 'demo-company' },
   { id: 'f8',  type: 'entrada', description: 'Corte + Barba - Henrique Dias',     amount: 75,   date: d(4),  category: 'Atendimento', status: 'confirmado', origin: 'agendamento', payment_method: 'cartao_credito',  company_id: 'demo-company' },
@@ -132,7 +132,7 @@ export const demoFinancial = [
   { id: 'f12', type: 'saida',   description: 'Café gourmet e bebidas recepção',   amount: 110,  date: d(8),  category: 'Suprimentos', status: 'confirmado', origin: 'manual',      payment_method: 'dinheiro',        company_id: 'demo-company' },
   { id: 'f13', type: 'entrada', description: 'Corte + Barba - Fábio Rocha',       amount: 75,   date: d(9),  category: 'Atendimento', status: 'confirmado', origin: 'agendamento', payment_method: 'pix',            company_id: 'demo-company' },
   { id: 'f14', type: 'entrada', description: 'Barba Completa - João Pedro',        amount: 40,   date: d(10), category: 'Atendimento', status: 'confirmado', origin: 'agendamento', payment_method: 'dinheiro',        company_id: 'demo-company' },
-  { id: 'f14a',type: 'entrada', description: 'Sessões de BarberPass VIP',         amount: 640,  date: d(11), category: 'Atendimento', status: 'confirmado', origin: 'barberpass',  payment_method: 'pix',            company_id: 'demo-company' },
+  { id: 'f14a',type: 'entrada', description: 'Planos Mensais Clientes VIP',       amount: 640,  date: d(11), category: 'Assinatura',  status: 'confirmado', origin: 'assinatura',  payment_method: 'pix',            company_id: 'demo-company' },
   { id: 'f15', type: 'entrada', description: 'Hidratação - Henrique Dias',         amount: 35,   date: d(12), category: 'Atendimento', status: 'confirmado', origin: 'agendamento', payment_method: 'cartao_credito',  company_id: 'demo-company' },
 
   // ── 13 a 28 dias atrás ──

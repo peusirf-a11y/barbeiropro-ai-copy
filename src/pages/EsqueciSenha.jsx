@@ -475,7 +475,7 @@ export default function EsqueciSenha() {
 
       {/* Footer */}
       <footer className="py-6 text-center text-xs text-gray-400 border-t border-black/5">
-        <p>© {new Date().getFullYear()} O CORTE · BarberPass. Todos os direitos reservados.</p>
+        <p>© 2026 O CORTE. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

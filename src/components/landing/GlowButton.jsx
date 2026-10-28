@@ -16,7 +16,7 @@ export default function GlowButton({ children, variant = 'primary', icon = true,
   return (
     <button
       {...props}
-      className={`group relative inline-flex items-center justify-center gap-2 h-12 px-7 rounded-xl text-sm font-bold text-white overflow-hidden transition-all duration-300 ${className}`}
+      className={`btn-glow-primary group relative inline-flex items-center justify-center gap-2 h-12 px-7 rounded-xl text-sm font-bold text-white overflow-hidden transition-all duration-300 ${className}`}
     >
       {/* Glow externo */}
       <span className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#60A5FA] to-[#3B82F6] opacity-60 blur-xl group-hover:opacity-90 transition-opacity duration-500" />
@@ -27,7 +27,7 @@ export default function GlowButton({ children, variant = 'primary', icon = true,
       {/* Border interna */}
       <span className="absolute inset-0 rounded-xl ring-1 ring-white/20" />
       {/* Conteúdo */}
-      <span className="relative flex items-center gap-2">
+      <span className="relative flex items-center gap-2 text-white">
         {children}
         {icon && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
       </span>

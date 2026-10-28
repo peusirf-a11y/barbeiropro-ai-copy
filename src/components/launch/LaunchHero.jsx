@@ -44,13 +44,13 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
           </p>
 
           {/* Banner amarelo de destaque da Oferta de Lançamento */}
-          <div className="max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left">
+          <div className="max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left">
             <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 mb-1">
               <Rocket className="w-3.5 h-3.5 text-amber-300" />
               OFERTA DE LANÇAMENTO ATIVA
             </div>
-            <p className="text-xs sm:text-sm text-amber-100/95 leading-relaxed">
-              Plano <strong>Master</strong> com condição especial: <strong>R$ 79,90/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+            <p className="text-xs sm:text-sm text-amber-100 font-medium leading-relaxed">
+              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold">R$ 79,90/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
             </p>
           </div>
 
@@ -84,7 +84,7 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="relative max-w-md mx-auto rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-500/[0.08] to-amber-500/[0.02] backdrop-blur-md p-4"
+            className="relative max-w-md mx-auto rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 to-amber-500/5 backdrop-blur-md p-4"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -103,11 +103,11 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
             </div>
             <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
               <div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 to-amber-300 rounded-full shadow-[0_0_12px_rgba(251,191,36,0.6)] transition-all duration-700"
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500 to-amber-400 rounded-full shadow-[0_0_12px_rgba(251,191,36,0.6)] transition-all duration-700"
                 style={{ width: `${percent}%` }}
               />
             </div>
-            <p className="text-[10px] text-amber-100/70 mt-2 text-left">
+            <p className="text-[11px] font-semibold text-amber-100 mt-2 text-left">
               {vagasTotais - vagasRestantes} de {vagasTotais} vagas preenchidas
             </p>
           </motion.div>

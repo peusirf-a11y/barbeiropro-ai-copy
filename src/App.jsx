@@ -161,7 +161,9 @@ function App() {
             <Route path="/ativar-acesso" element={<AtivarAcesso />} />
             <Route path="/definir-senha" element={<SetPassword />} />
             <Route path="/criar-senha" element={<CriarSenha />} />
+            <Route path="/termos" element={<TermosDeUso />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
+            <Route path="/privacidade" element={<PoliticaDePrivacidade />} />
             <Route path="/politica-de-privacidade" element={<PoliticaDePrivacidade />} />
 
             {/* ── DEMO ROUTES (public, no login required) ── */}

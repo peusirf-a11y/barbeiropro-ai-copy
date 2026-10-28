@@ -393,7 +393,7 @@ export default function BarberLogin() {
 
       {/* Footer */}
       <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-100">
-        <p>© {new Date().getFullYear()} O CORTE · BarberPass. Todos os direitos reservados.</p>
+        <p>© 2026 O CORTE. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

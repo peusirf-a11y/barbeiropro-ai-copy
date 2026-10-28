@@ -1,4 +1,4 @@
-// Contexto de Autenticação O CORTE / BarberPass - Supabase Auth Integrado com Timeout de Segurança
+// Contexto de Autenticação O CORTE - Supabase Auth Integrado com Timeout de Segurança
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { queryClientInstance } from '@/lib/query-client';

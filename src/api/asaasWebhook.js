@@ -1,4 +1,4 @@
-// Express / Node.js Webhook Router do Asaas para O CORTE / BarberPass
+// Express / Node.js Webhook Router do Asaas para O CORTE
 // Trata eventos de pagamento, cobrança gerada, vencida, confirmada e estornada de forma autônoma.
 
 import { Company, FinancialEntry } from './entities';

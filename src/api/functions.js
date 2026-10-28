@@ -1,4 +1,4 @@
-// Funções de Backend O CORTE / BarberPass
+// Funções de Backend O CORTE
 // Processa chamadas de funções de negócio de forma 100% autônoma.
 
 import entities, { Plan, CustomerPlan, CustomerSubscription, Company, BarberCredential, Customer, Appointment, FinancialEntry, Service, Commission, Review, TeamMember, Professional } from './entities';
@@ -3702,7 +3702,7 @@ export async function invokeFunction(functionName, payload = {}) {
             data: {
               success: true,
               partners: partnerList.length > 0 ? partnerList : [
-                { id: 'part_demo_01', name: 'Lucas Silveira', email: 'lucas@barberpass.com', phone: '(11) 98888-7777', cpf_cnpj: '123.456.789-00', referral_code: 'LUCAS10', commission_percentage: 30, commission_rate: 30, status: 'active', created_at: new Date().toISOString() }
+                { id: 'part_demo_01', name: 'Lucas Silveira', email: 'lucas@ocorte.app', phone: '(11) 98888-7777', cpf_cnpj: '123.456.789-00', referral_code: 'LUCAS10', commission_percentage: 30, commission_rate: 30, status: 'active', created_at: new Date().toISOString() }
               ],
             },
           };

@@ -1,4 +1,4 @@
-// Client API Autônomo O CORTE / BarberPass - Supabase Auth Integrado
+// Client API Autônomo O CORTE - Supabase Auth Integrado
 import { entities } from './entities';
 import { invokeFunction } from './functions';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
