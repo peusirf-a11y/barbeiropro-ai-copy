@@ -1,16 +1,41 @@
 {
-  "name": "BarberTrimly",
-  "short_name": "BarberTrimly",
-  "description": "Sistema completo para barbearias modernas: agenda online, gestão de clientes, financeiro e IA de crescimento.",
+  "id": "/",
+  "name": "O CORTE - Gestão para Barbearias",
+  "short_name": "O CORTE",
+  "description": "Sistema completo de gestão para barbearias: agenda online, clientes, financeiro, equipe e IA de crescimento.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#F8F7F3",
-  "theme_color": "#2563EB",
+  "orientation": "portrait",
+  "background_color": "#050816",
+  "theme_color": "#050816",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "finance"],
   "icons": [
     {
-      "src": "https://base44.com/logo_v2.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

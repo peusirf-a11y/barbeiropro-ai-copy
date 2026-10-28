@@ -163,3 +163,16 @@ if (rootElement) {
     </RootErrorBoundary>
   )
 }
+
+// Registro do Service Worker para habilitar instalação PWA (WebAPK / Standalone no Android e iOS)
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .catch((err) => {
+        if (import.meta.env.DEV) {
+          console.warn('[PWA ServiceWorker registration error]:', err)
+        }
+      })
+  })
+}

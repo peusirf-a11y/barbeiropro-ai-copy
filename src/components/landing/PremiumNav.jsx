@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import GlowButton from './GlowButton';
 import BrandMark from '@/components/BrandMark';
+import PWAInstallButton from '@/components/PWAInstallButton';
 
 export default function PremiumNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -32,6 +33,7 @@ export default function PremiumNav() {
           <a href="#resultados" className="hover:text-white transition-colors">Resultados</a>
         </div>
         <div className="flex items-center gap-2">
+          <PWAInstallButton />
           <Link to="/demo/dashboard" className="hidden sm:block">
             <button className="h-10 px-4 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition-colors">
               Demo
