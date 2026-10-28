@@ -56,7 +56,7 @@ export function resolveReviewLink({ company, appointment, reviewLink } = {}) {
   const origin =
     typeof window !== 'undefined' && window.location?.origin
       ? window.location.origin
-      : 'https://ocorte.vercel.app';
+      : 'https://ocorte.app';
 
   const token =
     appointment?.review_token ||
@@ -92,7 +92,7 @@ function appointmentVars({ company, appointment, reviewLink, bookingLink }) {
   const origin =
     typeof window !== 'undefined' && window.location?.origin
       ? window.location.origin
-      : 'https://ocorte.vercel.app';
+      : 'https://ocorte.app';
   const resolvedReviewLink = resolveReviewLink({ company, appointment, reviewLink });
   const resolvedBookingLink =
     bookingLink ||

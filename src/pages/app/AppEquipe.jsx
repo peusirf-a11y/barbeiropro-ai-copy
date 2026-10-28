@@ -71,7 +71,7 @@ export default function AppEquipe() {
   });
 
   const generateActivationLink = (tokenOrId, email) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://ocorte.vercel.app';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://ocorte.app';
     const tok = tokenOrId || `inv_${Date.now()}`;
     const em = email ? `&email=${encodeURIComponent(email)}` : '';
     return `${origin}/definir-senha?token=${tok}${em}`;
@@ -216,7 +216,7 @@ export default function AppEquipe() {
           }
 
           // Dispara também o e-mail de redefinição de senha caso o SMTP esteja ativo
-          const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ocorte.vercel.app';
+          const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ocorte.app';
           const { error: authErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
             redirectTo: `${appUrl}/definir-senha?email=${encodeURIComponent(cleanEmail)}`,
           });
