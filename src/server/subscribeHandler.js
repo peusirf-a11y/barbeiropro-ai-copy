@@ -1069,6 +1069,9 @@ export async function handleAsaasSubscription(payload = {}) {
         const saveWithFallback = async (targetId, dataToSave) => {
           const payloadCopy = { ...dataToSave };
           for (let attempt = 0; attempt < 15; attempt++) {
+            if (!targetId && !payloadCopy.slug) {
+              payloadCopy.slug = `barbearia-${Math.floor(1000 + Math.random() * 9000)}`;
+            }
             const res = targetId
               ? await supabase.from('companies').update(payloadCopy).eq('id', targetId).select('id').maybeSingle()
               : await supabase.from('companies').insert([payloadCopy]).select('id').maybeSingle();
@@ -1077,12 +1080,27 @@ export async function handleAsaasSubscription(payload = {}) {
               return res.data?.id || targetId;
             }
 
+            const errMsg = String(res.error.message || '');
+            if (!targetId && res.error.code === '23505' && errMsg.toLowerCase().includes('slug')) {
+              const baseSlug = String(payloadCopy.slug || 'barbearia').replace(/-\d{4,6}$/, '').slice(0, 32);
+              payloadCopy.slug = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+              continue;
+            }
+
             // Se alguma coluna opcional ainda não existir no banco remoto, remove apenas a coluna ausente e tenta novamente
             const matchCol =
-              res.error.message?.match(/Could not find the '([^']+)' column/) ||
-              res.error.message?.match(/column "([^"]+)" of relation/);
-            if (matchCol && matchCol[1] && matchCol[1] in payloadCopy) {
-              delete payloadCopy[matchCol[1]];
+              errMsg.match(/Could not find the '([^']+)' column/i) ||
+              errMsg.match(/column "([^"]+)" of relation "[^"]+" does not exist/i) ||
+              errMsg.match(/column "([^"]+)" does not exist/i);
+            const missingCol = matchCol?.[1];
+            if (
+              missingCol &&
+              missingCol in payloadCopy &&
+              missingCol !== 'slug' &&
+              missingCol !== 'name' &&
+              missingCol !== 'id'
+            ) {
+              delete payloadCopy[missingCol];
               continue;
             }
             break;

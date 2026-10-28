@@ -19,6 +19,8 @@ const statusConfig = {
 const subscriptionStatusConfig = {
   TRIAL: { label: 'TRIAL', color: 'bg-amber-500/15 text-amber-500 border border-amber-500/30' },
   ACTIVE: { label: 'ACTIVE', color: 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' },
+  MANUAL_ACTIVE: { label: 'ATIVO · Cortesia/Manual', color: 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 font-semibold' },
+  PENDING_PAYMENT: { label: 'PENDENTE · Pagamento', color: 'bg-amber-500/20 text-amber-500 border border-amber-500/40 font-semibold' },
   OVERDUE: { label: 'OVERDUE · Inadimplente', color: 'bg-red-500/20 text-red-500 border border-red-500/40 font-bold' },
   PAST_DUE: { label: 'PAST_DUE · Atrasada', color: 'bg-amber-500/20 text-amber-500 border border-amber-500/40 font-bold' },
   CANCELED: { label: 'CANCELED · Cancelada', color: 'bg-red-500/15 text-red-400 border border-red-500/30' },
@@ -37,10 +39,12 @@ function resolveSubscriptionStatus(company) {
   const isTrialExpired = Boolean(company?.trial_ends_at && new Date(company.trial_ends_at) < new Date());
 
   if (rawStatus === 'blocked' || billStatus === 'BLOCKED') return 'BLOCKED';
+  if (subStatus === 'manual_active') return 'MANUAL_ACTIVE';
+  if (subStatus === 'pending_payment' || billStatus === 'PENDING') return 'PENDING_PAYMENT';
   if (
     rawStatus === 'canceled' ||
     rawStatus === 'cancelled' ||
-    rawStatus === 'inactive' ||
+    (rawStatus === 'inactive' && subStatus !== 'pending_payment') ||
     subStatus === 'canceled' ||
     subStatus === 'cancelled' ||
     billStatus === 'CANCELED' ||

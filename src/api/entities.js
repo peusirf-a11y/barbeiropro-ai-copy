@@ -552,6 +552,38 @@ export class EntityRepository {
       return cleaned;
     }
 
+    if (this.tableName === 'companies') {
+      const sanitizeCompanySlug = (val) =>
+        String(val || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9-]+/g, '-')
+          .replace(/-{2,}/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 40);
+
+      if (!isUpdate) {
+        const cleanName = String(item.name || item.business_name || 'Minha Barbearia').trim() || 'Minha Barbearia';
+        item.name = cleanName;
+        let resolvedSlug = sanitizeCompanySlug(item.slug);
+        if (!resolvedSlug || resolvedSlug.length < 3) {
+          const emailPrefix = String(item.owner_email || '').split('@')[0];
+          const baseSlug = sanitizeCompanySlug(cleanName) || sanitizeCompanySlug(emailPrefix) || 'barbearia';
+          const suffix = Math.floor(1000 + Math.random() * 9000);
+          resolvedSlug = `${baseSlug.slice(0, 32)}-${suffix}`;
+        }
+        item.slug = resolvedSlug;
+      } else if ('slug' in item) {
+        const resolvedSlug = sanitizeCompanySlug(item.slug);
+        if (!resolvedSlug || resolvedSlug.length < 3) {
+          delete item.slug;
+        } else {
+          item.slug = resolvedSlug;
+        }
+      }
+    }
+
     return item;
   }
 
@@ -899,6 +931,9 @@ export class EntityRepository {
     };
 
     const dbPayload = this._prepareDbPayload(rawNewItem, false);
+    if (this.tableName === 'companies' && dbPayload.slug) {
+      rawNewItem.slug = dbPayload.slug;
+    }
 
     if (!isSupabaseConfigured || !supabase) {
       const localItems = getLocalTable(this.tableName).filter(i => String(i.id) !== String(rawNewItem.id));
@@ -914,16 +949,39 @@ export class EntityRepository {
       let error = null;
 
       for (let attempt = 0; attempt < 15; attempt++) {
+        if (this.tableName === 'companies' && !currentPayload.slug) {
+          currentPayload.slug = `barbearia-${Math.floor(1000 + Math.random() * 9000)}`;
+        }
         const res = await supabase.from(this.tableName).insert([currentPayload]).select(selectCols);
         inserted = res.data;
         error = res.error;
         if (!error) break;
         const msg = String(error.message || '');
+
+        if (this.tableName === 'companies' && error.code === '23505' && msg.toLowerCase().includes('slug')) {
+          const baseSlug = String(currentPayload.slug || 'barbearia').replace(/-\d{4,6}$/, '').slice(0, 32);
+          currentPayload.slug = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+          rawNewItem.slug = currentPayload.slug;
+          continue;
+        }
+
+        if (this.tableName === 'companies' && error.code === '23502' && msg.includes('"slug"')) {
+          currentPayload.slug = `barbearia-${Math.floor(1000 + Math.random() * 9000)}`;
+          rawNewItem.slug = currentPayload.slug;
+          continue;
+        }
+
         const colMatch =
           msg.match(/Could not find the '([^']+)' column/i) ||
-          msg.match(/column "([^"]+)" of relation/i);
-        if (colMatch && colMatch[1] && colMatch[1] in currentPayload) {
-          delete currentPayload[colMatch[1]];
+          msg.match(/column "([^"]+)" of relation "[^"]+" does not exist/i) ||
+          msg.match(/column "([^"]+)" does not exist/i);
+        const missingCol = colMatch?.[1];
+        if (
+          missingCol &&
+          missingCol in currentPayload &&
+          !(this.tableName === 'companies' && (missingCol === 'slug' || missingCol === 'name' || missingCol === 'id'))
+        ) {
+          delete currentPayload[missingCol];
           continue;
         }
         break;
@@ -1008,9 +1066,11 @@ export class EntityRepository {
         const msg = String(error.message || '');
         const colMatch =
           msg.match(/Could not find the '([^']+)' column/i) ||
-          msg.match(/column "([^"]+)" of relation/i);
-        if (colMatch && colMatch[1] && colMatch[1] in currentPatch) {
-          delete currentPatch[colMatch[1]];
+          msg.match(/column "([^"]+)" of relation "[^"]+" does not exist/i) ||
+          msg.match(/column "([^"]+)" does not exist/i);
+        const missingCol = colMatch?.[1];
+        if (missingCol && missingCol in currentPatch) {
+          delete currentPatch[missingCol];
           continue;
         }
         break;

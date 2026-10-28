@@ -13,6 +13,7 @@ import {
   handlePaymentStatus,
 } from './src/server/appointmentsPixHandler.js';
 import { handleTestConnection } from './src/server/asaasTestConnectionHandler.js';
+import { handleMasterCreateCompany } from './src/server/masterCompanyHandler.js';
 
 function asaasApiDevPlugin() {
   return {
@@ -31,6 +32,28 @@ function asaasApiDevPlugin() {
           });
           res.end();
           return;
+        }
+
+        if (url === '/api/master/create-company' && req.method === 'POST') {
+          try {
+            let bodyStr = '';
+            req.on('data', (chunk) => { bodyStr += chunk; });
+            req.on('end', async () => {
+              let parsedBody = {};
+              try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
+              const result = await handleMasterCreateCompany(parsedBody);
+              res.writeHead(result.status, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+              });
+              res.end(JSON.stringify(result.body));
+            });
+            return;
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message || 'Erro interno ao provisionar barbearia' }));
+            return;
+          }
         }
 
         if (url === '/api/asaas/cancel-subscription' && (req.method === 'POST' || req.method === 'DELETE')) {
@@ -194,6 +217,19 @@ function asaasApiDevPlugin() {
         const [rawUrl, queryString = ''] = (req.url || '').split('?');
         const url = rawUrl;
         const query = Object.fromEntries(new URLSearchParams(queryString));
+
+        if (url === '/api/master/create-company' && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsedBody = {};
+            try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
+            const result = await handleMasterCreateCompany(parsedBody);
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result.body));
+          });
+          return;
+        }
 
         if (url === '/api/asaas/cancel-subscription' && (req.method === 'POST' || req.method === 'DELETE')) {
           let bodyStr = '';

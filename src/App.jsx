@@ -55,7 +55,6 @@ import MasterLGPD from './pages/master/MasterLGPD';
 import MasterCompliance from './pages/master/MasterCompliance';
 import MasterSecurityCenter from './pages/master/MasterSecurityCenter';
 import MasterObservability from './pages/master/MasterObservability';
-import DemoDataManager from './pages/master/DemoDataManager';
 import MasterPartners from './pages/master/MasterPartners';
 
 // Partner MVP
@@ -205,7 +204,6 @@ function App() {
               <Route path="compliance" element={<MasterCompliance />} />
               <Route path="security" element={<MasterSecurityCenter />} />
               <Route path="observability" element={<MasterObservability />} />
-              <Route path="dados-demo" element={<DemoDataManager />} />
               <Route path="partners" element={<MasterPartners />} />
             </Route>
 
