@@ -1,9 +1,19 @@
-// Timeline de audit logs — estilo Stripe/Sentry
+// Timeline de audit logs — com tratamento completo de Loading, Empty, Erro e timestamps
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  Shield, AlertTriangle, Info, CheckCircle2, XCircle,
-  MessageSquare, DollarSign, Calendar, Zap, Eye
+  Shield,
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+  XCircle,
+  MessageSquare,
+  DollarSign,
+  Calendar,
+  Zap,
+  Eye,
+  RotateCcw,
+  WifiOff,
 } from 'lucide-react';
 
 const SEVERITY_CONFIG = {
@@ -46,14 +56,25 @@ function ActionBadge({ action, severity }) {
   const cfg = SEVERITY_CONFIG[severity] || SEVERITY_CONFIG.info;
   const Icon = ACTION_ICONS[action] || Info;
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${cfg.badge}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${cfg.badge}`}
+    >
       <Icon className="w-3 h-3" />
       {action}
     </span>
   );
 }
 
-export default function AuditTimeline({ logs = [], isLoading, onSelect }) {
+export default function AuditTimeline({
+  logs = [],
+  isLoading,
+  isError,
+  error,
+  hasActiveFilters,
+  onResetFilters,
+  onRetry,
+  onSelect,
+}) {
   if (isLoading) {
     return (
       <div className="divide-y divide-border">
@@ -70,20 +91,70 @@ export default function AuditTimeline({ logs = [], isLoading, onSelect }) {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="py-16 px-4 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center justify-center mx-auto mb-3">
+          <WifiOff className="w-5 h-5 text-red-500" />
+        </div>
+        <h3 className="text-sm font-bold text-foreground mb-1">
+          Falha ao carregar registros de auditoria
+        </h3>
+        <p className="text-xs text-muted-foreground max-w-md mx-auto mb-4">
+          {error?.message || 'Não foi possível comunicar com o servidor de auditoria no momento.'}
+        </p>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Tentar novamente
+          </button>
+        )}
+      </div>
+    );
+  }
+
   if (!logs.length) {
     return (
-      <div className="py-16 text-center text-muted-foreground text-sm">
-        <Shield className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-        Nenhum registro encontrado para os filtros selecionados.
+      <div className="py-16 px-4 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-muted border border-border flex items-center justify-center mx-auto mb-3">
+          <Shield className="w-6 h-6 text-muted-foreground/60" />
+        </div>
+        <h3 className="text-sm font-bold text-foreground mb-1">
+          {hasActiveFilters
+            ? 'Nenhum registro encontrado para os filtros aplicados'
+            : 'Nenhum evento de auditoria registrado'}
+        </h3>
+        <p className="text-xs text-muted-foreground max-w-sm mx-auto mb-4">
+          {hasActiveFilters
+            ? 'Tente remover ou ajustar os filtros selecionados para visualizar outros eventos da plataforma.'
+            : 'Eventos críticos, impersonações, aberturas de caixa e tentativas de acesso aparecerão aqui em tempo real.'}
+        </p>
+        {hasActiveFilters && onResetFilters && (
+          <button
+            type="button"
+            onClick={onResetFilters}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Limpar filtros ativos
+          </button>
+        )}
       </div>
     );
   }
 
   return (
     <div className="divide-y divide-border">
-      {logs.map(l => {
+      {logs.map((l) => {
         const cfg = SEVERITY_CONFIG[l.severity] || SEVERITY_CONFIG.info;
-        const date = l.created_date ? new Date(l.created_date) : null;
+        const rawTs = l.created_at || l.created_date;
+        const parsedDate = rawTs ? new Date(rawTs) : null;
+        const validDate = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : null;
+
         return (
           <div
             key={l.id}
@@ -104,19 +175,36 @@ export default function AuditTimeline({ logs = [], isLoading, onSelect }) {
                 )}
               </div>
               <div className="text-sm text-foreground truncate">
-                <span className="font-medium">{l.actor_email || l.actor_name || 'sistema'}</span>
+                <span className="font-medium">
+                  {l.actor_email || l.actor_name || 'sistema'}
+                </span>
                 {l.target_type && (
                   <span className="text-muted-foreground">
-                    {' '}→ {l.target_type}
-                    {l.target_id && <code className="text-xs font-mono ml-1 text-muted-foreground/70">{l.target_id.slice(0, 8)}</code>}
+                    {' '}
+                    → {l.target_type}
+                    {l.target_id && (
+                      <code className="text-xs font-mono ml-1 text-muted-foreground/70">
+                        {String(l.target_id).slice(0, 8)}
+                      </code>
+                    )}
                   </span>
                 )}
               </div>
               <div className="flex flex-wrap gap-3 mt-1 text-[11px] text-muted-foreground">
-                {date && <span>{format(date, "dd/MM/yy HH:mm:ss", { locale: ptBR })}</span>}
-                {l.company_id && <span className="font-mono">{l.company_id.slice(0, 8)}…</span>}
-                {l.ip && l.ip !== 'unknown' && <span>IP {l.ip}</span>}
-                {l.correlation_id && <span className="font-mono">corr: {l.correlation_id.slice(0, 8)}</span>}
+                {validDate && (
+                  <span>{format(validDate, 'dd/MM/yy HH:mm:ss', { locale: ptBR })}</span>
+                )}
+                {l.company_id && (
+                  <span className="font-mono">{String(l.company_id).slice(0, 8)}…</span>
+                )}
+                {(l.ip || l.ip_address) && (l.ip || l.ip_address) !== 'unknown' && (
+                  <span>IP {l.ip || l.ip_address}</span>
+                )}
+                {l.correlation_id && (
+                  <span className="font-mono">
+                    corr: {String(l.correlation_id).slice(0, 8)}
+                  </span>
+                )}
               </div>
             </div>
 

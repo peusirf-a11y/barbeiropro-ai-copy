@@ -50,7 +50,12 @@ const SEVERITY_COLORS = {
 
 export default function AuditDetailDrawer({ log, onClose }) {
   if (!log) return null;
-  const date = log.created_date ? format(new Date(log.created_date), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : '—';
+  const rawTs = log.created_at || log.created_date;
+  const parsedDate = rawTs ? new Date(rawTs) : null;
+  const date =
+    parsedDate && !Number.isNaN(parsedDate.getTime())
+      ? format(parsedDate, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })
+      : '—';
   const sev = SEVERITY_COLORS[log.severity] || SEVERITY_COLORS.info;
 
   const drawer = (

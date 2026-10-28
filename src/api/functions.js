@@ -1656,16 +1656,146 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'listAuditLogs': {
-        const limit = Number(payload?.limit || 50);
-        const skip = Number(payload?.skip || 0);
-        const allLogs = await entities.AuditLog.list('-created_at', 500);
-        const sliced = (allLogs || []).slice(skip, skip + limit);
+        // Verificação de escopo Master / SuperAdmin quando em sessão autenticada de barbearia comum
+        if (typeof window !== 'undefined') {
+          try {
+            const rawUser = localStorage.getItem('admin_logged_user');
+            if (rawUser) {
+              const parsedUser = JSON.parse(rawUser);
+              const email = String(parsedUser?.email || '').toLowerCase().trim();
+              const isMasterUser =
+                parsedUser?.is_super_admin === true ||
+                parsedUser?.role === 'super_admin' ||
+                parsedUser?.role === 'superadmin' ||
+                email === 'pedrojesantos@hotmail.com' ||
+                window.location.pathname.startsWith('/master');
+              if (!isMasterUser && payload?.company_id && parsedUser?.company_id && payload.company_id !== parsedUser.company_id) {
+                throw new Error('PERMISSION_DENIED: Acesso cross-tenant negado para usuário não-Master.');
+              }
+            }
+          } catch (authErr) {
+            if (String(authErr?.message || '').includes('PERMISSION_DENIED')) {
+              throw authErr;
+            }
+          }
+        }
+
+        const limit = Math.min(Math.max(Number(payload?.limit || 50), 1), 5000);
+        const skip = Math.max(Number(payload?.skip || 0), 0);
+
+        const [rawAuditLogs, rawAdminLogs] = await Promise.all([
+          entities.AuditLog.list('-created_at', 1000).catch(() => []),
+          entities.AdminAuditLog ? entities.AdminAuditLog.list('-created_at', 500).catch(() => []) : Promise.resolve([]),
+        ]);
+
+        // Unifica e normaliza registros de auditoria operacional e administrativa
+        const seenIds = new Set();
+        const combined = [...(rawAuditLogs || []), ...(rawAdminLogs || [])]
+          .filter((item) => {
+            if (!item || !item.id || seenIds.has(item.id)) return false;
+            seenIds.add(item.id);
+            return true;
+          })
+          .map((item) => {
+            const ts = item.created_at || item.created_date || item.timestamp || new Date().toISOString();
+            return {
+              ...item,
+              created_at: ts,
+              created_date: ts,
+              severity: (item.severity || 'info').toLowerCase(),
+              action: String(item.action || 'UNKNOWN_EVENT').toUpperCase(),
+              actor_type: item.actor_type || (item.impersonated_company_id ? 'impersonation' : 'user'),
+              actor_email: item.actor_email || item.user_email || '',
+            };
+          })
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        // Cálculo agregado dos KPIs de 24h sobre a base global (independente dos filtros da tabela)
+        const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
+        const kpis = {
+          total24h: 0,
+          criticals: 0,
+          whatsappFailed: 0,
+          impersonations: 0,
+          crossTenant: 0,
+          permDenied: 0,
+        };
+
+        for (const l of combined) {
+          const t = new Date(l.created_at).getTime();
+          const isLast24h = !Number.isNaN(t) && t >= cutoff24h;
+          if (isLast24h) kpis.total24h += 1;
+          if (l.severity === 'critical') kpis.criticals += 1;
+          if (l.action === 'WHATSAPP_FAILED') kpis.whatsappFailed += 1;
+          if (
+            l.action === 'START_IMPERSONATION' ||
+            l.action === 'END_IMPERSONATION' ||
+            l.action === 'IMPERSONATION_STARTED' ||
+            l.action === 'IMPERSONATION_ENDED'
+          ) {
+            kpis.impersonations += 1;
+          }
+          if (l.action === 'CROSS_TENANT_ATTEMPT') kpis.crossTenant += 1;
+          if (l.action === 'PERMISSION_DENIED') kpis.permDenied += 1;
+        }
+
+        // Aplicação dos filtros dinâmicos combinados
+        const searchQ = String(payload?.search || payload?.actor_email || '').trim().toLowerCase();
+        const actionFilter = String(payload?.action || '').trim().toUpperCase();
+        const severityFilter = String(payload?.severity || '').trim().toLowerCase();
+        const actorTypeFilter = String(payload?.actor_type || '').trim().toLowerCase();
+        const companyIdFilter = String(payload?.company_id || '').trim().toLowerCase();
+        const correlationFilter = String(payload?.correlation_id || '').trim().toLowerCase();
+        const dateFromMs = payload?.date_from ? new Date(`${payload.date_from}T00:00:00`).getTime() : null;
+        const dateToMs = payload?.date_to ? new Date(`${payload.date_to}T23:59:59.999`).getTime() : null;
+
+        const filtered = combined.filter((l) => {
+          if (severityFilter && l.severity !== severityFilter) return false;
+          if (actorTypeFilter && String(l.actor_type || '').toLowerCase() !== actorTypeFilter) return false;
+          if (actionFilter && !l.action.includes(actionFilter)) return false;
+          if (companyIdFilter && !String(l.company_id || '').toLowerCase().includes(companyIdFilter)) return false;
+          if (correlationFilter && !String(l.correlation_id || '').toLowerCase().includes(correlationFilter)) return false;
+
+          if (dateFromMs && !Number.isNaN(dateFromMs)) {
+            const logMs = new Date(l.created_at).getTime();
+            if (logMs < dateFromMs) return false;
+          }
+          if (dateToMs && !Number.isNaN(dateToMs)) {
+            const logMs = new Date(l.created_at).getTime();
+            if (logMs > dateToMs) return false;
+          }
+
+          if (searchQ) {
+            const haystack = [
+              l.actor_email,
+              l.actor_name,
+              l.action,
+              l.target_type,
+              l.target_id,
+              l.company_id,
+              l.correlation_id,
+              l.ip,
+            ]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase();
+            if (!haystack.includes(searchQ)) return false;
+          }
+
+          return true;
+        });
+
+        const sliced = filtered.slice(skip, skip + limit);
+
         return {
           data: {
             success: true,
             logs: sliced,
-            total: (allLogs || []).length,
-            has_more: skip + limit < (allLogs || []).length,
+            total: filtered.length,
+            has_more: skip + limit < filtered.length,
+            limit,
+            skip,
+            kpis,
           },
         };
       }
