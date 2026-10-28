@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { getThemeAccent } from '@/lib/colorUtils';
 
 export default function ActivateAccountForm({ companyId, onSuccess, onGoToLogin, primaryColor = '#2563EB' }) {
-  const { tw } = usePublicTheme();
+  const { isDark, tw } = usePublicTheme();
+  const accent = getThemeAccent(primaryColor, isDark);
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -90,9 +92,9 @@ export default function ActivateAccountForm({ companyId, onSuccess, onGoToLogin,
 
         <button type="submit" disabled={loading}
           className="w-full font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-          {loading && <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#FFFFFF' }} />}
-          <span style={{ color: '#FFFFFF' }}>{loading ? 'Ativando...' : 'Ativar Conta'}</span>
+          style={{ backgroundColor: accent.bg, color: accent.fg }}>
+          {loading && <Loader2 className="w-4 h-4 animate-spin" style={{ color: accent.fg }} />}
+          <span style={{ color: accent.fg }}>{loading ? 'Ativando...' : 'Ativar Conta'}</span>
         </button>
       </form>
 

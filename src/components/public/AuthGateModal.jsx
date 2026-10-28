@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lock } from 'lucide-react';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { getThemeAccent } from '@/lib/colorUtils';
 import LoginCustomerForm from './LoginCustomerForm';
 import RegisterCustomerForm from './RegisterCustomerForm';
 import ForgotPasswordModal from './ForgotPasswordModal';
@@ -33,6 +34,7 @@ export default function AuthGateModal({
   onSuccess,
 }) {
   const { isDark, tw } = usePublicTheme();
+  const accent = getThemeAccent(primaryColor, isDark);
   const [view, setView] = useState('login'); // 'login' | 'register' | 'forgot' | 'activate'
 
   // Reseta view ao abrir
@@ -85,9 +87,9 @@ export default function AuthGateModal({
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
+                    style={{ backgroundColor: accent.bg, color: accent.fg }}
                   >
-                    <Lock className="w-5 h-5" style={{ color: '#FFFFFF' }} />
+                    <Lock className="w-5 h-5" style={{ color: accent.fg }} />
                   </div>
                   <div className="min-w-0">
                     <div className={`text-xs font-semibold ${tw.textMuted}`}>Acesso seguro</div>

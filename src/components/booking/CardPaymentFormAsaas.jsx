@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { Loader2, CreditCard, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { getThemeAccent } from '@/lib/colorUtils';
 
 function onlyDigits(v) {
   return String(v || '').replace(/\D+/g, '');
@@ -61,6 +62,7 @@ export default function CardPaymentFormAsaas({
   defaultPostalCode = '',
   defaultAddressNumber = '',
 }) {
+  const accent = getThemeAccent(primaryColor, false);
   const [form, setForm] = useState({
     holderName: defaultName || '',
     number: '',
@@ -307,17 +309,17 @@ export default function CardPaymentFormAsaas({
         type="submit"
         disabled={loading || !isValid()}
         className="w-full font-bold py-4 rounded-2xl text-sm transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed shadow-md inline-flex items-center justify-center gap-2 cursor-pointer"
-        style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
+        style={{ backgroundColor: accent.bg, color: accent.fg }}
       >
         {loading ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin text-white" />
-            <span className="text-white">Validando cartão no Asaas…</span>
+            <Loader2 className="w-4 h-4 animate-spin" style={{ color: accent.fg }} />
+            <span style={{ color: accent.fg }}>Validando cartão no Asaas…</span>
           </>
         ) : (
           <>
-            <CreditCard className="w-4 h-4 text-white" />
-            <span className="text-white">{amountLabel}</span>
+            <CreditCard className="w-4 h-4" style={{ color: accent.fg }} />
+            <span style={{ color: accent.fg }}>{amountLabel}</span>
           </>
         )}
       </button>

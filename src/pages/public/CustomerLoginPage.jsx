@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Scissors, AlertCircle, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { sanitizeHexColor, getThemeAccent } from '@/lib/colorUtils';
 
 export default function CustomerLoginPage() {
   const { slug } = useParams();
@@ -17,7 +18,8 @@ export default function CustomerLoginPage() {
     enabled: !!slug,
   });
   const company = companies[0];
-  const primaryColor = company?.primary_color || '#2563EB';
+  const primaryColor = sanitizeHexColor(company?.primary_color, '#2563EB');
+  const accent = getThemeAccent(primaryColor, isDark);
 
   const { customer, login, loading: loadingAuth } = useCustomerAuth(company?.id);
 
@@ -177,8 +179,8 @@ export default function CustomerLoginPage() {
           <Link to={`/agendar/${slug}`} className={`p-1 -ml-1 rounded hover:opacity-70 ${tw.textMuted}`}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-            <Scissors className="w-4 h-4" style={{ color: '#FFFFFF' }} />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent.bg }}>
+            <Scissors className="w-4 h-4" style={{ color: accent.fg }} />
           </div>
           <span className={`font-bold text-sm ${tw.text} flex-1 truncate`}>{company.name}</span>
           <button
@@ -211,8 +213,8 @@ export default function CustomerLoginPage() {
               {error && <div className={`text-sm text-red-500 flex items-center gap-2`}><AlertCircle className="w-4 h-4" />{error}</div>}
               <button type="submit" disabled={submitting}
                 className="w-full font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-                {submitting ? 'Verificando...' : 'Continuar'}
+                style={{ backgroundColor: accent.bg, color: accent.fg }}>
+                <span style={{ color: accent.fg }}>{submitting ? 'Verificando...' : 'Continuar'}</span>
               </button>
             </form>
           )}
@@ -232,8 +234,8 @@ export default function CustomerLoginPage() {
               {error && <div className="text-sm text-red-500 flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
               <button type="submit" disabled={submitting}
                 className="w-full font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-                {submitting ? 'Entrando...' : 'Entrar'}
+                style={{ backgroundColor: accent.bg, color: accent.fg }}>
+                <span style={{ color: accent.fg }}>{submitting ? 'Entrando...' : 'Entrar'}</span>
               </button>
               <div className="flex items-center justify-between mt-2">
                 <button type="button" onClick={() => { setMode('check'); setError(''); setForm(p => ({ ...p, password: '' })); }}
@@ -241,7 +243,7 @@ export default function CustomerLoginPage() {
                   Usar outro e-mail
                 </button>
                 <button type="button" onClick={() => { setMode('forgot'); setError(''); setInfo(''); setForm(p => ({ ...p, password: '' })); }}
-                  className="text-xs font-semibold hover:underline" style={{ color: primaryColor }}>
+                  className="text-xs font-semibold hover:underline" style={{ color: accent.bg }}>
                   Esqueci minha senha
                 </button>
               </div>
@@ -268,9 +270,9 @@ export default function CustomerLoginPage() {
               )}
               {!info && (
                 <button type="submit" disabled={submitting}
-                  className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                  style={{ backgroundColor: primaryColor }}>
-                  {submitting ? 'Enviando...' : 'Enviar link de redefinição'}
+                  className="w-full font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: accent.bg, color: accent.fg }}>
+                  <span style={{ color: accent.fg }}>{submitting ? 'Enviando...' : 'Enviar link de redefinição'}</span>
                 </button>
               )}
               <button type="button" onClick={() => { setMode('check'); setError(''); setInfo(''); }}
@@ -295,8 +297,8 @@ export default function CustomerLoginPage() {
               {error && <div className="text-sm text-red-500 flex items-center gap-2"><AlertCircle className="w-4 h-4 flex-shrink-0" />{error}</div>}
               <button type="submit" disabled={submitting}
                 className="w-full font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-                {submitting ? 'Salvando...' : 'Salvar nova senha'}
+                style={{ backgroundColor: accent.bg, color: accent.fg }}>
+                <span style={{ color: accent.fg }}>{submitting ? 'Salvando...' : 'Salvar nova senha'}</span>
               </button>
             </form>
           )}
@@ -327,8 +329,8 @@ export default function CustomerLoginPage() {
               {error && <div className="text-sm text-red-500 flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
               <button type="submit" disabled={submitting}
                 className="w-full font-bold py-3.5 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-                {submitting ? 'Criando conta...' : 'Criar conta'}
+                style={{ backgroundColor: accent.bg, color: accent.fg }}>
+                <span style={{ color: accent.fg }}>{submitting ? 'Criando conta...' : 'Criar conta'}</span>
               </button>
               <button type="button" onClick={() => { setMode('check'); setError(''); }}
                 className={`w-full text-xs ${tw.textMuted} hover:opacity-70 mt-2`}>

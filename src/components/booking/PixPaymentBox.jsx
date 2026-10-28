@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Copy, Check, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { getThemeAccent } from '@/lib/colorUtils';
 
 export default function PixPaymentBox({
   appointmentId,
@@ -14,6 +15,7 @@ export default function PixPaymentBox({
   companyId,
   onPaid,
 }) {
+  const accent = getThemeAccent(primaryColor, false);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(() =>
     Math.max(0, Math.floor((new Date(expiresAt || Date.now() + 15 * 60 * 1000) - Date.now()) / 1000))
@@ -245,15 +247,15 @@ export default function PixPaymentBox({
         type="button"
         onClick={() => checkStatus(true)}
         disabled={!hasRealPaymentId || manualChecking}
-        className="w-full text-white font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-md"
-        style={{ backgroundColor: primaryColor }}
+        className="w-full font-bold py-3.5 rounded-xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-md"
+        style={{ backgroundColor: accent.bg, color: accent.fg }}
       >
         {manualChecking ? (
-          <span className="inline-flex items-center justify-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" /> A verificar com o banco...
+          <span className="inline-flex items-center justify-center gap-2" style={{ color: accent.fg }}>
+            <Loader2 className="w-4 h-4 animate-spin" style={{ color: accent.fg }} /> A verificar com o banco...
           </span>
         ) : (
-          'Já paguei'
+          <span style={{ color: accent.fg }}>Já paguei</span>
         )}
       </button>
 

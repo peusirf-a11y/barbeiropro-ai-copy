@@ -8,6 +8,7 @@ import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
 import { filterCustomerPlansVisibleToCustomer } from '@/lib/planVisibility';
 import CustomerPlanPayModal from '@/components/public/CustomerPlanPayModal';
+import { sanitizeHexColor, getThemeAccent } from '@/lib/colorUtils';
 
 export default function CustomerPlans() {
   const { slug } = useParams();
@@ -21,7 +22,8 @@ export default function CustomerPlans() {
     enabled: !!slug,
   });
   const company = companies[0];
-  const primaryColor = company?.primary_color || '#2563EB';
+  const primaryColor = sanitizeHexColor(company?.primary_color, '#2563EB');
+  const accent = getThemeAccent(primaryColor, isDark);
 
   const { customer, token, loading: loadingAuth } = useCustomerAuth(company?.id);
 
@@ -90,15 +92,15 @@ export default function CustomerPlans() {
   }
 
   return (
-    <div className={`min-h-screen ${tw.bg}`}>
+    <div className={`min-h-screen ${tw.bg} ${tw.scope}`}>
       {/* Header */}
       <header className={`${tw.header} border-b px-6 py-4`}>
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <Link to={`/cliente/${slug}`} className={`p-1 -ml-1 rounded hover:opacity-70 ${tw.textMuted}`}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-            <Scissors className="w-4 h-4" style={{ color: '#FFFFFF' }} />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent.bg }}>
+            <Scissors className="w-4 h-4" style={{ color: accent.fg }} />
           </div>
           <span className={`font-bold text-sm ${tw.text} flex-1 truncate`}>{company.name}</span>
           <button onClick={toggle} className={`w-8 h-8 rounded-full flex items-center justify-center ${tw.logoutBtn}`}>
@@ -131,15 +133,15 @@ export default function CustomerPlans() {
                     {p.description && <div className={`text-xs ${tw.textMuted} mt-0.5`}>{p.description}</div>}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-2xl font-black" style={{ color: primaryColor }}>R${p.price_monthly}</div>
+                    <div className="text-2xl font-black" style={{ color: accent.bg }}>R${p.price_monthly}</div>
                     <div className={`text-[10px] ${tw.textFaint} uppercase tracking-wide`}>por mês</div>
                   </div>
                 </div>
                 <div className={`flex items-center gap-2 text-xs ${tw.textMuted} mb-4`}>
                   {p.type === 'unlimited' ? (
-                    <><InfinityIcon className="w-4 h-4" style={{ color: primaryColor }} /><span><strong>Cortes ilimitados</strong> por mês</span></>
+                    <><InfinityIcon className="w-4 h-4" style={{ color: accent.bg }} /><span><strong>Cortes ilimitados</strong> por mês</span></>
                   ) : (
-                    <><Check className="w-4 h-4" style={{ color: primaryColor }} /><span><strong>{p.usage_limit} cortes</strong> por mês</span></>
+                    <><Check className="w-4 h-4" style={{ color: accent.bg }} /><span><strong>{p.usage_limit} cortes</strong> por mês</span></>
                   )}
                 </div>
                 <button
@@ -147,10 +149,10 @@ export default function CustomerPlans() {
                   onClick={() => handleSubscribe(p)}
                   disabled={hasActiveOrPaused}
                   className="w-full font-bold py-3 rounded-xl text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-                  style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
+                  style={{ backgroundColor: accent.bg, color: accent.fg }}
                 >
-                  <CreditCard className="w-4 h-4" style={{ color: '#FFFFFF' }} />
-                  <span style={{ color: '#FFFFFF' }}>
+                  <CreditCard className="w-4 h-4" style={{ color: accent.fg }} />
+                  <span style={{ color: accent.fg }}>
                     {hasActiveOrPaused ? 'Você já possui um plano' : 'Assinar este plano'}
                   </span>
                 </button>

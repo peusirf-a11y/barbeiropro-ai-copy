@@ -1,6 +1,7 @@
 // Repositório de Entidades Robusto com Supabase e Fallback LocalStorage (Anti "Failed to fetch")
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { resolvePlanAllowedWeekdays } from '@/lib/businessHours';
+import { sanitizeHexColor } from '@/lib/colorUtils';
 
 const ENTITY_TABLE_MAP = {
   Company: 'companies',
@@ -235,19 +236,19 @@ export class EntityRepository {
       // Proteção estrita: garante que o campo sensível asaas_api_key NUNCA trafegue para o browser
       delete out.asaas_api_key;
       const brandingMeta = out.business_hours?._branding || out.opening_hours?._branding || {};
-      if (brandingMeta.primary_color) {
-        out.primary_color = brandingMeta.primary_color;
-      } else if (!out.primary_color) {
+      let rawColor = brandingMeta.primary_color || out.primary_color;
+      if (!rawColor) {
         try {
           const localCompanies = getLocalTable('companies');
           const localMatch = localCompanies.find(
             lc => (out.id && lc.id === out.id) || (out.slug && lc.slug === out.slug)
           );
           if (localMatch?.primary_color) {
-            out.primary_color = localMatch.primary_color;
+            rawColor = localMatch.primary_color;
           }
         } catch (_) {}
       }
+      out.primary_color = sanitizeHexColor(rawColor, '#2563EB');
       if (!out.whatsapp && brandingMeta.whatsapp) out.whatsapp = brandingMeta.whatsapp;
       if (!out.address && brandingMeta.address) out.address = brandingMeta.address;
       if (!out.logo_url && brandingMeta.logo_url) out.logo_url = brandingMeta.logo_url;

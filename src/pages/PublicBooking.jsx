@@ -12,6 +12,7 @@ import AuthGateModal from '@/components/public/AuthGateModal';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { useBookingSession } from '@/contexts/BookingSessionContext';
 import { normalizeBusinessHours } from '@/lib/businessHours';
+import { sanitizeHexColor, getThemeAccent } from '@/lib/colorUtils';
 
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
@@ -82,13 +83,13 @@ export default function PublicBooking() {
           );
         } catch (_) {}
         const brandingMeta = rawCompany.business_hours?._branding || localMatch?.business_hours?._branding || {};
+        const resolvedColor = sanitizeHexColor(
+          rawCompany.primary_color || brandingMeta.primary_color || localMatch?.primary_color,
+          '#2563EB'
+        );
         return {
           ...rawCompany,
-          primary_color:
-            rawCompany.primary_color ||
-            brandingMeta.primary_color ||
-            localMatch?.primary_color ||
-            '#2563EB',
+          primary_color: resolvedColor,
           whatsapp: rawCompany.whatsapp || brandingMeta.whatsapp || localMatch?.whatsapp || '',
           address: rawCompany.address || brandingMeta.address || localMatch?.address || '',
           logo_url: rawCompany.logo_url || brandingMeta.logo_url || localMatch?.logo_url || '',
@@ -96,7 +97,8 @@ export default function PublicBooking() {
         };
       })()
     : null;
-  const primaryColor = company?.primary_color || '#2563EB';
+  const primaryColor = sanitizeHexColor(company?.primary_color, '#2563EB');
+  const accent = getThemeAccent(primaryColor, isDark);
 
   // Modelo A: A barbearia aceita pagamentos online (validação da chave ocorre exclusivamente no backend)
   const loadingConnect = false;
@@ -324,10 +326,10 @@ export default function PublicBooking() {
             </div>
             <Link
               to={`/cliente/${slug}`}
-              className="block w-full text-center text-white text-sm font-bold py-3 rounded-xl mb-3 shadow-md transition-opacity hover:opacity-90"
-              style={{ backgroundColor: primaryColor }}
+              className="block w-full text-center text-sm font-bold py-3 rounded-xl mb-3 shadow-md transition-opacity hover:opacity-90"
+              style={{ backgroundColor: accent.bg, color: accent.fg }}
             >
-              Ver meus agendamentos
+              <span style={{ color: accent.fg }}>Ver meus agendamentos</span>
             </Link>
             {company.whatsapp && (
               <a href={`https://wa.me/55${company.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
@@ -426,11 +428,11 @@ export default function PublicBooking() {
       <div className="px-5 -mt-8 relative z-10 mb-4">
         <div className="flex items-center gap-3 mb-2">
           <div className={`w-14 h-14 rounded-2xl border-2 overflow-hidden flex-shrink-0 ${isDark ? 'bg-[#1a1a2e]' : 'bg-white'} flex items-center justify-center`}
-            style={{ borderColor: primaryColor + '60' }}>
+            style={{ borderColor: accent.bg + '60' }}>
             {company.logo_url ? (
               <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
             ) : (
-              <Scissors className="w-6 h-6" style={{ color: primaryColor }} />
+              <Scissors className="w-6 h-6" style={{ color: accent.bg }} />
             )}
           </div>
           <div className="min-w-0">
@@ -481,7 +483,7 @@ export default function PublicBooking() {
           {tabs.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
               className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${activeTab === t.id ? `${tw.tabActive} border-current` : `${tw.tabInactive} border-transparent`}`}
-              style={{ borderColor: activeTab === t.id ? primaryColor : undefined }}
+              style={{ borderColor: activeTab === t.id ? accent.bg : undefined }}
             >
               {t.label}
             </button>
@@ -514,10 +516,10 @@ export default function PublicBooking() {
                   </div>
                   <button
                     onClick={() => openBooking(s)}
-                    className="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-xl transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: primaryColor }}
+                    className="flex-shrink-0 text-xs font-bold px-3.5 py-2 rounded-xl transition-opacity hover:opacity-90 shadow-sm"
+                    style={{ backgroundColor: accent.bg, color: accent.fg }}
                   >
-                    <span style={{ color: '#FFFFFF' }}>Agendar</span>
+                    <span style={{ color: accent.fg }}>Agendar</span>
                   </button>
                 </div>
               ))
@@ -546,9 +548,11 @@ export default function PublicBooking() {
                     {p.photo_url ? (
                       <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
                     ) : (
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-                        style={{ backgroundColor: primaryColor + '40' }}>
-                        {(p.name || '?')[0]}
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0"
+                        style={{ backgroundColor: accent.bg, color: accent.fg }}
+                      >
+                        <span style={{ color: accent.fg }}>{(p.name || '?')[0]}</span>
                       </div>
                     )}
                     <div className="flex-1">

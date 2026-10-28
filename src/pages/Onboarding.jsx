@@ -7,6 +7,7 @@ import Logo from '@/components/Logo';
 import { useNavigate } from 'react-router-dom';
 import BusinessDetailsStep, { isBusinessDetailsValid } from '@/components/onboarding/BusinessDetailsStep';
 import { useAuth } from '@/lib/AuthContext';
+import { sanitizeHexColor } from '@/lib/colorUtils';
 
 function sanitizeSlug(s) {
   return (s || '')
@@ -104,7 +105,7 @@ export default function Onboarding() {
           whatsapp: existing.whatsapp || p.whatsapp,
           address: existing.address || p.address,
           slug: existing.slug || p.slug,
-          primary_color: existing.primary_color || p.primary_color,
+          primary_color: sanitizeHexColor(existing.primary_color || p.primary_color, '#2563EB'),
           referral_code: existing.referral_code || p.referral_code || generateAlphanumericReferralCode(8),
           referred_by: existing.referred_by || p.referred_by || getReferredByCode(),
         }));
@@ -191,7 +192,7 @@ export default function Onboarding() {
           phone: company.phone,
           whatsapp: company.whatsapp,
           address: company.address,
-          primary_color: company.primary_color,
+          primary_color: sanitizeHexColor(company.primary_color, '#2563EB'),
           slug: cleanSlug,
           referral_code: ensuredReferralCode,
           ...(ensuredReferredBy ? { referred_by: ensuredReferredBy } : {}),
@@ -422,10 +423,10 @@ export default function Onboarding() {
               <div>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">Cor principal</label>
                 <div className="flex items-center gap-3">
-                  <input type="color" value={company.primary_color} onChange={e => setCompany(p => ({ ...p, primary_color: e.target.value }))}
+                  <input type="color" value={sanitizeHexColor(company.primary_color, '#2563EB').toLowerCase()} onChange={e => setCompany(p => ({ ...p, primary_color: e.target.value.toUpperCase() }))}
                     className="w-12 h-12 rounded-xl border border-slate-300 cursor-pointer" />
                   <div>
-                    <div className="text-sm font-semibold text-[#1B1C1E]">{company.primary_color}</div>
+                    <div className="text-sm font-semibold text-[#1B1C1E]">{sanitizeHexColor(company.primary_color, '#2563EB')}</div>
                     <div className="text-xs text-gray-400">Cor dos botões e destaques no link público</div>
                   </div>
                 </div>

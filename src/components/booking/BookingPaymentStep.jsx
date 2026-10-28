@@ -9,6 +9,7 @@ import { ChevronLeft, AlertCircle, RefreshCw, QrCode, CreditCard, Loader2 } from
 import PixPaymentBox from './PixPaymentBox';
 import CardPaymentFormAsaas from './CardPaymentFormAsaas';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { sanitizeHexColor, getThemeAccent } from '@/lib/colorUtils';
 
 const ASAAS_PIX_ERROR_MSG = 'Não foi possível gerar a cobrança Pix no Asaas. Verifique a chave de API da barbearia.';
 
@@ -22,6 +23,8 @@ function maskCpf(value) {
 
 export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', onBack, onSucceeded }) {
   const { isDark, tw } = usePublicTheme();
+  const safeColor = sanitizeHexColor(primaryColor, '#2563EB');
+  const accent = getThemeAccent(safeColor, isDark);
   const [stage, setStage] = useState('choose'); // 'choose' | 'creating' | 'pix' | 'card' | 'expired' | 'error'
   const [method, setMethod] = useState('pix');
   const [cpf, setCpf] = useState('');
@@ -184,7 +187,7 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
                 active={method === 'pix'}
                 isDark={isDark}
                 tw={tw}
-                primaryColor={primaryColor}
+                primaryColor={accent.bg}
                 onClick={() => setMethod('pix')}
                 icon={QrCode}
                 title="Pix"
@@ -194,7 +197,7 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
                 active={method === 'card'}
                 isDark={isDark}
                 tw={tw}
-                primaryColor={primaryColor}
+                primaryColor={accent.bg}
                 onClick={() => setMethod('card')}
                 icon={CreditCard}
                 title="Cartão"
@@ -228,9 +231,9 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
             onClick={handleStart}
             disabled={method === 'pix' && cpfDigits.length !== 11}
             className="w-full font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
-            style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
+            style={{ backgroundColor: accent.bg, color: accent.fg }}
           >
-            <span style={{ color: '#FFFFFF' }}>Continuar para pagamento</span>
+            <span style={{ color: accent.fg }}>Continuar para pagamento</span>
           </button>
           <p className={`text-[11px] ${tw.textFaint} text-center`}>
             Seu agendamento só é confirmado após o pagamento ser aprovado.

@@ -10,6 +10,7 @@ import CustomerConsentSection from '@/components/public/CustomerConsentSection';
 import CustomerPlanPayModal from '@/components/public/CustomerPlanPayModal';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
 import { resolvePlanAllowedWeekdays, formatAllowedWeekdaysError } from '@/lib/businessHours';
+import { sanitizeHexColor, getThemeAccent } from '@/lib/colorUtils';
 
 export default function CustomerDashboard() {
   const params = useParams();
@@ -43,7 +44,8 @@ export default function CustomerDashboard() {
   };
 
   const company = dbCompany || mockCompany;
-  const primaryColor = company?.primary_color || '#2563EB';
+  const primaryColor = sanitizeHexColor(company?.primary_color, '#2563EB');
+  const accent = getThemeAccent(primaryColor, isDark);
 
   const { customer, token, loading: loadingAuth, logout } = useCustomerAuth(company?.id);
 
@@ -166,13 +168,13 @@ export default function CustomerDashboard() {
   const pausedSub = subscriptions.find(s => s.status === 'paused');
 
   return (
-    <div className={`min-h-screen ${tw.bg}`}>
+    <div className={`min-h-screen ${tw.bg} ${tw.scope}`}>
       {/* Header */}
       <header className={`${tw.header} border-b px-5 py-4 sticky top-0 z-10`}>
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-              <Scissors className="w-4 h-4" style={{ color: '#FFFFFF' }} />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accent.bg }}>
+              <Scissors className="w-4 h-4" style={{ color: accent.fg }} />
             </div>
             <div className="min-w-0">
               <div className={`font-bold text-sm ${tw.text} truncate`}>{company.name}</div>
@@ -183,9 +185,9 @@ export default function CustomerDashboard() {
             <Link
               to={`/agendar/${slug}`}
               className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-sm"
-              style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
+              style={{ backgroundColor: accent.bg, color: accent.fg }}
             >
-              Voltar para agendamento
+              <span style={{ color: accent.fg }}>Voltar para agendamento</span>
             </Link>
             <button onClick={toggle}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${tw.logoutBtn}`}
@@ -209,8 +211,8 @@ export default function CustomerDashboard() {
         <Link to={`/agendar/${slug}`}
           className={`flex items-center justify-between gap-4 ${tw.card} rounded-2xl p-4 ${tw.cardHover} transition-all`}>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-              <Plus className="w-5 h-5" style={{ color: '#FFFFFF' }} />
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accent.bg }}>
+              <Plus className="w-5 h-5" style={{ color: accent.fg }} />
             </div>
             <div>
               <div className={`font-bold ${tw.text}`}>Agendar novo horário</div>
@@ -224,13 +226,13 @@ export default function CustomerDashboard() {
         <section>
           <h2 className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-3`}>Meu Plano</h2>
           {activeSub ? (
-            <SubscriptionCard sub={activeSub} primaryColor={primaryColor} tw={tw}
+            <SubscriptionCard sub={activeSub} primaryColor={accent.bg} tw={tw}
               onPause={() => subActionMutation.mutate({ action: 'pause', subscription_id: activeSub.id })}
               onCancel={() => { if (confirm('Tem certeza que deseja cancelar sua assinatura?')) subActionMutation.mutate({ action: 'cancel', subscription_id: activeSub.id }); }}
               isPending={subActionMutation.isPending}
             />
           ) : pausedSub ? (
-            <PausedCard sub={pausedSub} primaryColor={primaryColor} tw={tw}
+            <PausedCard sub={pausedSub} accent={accent} tw={tw}
               onResume={(id) => subActionMutation.mutate({ action: 'resume', subscription_id: id })}
               isPending={subActionMutation.isPending}
             />
@@ -364,15 +366,15 @@ function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending 
   );
 }
 
-function PausedCard({ sub, onResume, isPending, primaryColor, tw }) {
+function PausedCard({ sub, onResume, isPending, accent, tw }) {
   return (
     <div className={`${tw.card} rounded-2xl p-5`}>
       <div className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-1`}>Plano pausado</div>
       <div className={`font-bold ${tw.text}`}>{sub.plan_name || sub.plan_name_snapshot || 'Plano'}</div>
       <button onClick={() => onResume(sub.id)} disabled={isPending}
         className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-xl disabled:opacity-50 transition-all"
-        style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-        <Play className="w-3.5 h-3.5" style={{ color: '#FFFFFF' }} /> <span style={{ color: '#FFFFFF' }}>Retomar plano</span>
+        style={{ backgroundColor: accent.bg, color: accent.fg }}>
+        <Play className="w-3.5 h-3.5" style={{ color: accent.fg }} /> <span style={{ color: accent.fg }}>Retomar plano</span>
       </button>
     </div>
   );

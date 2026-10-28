@@ -26,6 +26,7 @@ import BookingPaymentStep from './BookingPaymentStep';
 import BookingConsentBlock from './BookingConsentBlock';
 import PaymentMethodChooser from './PaymentMethodChooser';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { sanitizeHexColor, getThemeAccent } from '@/lib/colorUtils';
 
 export default function BookingModal({
   isOpen, onClose,
@@ -39,8 +40,9 @@ export default function BookingModal({
   initialService = null,
   hasActivePlans = false,
 }) {
-  const primaryColor = company?.primary_color || '#2563EB';
+  const primaryColor = sanitizeHexColor(company?.primary_color, '#2563EB');
   const { isDark, tw } = usePublicTheme();
+  const accent = getThemeAccent(primaryColor, isDark);
   const [step, setStep] = useState(0); // 0=serviço, 1=prof, 2=data/hora, 3=confirmar, 4=pagar
   const [selected, setSelected] = useState({ service: initialService, professional: null, date: null, time: null });
   const [form, setForm] = useState({ notes: '' });
@@ -490,8 +492,8 @@ export default function BookingModal({
                           <span className={`${tw.textFaint} text-xs flex items-center gap-1`}><Clock className="w-3 h-3" />{s.duration_minutes} min</span>
                         </div>
                       </div>
-                      <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0" style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-                        <span style={{ color: '#FFFFFF' }}>Agendar</span>
+                      <span className="text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0" style={{ backgroundColor: accent.bg, color: accent.fg }}>
+                        <span style={{ color: accent.fg }}>Agendar</span>
                       </span>
                     </button>
                   ))}
@@ -522,8 +524,8 @@ export default function BookingModal({
                       {p.photo_url ? (
                         <img src={p.photo_url} alt={p.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0" style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-                          <span style={{ color: '#FFFFFF' }}>{(p.name || '?')[0]}</span>
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0" style={{ backgroundColor: accent.bg, color: accent.fg }}>
+                          <span style={{ color: accent.fg }}>{(p.name || '?')[0]}</span>
                         </div>
                       )}
                       <div className="flex-1">
@@ -553,7 +555,7 @@ export default function BookingModal({
                         </div>
                         <span
                           className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                          style={{ backgroundColor: accent.softBg, color: accent.bg }}
                         >
                           {formatAllowedWeekdaysShort(allowedWeekdays)}
                         </span>
@@ -589,25 +591,25 @@ export default function BookingModal({
                           }`}
                           style={
                             !isDayBlockedByPlan && isSel
-                              ? { backgroundColor: primaryColor, color: '#FFFFFF' }
+                              ? { backgroundColor: accent.bg, color: accent.fg }
                               : undefined
                           }
                         >
                           <span
                             className="text-[10px] uppercase tracking-wide opacity-70"
-                            style={!isDayBlockedByPlan && isSel ? { color: '#FFFFFF' } : undefined}
+                            style={!isDayBlockedByPlan && isSel ? { color: accent.fg } : undefined}
                           >
                             {format(day, 'EEE', { locale: ptBR })}
                           </span>
                           <span
                             className={`text-lg font-black ${isDayBlockedByPlan ? 'line-through' : ''}`}
-                            style={!isDayBlockedByPlan && isSel ? { color: '#FFFFFF' } : undefined}
+                            style={!isDayBlockedByPlan && isSel ? { color: accent.fg } : undefined}
                           >
                             {format(day, 'd')}
                           </span>
                           <span
                             className="text-[10px] opacity-70"
-                            style={!isDayBlockedByPlan && isSel ? { color: '#FFFFFF' } : undefined}
+                            style={!isDayBlockedByPlan && isSel ? { color: accent.fg } : undefined}
                           >
                             {format(day, 'MMM', { locale: ptBR })}
                           </span>
@@ -636,10 +638,10 @@ export default function BookingModal({
                               return (
                                 <button key={t}
                                   onClick={() => setSelected(p => ({ ...p, time: t }))}
-                                  className={`relative py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSel ? 'border-transparent' : `${tw.card} ${tw.textMuted}`} ${smart && !isSel ? 'ring-1 ring-amber-400/50' : ''}`}
-                                  style={{ backgroundColor: isSel ? primaryColor : undefined, color: isSel ? '#FFFFFF' : undefined }}
+                                  className={`relative py-2.5 rounded-xl text-sm font-semibold transition-all border ${isSel ? 'border-transparent shadow-sm' : `${tw.card} ${tw.textMuted}`} ${smart && !isSel ? 'ring-1 ring-amber-400/50' : ''}`}
+                                  style={{ backgroundColor: isSel ? accent.bg : undefined, color: isSel ? accent.fg : undefined }}
                                 >
-                                  {isSel ? <span style={{ color: '#FFFFFF' }}>{t}</span> : t}
+                                  {isSel ? <span style={{ color: accent.fg }}>{t}</span> : t}
                                   {smart && !isSel && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full" />}
                                 </button>
                               );
@@ -647,10 +649,10 @@ export default function BookingModal({
                           </div>
                           {selected.time && (
                             <button onClick={handleContinueToConfirmation}
-                              className="w-full font-bold py-4 rounded-2xl text-sm transition-opacity hover:opacity-90"
-                              style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
+                              className="w-full font-bold py-4 rounded-2xl text-sm transition-opacity hover:opacity-90 shadow-md"
+                              style={{ backgroundColor: accent.bg, color: accent.fg }}
                             >
-                              <span style={{ color: '#FFFFFF' }}>Continuar</span>
+                              <span style={{ color: accent.fg }}>Continuar</span>
                             </button>
                           )}
                         </>
@@ -726,9 +728,9 @@ export default function BookingModal({
                   <button onClick={handleBook}
                     disabled={createApptMutation.isPending}
                     className="w-full font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 shadow-lg"
-                    style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
+                    style={{ backgroundColor: accent.bg, color: accent.fg }}
                   >
-                    <span style={{ color: '#FFFFFF' }}>
+                    <span style={{ color: accent.fg }}>
                       {createApptMutation.isPending ? 'Confirmando...' :
                         (paymentMethod === 'subscription' && canUseSubscription) ? 'Confirmar agendamento' : 'Continuar para pagamento →'}
                     </span>

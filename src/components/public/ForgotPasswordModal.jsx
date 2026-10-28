@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { AlertCircle, Loader2, Mail } from 'lucide-react';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { getThemeAccent } from '@/lib/colorUtils';
 
 export default function ForgotPasswordModal({ companyId, onBack, primaryColor = '#2563EB' }) {
-  const { tw } = usePublicTheme();
+  const { isDark, tw } = usePublicTheme();
+  const accent = getThemeAccent(primaryColor, isDark);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,8 +51,8 @@ export default function ForgotPasswordModal({ companyId, onBack, primaryColor = 
             <p className={`text-xs ${tw.textMuted}`}>Clique no botão para redefinir sua senha diretamente:</p>
             <a href={resetUrl}
               className="inline-flex items-center justify-center w-full py-2.5 px-3 text-xs font-bold rounded-lg transition-colors"
-              style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-              <span style={{ color: '#FFFFFF' }}>Redefinir Minha Senha Agora →</span>
+              style={{ backgroundColor: accent.bg, color: accent.fg }}>
+              <span style={{ color: accent.fg }}>Redefinir Minha Senha Agora →</span>
             </a>
           </div>
         )}
@@ -87,9 +89,9 @@ export default function ForgotPasswordModal({ companyId, onBack, primaryColor = 
         )}
         <button type="submit" disabled={loading}
           className="w-full py-3 rounded-xl font-bold transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-          style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
-          {loading && <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#FFFFFF' }} />}
-          <span style={{ color: '#FFFFFF' }}>{loading ? 'Enviando...' : 'Enviar link'}</span>
+          style={{ backgroundColor: accent.bg, color: accent.fg }}>
+          {loading && <Loader2 className="w-4 h-4 animate-spin" style={{ color: accent.fg }} />}
+          <span style={{ color: accent.fg }}>{loading ? 'Enviando...' : 'Enviar link'}</span>
         </button>
       </form>
       <button type="button" onClick={onBack}

@@ -19,6 +19,7 @@ import {
   getDefaultBusinessHours,
   normalizeBusinessHours,
 } from '@/lib/businessHours';
+import { sanitizeHexColor } from '@/lib/colorUtils';
 
 const defaultHours = getDefaultBusinessHours();
 
@@ -132,7 +133,7 @@ export default function AppConfiguracoes() {
         phone: company.phone || '',
         whatsapp: company.whatsapp || brandingMeta.whatsapp || '',
         address: company.address || brandingMeta.address || '',
-        primary_color: brandingMeta.primary_color || company.primary_color || '#2563EB',
+        primary_color: sanitizeHexColor(brandingMeta.primary_color || company.primary_color, '#2563EB'),
         business_hours: normalizedHours,
         logo_url: company.logo_url || brandingMeta.logo_url || '',
       });
@@ -171,7 +172,7 @@ export default function AppConfiguracoes() {
           ...currentHours,
           _branding: {
             ...currentBranding,
-            primary_color: form.primary_color || currentBranding.primary_color || '#2563EB',
+            primary_color: sanitizeHexColor(form.primary_color || currentBranding.primary_color, '#2563EB'),
             whatsapp: (form.whatsapp || currentBranding.whatsapp || '').trim(),
             address: (form.address || currentBranding.address || '').trim(),
             logo_url: file_url,
@@ -281,19 +282,20 @@ export default function AppConfiguracoes() {
       }
 
       // Preserva metadados existentes (_billing) e armazena _branding dentro de business_hours (JSONB universal)
+      const safePrimaryColor = sanitizeHexColor(form.primary_color, '#2563EB');
       const existingBilling = company?.business_hours?._billing || company?.opening_hours?._billing;
       const hoursWithMeta = {
         ...serializedHours,
         ...(existingBilling ? { _billing: existingBilling } : {}),
         _branding: {
-          primary_color: form.primary_color || '#2563EB',
+          primary_color: safePrimaryColor,
           whatsapp: (form.whatsapp || '').trim(),
           address: (form.address || '').trim(),
           logo_url: form.logo_url || '',
         },
       };
 
-      setForm(p => ({ ...p, business_hours: serializedHours }));
+      setForm(p => ({ ...p, primary_color: safePrimaryColor, business_hours: serializedHours }));
 
       const basePayload = {
         name: (form.name || '').trim(),
@@ -301,7 +303,7 @@ export default function AppConfiguracoes() {
         phone: (form.phone || '').trim(),
         whatsapp: (form.whatsapp || '').trim(),
         address: (form.address || '').trim(),
-        primary_color: form.primary_color || '#2563EB',
+        primary_color: safePrimaryColor,
         logo_url: form.logo_url || '',
         business_hours: hoursWithMeta,
         opening_hours: hoursWithMeta,
@@ -496,13 +498,55 @@ export default function AppConfiguracoes() {
                   placeholder="Rua, número, bairro, cidade"
                   className="w-full px-3 py-2 border border-white/10 bg-white/[0.03] rounded-lg text-xs sm:text-sm text-white placeholder:text-white/30" />
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <label className="text-xs font-semibold text-white/55 block mb-1">Cor principal</label>
                 <div className="flex items-center gap-2.5 sm:gap-3">
-                  <input type="color" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-white/10 bg-white/[0.03] cursor-pointer flex-shrink-0" />
-                  <input type="text" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                    className="flex-1 min-w-0 px-3 py-2 border border-white/10 bg-white/[0.03] rounded-lg text-xs sm:text-sm text-white" />
+                  <input
+                    type="color"
+                    value={sanitizeHexColor(form.primary_color, '#2563EB').toLowerCase()}
+                    onChange={e => setForm(p => ({ ...p, primary_color: e.target.value.toUpperCase() }))}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-white/10 bg-white/[0.03] cursor-pointer flex-shrink-0"
+                  />
+                  <input
+                    type="text"
+                    value={form.primary_color}
+                    onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))}
+                    onBlur={() => setForm(p => ({ ...p, primary_color: sanitizeHexColor(p.primary_color, '#2563EB') }))}
+                    placeholder="#2563EB"
+                    maxLength={7}
+                    className="flex-1 min-w-0 px-3 py-2 border border-white/10 bg-white/[0.03] rounded-lg text-xs sm:text-sm font-mono text-white"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  {[
+                    { hex: '#111827', label: 'Preto' },
+                    { hex: '#2563EB', label: 'Azul' },
+                    { hex: '#10B981', label: 'Verde' },
+                    { hex: '#84CC16', label: 'Lima' },
+                    { hex: '#D97706', label: 'Dourado' },
+                    { hex: '#DC2626', label: 'Vermelho' },
+                    { hex: '#7C3AED', label: 'Roxo' },
+                  ].map((preset) => {
+                    const isSelected = sanitizeHexColor(form.primary_color, '#2563EB').toUpperCase() === preset.hex;
+                    return (
+                      <button
+                        key={preset.hex}
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, primary_color: preset.hex }))}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
+                          isSelected
+                            ? 'border-white bg-white/15 text-white shadow-sm'
+                            : 'border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.08]'
+                        }`}
+                      >
+                        <span
+                          className="w-3 h-3 rounded-full border border-white/30 flex-shrink-0"
+                          style={{ backgroundColor: preset.hex }}
+                        />
+                        {preset.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
