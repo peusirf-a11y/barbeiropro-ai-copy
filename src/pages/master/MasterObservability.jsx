@@ -3,7 +3,7 @@
 // Agrega security events, audit log, e-mail, rate limit, sessões.
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Activity, Shield, Mail, Lock, Users, AlertTriangle, ServerCog, Ban, Globe, FileSearch, RefreshCw } from 'lucide-react';
+import { Activity, Shield, Lock, Users, AlertTriangle, ServerCog, Ban, Globe, FileSearch, RefreshCw } from 'lucide-react';
 import HealthBadge from '@/components/master/observability/HealthBadge';
 import MetricCard from '@/components/master/observability/MetricCard';
 import HourlySeriesChart from '@/components/master/observability/HourlySeriesChart';
@@ -88,13 +88,12 @@ export default function MasterObservability() {
             <ServerCog className="w-4 h-4 text-blue-300" />
             <div className="text-sm font-bold text-white">Serviços externos</div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <ServiceStatus
               label={`Asaas${sysData.asaas_environment ? ` · ${sysData.asaas_environment}` : ''}`}
               value={sysData.asaas}
             />
             <ServiceStatus label="WhatsApp" value={sysData.whatsapp} />
-            <ServiceStatus label="E-mail" value={sysData.email} />
             <ServiceStatus label="Geral" value={sysData.overall_status} />
           </div>
         </div>
@@ -195,24 +194,6 @@ export default function MasterObservability() {
           <BreakdownList
             items={Object.fromEntries((data.audit.top_actions || []).map(a => [a.action, a.count]))}
             emptyLabel="Nenhuma ação registrada."
-          />
-        </div>
-      </div>
-
-      {/* Email health */}
-      <div className="ds-card">
-        <div className="flex items-center gap-2 mb-3">
-          <Mail className="w-4 h-4 text-emerald-300" />
-          <div className="text-sm font-bold text-white">E-mail · 24h</div>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <MetricCard label="Total" value={data.email.total_24h} tone="gray" />
-          <MetricCard label="Enviados" value={data.email.sent} tone="green" />
-          <MetricCard
-            label="Falhas"
-            value={data.email.failed}
-            sub={`${(data.email.failure_rate * 100).toFixed(1)}% do total`}
-            tone={data.email.failure_rate > 0.05 ? 'red' : 'gray'}
           />
         </div>
       </div>

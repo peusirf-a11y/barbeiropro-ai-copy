@@ -1,9 +1,8 @@
 // Dashboard do Master — Centro de Comando do O CORTE.
-// Hierarquia: alertas críticos → métricas por categoria → alertas do sistema → saúde & features.
+// Hierarquia: alertas críticos → métricas por categoria → feed de atividades → alertas do sistema → features.
 import MasterCriticalAlerts from '@/components/master/MasterCriticalAlerts';
 import MasterMetrics from '@/components/master/MasterMetrics';
 import SystemAlertsList from '@/components/master/SystemAlertsList';
-import SystemHealth from '@/components/master/SystemHealth';
 import PlatformFeatures from '@/components/master/PlatformFeatures';
 import MasterActivityFeed from '@/components/master/feed/MasterActivityFeed';
 
@@ -20,7 +19,6 @@ export default function MasterDashboard() {
       <MasterActivityFeed />
       <SystemAlertsList />
       <PlatformFeatures />
-      <SystemHealth />
     </div>
   );
 }
