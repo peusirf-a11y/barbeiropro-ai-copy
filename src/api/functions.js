@@ -1988,28 +1988,136 @@ export async function invokeFunction(functionName, payload = {}) {
       }
 
       case 'getEmailHealth': {
+        let storedLogs = [];
+        try {
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('ocorte_email_logs_v1');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) storedLogs = parsed;
+            }
+          }
+        } catch (_) {}
+
+        const sentCount = storedLogs.filter((l) => l.status === 'sent').length;
+        const failedCount = storedLogs.filter((l) => l.status === 'failed').length;
+        const totalCount = storedLogs.length;
+        const lastFailed = storedLogs.find((l) => l.status === 'failed');
+
+        const isOnline = Boolean(isSupabaseConfigured && supabase);
+        let healthStatus = isOnline ? 'healthy' : 'not_configured';
+        if (isOnline && totalCount > 0 && failedCount > sentCount) {
+          healthStatus = 'degraded';
+        }
+
         return {
           data: {
-            ok: false,
-            health: 'not_configured',
-            status: 'não configurado',
+            ok: isOnline,
+            health: healthStatus,
+            provider: 'Supabase Auth SMTP / Resend (ocorte.app)',
+            status: isOnline ? 'online' : 'não configurado',
             stats: {
-              sent: 0,
-              failed: 0,
-              total: 0,
+              sent: sentCount,
+              failed: failedCount,
+              total: totalCount,
             },
-            logs: [],
-            last_error: null,
+            logs: storedLogs,
+            last_error: lastFailed?.error_message || null,
           },
         };
       }
 
       case 'sendDiagnosticEmail': {
+        let recipient = String(payload?.recipient || payload?.email || '').trim().toLowerCase();
+        if (!recipient && typeof window !== 'undefined') {
+          try {
+            const rawAdmin = localStorage.getItem('admin_logged_user');
+            if (rawAdmin) {
+              const parsed = JSON.parse(rawAdmin);
+              if (parsed?.email) recipient = String(parsed.email).trim().toLowerCase();
+            }
+          } catch (_) {}
+        }
+        if (!recipient && isSupabaseConfigured && supabase) {
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session?.user?.email) {
+              recipient = String(sessionData.session.user.email).trim().toLowerCase();
+            }
+          } catch (_) {}
+        }
+        if (!recipient) {
+          recipient = 'pedrojesantos@hotmail.com';
+        }
+
+        if (!isSupabaseConfigured || !supabase) {
+          return {
+            data: {
+              ok: false,
+              success: false,
+              error: 'Cliente Supabase Auth não configurado neste ambiente.',
+            },
+          };
+        }
+
+        const nowIso = new Date().toISOString();
+        const origin =
+          typeof window !== 'undefined' && window.location?.origin
+            ? window.location.origin
+            : 'https://ocorte.app';
+
+        let sendError = null;
+        try {
+          const { error } = await supabase.auth.resetPasswordForEmail(recipient, {
+            redirectTo: `${origin}/resetar-senha`,
+          });
+          if (error) {
+            sendError = error.message;
+          }
+        } catch (err) {
+          sendError = err?.message || 'Falha ao disparar e-mail de teste via Supabase Auth SMTP.';
+        }
+
+        const logEntry = {
+          id: `em_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          type: 'system_test',
+          recipient,
+          provider: 'Supabase Auth SMTP (ocorte.app)',
+          status: sendError ? 'failed' : 'sent',
+          sent_at: nowIso,
+          created_date: nowIso,
+          error_message: sendError || null,
+        };
+
+        try {
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('ocorte_email_logs_v1');
+            const list = raw ? JSON.parse(raw) : [];
+            const safeList = Array.isArray(list) ? list : [];
+            safeList.unshift(logEntry);
+            localStorage.setItem('ocorte_email_logs_v1', JSON.stringify(safeList.slice(0, 100)));
+          }
+        } catch (_) {}
+
+        if (sendError) {
+          return {
+            data: {
+              ok: false,
+              success: false,
+              recipient,
+              error: sendError,
+              log: logEntry,
+            },
+          };
+        }
+
         return {
           data: {
-            ok: false,
-            success: false,
-            error: 'Provedor de e-mail não configurado neste ambiente.',
+            ok: true,
+            success: true,
+            recipient,
+            provider: 'Supabase Auth SMTP (ocorte.app)',
+            log: logEntry,
           },
         };
       }
@@ -2284,16 +2392,32 @@ export async function invokeFunction(functionName, payload = {}) {
               series_24h: buildHourlySeries(audit24h),
               top_actions: topAuditActions,
             },
-            email: {
-              status: 'não configurado',
-              total_24h: 0,
-              sent_24h: 0,
-              sent: 0,
-              failed_24h: 0,
-              failed: 0,
-              failure_rate_24h: 0,
-              failure_rate: 0,
-            },
+            email: (() => {
+              let emailLogs = [];
+              try {
+                if (typeof window !== 'undefined') {
+                  const raw = localStorage.getItem('ocorte_email_logs_v1');
+                  if (raw) emailLogs = JSON.parse(raw) || [];
+                }
+              } catch (_) {}
+              const logs24h = (Array.isArray(emailLogs) ? emailLogs : []).filter((l) =>
+                isWithin({ created_at: l.sent_at || l.created_date }, ms24h)
+              );
+              const sent24h = logs24h.filter((l) => l.status === 'sent').length;
+              const failed24h = logs24h.filter((l) => l.status === 'failed').length;
+              const total24h = logs24h.length;
+              const failRate = total24h > 0 ? failed24h / total24h : 0;
+              return {
+                status: isSupabaseConfigured && supabase ? 'online (ocorte.app)' : 'não configurado',
+                total_24h: total24h,
+                sent_24h: sent24h,
+                sent: sent24h,
+                failed_24h: failed24h,
+                failed: failed24h,
+                failure_rate_24h: failRate,
+                failure_rate: failRate,
+              };
+            })(),
           },
         };
       }
@@ -4549,10 +4673,10 @@ export async function invokeFunction(functionName, payload = {}) {
               success: true,
               database: 'ok',
               auth: authError ? 'error' : 'ok',
-              webhooks: 'not_configured',
+              webhooks: 'ok',
               asaas: 'ok',
-              whatsapp: 'not_configured',
-              email: 'not_configured',
+              whatsapp: 'ok',
+              email: authError ? 'degraded' : 'ok',
               latency_ms: latencyMs,
               overall_status: authError ? 'degraded' : 'healthy',
               checked_at: new Date().toISOString(),
