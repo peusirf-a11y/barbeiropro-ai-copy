@@ -7,8 +7,8 @@ export default function MasterPartnersKpis({ kpis, isLoading }) {
   const cards = [
     {
       label: 'Parceiros ativos',
-      value: kpis?.partners_active ?? 0,
-      sub: `${kpis?.partners_pending ?? 0} pendente(s)`,
+      value: kpis?.partners_active ?? kpis?.active_partners ?? 0,
+      sub: `${kpis?.partners_pending ?? kpis?.pending_partners ?? 0} pendente(s)`,
       icon: Users,
       color: 'emerald',
     },

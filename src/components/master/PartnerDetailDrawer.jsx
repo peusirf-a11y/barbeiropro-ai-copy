@@ -17,7 +17,8 @@ import {
   ExternalLink,
   DollarSign,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -76,6 +77,7 @@ export default function PartnerDetailDrawer({
   partnerId,
   onClose,
   onAction,
+  onDelete,
 }) {
   const [partner, setPartner] = useState(initialPartner || null);
   const [summary, setSummary] = useState({
@@ -446,6 +448,20 @@ export default function PartnerDetailDrawer({
               >
                 <Play className="w-4 h-4" />
                 <span>Reativar e Aprovar Parceiro</span>
+              </button>
+            )}
+
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  onDelete(p);
+                }}
+                className="w-full py-2.5 px-4 inline-flex items-center justify-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-400/25 text-rose-300 rounded-xl text-xs font-bold transition-all cursor-pointer mt-1"
+                title="Excluir Parceiro"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Excluir Cadastro Permanentemente</span>
               </button>
             )}
           </div>

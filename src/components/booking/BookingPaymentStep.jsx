@@ -4,7 +4,6 @@
 // 3. Verifica se o pagamento foi confirmado no Asaas: se sim, confirma o agendamento no sistema; se não, informa que o pagamento não foi bem-sucedido e bloqueia o avanço.
 
 import { useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { ChevronLeft, AlertCircle, RefreshCw, QrCode, CreditCard, Loader2 } from 'lucide-react';
 import PixPaymentBox from './PixPaymentBox';
 import CardPaymentFormAsaas from './CardPaymentFormAsaas';

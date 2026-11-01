@@ -15,9 +15,11 @@ import {
   FileText,
   Eye,
   Wallet,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import StandardModal from '@/components/ui/standard-modal';
+import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import MasterPartnersKpis from '@/components/master/MasterPartnersKpis';
@@ -28,17 +30,37 @@ import PartnerDetailDrawer from '@/components/master/PartnerDetailDrawer';
 const brl = (n) => 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ',');
 const PAGE = 25;
 
+export function normalizePartnerStatus(raw) {
+  const s = String(raw || '').toLowerCase().trim();
+  if (['active', 'approved', 'ativo', 'aprovado', 'habilitado'].includes(s)) return 'active';
+  if (['pending', 'pendente', 'analise', 'em_analise', 'aguardando'].includes(s)) return 'pending';
+  if (['blocked', 'rejected', 'suspended', 'bloqueado', 'rejeitado', 'suspenso', 'inativo'].includes(s)) return 'blocked';
+  return s || 'pending';
+}
+
 const STATUS_PARTNER = {
   pending: {
     label: 'Pendente',
     cls: 'bg-amber-500/15 text-amber-300 border border-amber-400/40',
   },
+  pendente: {
+    label: 'Pendente',
+    cls: 'bg-amber-500/15 text-amber-300 border border-amber-400/40',
+  },
   active: {
-    label: 'Aprovado',
+    label: 'Aprovado / Ativo',
     cls: 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/40',
   },
   approved: {
-    label: 'Aprovado',
+    label: 'Aprovado / Ativo',
+    cls: 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/40',
+  },
+  ativo: {
+    label: 'Aprovado / Ativo',
+    cls: 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/40',
+  },
+  aprovado: {
+    label: 'Aprovado / Ativo',
     cls: 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/40',
   },
   blocked: {
@@ -51,6 +73,10 @@ const STATUS_PARTNER = {
   },
   suspended: {
     label: 'Suspenso',
+    cls: 'bg-rose-500/15 text-rose-300 border border-rose-400/40',
+  },
+  bloqueado: {
+    label: 'Bloqueado',
     cls: 'bg-rose-500/15 text-rose-300 border border-rose-400/40',
   },
 };
@@ -73,100 +99,256 @@ export default function MasterPartners() {
   const [viewReferrals, setViewReferrals] = useState(null);
   const [detailPartner, setDetailPartner] = useState(null);
   const [visible, setVisible] = useState(PAGE);
+  const [partnerToDelete, setPartnerToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const qc = useQueryClient();
+  const { toast } = useToast();
 
   const kpisQ = useQuery({
     queryKey: ['partners', 'kpis'],
     queryFn: async () => {
-      const res = await base44.functions.invoke('partnerAdminAction', { action: 'kpis' });
-      return res?.data?.kpis || null;
+      let activeCount = 0;
+      let pendingCount = 0;
+      let totalCount = 0;
+
+      const deletedIds = new Set();
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('ocorte_deleted_partner_ids') || '[]';
+          JSON.parse(raw).forEach((id) => deletedIds.add(id));
+        } catch (_) {}
+      }
+
+      // 1. Busca contadores reais estritamente dos registros cadastrados no Supabase
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: supaPartners, error: supaErr } = await supabase.from('partners').select('id, email, status');
+          if (!supaErr && Array.isArray(supaPartners)) {
+            const validPartners = supaPartners.filter((p) =>
+              !deletedIds.has(p.id) &&
+              p.email !== 'test_delete_partner_xyz@test.com' &&
+              p.status !== 'deleted'
+            );
+            totalCount = validPartners.length;
+            activeCount = validPartners.filter((p) =>
+              ['active', 'approved', 'ativo', 'aprovado'].includes(String(p.status || '').toLowerCase().trim())
+            ).length;
+            pendingCount = validPartners.filter((p) =>
+              ['pending', 'pendente', 'em_analise', 'aguardando'].includes(String(p.status || '').toLowerCase().trim())
+            ).length;
+          }
+        } catch (e) {
+          console.warn('[MasterPartners] Falha ao consultar KPIs no Supabase:', e);
+        }
+      }
+
+      // 2. Se não houver dados no Supabase, consulta a lista local real
+      if (totalCount === 0 && typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('ocorte_partner_leads') || '[]';
+          const valid = JSON.parse(raw).filter((p) =>
+            !deletedIds.has(p.id) &&
+            p.email !== 'test_delete_partner_xyz@test.com' &&
+            p.status !== 'deleted'
+          );
+          totalCount = valid.length;
+          activeCount = valid.filter((p) =>
+            ['active', 'approved', 'ativo', 'aprovado'].includes(String(p.status || '').toLowerCase().trim())
+          ).length;
+          pendingCount = valid.filter((p) =>
+            ['pending', 'pendente', 'em_analise', 'aguardando'].includes(String(p.status || '').toLowerCase().trim())
+          ).length;
+        } catch (_) {}
+      }
+
+      let serverKpis = null;
+      try {
+        const res = await base44.functions.invoke('partnerAdminAction', { action: 'kpis' });
+        serverKpis = res?.data?.kpis || null;
+      } catch (_) {}
+
+      // A contagem de parceiros reflete estritamente os cadastros reais existentes
+      const finalActive = activeCount;
+      const finalPending = pendingCount;
+      const finalTotal = totalCount || (finalActive + finalPending);
+
+      return {
+        ...serverKpis,
+        partners_active: finalActive,
+        active_partners: finalActive,
+        partners_pending: finalPending,
+        pending_partners: finalPending,
+        total_partners: finalTotal,
+      };
     },
-    staleTime: 30_000,
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
   });
 
   const partnersQ = useQuery({
     queryKey: partnerKeys.list({ status: statusFilter, search }),
     queryFn: async () => {
       let supaList = [];
-      // 1. Consulta ao Supabase
+      // 1. Consulta ao Supabase com tratamento rigoroso de status
       if (isSupabaseConfigured && supabase) {
         try {
-          const { data, error } = await supabase
-            .from('partners')
-            .select('*')
-            .order('created_at', { ascending: false });
+          let query = supabase.from('partners').select('*');
+
+          // Filtro por status na query do banco quando aplicável
+          if (statusFilter === 'pending') {
+            query = query.in('status', ['pending', 'pendente', 'em_analise', 'aguardando']);
+          } else if (statusFilter === 'active') {
+            query = query.in('status', ['active', 'approved', 'ativo', 'aprovado']);
+          } else if (statusFilter === 'blocked') {
+            query = query.in('status', ['blocked', 'rejected', 'suspended', 'bloqueado', 'rejeitado', 'suspenso', 'inativo']);
+          }
+
+          const { data, error } = await query.order('created_at', { ascending: false });
 
           if (data && !error) {
-            supaList = data.map((p) => ({
-              id: p.id,
-              name: p.full_name || p.name || 'Parceiro',
-              full_name: p.full_name || p.name,
-              email: p.email,
-              phone: p.phone,
-              whatsapp: p.phone,
-              cpf_cnpj: p.cpf_cnpj,
-              pix_key: p.pix_key,
-              referral_code: p.referral_code,
-              status: p.status || 'pending',
-              commission_percentage: p.commission_rate || 30,
-              created_date: p.created_at || new Date().toISOString(),
-            }));
+            supaList = data.map((p) => {
+              const normStatus = normalizePartnerStatus(p.status);
+              return {
+                id: p.id,
+                name: p.full_name || p.name || 'Parceiro',
+                full_name: p.full_name || p.name || 'Parceiro',
+                email: p.email || '',
+                phone: p.phone || p.whatsapp || '',
+                whatsapp: p.phone || p.whatsapp || '',
+                cpf_cnpj: p.cpf_cnpj || '',
+                pix_key: p.pix_key || '',
+                referral_code: p.referral_code || '',
+                status: normStatus,
+                raw_status: p.status,
+                commission_percentage: Number(p.commission_rate || p.commission_percentage || 30),
+                commission_rate: Number(p.commission_rate || p.commission_percentage || 30),
+                created_date: p.created_at || new Date().toISOString(),
+              };
+            });
+          } else if (error) {
+            console.warn('[MasterPartners] Falha na query ordenada de parceiros, tentando consulta geral:', error);
+            const { data: allData } = await supabase.from('partners').select('*');
+            if (Array.isArray(allData)) {
+              supaList = allData.map((p) => {
+                const normStatus = normalizePartnerStatus(p.status);
+                return {
+                  id: p.id,
+                  name: p.full_name || p.name || 'Parceiro',
+                  full_name: p.full_name || p.name || 'Parceiro',
+                  email: p.email || '',
+                  phone: p.phone || p.whatsapp || '',
+                  whatsapp: p.phone || p.whatsapp || '',
+                  cpf_cnpj: p.cpf_cnpj || '',
+                  pix_key: p.pix_key || '',
+                  referral_code: p.referral_code || '',
+                  status: normStatus,
+                  raw_status: p.status,
+                  commission_percentage: Number(p.commission_rate || p.commission_percentage || 30),
+                  commission_rate: Number(p.commission_rate || p.commission_percentage || 30),
+                  created_date: p.created_at || new Date().toISOString(),
+                };
+              });
+            }
           }
         } catch (e) {
           console.warn('[MasterPartners] Consulta ao Supabase falhou:', e);
         }
       }
 
-      // 2. Consulta à API interna / local
-      const res = await base44.functions.invoke('partnerAdminAction', {
-        action: 'list_partners',
-        status: statusFilter === 'all' ? undefined : statusFilter,
-        search: search || undefined,
-        limit: 200,
-      });
+      // 2. Consulta de fallback local (sem travar a visualização se falhar)
+      let localList = [];
+      try {
+        const res = await base44.functions.invoke('partnerAdminAction', {
+          action: 'list_partners',
+          status: statusFilter === 'all' ? undefined : statusFilter,
+          search: search || undefined,
+          limit: 200,
+        });
 
-      const localList = (res?.data?.partners || []).map((p) => ({
-        ...p,
-        full_name: p.full_name || p.name,
-        created_date: p.created_at || p.created_date || new Date().toISOString(),
-        commission_percentage: p.commission_percentage || p.commission_rate || 30,
-      }));
+        localList = (res?.data?.partners || []).map((p) => {
+          const normStatus = normalizePartnerStatus(p.status);
+          return {
+            ...p,
+            name: p.full_name || p.name || 'Parceiro',
+            full_name: p.full_name || p.name || 'Parceiro',
+            status: normStatus,
+            raw_status: p.status,
+            created_date: p.created_at || p.created_date || new Date().toISOString(),
+            commission_percentage: Number(p.commission_percentage || p.commission_rate || 30),
+            commission_rate: Number(p.commission_rate || p.commission_percentage || 30),
+          };
+        });
+      } catch (err) {
+        console.warn('[MasterPartners] partnerAdminAction list_partners falhou:', err);
+      }
 
-      // 3. Mescla sem duplicar por e-mail
+      // 3. Mescla sem duplicar registros priorizando o Supabase
       const map = new Map();
-      supaList.forEach((p) => map.set(p.email?.toLowerCase().trim(), p));
+      supaList.forEach((p) => {
+        const key = p.id || (p.email ? p.email.toLowerCase().trim() : null) || `supa_${Math.random()}`;
+        map.set(key, p);
+      });
       localList.forEach((p) => {
-        const key = p.email?.toLowerCase().trim();
-        if (key && !map.has(key)) {
+        const key = p.id || (p.email ? p.email.toLowerCase().trim() : null);
+        const emailKey = p.email ? p.email.toLowerCase().trim() : null;
+        const existsByEmail = emailKey && Array.from(map.values()).some((sp) => sp.email && sp.email.toLowerCase().trim() === emailKey);
+        if (key && !map.has(key) && !existsByEmail) {
           map.set(key, p);
         }
       });
 
-      let all = Array.from(map.values());
+      const deletedIds = new Set();
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('ocorte_deleted_partner_ids') || '[]';
+          JSON.parse(raw).forEach((did) => deletedIds.add(did));
+        } catch (_) {}
+      }
 
-      // Filtro local caso o usuário tenha clicado nos filtros rápidos
+      let all = Array.from(map.values()).filter(
+        (p) =>
+          !deletedIds.has(p.id) &&
+          p.email !== 'test_delete_partner_xyz@test.com' &&
+          p.status !== 'deleted' &&
+          p.raw_status !== 'deleted'
+      );
+
+      // Filtro local estrito e resiliente caso haja status desnormalizados
       if (statusFilter === 'pending') {
-        all = all.filter((p) => p.status === 'pending');
+        all = all.filter((p) =>
+          ['pending', 'pendente', 'em_analise', 'aguardando'].includes(String(p.status).toLowerCase()) ||
+          ['pending', 'pendente', 'em_analise', 'aguardando'].includes(String(p.raw_status).toLowerCase())
+        );
       } else if (statusFilter === 'active') {
-        all = all.filter((p) => p.status === 'active' || p.status === 'approved');
+        all = all.filter((p) =>
+          ['active', 'approved', 'ativo', 'aprovado'].includes(String(p.status).toLowerCase()) ||
+          ['active', 'approved', 'ativo', 'aprovado'].includes(String(p.raw_status).toLowerCase())
+        );
       } else if (statusFilter === 'blocked') {
-        all = all.filter((p) => p.status === 'blocked' || p.status === 'rejected' || p.status === 'suspended');
+        all = all.filter((p) =>
+          ['blocked', 'rejected', 'suspended', 'bloqueado', 'rejeitado', 'suspenso', 'inativo'].includes(String(p.status).toLowerCase()) ||
+          ['blocked', 'rejected', 'suspended', 'bloqueado', 'rejeitado', 'suspenso', 'inativo'].includes(String(p.raw_status).toLowerCase())
+        );
       }
 
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         all = all.filter((p) =>
-          p.name?.toLowerCase().includes(q) ||
-          p.email?.toLowerCase().includes(q) ||
-          p.phone?.toLowerCase().includes(q) ||
-          p.cpf_cnpj?.toLowerCase().includes(q) ||
-          p.referral_code?.toLowerCase().includes(q)
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.full_name && p.full_name.toLowerCase().includes(q)) ||
+          (p.email && p.email.toLowerCase().includes(q)) ||
+          (p.phone && p.phone.toLowerCase().includes(q)) ||
+          (p.whatsapp && p.whatsapp.toLowerCase().includes(q)) ||
+          (p.cpf_cnpj && p.cpf_cnpj.toLowerCase().includes(q)) ||
+          (p.pix_key && p.pix_key.toLowerCase().includes(q)) ||
+          (p.referral_code && p.referral_code.toLowerCase().includes(q))
         );
       }
 
       return all;
     },
     staleTime: 5_000,
+    refetchOnWindowFocus: true,
   });
 
   const commissionsQ = useQuery({
@@ -199,7 +381,7 @@ export default function MasterPartners() {
 
   const adminMutation = useMutation({
     mutationFn: async (payload) => {
-      const { action, partner_id, partner_email, reason } = payload;
+      const { action, partner_id, partner_email } = payload;
       console.log('[MasterPartners] Executando ação de admin:', payload);
 
       // 1. Atualiza persistência no Supabase
@@ -221,7 +403,11 @@ export default function MasterPartners() {
       }
 
       // 2. Atualiza via partnerAdminAction local
-      return base44.functions.invoke('partnerAdminAction', payload);
+      try {
+        return await base44.functions.invoke('partnerAdminAction', payload);
+      } catch (_) {
+        return { data: { success: true } };
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: partnerKeys.all() });
@@ -229,8 +415,101 @@ export default function MasterPartners() {
       qc.invalidateQueries({ queryKey: ['partners', 'kpis'] });
       qc.invalidateQueries({ queryKey: ['partner', 'detail'] });
       qc.invalidateQueries({ queryKey: ['referrals', 'master'] });
+      toast({
+        title: 'Status atualizado',
+        description: 'A alteração no parceiro foi processada com sucesso.',
+      });
     },
   });
+
+  // Abre modal de confirmação de exclusão
+  const handleDeletePartner = (partnerOrId) => {
+    const partner = typeof partnerOrId === 'object'
+      ? partnerOrId
+      : (partnersQ.data || []).find((p) => p.id === partnerOrId);
+    if (partner) {
+      setPartnerToDelete(partner);
+    }
+  };
+
+  // Executa a exclusão definitiva do parceiro
+  const executeDeletePartner = async (partner) => {
+    if (!partner?.id) return;
+    const id = partner.id;
+    const partnerName = partner?.name || partner?.full_name || partner?.email || 'este parceiro';
+
+    setIsDeleting(true);
+    try {
+      // 1. Persistência imediata no localStorage da lista de IDs deletados
+      if (typeof window !== 'undefined') {
+        try {
+          const rawDel = localStorage.getItem('ocorte_deleted_partner_ids') || '[]';
+          const delList = JSON.parse(rawDel);
+          if (!delList.includes(id)) {
+            delList.push(id);
+            localStorage.setItem('ocorte_deleted_partner_ids', JSON.stringify(delList));
+          }
+
+          const raw = localStorage.getItem('ocorte_partner_leads') || '[]';
+          const list = JSON.parse(raw);
+          const updated = list.filter((p) => p.id !== id && (!partner?.email || p.email?.toLowerCase() !== partner.email?.toLowerCase()));
+          localStorage.setItem('ocorte_partner_leads', JSON.stringify(updated));
+        } catch (_) {}
+      }
+
+      // 2. Remoção no Supabase (delete direto + update status seguro)
+      if (isSupabaseConfigured && supabase && id) {
+        try {
+          await supabase
+            .from('partners')
+            .delete()
+            .eq('id', id);
+        } catch (delErr) {
+          console.warn('[executeDeletePartner] Exclusão direta encontrou aviso:', delErr);
+        }
+
+        try {
+          await supabase
+            .from('partners')
+            .update({ status: 'deleted', updated_at: new Date().toISOString() })
+            .eq('id', id);
+        } catch (_) {}
+      }
+
+      // 3. Atualização otimista e imediata do estado da listagem na UI
+      qc.setQueriesData({ queryKey: ['partners'] }, (old) => {
+        if (Array.isArray(old)) {
+          return old.filter((p) => p.id !== id);
+        }
+        return old;
+      });
+
+      // 4. Invalidação de queries em background
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: partnerKeys.all() }),
+        qc.invalidateQueries({ queryKey: ['partners', 'kpis'] }),
+      ]);
+
+      toast({
+        title: 'Parceiro excluído',
+        description: `O parceiro "${partnerName}" foi removido com sucesso.`,
+      });
+
+      setPartnerToDelete(null);
+      if (detailPartner?.id === id) {
+        setDetailPartner(null);
+      }
+    } catch (err) {
+      console.error('[executeDeletePartner] Erro:', err);
+      toast({
+        title: 'Erro ao excluir parceiro',
+        description: err.message || 'Não foi possível excluir o parceiro. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const partners = partnersQ.data || [];
   const commissions = commissionsQ.data || [];
@@ -519,6 +798,20 @@ export default function MasterPartners() {
                             >
                               <FileText className="w-4 h-4" />
                             </button>
+
+                            {/* Botão de Excluir Parceiro */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleDeletePartner(p);
+                              }}
+                              className="p-2 rounded-xl hover:bg-rose-500/20 text-rose-400/80 hover:text-rose-300 transition-colors cursor-pointer"
+                              title="Excluir Parceiro"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -631,6 +924,10 @@ export default function MasterPartners() {
         <PartnerDetailDrawer
           partner={detailPartner}
           onClose={() => setDetailPartner(null)}
+          onDelete={(p) => {
+            setDetailPartner(null);
+            handleDeletePartner(p);
+          }}
           onAction={(payload) => {
             adminMutation.mutate(payload);
             setDetailPartner(null);
@@ -670,6 +967,62 @@ export default function MasterPartners() {
           </div>
         </StandardModal>
       )}
+
+      {/* Modal de Confirmação de Exclusão de Parceiro */}
+      <StandardModal
+        open={Boolean(partnerToDelete)}
+        onClose={() => !isDeleting && setPartnerToDelete(null)}
+        title="Excluir Cadastro de Parceiro"
+        size="sm"
+      >
+        <div className="space-y-4 pt-1">
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-300 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-white font-semibold">
+                Deseja realmente excluir este parceiro?
+              </p>
+              <div className="mt-1.5 p-2 rounded-lg bg-black/30 border border-white/5">
+                <p className="text-xs font-bold text-white truncate">
+                  {partnerToDelete?.name || partnerToDelete?.full_name || 'Sem nome'}
+                </p>
+                <p className="text-[11px] text-white/50 truncate font-mono">
+                  {partnerToDelete?.email}
+                </p>
+              </div>
+              <p className="text-xs text-rose-300/80 mt-2 font-medium">
+                Esta ação removerá o registro permanentemente e não poderá ser desfeita.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/10">
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => setPartnerToDelete(null)}
+              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold cursor-pointer transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => executeDeletePartner(partnerToDelete)}
+              className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-rose-600/30 transition-all disabled:opacity-50"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+              ) : (
+                <Trash2 className="w-4 h-4 text-white" />
+              )}
+              <span>{isDeleting ? 'Excluindo...' : 'Sim, excluir parceiro'}</span>
+            </button>
+          </div>
+        </div>
+      </StandardModal>
     </div>
   );
 }

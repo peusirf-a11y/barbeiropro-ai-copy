@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Scale, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Mail, Scale } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import Footer from '@/components/Footer';
 

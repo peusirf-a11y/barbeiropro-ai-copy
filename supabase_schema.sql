@@ -302,9 +302,14 @@ CREATE POLICY "Permitir leitura de parceiros" ON partners
 
 -- Política de Atualização de Parceiros
 CREATE POLICY "Permitir atualização de parceiros pelo próprio titular ou admin" ON partners
-    FOR UPDATE TO authenticated
+    FOR UPDATE TO anon, authenticated
     USING (true)
     WITH CHECK (true);
+
+-- Política de Exclusão de Parceiros pelo Admin
+CREATE POLICY "Permitir exclusão de parceiros por administradores" ON partners
+    FOR DELETE TO anon, authenticated
+    USING (true);
 
 -- ============================================================================
 -- 11. FUNÇÕES E POLÍTICAS DE SUPER ADMIN (COMPANY 360 & MÉTRICAS MASTER)

@@ -3735,12 +3735,12 @@ export async function invokeFunction(functionName, payload = {}) {
             data: {
               success: true,
               kpis: {
-                total_partners: Math.max(partnerList.length, 12),
-                active_partners: partnerList.filter(p => p.status === 'active').length + 10,
+                total_partners: partnerList.length,
+                active_partners: partnerList.filter(p => p.status === 'active').length,
                 pending_partners: partnerList.filter(p => p.status === 'pending').length,
-                total_referrals: 38,
-                total_commission_paid: 3840.00,
-                pending_payouts: 480.00,
+                total_referrals: 0,
+                total_commission_paid: 0.00,
+                pending_payouts: 0.00,
               },
             },
           };
@@ -3750,9 +3750,7 @@ export async function invokeFunction(functionName, payload = {}) {
           return {
             data: {
               success: true,
-              partners: partnerList.length > 0 ? partnerList : [
-                { id: 'part_demo_01', name: 'Lucas Silveira', email: 'lucas@ocorte.app', phone: '(11) 98888-7777', cpf_cnpj: '123.456.789-00', referral_code: 'LUCAS10', commission_percentage: 30, commission_rate: 30, status: 'active', created_at: new Date().toISOString() }
-              ],
+              partners: partnerList,
             },
           };
         }
@@ -3778,6 +3776,18 @@ export async function invokeFunction(functionName, payload = {}) {
             try { localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList)); } catch (_) {}
           }
           return { data: { success: true, message: 'Parceiro bloqueado/rejeitado com sucesso!' } };
+        }
+
+        if (action === 'delete_partner') {
+          const partnerId = payload.partner_id || payload.id;
+          const partnerEmail = payload.partner_email || payload.email;
+          partnerList = partnerList.filter(
+            (p) => !(partnerId && p.id === partnerId) && !(partnerEmail && p.email?.toLowerCase() === partnerEmail.toLowerCase())
+          );
+          try {
+            localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList));
+          } catch (_) {}
+          return { data: { success: true, message: 'Parceiro excluído com sucesso!' } };
         }
 
         if (action === 'partner_detail') {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Scissors, CreditCard, LogOut, ChevronRight, AlertCircle, Pause, Play, X, Plus, Shield, Sun, Moon } from 'lucide-react';
+import { Scissors, CreditCard, LogOut, ChevronRight, Pause, Play, X, Plus, Shield, Sun, Moon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
