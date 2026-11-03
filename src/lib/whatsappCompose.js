@@ -1,5 +1,5 @@
 // Helpers para abrir o WhatsApp do cliente com mensagens pré-preenchidas
-// (envio manual pela barbearia — não usa Z-API).
+// (envio manual via deep-link wa.me pela barbearia).
 //
 // Reutiliza os MESMOS templates que o dono já configurou em
 // Company.whatsapp_settings.msg_* (confirmação, lembrete 24h/2h, pós-atendimento,

@@ -22,21 +22,21 @@ Deno.serve(async (req) => {
       checked_at: new Date().toISOString(),
     };
 
-    // --- Z-API ---
+    // --- Evolution API (WhatsApp na VPS) ---
     try {
-      const instanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-      const token = Deno.env.get('ZAPI_TOKEN');
-      const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+      const baseUrl = Deno.env.get('EVOLUTION_API_URL')?.replace(/\/$/, '');
+      const apiKey = Deno.env.get('EVOLUTION_API_KEY');
+      const instance = Deno.env.get('EVOLUTION_INSTANCE') || 'ocorte';
       const isPlaceholder = (v) => !v || ['pending', 'todo', 'placeholder', 'test'].includes(String(v).toLowerCase());
-      if (isPlaceholder(instanceId) || isPlaceholder(token)) {
+      if (isPlaceholder(baseUrl) || isPlaceholder(apiKey)) {
         result.whatsapp = 'not_configured';
       } else {
-        const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/status`;
-        const headers = {};
-        if (clientToken) headers['Client-Token'] = clientToken;
+        const url = `${baseUrl}/instance/connectionState/${encodeURIComponent(instance)}`;
+        const headers = { 'apikey': apiKey };
         const res = await fetch(url, { headers });
         const data = await res.json().catch(() => ({}));
-        result.whatsapp = res.ok && data?.connected ? 'ok' : 'disconnected';
+        const state = data?.instance?.state || data?.state;
+        result.whatsapp = res.ok && (state === 'open' || state === 'connected') ? 'ok' : 'disconnected';
         result.whatsapp_detail = data;
       }
     } catch (err) {

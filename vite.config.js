@@ -14,6 +14,13 @@ import {
 } from './src/server/appointmentsPixHandler.js';
 import { handleTestConnection } from './src/server/asaasTestConnectionHandler.js';
 import { handleMasterCreateCompany } from './src/server/masterCompanyHandler.js';
+import {
+  handleGetWhatsAppStatus,
+  handleGetWhatsAppQRCode,
+  handleSendWhatsAppMessage,
+  handleLogoutWhatsAppInstance,
+} from './src/server/evolutionWhatsAppHandler.js';
+import { handleAsaasWebhook } from './src/api/asaasWebhook.js';
 
 function asaasApiDevPlugin() {
   return {
@@ -209,6 +216,73 @@ function asaasApiDevPlugin() {
           }
         }
 
+        if (url === '/api/asaas/webhook') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsedBody = {};
+            try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
+            let statusCode = 200;
+            let resultData = null;
+            const mockRes = {
+              status(code) { statusCode = code; return this; },
+              json(data) { resultData = data; return this; },
+            };
+            const outcome = await handleAsaasWebhook({ method: req.method, headers: req.headers, body: parsedBody }, mockRes);
+            const bodyToSend = resultData || outcome?.body || { received: true };
+            res.writeHead(statusCode, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            });
+            res.end(JSON.stringify(bodyToSend));
+          });
+          return;
+        }
+
+        if (url === '/api/whatsapp/status' && req.method === 'GET') {
+          const result = await handleGetWhatsAppStatus(query.instance);
+          res.writeHead(result.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify(result.body));
+          return;
+        }
+
+        if ((url === '/api/whatsapp/qrcode' || url === '/api/whatsapp/connect') && req.method === 'GET') {
+          const result = await handleGetWhatsAppQRCode(query.instance);
+          res.writeHead(result.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify(result.body));
+          return;
+        }
+
+        if (url === '/api/whatsapp/send' && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsed = {};
+            try { if (bodyStr) parsed = JSON.parse(bodyStr); } catch (_) {}
+            const result = await handleSendWhatsAppMessage({
+              phone: parsed.phone,
+              message: parsed.message,
+              customInstance: parsed.instance || query.instance,
+            });
+            res.writeHead(result.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify(result.body));
+          });
+          return;
+        }
+
+        if ((url === '/api/whatsapp/logout' || url === '/api/whatsapp/restart') && (req.method === 'POST' || req.method === 'DELETE')) {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsed = {};
+            try { if (bodyStr) parsed = JSON.parse(bodyStr); } catch (_) {}
+            const result = await handleLogoutWhatsAppInstance(parsed.instance || query.instance);
+            res.writeHead(result.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify(result.body));
+          });
+          return;
+        }
+
         next();
       });
     },
@@ -320,6 +394,70 @@ function asaasApiDevPlugin() {
             try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
             const result = await handleTestConnection(parsedBody);
             res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result.body));
+          });
+          return;
+        }
+
+        if (url === '/api/asaas/webhook') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsedBody = {};
+            try { if (bodyStr) parsedBody = JSON.parse(bodyStr); } catch (_) {}
+            let statusCode = 200;
+            let resultData = null;
+            const mockRes = {
+              status(code) { statusCode = code; return this; },
+              json(data) { resultData = data; return this; },
+            };
+            const outcome = await handleAsaasWebhook({ method: req.method, headers: req.headers, body: parsedBody }, mockRes);
+            const bodyToSend = resultData || outcome?.body || { received: true };
+            res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(bodyToSend));
+          });
+          return;
+        }
+
+        if (url === '/api/whatsapp/status' && req.method === 'GET') {
+          const result = await handleGetWhatsAppStatus(query.instance);
+          res.writeHead(result.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify(result.body));
+          return;
+        }
+
+        if ((url === '/api/whatsapp/qrcode' || url === '/api/whatsapp/connect') && req.method === 'GET') {
+          const result = await handleGetWhatsAppQRCode(query.instance);
+          res.writeHead(result.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify(result.body));
+          return;
+        }
+
+        if (url === '/api/whatsapp/send' && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsed = {};
+            try { if (bodyStr) parsed = JSON.parse(bodyStr); } catch (_) {}
+            const result = await handleSendWhatsAppMessage({
+              phone: parsed.phone,
+              message: parsed.message,
+              customInstance: parsed.instance || query.instance,
+            });
+            res.writeHead(result.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify(result.body));
+          });
+          return;
+        }
+
+        if ((url === '/api/whatsapp/logout' || url === '/api/whatsapp/restart') && (req.method === 'POST' || req.method === 'DELETE')) {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            let parsed = {};
+            try { if (bodyStr) parsed = JSON.parse(bodyStr); } catch (_) {}
+            const result = await handleLogoutWhatsAppInstance(parsed.instance || query.instance);
+            res.writeHead(result.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
             res.end(JSON.stringify(result.body));
           });
           return;

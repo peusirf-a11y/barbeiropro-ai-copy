@@ -22,6 +22,7 @@ export default function AppUnidades() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deletingUnit, setDeletingUnit] = useState(null);
   const [form, setForm] = useState(empty);
 
   const { data: units = [], isLoading } = useQuery({
@@ -35,12 +36,15 @@ export default function AppUnidades() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units', companyId] });
       // Garante que o flag multi_unit_enabled fique true ao criar a 2ª unidade
-      if (units.length >= 1 && !company.multi_unit_enabled) {
+      if (units.length >= 1 && !company?.multi_unit_enabled) {
         base44.entities.Company.update(company.id, { multi_unit_enabled: true });
         queryClient.invalidateQueries({ queryKey: ['my-company'] });
       }
       close();
-      toast({ title: 'Unidade criada' });
+      toast({ title: 'Unidade criada com sucesso!' });
+    },
+    onError: (err) => {
+      toast({ title: 'Erro ao criar unidade', description: err?.message, variant: 'destructive' });
     },
   });
 
@@ -51,13 +55,20 @@ export default function AppUnidades() {
       close();
       toast({ title: 'Unidade atualizada' });
     },
+    onError: (err) => {
+      toast({ title: 'Erro ao atualizar unidade', description: err?.message, variant: 'destructive' });
+    },
   });
 
   const deleteM = useMutation({
     mutationFn: (id) => base44.entities.Unit.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units', companyId] });
-      toast({ title: 'Unidade removida' });
+      setDeletingUnit(null);
+      toast({ title: 'Unidade removida com sucesso' });
+    },
+    onError: (err) => {
+      toast({ title: 'Erro ao remover unidade', description: err?.message, variant: 'destructive' });
     },
   });
 
@@ -75,19 +86,17 @@ export default function AppUnidades() {
 
   const removeUnit = (u) => {
     if (u.is_default) {
-      toast({ title: 'Não é possível remover a Matriz', variant: 'destructive' });
+      toast({ title: 'A unidade Matriz não pode ser excluída', variant: 'destructive' });
       return;
     }
-    if (confirm(`Excluir a unidade "${u.name}"? Esta ação não pode ser desfeita.`)) {
-      deleteM.mutate(u.id);
-    }
+    setDeletingUnit(u);
   };
 
   return (
     <AppLayout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
         <AppPageHeader
-          title="Unidades"
+          title="Unidades & Filiais"
           subtitle={`${units.length} ${units.length === 1 ? 'unidade cadastrada' : 'unidades cadastradas'}`}
           icon={Building2}
         >
@@ -214,6 +223,44 @@ export default function AppUnidades() {
               <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} className="accent-[#2563EB]" />
               Unidade ativa
             </label>
+          </div>
+        </StandardModal>
+
+        {/* Modal de confirmação segura de exclusão */}
+        <StandardModal
+          open={!!deletingUnit}
+          onClose={() => setDeletingUnit(null)}
+          title="Excluir Unidade"
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setDeletingUnit(null)}
+                disabled={deleteM.isPending}
+                className="flex-1 px-4 py-2.5 border border-white/12 bg-white/[0.04] text-white/80 rounded-lg text-sm font-medium hover:bg-white/[0.08]"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (deletingUnit) deleteM.mutate(deletingUnit.id);
+                }}
+                disabled={deleteM.isPending}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-red-900/30 disabled:opacity-50"
+              >
+                {deleteM.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
+              </button>
+            </>
+          }
+        >
+          <div className="text-white/80 text-sm leading-relaxed space-y-2">
+            <p>
+              Deseja realmente excluir a filial <span className="font-bold text-white">"{deletingUnit?.name}"</span>?
+            </p>
+            <p className="text-xs text-white/50">
+              Esta ação removerá a unidade da lista ativa. Agendamentos e históricos anteriores permanecerão arquivados de forma segura.
+            </p>
           </div>
         </StandardModal>
       </div>

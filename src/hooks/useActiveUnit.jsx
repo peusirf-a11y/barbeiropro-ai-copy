@@ -24,12 +24,19 @@ const UNIT_DEPENDENT_KEYS = [
   'customer-subscriptions',
   'customer-subscriptions-active',
   'financial',
+  'financial-entries',
   'commissions',
   'professionals',
   'services',
   'blocked-times',
+  'cash-registers',
   'cash-register',
+  'cash-entries',
+  'cash-audit',
+  'cash-entries-reports',
   'reviews',
+  'whatsapp-messages',
+  'dashboard',
 ];
 
 const ActiveUnitContext = createContext(null);
@@ -71,11 +78,26 @@ export function ActiveUnitProvider({ children }) {
       localStorage.setItem(storageKey(companyId), id === null ? '__all__' : (id || ''));
     }
     // 🚨 Crítico: invalida todas as queries que dependem de unidade.
-    // Como `activeUnitId` está nas queryKeys das páginas, o React Query
-    // refetch automaticamente. Isso garante que dashboard/agenda/clientes/
-    // financeiro NUNCA mostrem dados de outra unidade.
+    // 1. Invalidação por prefixo clássico
     UNIT_DEPENDENT_KEYS.forEach(key => {
       queryClient.invalidateQueries({ queryKey: [key] });
+    });
+    // 2. Invalidação avançada para queries formatadas por buildTenantQueryKey
+    // (formato: [companyId, impersonation, userId, entity, filters])
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const qk = query.queryKey;
+        if (!Array.isArray(qk)) return false;
+        return qk.some((part) => {
+          if (typeof part === 'string' && UNIT_DEPENDENT_KEYS.includes(part)) {
+            return true;
+          }
+          if (part && typeof part === 'object' && ('activeUnitId' in part || 'active_unit_id' in part)) {
+            return true;
+          }
+          return false;
+        });
+      },
     });
   }, [companyId, queryClient]);
 

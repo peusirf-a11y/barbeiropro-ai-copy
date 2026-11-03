@@ -1,6 +1,6 @@
-// Core function — disparo de mensagens WhatsApp via Z-API
+// Core function — disparo de mensagens WhatsApp via Evolution API v2 (VPS própria)
 // Pode ser chamada por outras backend functions (jobs, triggers) ou direto pela UI.
-// Se as credenciais Z-API não estiverem configuradas, opera em "modo simulado" (loga no banco mas não envia).
+// Se as credenciais da Evolution API não estiverem configuradas, opera em "modo simulado" (loga no banco mas não envia).
 //
 // A8 (Sprint A): idempotência forte via `idempotency_key`.
 // Antes: check-then-create em cada caller (race condition entre 2 instâncias do job).
@@ -48,7 +48,7 @@ async function checkWhatsAppRateLimit(sdk, company_id) {
   return { allowed: true };
 }
 
-// Normaliza telefone para formato E.164 sem "+" (esperado pela Z-API). Brasil = 55.
+// Normaliza telefone para formato E.164 sem "+" (esperado pela Evolution API). Brasil = 55.
 function normalizePhone(raw) {
   if (!raw) return null;
   let p = String(raw).replace(/\D/g, '');
@@ -57,29 +57,34 @@ function normalizePhone(raw) {
   return p;
 }
 
-async function sendViaZapi({ phone, message }) {
-  const instanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-  const token = Deno.env.get('ZAPI_TOKEN');
-  const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+async function sendViaEvolutionApi({ phone, message }) {
+  const baseUrl = Deno.env.get('EVOLUTION_API_URL')?.replace(/\/$/, '');
+  const apiKey = Deno.env.get('EVOLUTION_API_KEY');
+  const instance = Deno.env.get('EVOLUTION_INSTANCE') || 'ocorte';
 
   const isPlaceholder = (v) => !v || ['pending', 'todo', 'placeholder', 'test'].includes(String(v).toLowerCase());
-  if (isPlaceholder(instanceId) || isPlaceholder(token)) {
-    return { simulated: true, reason: 'Z-API credentials not configured (placeholder values)' };
+  if (isPlaceholder(baseUrl) || isPlaceholder(apiKey)) {
+    return { simulated: true, reason: 'Evolution API credentials not configured (placeholder values)' };
   }
 
-  const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
-  const headers = { 'Content-Type': 'application/json' };
-  if (clientToken) headers['Client-Token'] = clientToken;
+  const url = `${baseUrl}/message/sendText/${encodeURIComponent(instance)}`;
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey': apiKey,
+  };
 
   const res = await fetch(url, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ phone, message }),
+    body: JSON.stringify({
+      number: phone,
+      text: message,
+    }),
   });
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data?.message || data?.error || `Z-API error ${res.status}`);
+    throw new Error(data?.message || data?.error || `Evolution API error ${res.status}`);
   }
   return { simulated: false, response: data };
 }
@@ -165,7 +170,7 @@ Deno.serve(async (req) => {
     };
 
     try {
-      const result = await sendViaZapi({ phone: normalizedPhone, message });
+      const result = await sendViaEvolutionApi({ phone: normalizedPhone, message });
       const log = await base44.asServiceRole.entities.WhatsAppMessage.create({
         ...baseLog,
         status: result.simulated ? 'simulado' : 'enviado',

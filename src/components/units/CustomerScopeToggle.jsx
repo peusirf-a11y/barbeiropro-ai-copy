@@ -50,8 +50,8 @@ export default function CustomerScopeToggle({ company }) {
         disabled={updateM.isPending}
         className={`relative text-left p-4 rounded-xl border-2 transition-all ${
           selected
-            ? 'border-[#2563EB] bg-[#EFF6FF] shadow-[0_4px_12px_rgba(37,99,235,0.12)]'
-            : 'border-black/10 bg-white hover:border-[#2563EB]/40'
+            ? 'border-[#2563EB] bg-blue-500/15 shadow-[0_8px_20px_rgba(37,99,235,0.2)]'
+            : 'border-white/10 bg-white/[0.02] hover:border-blue-400/40 hover:bg-white/[0.04]'
         } disabled:opacity-50`}
       >
         {selected && (
@@ -60,27 +60,27 @@ export default function CustomerScopeToggle({ company }) {
           </div>
         )}
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${
-          selected ? 'bg-[#2563EB] text-white' : 'bg-gray-100 text-gray-500'
+          selected ? 'bg-[#2563EB] text-white' : 'bg-white/10 text-white/50'
         }`}>
           <Icon className="w-4 h-4" />
         </div>
-        <div className="font-bold text-sm text-[#111827] mb-1">{title}</div>
-        <div className="text-xs text-[#6B7280] leading-relaxed">{description}</div>
+        <div className="font-bold text-sm text-white mb-1">{title}</div>
+        <div className="text-xs text-white/60 leading-relaxed">{description}</div>
       </button>
     );
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)]">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
       <div className="flex items-start justify-between mb-1 flex-wrap gap-2">
-        <h2 className="font-bold text-[#111827]">Modo de clientes</h2>
+        <h2 className="font-bold text-white">Modo de clientes</h2>
         {updateM.isPending && (
-          <span className="inline-flex items-center gap-1 text-xs text-[#2563EB] font-semibold">
+          <span className="inline-flex items-center gap-1 text-xs text-[#60A5FA] font-semibold">
             <Loader2 className="w-3 h-3 animate-spin" /> Salvando...
           </span>
         )}
       </div>
-      <p className="text-sm text-[#6B7280] mb-4">
+      <p className="text-sm text-white/60 mb-4">
         Defina como os clientes são organizados entre as unidades.
       </p>
 
@@ -101,10 +101,10 @@ export default function CustomerScopeToggle({ company }) {
 
       {/* Modal de confirmação para mudança destrutiva */}
       {confirmingValue === false && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setConfirmingValue(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-[#111827] mb-2">Separar clientes por unidade?</h3>
-            <p className="text-sm text-[#6B7280] mb-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setConfirmingValue(null)}>
+          <div className="bg-[#0B1020] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6 text-white" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-white mb-2">Separar clientes por unidade?</h3>
+            <p className="text-sm text-white/60 mb-4 leading-relaxed">
               A partir de agora, novos clientes ficarão vinculados à unidade onde forem cadastrados. Os clientes existentes (sem unidade definida) continuarão visíveis em todas as unidades como "compartilhados".
               <br /><br />
               Você pode voltar a unificar os clientes a qualquer momento.
@@ -112,14 +112,14 @@ export default function CustomerScopeToggle({ company }) {
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmingValue(null)}
-                className="flex-1 px-4 py-2.5 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50"
+                className="flex-1 px-4 py-2.5 border border-white/10 rounded-lg text-sm font-medium hover:bg-white/10 text-white/80"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => updateM.mutate(false)}
                 disabled={updateM.isPending}
-                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50"
               >
                 {updateM.isPending ? 'Aplicando...' : 'Confirmar'}
               </button>

@@ -195,6 +195,34 @@ CREATE INDEX IF NOT EXISTS idx_appointments_company ON appointments(company_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date);
 CREATE INDEX IF NOT EXISTS idx_appointments_customer ON appointments(customer_id);
 
+-- 9b. TABELA: units (Filiais e Unidades da Barbearia - Multi-Unidades)
+CREATE TABLE IF NOT EXISTS units (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    address TEXT,
+    phone VARCHAR(50),
+    whatsapp VARCHAR(50),
+    active BOOLEAN DEFAULT TRUE,
+    is_default BOOLEAN DEFAULT FALSE,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_units_company ON units(company_id);
+CREATE INDEX IF NOT EXISTS idx_units_active ON units(active);
+
+-- Multi-unidade: colunas adicionais para suporte a filiais
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS multi_unit_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS customers_shared_across_units BOOLEAN DEFAULT TRUE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS units_backfilled_at TIMESTAMPTZ;
+
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS unit_id UUID REFERENCES units(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_appointments_unit ON appointments(unit_id);
+
+ALTER TABLE professionals ADD COLUMN IF NOT EXISTS unit_ids JSONB DEFAULT '[]'::jsonb;
+
 -- ============================================================================
 -- 10. ROW LEVEL SECURITY (RLS) POLICIES
 -- ============================================================================
@@ -207,6 +235,13 @@ ALTER TABLE professionals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE units ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Leitura pública de unidades ativas" ON units
+    FOR SELECT USING (active = true);
+
+CREATE POLICY "Gestão de unidades para barbearias" ON units
+    FOR ALL USING (true) WITH CHECK (true);
 
 -- Políticas para Companies: Leitura pública para barbearias ativas, escrita restrita
 CREATE POLICY "Leitura pública de barbearias ativas" ON companies

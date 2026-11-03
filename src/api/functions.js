@@ -4623,6 +4623,79 @@ export async function invokeFunction(functionName, payload = {}) {
         }
       }
 
+      // ==========================================
+      // WHATSAPP — EVOLUTION API V2 INTEGRATION
+      // ==========================================
+      case 'getWhatsAppQRCode': {
+        try {
+          const qs = payload?.instance ? `?instance=${encodeURIComponent(payload.instance)}` : '';
+          const res = await fetch(`/api/whatsapp/qrcode${qs}`);
+          const json = await res.json().catch(() => ({}));
+          return { data: json };
+        } catch (fetchErr) {
+          return {
+            data: {
+              connected: false,
+              error: `Erro ao conectar à Evolution API: ${fetchErr.message}. Verifique a VPS.`,
+            },
+          };
+        }
+      }
+
+      case 'getWhatsAppStatus': {
+        try {
+          const qs = payload?.instance ? `?instance=${encodeURIComponent(payload.instance)}` : '';
+          const res = await fetch(`/api/whatsapp/status${qs}`);
+          const json = await res.json().catch(() => ({}));
+          return { data: json };
+        } catch (fetchErr) {
+          return {
+            data: {
+              connected: false,
+              error: `Erro ao consultar status da Evolution API: ${fetchErr.message}`,
+            },
+          };
+        }
+      }
+
+      case 'sendWhatsAppMessage': {
+        try {
+          const res = await fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json().catch(() => ({}));
+          return { data: json };
+        } catch (fetchErr) {
+          return {
+            data: {
+              ok: false,
+              error: `Erro ao enviar mensagem via Evolution API: ${fetchErr.message}`,
+            },
+          };
+        }
+      }
+
+      case 'logoutWhatsApp': {
+        try {
+          const res = await fetch('/api/whatsapp/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json().catch(() => ({}));
+          return { data: json };
+        } catch (fetchErr) {
+          return {
+            data: {
+              success: false,
+              error: `Erro ao desconectar instância: ${fetchErr.message}`,
+            },
+          };
+        }
+      }
+
       default: {
         return {
           data: {

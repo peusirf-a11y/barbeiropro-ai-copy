@@ -32,19 +32,19 @@ export default function MultiUnitToggle({ company }) {
   return (
     <div className={`rounded-2xl p-5 mb-6 border transition-all ${
       enabled
-        ? 'bg-gradient-to-br from-[#EFF6FF] to-white border-[#DBEAFE]'
-        : 'bg-white border-black/5 shadow-[var(--shadow-sm)]'
+        ? 'bg-blue-500/10 border-blue-400/30 shadow-[0_8px_24px_rgba(37,99,235,0.15)]'
+        : 'bg-white/[0.025] border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl'
     }`}>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3 min-w-0 flex-1">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-            enabled ? 'bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)]' : 'bg-gray-100 text-gray-500'
+            enabled ? 'bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(37,99,235,0.4)]' : 'bg-white/[0.06] text-white/40'
           }`}>
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-bold text-[#111827] text-sm">Recurso multi-unidade</h3>
-            <p className="text-xs text-[#6B7280] mt-0.5 leading-relaxed">
+            <h3 className="font-bold text-white text-sm">Recurso multi-unidade</h3>
+            <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
               {enabled
                 ? 'Ativo. O seletor de unidade aparece no topo do app e cada unidade tem agenda, financeiro e equipe próprios.'
                 : 'Ative para gerenciar mais de uma unidade da barbearia. Recomendado quando você tem 2+ filiais.'}
@@ -57,7 +57,7 @@ export default function MultiUnitToggle({ company }) {
           onClick={() => updateM.mutate(!enabled)}
           disabled={updateM.isPending}
           className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors ${
-            enabled ? 'bg-[#2563EB]' : 'bg-gray-300'
+            enabled ? 'bg-[#2563EB]' : 'bg-white/20'
           } disabled:opacity-50`}
           aria-label="Alternar multi-unidade"
         >

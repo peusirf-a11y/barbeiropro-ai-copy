@@ -118,7 +118,7 @@ O sistema **não coleta**:
 | Destinatário | Dados transferidos | Base legal | País |
 |-------------|-------------------|-----------|------|
 | Stripe | Dados de pagamento, CPF (Pix) | Execução de contrato | EUA (BCR/SCCs) |
-| Evolution API / Z-API | Telefone, nome, texto | Execução de contrato (WA) | Brasil |
+| Evolution API | Telefone, nome, texto | Execução de contrato (WA) | Brasil |
 | Base44 (plataforma) | Todos os dados | Execução de contrato | Brasil |
 
 ---
