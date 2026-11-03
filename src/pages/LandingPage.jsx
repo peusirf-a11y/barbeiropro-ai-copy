@@ -12,6 +12,7 @@ import AISection from '@/components/landing/AISection';
 import RecurrenceSection from '@/components/landing/RecurrenceSection';
 import ResultsBand from '@/components/landing/ResultsBand';
 import ComparisonTable from '@/components/landing/ComparisonTable';
+import PricingSection from '@/components/landing/PricingSection';
 import PremiumTestimonials from '@/components/landing/PremiumTestimonials';
 import PremiumCTA from '@/components/landing/PremiumCTA';
 import PremiumFooter from '@/components/landing/PremiumFooter';
@@ -88,6 +89,7 @@ export default function LandingPage() {
         <RecurrenceSection />
         <ResultsBand />
         <ComparisonTable />
+        <PricingSection />
         <PremiumTestimonials />
         <PremiumCTA />
       </main>

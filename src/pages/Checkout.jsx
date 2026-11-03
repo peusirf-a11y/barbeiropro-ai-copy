@@ -5,11 +5,11 @@ import { CheckCircle, ArrowLeft, Shield, Star, Zap, Lock, Rocket } from 'lucide-
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
 import { usePublicPlans } from '@/hooks/usePublicPlans';
 
-// Oferta de lançamento: Plano Master por R$ 79,90/mês nos primeiros 3 meses, depois R$ 119,00/mês, com 7 dias grátis.
+// Oferta de lançamento: Plano Master por R$ 79,00/mês nos primeiros 3 meses, depois R$ 119,00/mês, com 7 dias grátis.
 const LAUNCH_PROMO = {
   code: 'lancamento',
-  price: 79.90,
-  priceFormatted: '79,90',
+  price: 79.00,
+  priceFormatted: '79,00',
   regularPrice: 119.00,
   regularPriceFormatted: '119,00',
   durationMonths: 3,

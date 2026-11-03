@@ -4599,16 +4599,28 @@ export async function invokeFunction(functionName, payload = {}) {
             },
           };
         }
-        const standardizedUrl = await standardizeBarberPhotoCanvas(originalUrl, shirtColor);
-        return {
-          data: {
-            success: true,
-            original_url: originalUrl,
-            standardized_url: standardizedUrl || originalUrl,
-            shirt_color: shirtColor,
-            prompt_instructions: getBarberStudioStandardizationPrompt(shirtColor),
-          },
-        };
+        try {
+          const standardizedUrl = await standardizeBarberPhotoCanvas(originalUrl, shirtColor);
+          return {
+            data: {
+              success: true,
+              original_url: originalUrl,
+              standardized_url: standardizedUrl || originalUrl,
+              shirt_color: shirtColor,
+              prompt_instructions: getBarberStudioStandardizationPrompt(shirtColor),
+            },
+          };
+        } catch (stdErr) {
+          console.warn('[standardizeBarberPhoto] Erro de processamento:', stdErr?.message);
+          return {
+            data: {
+              success: false,
+              error: stdErr?.message || 'Falha ao padronizar a foto.',
+              is_framing_error: String(stdErr?.message || '').includes('Enquadramento Insuficiente'),
+              prompt_instructions: getBarberStudioStandardizationPrompt(shirtColor),
+            },
+          };
+        }
       }
 
       default: {

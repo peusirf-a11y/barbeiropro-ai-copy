@@ -781,8 +781,8 @@ export default function AppProfissionais() {
                   <div>
                     <label className="text-xs font-semibold text-white/60 block mb-1">Foto do barbeiro</label>
                     <BarberPhotoStandardizer
-                      value={form.photo_url}
-                      onChange={(url) => setForm(p => ({ ...p, photo_url: url }))}
+                      value={form.photo_url || form.avatar_url}
+                      onChange={(url) => setForm(p => ({ ...p, photo_url: url, avatar_url: url }))}
                       fallbackText={form.name}
                     />
                   </div>

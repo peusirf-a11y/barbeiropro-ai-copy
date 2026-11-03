@@ -26,11 +26,12 @@ export default function PremiumNav() {
         <Link to="/" className="flex items-center">
           <BrandMark size={36} tone="dark" />
         </Link>
-        <div className="hidden md:flex items-center gap-9 text-sm font-medium text-white/65">
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/65">
           <a href="#beneficios" className="hover:text-white transition-colors">Plataforma</a>
           <a href="#ia" className="hover:text-white transition-colors">IA</a>
           <a href="#recorrencia" className="hover:text-white transition-colors">Recorrência</a>
           <a href="#resultados" className="hover:text-white transition-colors">Resultados</a>
+          <a href="#precos" className="hover:text-white transition-colors text-white/90">Preços</a>
         </div>
         <div className="flex items-center gap-2">
           <PWAInstallButton />

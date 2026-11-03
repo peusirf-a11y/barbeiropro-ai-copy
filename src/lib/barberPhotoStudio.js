@@ -1,30 +1,46 @@
 // Studio Portrait Standardizer — Motor de Visão Computacional e Padronização de Retratos (O CORTE)
+// Especializado em Edição Profissional de Retrato para Moda & E-commerce
 //
 // Pipeline Profissional de Padronização de Imagem:
-// 1. Eliminação Total de Halos/Artefatos de Fundo:
-//    - NUNCA cria silhuetas ovais, manchas marrons ou círculos de desfoque atrás da cabeça.
-//    - Recorte preciso com máscara alfa suave nos fios e contorno craniano/corporal, aplicando
-//      exclusivamente o gradiente radial contínuo de estúdio (#2B3342 -> #121620) em todo o fundo.
-// 2. Descontaminação de Cor nas Bordas (Optical Defringe / Color Decontamination):
-//    - Neutraliza reflexos de iluminação ambiente extrema (LED verde neon, ciano, vermelho) de forma
-//      puramente cromática (sem máscaras ovais espaciais) e executa puxada de cor interna (inward color pull)
-//      nos contornos de cabelos, óculos, orelhas e braços antes de compor com o fundo escuro.
-// 3. Restrição Estrita de Inpainting de Roupa:
-//    - A substituição da camiseta (Preta fosca ou Branca pura de estúdio) atua estritamente na região
-//      do tronco/ombros, preservando integralmente cabeça, barba, mãos, relógio e objetos segurados
-//      (ex: pote de pomada) sem gerar sombras residuais no ar.
+// 1. Deteção de Segmentação e Corpo:
+//    - Identificação precisa da silhueta corporal (cabeça, pescoço, ombros, peito, braços e mãos).
+//    - Ponto de corte superior OBRIGATÓRIO: Base natural do pescoço (junção clavícula/pescoço).
+//    - Rejeição estrita com erro de "Enquadramento Insuficiente" para selfies close-up sem ombros/peito.
+// 2. Aplicação de Camisa Social Padronizada (Preta ou Branca):
+//    - Modelo de alfaiataria premium adaptado à anatomia e postura natural do sujeito.
+//    - Colarinho estruturado (pé-de-gola anatômico e lapelas semi-italianas) que abraça o pescoço sem flutuar
+//      e sem encobrir o queixo ou a barba.
+//    - Vista frontal de abotoamento (center placket) com pesponto fino e botões refinados de alfaiataria.
+// 3. Preservação Estrita de Detalhes:
+//    - Cabeça, cabelo, barba, óculos e expressão facial rigorosamente idênticos à foto original.
+//    - Mãos, dedos, relógio e objetos segurados (ex.: latas/potes de pomada, tesouras) 100% preservados,
+//      aplicando a camisa social exclusivamente no torso.
+// 4. Fundo de Estúdio Limpo:
+//    - Gradiente radial contínuo grafite/dark slate (#2B3342 -> #121620) sem manchas marrons, silhuetas ou halos.
+//    - Descontaminação cromática óptica total (defringe) de luz ambiente colorida nas bordas.
 
 export function getBarberStudioStandardizationPrompt(shirtColor = 'black') {
-  const colorLabel =
-    shirtColor === 'white'
-      ? 'camiseta ou polo lisa branca de algodão premium (crisp studio white)'
-      : 'camiseta ou polo lisa preta fosca de algodão premium (matte studio black)';
+  const isWhite = shirtColor === 'white';
+  const shirtLabel = isWhite
+    ? 'camisa social branca de alfaiataria premium (crisp tailored studio white dress shirt, colarinho estruturado com entretela, botões madrepérola discretos, tecido popeline 100% algodão impecavelmente alinhado)'
+    : 'camisa social preta de alfaiataria premium (matte tailored studio black dress shirt, colarinho estruturado com entretela, botões pretos acetinados, tecido nobre 100% algodão de estúdio)';
 
   return [
-    'Padronização Institucional de Retrato de Barbeiro — O CORTE:',
-    '1. Eliminação de Halo/Artefato de Fundo: NUNCA criar silhuetas, manchas marrons, halos ou círculos de desfoque opacos atrás da cabeça. O recorte deve usar máscara alfa precisa e o fundo deve ser exclusivamente o gradiente radial contínuo (#2B3342 -> #121620).',
-    '2. Descontaminação de Cor nas Bordas (Defringe): Neutralizar qualquer reflexo de iluminação LED neon (verde, azul, vermelho) nos contornos do cabelo, óculos, orelhas e braços antes de compor com o fundo escuro.',
-    `3. Restrição de Inpainting de Roupa: Substituir apenas a vestimenta na região delimitada pelo tronco/ombros por uma ${colorLabel}, preservando estritamente a cabeça, feições reais, barba, mãos e objetos segurados sem gerar sombras residuais no ar.`,
+    'Padronização Institucional de Retrato de Barbeiro — O CORTE (Moda & E-commerce):',
+    '1. Deteção de Segmentação e Corpo:',
+    '   - Analisar a silhueta exata da pessoa.',
+    '   - O ponto de corte superior para a inserção da nova roupa deve ser, obrigatoriamente, a base natural do pescoço (junção clavícula/pescoço).',
+    '   - Se a imagem original for uma selfie muito próxima (close-up) que não mostre os ombros ou o peito (ex: corta no meio do pescoço), o modelo DEVE recusar a padronização e retornar um erro de "Enquadramento Insuficiente", em vez de tentar adivinhar a forma do ombro.',
+    `2. Aplicação de Camisa Social (${isWhite ? 'Branca' : 'Preta'}):`,
+    `   - Com base na detecção dos ombros e peito (que devem estar visíveis na imagem original), ajustar o modelo da camisa para seguir a anatomia natural e a postura do sujeito.`,
+    `   - A inserção deve aplicar uma ${shirtLabel}.`,
+    '   - A gola e a frente da camisa devem alinhar-se perfeitamente com o pescoço, sem flutuar ou cobrir o queixo.',
+    '   - A inserção da camisa deve respeitar a iluminação original da foto.',
+    '3. Preservação de Detalhes:',
+    '   - Mantenha a cabeça, o cabelo, a barba e os óculos (se houver) exatamente como na foto original.',
+    '   - Se houver objetos segurados pela mão na foto original (como lata/pote de pomada ou ferramentas), preservar a mão e o objeto, aplicando a nova camisa apenas no torso.',
+    '4. Fundo de Estúdio Limpo:',
+    '   - Recorte perfeito sem halos, sem manchas marrons ou ovais, composto exclusivamente com o gradiente radial contínuo de estúdio (#2B3342 -> #121620).',
   ].join('\n');
 }
 
@@ -227,7 +243,7 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // 1. DETECÇÃO DA COR DA CAMISA ORIGINAL
+        // 1. DETECÇÃO DA COR DA VESTIMENTA ORIGINAL
         // ─────────────────────────────────────────────────────────────────────
         let darkTorsoCount = 0;
         let totalTorsoSamples = 0;
@@ -245,27 +261,22 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
         const isOriginalShirtBlack =
           totalTorsoSamples > 0 && darkTorsoCount / totalTorsoSamples > 0.42;
 
-        // Se a camisa original já é preta e a opção selecionada é Preta, mantém a foto intacta
-        if (shirtColor === 'black' && isOriginalShirtBlack) {
-          resolve(sourceDataUrl);
-          return;
-        }
-
         // ─────────────────────────────────────────────────────────────────────
-        // 2. CALIBRAÇÃO DA PELE DO ROSTO E DESCONTAMINAÇÃO CROMÁTICA GLOBAL
-        //    (100% Livre de Máscaras Ovais Espaciais — Nunca cria manchas no fundo)
+        // 2. CALIBRAÇÃO DA PELE DO ROSTO E VALIDAÇÃO DE ENQUADRAMENTO
         // ─────────────────────────────────────────────────────────────────────
         let skinSumR = 0, skinSumG = 0, skinSumB = 0, skinSumCb = 0, skinSumCr = 0, skinSumWarmth = 0, skinCnt = 0;
         let faceSumX = 0, faceWeightSum = 0;
+        let lowestFaceY = 0;
+        let highestFaceY = size;
 
-        for (let y = Math.floor(size * 0.16); y < Math.floor(size * 0.48); y += 2) {
-          for (let x = Math.floor(size * 0.36); x < Math.floor(size * 0.64); x += 2) {
+        for (let y = Math.floor(size * 0.12); y < Math.floor(size * 0.65); y += 2) {
+          for (let x = Math.floor(size * 0.28); x < Math.floor(size * 0.72); x += 2) {
             const p = y * size + x;
             const r = origR[p], g = origG[p], b = origB[p];
             const lum = origLum[p];
-            if (lum > 75 && lum < 232 && r > g + 6 && g >= b - 4) {
+            if (lum > 70 && lum < 235 && r > g + 4 && g >= b - 6) {
               const [cb, cr] = rgbToCbCr(r, g, b);
-              if (cr > 134 && cb < 130) {
+              if (cr > 132 && cb < 132) {
                 skinSumR += r;
                 skinSumG += g;
                 skinSumB += b;
@@ -275,9 +286,65 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
                 skinCnt++;
                 faceSumX += x;
                 faceWeightSum += 1;
+                if (y > lowestFaceY) lowestFaceY = y;
+                if (y < highestFaceY) highestFaceY = y;
               }
             }
           }
+        }
+
+        // 2.1 Detecção de barba / queixo na parte inferior do rosto
+        let chinOrBeardBottomY = lowestFaceY;
+        for (let y = Math.max(lowestFaceY, Math.floor(size * 0.35)); y < Math.floor(size * 0.80); y += 2) {
+          let darkBeardSamples = 0;
+          const searchCenter = faceWeightSum > 20 ? Math.floor(faceSumX / faceWeightSum) : Math.floor(size * 0.48);
+          for (let x = searchCenter - Math.floor(size * 0.12); x <= searchCenter + Math.floor(size * 0.12); x += 2) {
+            const p = y * size + x;
+            const lum = origLum[p];
+            const r = origR[p], g = origG[p], b = origB[p];
+            if (lum < 75 || (r > g && lum < 110)) {
+              darkBeardSamples++;
+            }
+          }
+          if (darkBeardSamples > 8) {
+            chinOrBeardBottomY = Math.max(chinOrBeardBottomY, y);
+          }
+        }
+
+        // 2.2 Verificação Crítica: "Enquadramento Insuficiente"
+        // Se a foto é uma selfie em close-up onde o queixo ocupa quase toda a foto
+        // ou a largura do corpo na parte inferior do frame é estreita (não mostra ombros/peito),
+        // recusamos a padronização conforme especificação para evitar alucinação de ombros.
+        let lowerTorsoWidthSpan = 0;
+        let leftBodyEdge = size;
+        let rightBodyEdge = 0;
+        const scanY = Math.floor(size * 0.88);
+        for (let x = 0; x < size; x += 3) {
+          const p = scanY * size + x;
+          const r = origR[p], g = origG[p], b = origB[p];
+          const lum = origLum[p];
+          // Considera pixel como corpo se não for fundo claro/parede
+          const isBackgroundWall = (g > r + 12 && lum > 85) || (b > r + 14 && lum > 80) || (lum > 220);
+          if (!isBackgroundWall) {
+            if (x < leftBodyEdge) leftBodyEdge = x;
+            if (x > rightBodyEdge) rightBodyEdge = x;
+          }
+        }
+        if (rightBodyEdge > leftBodyEdge) {
+          lowerTorsoWidthSpan = (rightBodyEdge - leftBodyEdge) / size;
+        }
+
+        const isCloseUpWithoutShoulders =
+          chinOrBeardBottomY > size * 0.77 ||
+          (chinOrBeardBottomY > size * 0.66 && lowerTorsoWidthSpan < 0.40);
+
+        if (isCloseUpWithoutShoulders) {
+          const framingErr = new Error(
+            'Enquadramento Insuficiente: A imagem original é um close-up que não mostra os ombros ou o peito. Para padronizar com a camisa social, envie uma foto com enquadramento de meio corpo ou busto (ombros e base do pescoço visíveis).'
+          );
+          framingErr.code = 'ENQUADRAMENTO_INSUFICIENTE';
+          reject(framingErr);
+          return;
         }
 
         const avgSkinR = skinCnt > 15 ? skinSumR / skinCnt : 182;
@@ -292,8 +359,7 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
         const skinRatioB = Math.max(0.75, Math.min(0.89, avgSkinB / avgSkinLum));
         const headCenterNX = faceWeightSum > 20 ? (faceSumX / faceWeightSum) / size : 0.48;
 
-        // Despill Cromático Puro (por pixel, sem qualquer máscara oval):
-        // Remove reflexo de LED verde/ciano de forma contínua em toda a imagem
+        // Despill Cromático Puro (sem máscaras ovais no fundo)
         const cleanR = new Float32Array(totalPixels);
         const cleanG = new Float32Array(totalPixels);
         const cleanB = new Float32Array(totalPixels);
@@ -316,8 +382,6 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
 
           const greenStrength = smoothstep(2, 30, greenExcess);
           const sceneLum = 0.27 * r0 + 0.57 * g0 + 0.16 * b0;
-          // Se o pixel subjacente tem calor de pele (r0 > b0 + 4 e não é escuro), restaura pele natural;
-          // caso contrário, neutraliza o verde/ciano para tom neutro de estúdio.
           const skinWarmFactor =
              smoothstep(55, 115, r0) * smoothstep(-4, 18, r0 - b0);
 
@@ -345,10 +409,10 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // 3. SEGMENTAÇÃO PRECISA DO PROFISSIONAL VS. FUNDO (SEM HALOS / SEM OVAL)
+        // 3. SEGMENTAÇÃO PRECISA: PONTO DE CORTE NA BASE DO PESCOÇO (CLAVÍCULA)
         // ─────────────────────────────────────────────────────────────────────
 
-        // 3.1 Calibração do tecido da camisa no tórax
+        // 3.1 Calibração do tecido no tórax
         let shSumCb = 0, shSumCr = 0, shSumWarmth = 0, shSumLum = 0, shCnt = 0;
         for (let y = Math.floor(size * 0.72); y < Math.floor(size * 0.95); y += 2) {
           for (let x = Math.floor(size * 0.18); x < Math.floor(size * 0.80); x += 2) {
@@ -371,21 +435,27 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
         const shirtWarmth = shCnt > 15 ? shSumWarmth / shCnt : 22;
         const shirtMeanLum = shCnt > 15 ? shSumLum / shCnt : isOriginalShirtBlack ? 18 : 172;
 
-        // 3.2 Linha superior dos ombros e da gola (smoothTopY[x])
+        // 3.2 Linha superior dos ombros e colarinho (junção clavícula/pescoço)
+        // O ponto de corte superior deve ser OBRIGATORIAMENTE a base natural do pescoço
         const rawTopY = new Float32Array(size);
         const warmthMid = (faceWarmth + shirtWarmth) * 0.54;
         const neckLeftNX = headCenterNX - 0.165;
         const neckRightNX = headCenterNX + 0.165;
 
+        // Ponto de corte na clavícula (fossa jugular) logo abaixo do queixo/barba
+        const clavicleBaseNY = Math.max(
+          0.54,
+          Math.min(0.66, (chinOrBeardBottomY / size) + 0.052)
+        );
+
         for (let x = 0; x < size; x++) {
           const nx = x / size;
           if (nx >= neckLeftNX && nx <= neckRightNX) {
             const neckRel = (nx - headCenterNX) / 0.165;
-            const anatomicalCollarNY =
-              (isOriginalShirtBlack ? 0.548 : 0.562) +
-              0.082 * Math.max(0, 1 - neckRel * neckRel);
-            const startY = Math.floor(size * Math.min(0.70, anatomicalCollarNY + 0.04));
-            const stopY = Math.floor(size * Math.max(0.535, anatomicalCollarNY - 0.025));
+            // Curva anatômica do colarinho abraçando a clavícula
+            const anatomicalCollarNY = clavicleBaseNY + 0.058 * Math.max(0, 1 - neckRel * neckRel);
+            const startY = Math.floor(size * Math.min(0.72, anatomicalCollarNY + 0.04));
+            const stopY = Math.floor(size * Math.max(0.53, anatomicalCollarNY - 0.03));
             let detectedY = Math.floor(size * anatomicalCollarNY);
 
             for (let y = startY; y >= stopY; y--) {
@@ -411,15 +481,14 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
                 }
               }
             }
-            rawTopY[x] = Math.min(detectedY, Math.floor(size * (anatomicalCollarNY + 0.014)));
+            rawTopY[x] = Math.min(detectedY, Math.floor(size * (anatomicalCollarNY + 0.012)));
           } else {
             const tOut =
               nx < neckLeftNX
                 ? (neckLeftNX - nx) / Math.max(0.01, neckLeftNX)
                 : (nx - neckRightNX) / Math.max(0.01, 1 - neckRightNX);
-            const baseShoulderNY = isOriginalShirtBlack ? 0.548 : 0.562;
-            const expectedShoulderNY = baseShoulderNY + Math.pow(tOut, 1.12) * 0.115;
-            const searchStartY = Math.floor(size * Math.min(0.69, expectedShoulderNY + 0.04));
+            const expectedShoulderNY = clavicleBaseNY + Math.pow(tOut, 1.10) * 0.118;
+            const searchStartY = Math.floor(size * Math.min(0.72, expectedShoulderNY + 0.04));
             const searchStopY = Math.floor(size * Math.max(0.52, expectedShoulderNY - 0.04));
             let bestY = Math.floor(size * expectedShoulderNY);
             let maxEdgeScore = 0;
@@ -428,7 +497,6 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
               const pAbove = Math.max(0, y - 3) * size + x;
               const pBelow = Math.min(size - 1, y + 3) * size + x;
               if (isOriginalShirtBlack) {
-                // Na camisa preta, a borda do ombro é onde o fundo claro termina e a camisa escura começa
                 if (maxRBMap[pBelow] < 46 && cleanLumMap[pAbove] > 75) {
                   const score = cleanLumMap[pAbove] - cleanLumMap[pBelow];
                   if (score > maxEdgeScore) {
@@ -825,37 +893,105 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
         const smoothCleanLum = blurFloatMap(cleanFoldLum, size, size, 3);
         const ultraBroadLum = blurFloatMap(smoothCleanLum, size, size, 22);
 
-        // Efeito de gola canelada e costura nos ombros
-        const collarBandEffect = new Float32Array(totalPixels);
-        for (let x = 0; x < size; x++) {
-          const nx = x / size;
-          const topY = Math.round(smoothTopY[x]);
-          const isNeckCollarZone = nx >= headCenterNX - 0.165 && nx <= headCenterNX + 0.165;
+        // ─────────────────────────────────────────────────────────────────────
+        // 5. MODELAGEM ANATÔMICA DE CAMISA SOCIAL (ALFAIATARIA DE ESTÚDIO)
+        //    - Colarinho estruturado (com entretela e lapelas semi-italianas)
+        //    - Vista frontal de abotoamento (center placket) com pesponto fino
+        //    - Botões de alfaiataria (madrepérola para branca / acetinados para preta)
+        //    - Pala dos ombros e preservação absoluta de mãos, relógio e objetos
+        // ─────────────────────────────────────────────────────────────────────
+        const dressShirtEffect = new Float32Array(totalPixels);
+        const placketCenterX = Math.floor(headCenterNX * size);
+        const placketHalfW = Math.floor(size * 0.015); // ~11px de meia-largura (22px total)
 
-          if (isNeckCollarZone) {
-            for (let dy = 2; dy <= 15; dy++) {
-              const py = topY + dy;
-              if (py < 0 || py >= size) continue;
-              const p = py * size + x;
-              if (dy <= 10) {
-                const rib = Math.sin(x * 1.35) * 1.2;
-                const arch = Math.sin(((dy - 2) / 8) * Math.PI) * 5.5;
-                collarBandEffect[p] = arch + rib;
-              } else {
-                collarBandEffect[p] = -8.5 * Math.sin(((dy - 11) / 4) * Math.PI);
-              }
-            }
-          } else {
-            for (let dy = 3; dy <= 7; dy++) {
-              const py = topY + dy;
-              if (py < 0 || py >= size) continue;
-              const p = py * size + x;
-              collarBandEffect[p] = -3.5 * Math.sin(((dy - 3) / 4) * Math.PI);
-            }
+        // Posições verticais dos botões na vista central
+        const buttonPositionsY = [];
+        const baseCollarCenterY = smoothTopY[placketCenterX] || size * 0.58;
+        const buttonSpacing = Math.floor(size * 0.092); // ~70px entre botões
+        for (let bIdx = 0; bIdx < 5; bIdx++) {
+          const by = Math.floor(baseCollarCenterY + Math.floor(size * 0.046) + bIdx * buttonSpacing);
+          if (by < size - 8) {
+            buttonPositionsY.push(by);
           }
         }
 
         const isWhiteTarget = shirtColor === 'white';
+
+        for (let y = Math.floor(size * 0.50); y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            const p = y * size + x;
+            if (shirtAlphaMap[p] < 0.02) continue;
+
+            const nx = x / size;
+            const topY = smoothTopY[x];
+            const dyFromTop = y - topY;
+
+            let modLum = 0;
+
+            // A) Colarinho Estruturado (Pé-de-gola e Lapelas na junção clavicular)
+            const isCollarZone = nx >= headCenterNX - 0.17 && nx <= headCenterNX + 0.17;
+            if (isCollarZone && dyFromTop >= 0 && dyFromTop <= 48) {
+              const relNX = (nx - headCenterNX) / 0.17;
+              const absRel = Math.abs(relNX);
+
+              // Lapelas do colarinho estruturado
+              const lapelPointDepth = 34 + absRel * 10;
+              const isInsideLapel = dyFromTop <= lapelPointDepth && absRel > 0.06;
+
+              if (isInsideLapel) {
+                // Firmeza estruturada da entretela
+                const lapelBevel = Math.sin((dyFromTop / lapelPointDepth) * Math.PI) * 4.5;
+                const edgeStitch = Math.abs(dyFromTop - lapelPointDepth) <= 2.5 ? -4.0 : 0;
+                modLum += lapelBevel + edgeStitch + (isWhiteTarget ? 5.0 : 4.0);
+              } else if (dyFromTop > lapelPointDepth && dyFromTop <= lapelPointDepth + 10 && absRel > 0.06) {
+                // Sombra projetada sob o colarinho sobre o peito
+                const shadowStrength = 1 - (dyFromTop - lapelPointDepth) / 10;
+                modLum -= shadowStrength * (isWhiteTarget ? 14 : 9);
+              } else if (absRel <= 0.06 && dyFromTop <= 24) {
+                // Abertura anatômica em V na fossa jugular
+                modLum -= 6;
+              }
+            }
+
+            // B) Vista Central de Abotoamento (Center Placket)
+            const distFromPlacket = Math.abs(x - placketCenterX);
+            if (distFromPlacket <= placketHalfW && dyFromTop > 20) {
+              modLum += isWhiteTarget ? 4.5 : 3.5;
+
+              // Pesponto duplo fino nas laterais da vista
+              if (Math.abs(distFromPlacket - placketHalfW) <= 1.5) {
+                modLum -= isWhiteTarget ? 8.0 : 5.0;
+              }
+            }
+
+            // C) Botões de Alfaiataria na Vista Central
+            for (const bY of buttonPositionsY) {
+              const bDist = Math.hypot(x - placketCenterX, y - bY);
+              if (bDist <= 6.5) {
+                if (bDist <= 4.8) {
+                  // Disco do botão com relevo e brilho
+                  const rimHighlight = Math.cos((bDist / 4.8) * Math.PI * 0.5);
+                  modLum += isWhiteTarget ? 18 * rimHighlight : 14 * rimHighlight;
+                  // Furos dos botões
+                  const dxB = Math.abs(x - placketCenterX);
+                  const dyB = Math.abs(y - bY);
+                  if ((dxB === 1 || dxB === 2) && (dyB === 1 || dyB === 2)) {
+                    modLum -= isWhiteTarget ? 24 : 16;
+                  }
+                } else {
+                  modLum -= isWhiteTarget ? 10 : 7;
+                }
+              }
+            }
+
+            // D) Pala dos Ombros (Shoulder Yoke Seam)
+            if (!isCollarZone && dyFromTop >= 12 && dyFromTop <= 15) {
+              modLum -= isWhiteTarget ? 5.5 : 3.5;
+            }
+
+            dressShirtEffect[p] = modLum;
+          }
+        }
 
         // ─────────────────────────────────────────────────────────────────────
         // 6. COMPOSIÇÃO FINAL: GRADIENTE RADIAL (#2B3342 -> #121620) + PESSOA
@@ -879,38 +1015,38 @@ export async function standardizeBarberPhotoCanvas(sourceDataUrl, shirtColor = '
 
             if (sAlpha > 0.01) {
               const cleanMicroFold = Math.max(
-                -10,
-                Math.min(10, (smoothCleanLum[p] - ultraBroadLum[p]) * 0.85)
+                -9,
+                Math.min(9, (smoothCleanLum[p] - ultraBroadLum[p]) * 0.80)
               );
 
               const chestDx = (nx - headCenterNX) / 0.46;
               const chestDy = (ny - 0.68) / 0.35;
-              const cylinderShade = chestDx * chestDx * 17 + Math.max(0, chestDy) * 12;
+              const cylinderShade = chestDx * chestDx * 16 + Math.max(0, chestDy) * 11;
 
-              const collarDetail = collarBandEffect[p];
-              const weaveGrain = (((x * 73 + y * 151) & 3) - 1.5) * 0.5;
+              const tailorDetail = dressShirtEffect[p];
+              const poplinWeave = (((x * 73 + y * 151) & 3) - 1.5) * 0.45;
 
               let shirtR, shirtG, shirtB;
               if (isWhiteTarget) {
                 const whiteLum =
-                  236 -
+                  240 -
                   cylinderShade +
-                  cleanMicroFold * 0.9 +
-                  collarDetail * 0.75 +
-                  weaveGrain;
+                  cleanMicroFold * 0.85 +
+                  tailorDetail +
+                  poplinWeave;
                 shirtR = clampByte(whiteLum);
                 shirtG = clampByte(whiteLum + 1);
-                shirtB = clampByte(whiteLum + 4);
+                shirtB = clampByte(whiteLum + 3);
               } else {
                 const blackLum =
-                  26 -
-                  cylinderShade * 0.5 +
-                  cleanMicroFold * 0.45 +
-                  collarDetail * 0.48 +
-                  weaveGrain * 0.4;
+                  27 -
+                  cylinderShade * 0.45 +
+                  cleanMicroFold * 0.40 +
+                  tailorDetail * 0.50 +
+                  poplinWeave * 0.35;
                 shirtR = clampByte(blackLum);
                 shirtG = clampByte(blackLum + 1);
-                shirtB = clampByte(blackLum + 3);
+                shirtB = clampByte(blackLum + 2);
               }
 
               // Em bordas internas entre a camisa e dedos/mãos sobre o peito, puxa a cor limpa da mão

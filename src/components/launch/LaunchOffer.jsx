@@ -24,11 +24,11 @@ export default function LaunchOffer({ vagasRestantes }) {
           </div>
           <h2 className="text-4xl md:text-5xl font-black tracking-[-0.02em] mb-4">
             <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
-              Plano Master por R$ 79,90/mês nos primeiros 3 meses
+              Plano Master por R$ 79,00/mês nos primeiros 3 meses
             </span>
           </h2>
           <p className="text-base text-white/60 max-w-xl mx-auto">
-            Plano Master com condição especial: R$ 79,90/mês nos primeiros 3 meses. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+            Plano Master com condição especial: R$ 79,00/mês nos primeiros 3 meses. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
           </p>
         </div>
 
@@ -63,13 +63,13 @@ export default function LaunchOffer({ vagasRestantes }) {
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-white/55">R$</span>
                   <span className="text-6xl md:text-7xl font-black bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent leading-none">
-                    79,90
+                    79,00
                   </span>
                   <span className="text-white/55 font-semibold">/mês</span>
                 </div>
 
                 <p className="text-sm text-white/65 mb-6 leading-relaxed">
-                  Plano <span className="text-white font-semibold">Master</span> com condição especial: <span className="text-white font-semibold">R$ 79,90/mês nos primeiros 3 meses</span>. Depois, R$ 119,00/mês. Experimente com <span className="text-emerald-300 font-semibold">7 dias grátis</span>.
+                  Plano <span className="text-white font-semibold">Master</span> com condição especial: <span className="text-white font-semibold">R$ 79,00/mês nos primeiros 3 meses</span>. Depois, R$ 119,00/mês. Experimente com <span className="text-emerald-300 font-semibold">7 dias grátis</span>.
                 </p>
 
                 <Link to="/checkout?promo=lancamento">
