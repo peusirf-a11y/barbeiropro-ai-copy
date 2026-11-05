@@ -1,7 +1,7 @@
 // app/api/asaas/webhook/route.js — Next.js App Router Route Handler para Webhooks do Asaas
 // Compatível com deploys Next.js / Vercel App Router para https://ocorte.vercel.app/api/asaas/webhook
 
-import { handleAsaasWebhook } from '@/api/asaasWebhook.js';
+import { handleAsaasWebhook } from '../../../../src/api/asaasWebhook.js';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

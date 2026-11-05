@@ -166,7 +166,7 @@ export default function AppCRM() {
           <CRMHistoryTab messages={messages} />
         )}
         {tab === 'whatsapp' && (
-          <CRMWhatsAppTab />
+          <CRMWhatsAppTab company={company} />
         )}
       </div>
     </AppLayout>
