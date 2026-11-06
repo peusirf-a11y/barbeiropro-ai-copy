@@ -2,6 +2,7 @@
 import { Mail, Globe, Building2, Calendar, Users, CalendarCheck, DollarSign, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { calculateSubscriptionPrice } from '@/lib/planPricing';
 
 const statusConfig = {
   active:   { label: 'Ativa',     color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -56,10 +57,26 @@ export default function Company360Header({ company, plan, counters, financial, l
                 {subStatusInfo.label}
               </span>
             )}
-            <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-200">
-              {plan?.name || company.plan_name || 'Starter'}
-              {plan?.price_monthly ? ` · ${fmtMoney(plan.price_monthly)}/mês` : ''}
-            </span>
+            {(() => {
+              const pricing = calculateSubscriptionPrice({
+                planName: plan?.name || company.plan_name,
+                basePrice: plan?.base_price || plan?.price_monthly,
+                activeUnitsCount: company.active_units_count,
+                extraBranchesCount: company.extra_branches_count,
+              });
+              return (
+                <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                  pricing.isExclusivo
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                }`}>
+                  {plan?.name || company.plan_name || 'Starter'}
+                  {pricing.isExclusivo
+                    ? ` · ${fmtMoney(pricing.totalPrice)}/mês (${pricing.extraBranches > 0 ? `1 matriz + ${pricing.extraBranches} filial(is)` : 'Matriz'})`
+                    : (plan?.price_monthly ? ` · ${fmtMoney(plan.price_monthly)}/mês` : '')}
+                </span>
+              );
+            })()}
             {company.owner_email && (
               <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                 <Mail className="w-3 h-3" /> {company.owner_email}

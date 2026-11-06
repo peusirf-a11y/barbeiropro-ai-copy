@@ -208,7 +208,11 @@ export default function PlansManager() {
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="text-base font-bold text-foreground">{fmtMoney(p.price_monthly)}</div>
-                <div className="text-[10px] text-muted-foreground">/mês</div>
+                <div className="text-[10px] text-muted-foreground">
+                  {String(p.name || '').toLowerCase().includes('exclusiv') || String(p.name || '').toLowerCase().includes('matriz')
+                    ? '/mês (matriz) + R$ 90/filial'
+                    : '/mês'}
+                </div>
               </div>
             </div>
 
@@ -294,7 +298,16 @@ export default function PlansManager() {
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">Ordem: {p.sort_order || 0}</div>
                 </td>
-                <td className="px-4 py-3 text-sm font-bold text-foreground">{fmtMoney(p.price_monthly)}</td>
+                <td className="px-4 py-3">
+                  <div className="text-sm font-bold text-foreground">{fmtMoney(p.price_monthly)}</div>
+                  {(String(p.name || '').toLowerCase().includes('exclusiv') || String(p.name || '').toLowerCase().includes('matriz')) ? (
+                    <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
+                      Unidade Matriz · + R$ 90/filial extra
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-muted-foreground">/mês</div>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
                   <div>{p.limits?.barbers ? `${p.limits.barbers} barbeiros` : '∞ barbeiros'}</div>
                   <div>{p.limits?.appointments_month ? `${p.limits.appointments_month} ag/mês` : '∞ agend./mês'}</div>
@@ -363,11 +376,17 @@ export default function PlansManager() {
                     className="w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-background text-foreground" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Preço mensal (R$) *</label>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Preço mensal base (R$) *</label>
                   <input type="number" min="0" step="0.01" value={form.price_monthly} onChange={e => setForm(p => ({ ...p, price_monthly: e.target.value }))}
                     className="w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-background text-foreground" />
                 </div>
               </div>
+
+              {(String(form.name || '').toLowerCase().includes('exclusiv') || String(form.name || '').toLowerCase().includes('matriz')) && (
+                <div className="p-3 bg-blue-500/10 border border-blue-500/25 rounded-xl text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                  <strong>Modelo Franquias & Redes:</strong> O valor base de R$ 249,00 cobre a unidade matriz. O sistema soma automaticamente <strong>R$ 90,00/mês</strong> por cada filial adicional ativa cadastrada pela barbearia.
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Ordem de exibição</label>

@@ -918,11 +918,43 @@ export async function handleAsaasSubscription(payload = {}) {
     const trialDate = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
     const nextDueDate = trialDate.toISOString().split('T')[0];
 
-    const planValue = Number(plan.value || (isLaunchPromo ? 79.90 : 119.00));
     const planName = isLaunchPromo ? 'Master' : (typeof plan === 'string' ? plan : (plan.name || 'Master'));
     const planSlug = isLaunchPromo ? 'master' : String(plan.slug || payload.plan_slug || planName).toLowerCase();
     const expYear = String(creditCard.expiryYear).length === 2 ? `20${creditCard.expiryYear}` : String(creditCard.expiryYear);
     const billingCycle = String(payload.cycle || 'MONTHLY').toUpperCase() === 'YEARLY' ? 'YEARLY' : 'MONTHLY';
+
+    // Modelo Franquias & Redes: Unidade Matriz R$ 249,00 + R$ 90,00 por filial adicional
+    const isExclusivoPlan =
+      planSlug.includes('exclusiv') ||
+      planSlug.includes('matriz') ||
+      planSlug.includes('franquia') ||
+      planName.toLowerCase().includes('exclusiv') ||
+      planName.toLowerCase().includes('matriz');
+
+    let extraBranches = Number(payload.extra_branches || payload.extra_branches_count) || 0;
+    if (!extraBranches && payload.company_id && supabaseUrl && supabaseKey) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const sbClient = createClient(supabaseUrl, supabaseKey);
+        const { data: uRows } = await sbClient.from('units').select('id, active').eq('company_id', payload.company_id);
+        if (Array.isArray(uRows)) {
+          const activeCount = uRows.filter(u => u.active !== false).length;
+          extraBranches = Math.max(0, activeCount - 1);
+        }
+      } catch (_) {}
+    }
+
+    let planValue = Number(plan.value || (isLaunchPromo ? 79.90 : 119.00));
+    if (isExclusivoPlan) {
+      const baseMatrizPrice = Number(plan.value) > 0 ? Number(plan.value) : 249.00;
+      planValue = baseMatrizPrice + (extraBranches * 90.00);
+    }
+
+    const subDescription = isExclusivoPlan
+      ? (extraBranches > 0
+          ? `Assinatura O CORTE - Plano Matriz / Exclusivo (1 Matriz + ${extraBranches} filiais)`
+          : `Assinatura O CORTE - Plano Matriz / Exclusivo (Unidade Principal)`)
+      : `Assinatura O CORTE - Plano ${planName}`;
 
     // 3. Cria Assinatura Recorrente no Asaas (/v3/subscriptions) com Cartão de Crédito validado pela API oficial
     const subBody = {
@@ -931,7 +963,7 @@ export async function handleAsaasSubscription(payload = {}) {
       value: planValue,
       nextDueDate,
       cycle: billingCycle,
-      description: `Assinatura O CORTE - Plano ${planName}`,
+      description: subDescription,
       creditCard: {
         holderName: String(creditCard.holderName).trim().toUpperCase(),
         number: cleanCardNum,

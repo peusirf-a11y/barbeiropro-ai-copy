@@ -6,13 +6,14 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
-import { Building2, Pencil, Trash2, Star, MapPin, Phone } from 'lucide-react';
+import { Building2, Pencil, Trash2, Star, MapPin, Phone, Sparkles } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import StandardModal from '@/components/ui/standard-modal';
 import { useToast } from '@/components/ui/use-toast';
 import MultiUnitToggle from '@/components/units/MultiUnitToggle';
 import CustomerScopeToggle from '@/components/units/CustomerScopeToggle';
+import { calculateSubscriptionPrice, formatBRL, EXCLUSIVO_BASE_PRICE, ADDITIONAL_BRANCH_PRICE } from '@/lib/planPricing';
 
 const empty = { name: '', address: '', phone: '', whatsapp: '', active: true };
 
@@ -107,6 +108,54 @@ export default function AppUnidades() {
 
         {/* Toggle principal: liga/desliga multi-unidade */}
         {company && <MultiUnitToggle company={company} />}
+
+        {/* Banner Informativo do Modelo de Franquias & Filiais */}
+        {(() => {
+          const activeUnitsCount = Math.max(1, units.filter(u => u.active !== false).length);
+          const extraBranchesCount = Math.max(0, activeUnitsCount - 1);
+          const pricing = calculateSubscriptionPrice({
+            planName: company?.plan_name || 'Exclusivo',
+            basePrice: company?.plan_price,
+            activeUnitsCount,
+            extraBranchesCount,
+          });
+
+          return (
+            <div className="rounded-2xl border border-blue-500/30 bg-gradient-to-r from-blue-950/40 via-blue-900/20 to-indigo-950/40 p-4 sm:p-5 mb-6 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center flex-shrink-0 text-blue-400">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      Modelo de Assinatura Franquias & Redes
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        Plano Matriz / Exclusivo
+                      </span>
+                    </h3>
+                    <p className="text-xs text-white/70 mt-1 max-w-2xl leading-relaxed">
+                      Taxa base de <strong>{formatBRL(EXCLUSIVO_BASE_PRICE)}/mês</strong> para a unidade principal (Matriz) + cobrança adicional de <strong>{formatBRL(ADDITIONAL_BRANCH_PRICE)}/mês</strong> por cada filial extra ativa vinculada.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-black/40 border border-white/10 rounded-xl p-3 px-4 flex items-center gap-4 self-start md:self-auto min-w-[240px] justify-between">
+                  <div>
+                    <div className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Cálculo Atual</div>
+                    <div className="text-xs text-white/80 mt-0.5 font-medium">
+                      1 Matriz + {pricing.extraBranches} filial(is)
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-base font-black text-emerald-400">{pricing.formattedTotalPrice}</div>
+                    <div className="text-[10px] text-white/50">/mês</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {isLoading ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-12 text-center text-white/40 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">

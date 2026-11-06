@@ -1,8 +1,9 @@
 // Funções de Backend O CORTE
 // Processa chamadas de funções de negócio de forma 100% autônoma.
 
-import entities, { Plan, CustomerPlan, CustomerSubscription, Company, BarberCredential, Customer, Appointment, FinancialEntry, Service, Commission, Review, TeamMember, Professional } from './entities';
+import entities, { Plan, CustomerPlan, CustomerSubscription, Company, BarberCredential, Customer, Appointment, FinancialEntry, Service, Commission, Review, TeamMember, Professional, Unit } from './entities';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { calculateSubscriptionPrice } from '@/lib/planPricing';
 import {
   resolvePlanAllowedWeekdays,
   formatAllowedWeekdaysError,
@@ -701,13 +702,43 @@ export async function invokeFunction(functionName, payload = {}) {
           Number(serverStats?.counters?.completed_appointments || 0) ||
           totalAppointments;
 
-        const mrrValue = Number(plan.price_monthly || company.mrr || 49);
+        let compUnits = [];
+        try {
+          if (isSupabaseConfigured && supabase) {
+            const { data: uRows } = await supabase.from('units').select('*').eq('company_id', companyId);
+            if (Array.isArray(uRows)) compUnits = uRows;
+          }
+          if (compUnits.length === 0) {
+            const allLocalUnits = await entities.Unit.list('-created_at', 1000);
+            compUnits = allLocalUnits.filter((u) => String(u.company_id || '').trim() === companyId);
+          }
+        } catch (_) {}
+
+        const activeUnitsCount = Math.max(1, compUnits.filter((u) => u.active !== false).length);
+        const extraBranchesCount = Math.max(0, activeUnitsCount - 1);
+        const subscriptionPricing = calculateSubscriptionPrice({
+          planName: company.plan_name || plan.name,
+          basePrice: plan.price_monthly,
+          activeUnitsCount,
+          extraBranchesCount,
+        });
+
+        const mrrValue = subscriptionPricing.totalPrice || Number(plan.price_monthly || company.mrr || 49);
 
         return {
           data: {
             success: true,
             company,
-            plan,
+            plan: {
+              ...plan,
+              price_monthly: subscriptionPricing.totalPrice,
+              base_price: subscriptionPricing.basePrice,
+              extra_branches_cost: subscriptionPricing.extraBranchesCost,
+            },
+            subscription_pricing: subscriptionPricing,
+            active_units_count: activeUnitsCount,
+            extra_branches_count: extraBranchesCount,
+            units: compUnits,
             counters: {
               total_customers: totalCustomers,
               customers: totalCustomers,
@@ -743,7 +774,47 @@ export async function invokeFunction(functionName, payload = {}) {
 
         const total = allCompanies.length;
         const start = (page - 1) * pageSize;
-        const items = allCompanies.slice(start, start + pageSize);
+
+        // Recupera unidades para cálculo de franquias e filiais do Plano Matriz / Exclusivo
+        let allUnits = [];
+        try {
+          if (isSupabaseConfigured && supabase) {
+            const { data: uData } = await supabase.from('units').select('id, company_id, active, is_default');
+            if (Array.isArray(uData)) allUnits = uData;
+          }
+          if (allUnits.length === 0) {
+            allUnits = await entities.Unit.list('-created_at', 2000);
+          }
+        } catch (_) {}
+
+        const unitsByCompany = {};
+        for (const u of allUnits) {
+          const cId = String(u.company_id || '').trim();
+          if (!cId) continue;
+          if (!unitsByCompany[cId]) unitsByCompany[cId] = [];
+          unitsByCompany[cId].push(u);
+        }
+
+        const items = allCompanies.slice(start, start + pageSize).map((c) => {
+          const compUnits = unitsByCompany[c.id] || [];
+          const activeUnits = compUnits.filter((u) => u.active !== false);
+          // Toda barbearia possui ao menos 1 unidade (Matriz)
+          const activeUnitsCount = Math.max(1, activeUnits.length);
+          const extraBranchesCount = Math.max(0, activeUnitsCount - 1);
+          const pricing = calculateSubscriptionPrice({
+            planName: c.plan_name || 'Starter',
+            basePrice: c.plan_price,
+            activeUnitsCount,
+            extraBranchesCount,
+          });
+
+          return {
+            ...c,
+            active_units_count: activeUnitsCount,
+            extra_branches_count: extraBranchesCount,
+            subscription_pricing: pricing,
+          };
+        });
 
         return {
           data: {

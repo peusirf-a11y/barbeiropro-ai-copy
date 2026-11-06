@@ -65,19 +65,19 @@ function planKeyFromName(name, slug = '') {
 const PLAN_DESC = {
   classico: 'Para barbearias que estão começando',
   master: 'Para barbearias em crescimento',
-  exclusivo: 'Para redes e estúdios premium',
+  exclusivo: 'Para redes e franquias: R$ 249/mês (matriz) + R$ 90/mês por filial adicional',
 };
 
 const STATIC_FEATURE_COPY = {
   classico: ['Até 2 profissionais', 'Agenda online', 'Link público de agendamento', 'Gestão de clientes', 'Financeiro básico'],
   master: ['Até 8 profissionais', 'Tudo do Clássico', 'AI Growth Engine', 'Relatórios avançados', 'Suporte prioritário'],
-  exclusivo: ['Profissionais ilimitados', 'Tudo do Master', 'White-label total', 'Multi-unidade', 'Onboarding dedicado'],
+  exclusivo: ['Unidade Matriz (R$ 249/mês)', '+ R$ 90,00/mês por filial extra', 'Profissionais e filiais ilimitadas', 'Tudo do Master', 'White-label total', 'Onboarding dedicado'],
 };
 
 const PLANS_FALLBACK = [
   { id: 'classico', key: 'classico', slug: 'classico', name: 'Clássico', price: 69.00, desc: PLAN_DESC.classico, features: STATIC_FEATURE_COPY.classico },
   { id: 'master', key: 'master', slug: 'master', name: 'Master', price: 119.00, desc: PLAN_DESC.master, features: STATIC_FEATURE_COPY.master, highlight: true },
-  { id: 'exclusivo', key: 'exclusivo', slug: 'exclusivo', name: 'Exclusivo', price: 249.00, desc: PLAN_DESC.exclusivo, features: STATIC_FEATURE_COPY.exclusivo },
+  { id: 'exclusivo', key: 'exclusivo', slug: 'exclusivo', name: 'Matriz / Exclusivo', price: 249.00, desc: PLAN_DESC.exclusivo, features: STATIC_FEATURE_COPY.exclusivo },
 ];
 
 function mapDbPlansToUi(dbPlans) {

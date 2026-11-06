@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import ConfirmDestructiveDialog from '@/components/ConfirmDestructiveDialog';
 import { useToast } from '@/components/ui/use-toast';
 import { getTotpToken, clearTotpSession } from '@/lib/totpSession';
+import { calculateSubscriptionPrice } from '@/lib/planPricing';
 
 const statusConfig = {
   active: { label: 'Ativa', color: 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' },
@@ -213,7 +214,39 @@ export default function CompaniesTable() {
                     ) : <span className="text-xs text-muted-foreground">–</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-blue-500/15 text-blue-500 rounded-full border border-blue-500/30">{c.plan_name || 'Starter'}</span>
+                    {(() => {
+                      const pricing = c.subscription_pricing || calculateSubscriptionPrice({
+                        planName: c.plan_name,
+                        basePrice: c.plan_price,
+                        activeUnitsCount: c.active_units_count,
+                        extraBranchesCount: c.extra_branches_count,
+                      });
+                      return (
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1 w-fit ${
+                            pricing.isExclusivo
+                              ? 'bg-purple-500/15 text-purple-400 border-purple-500/30'
+                              : 'bg-blue-500/15 text-blue-500 border-blue-500/30'
+                          }`}>
+                            {c.plan_name || 'Starter'}
+                          </span>
+                          {pricing.isExclusivo ? (
+                            <span className="text-[11px] font-bold text-foreground mt-0.5">
+                              {pricing.formattedTotalPrice}/mês
+                              <span className="text-[10px] text-muted-foreground block font-normal leading-tight">
+                                {pricing.extraBranches > 0
+                                  ? `Matriz (${pricing.formattedBasePrice}) + ${pricing.extraBranches} filial(is)`
+                                  : '1 unidade (Matriz)'}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground font-medium">
+                              {pricing.formattedTotalPrice}/mês
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${subCfg.color}`}>

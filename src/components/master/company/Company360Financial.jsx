@@ -1,5 +1,5 @@
-// Company360Financial — receita gerada, status financeiro, projeções.
 import { DollarSign, TrendingUp, Clock, AlertTriangle, CheckCircle2, BarChart3 } from 'lucide-react';
+import { calculateSubscriptionPrice } from '@/lib/planPricing';
 
 const fmtMoney = (v) =>
   Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
@@ -18,7 +18,13 @@ const subStatusInfo = {
 export default function Company360Financial({ company, plan, counters, financial }) {
   const status = company.subscription_status ? subStatusInfo[company.subscription_status] : null;
   const StatusIcon = status?.icon;
-  const planPrice = plan?.price_monthly || 0;
+  const pricing = calculateSubscriptionPrice({
+    planName: plan?.name || company.plan_name,
+    basePrice: plan?.base_price || plan?.price_monthly,
+    activeUnitsCount: company.active_units_count,
+    extraBranchesCount: company.extra_branches_count,
+  });
+  const planPrice = pricing.totalPrice || plan?.price_monthly || 0;
   const avgTicket = counters?.completed_appointments > 0
     ? financial.generated_revenue / counters.completed_appointments
     : 0;
@@ -37,6 +43,13 @@ export default function Company360Financial({ company, plan, counters, financial
           <div className="ml-auto text-right">
             <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Mensalidade</div>
             <div className="text-base font-black text-foreground">{fmtMoney(planPrice)}</div>
+            {pricing.isExclusivo && (
+              <div className="text-[10px] text-muted-foreground font-medium">
+                {pricing.extraBranches > 0
+                  ? `Matriz (${fmtMoney(pricing.basePrice)}) + ${pricing.extraBranches} filial(is)`
+                  : 'Unidade Matriz'}
+              </div>
+            )}
           </div>
         </div>
       )}

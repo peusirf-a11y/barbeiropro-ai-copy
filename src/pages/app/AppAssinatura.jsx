@@ -8,7 +8,7 @@ import { resolveCompanyId } from '@/api/functions';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
-import { CreditCard, CheckCircle, ExternalLink, Calendar, Zap, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
+import { CreditCard, CheckCircle, ExternalLink, Calendar, Zap, AlertTriangle, XCircle, Loader2, Building2 } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,6 +18,7 @@ import UpgradePlanCard from '@/components/billing/UpgradePlanCard';
 import SaasPaymentModal from '@/components/billing/SaasPaymentModal';
 import StandardModal from '@/components/ui/standard-modal';
 import { useToast } from '@/components/ui/use-toast';
+import { calculateSubscriptionPrice, formatBRL } from '@/lib/planPricing';
 
 const STATUS_LABEL = {
   trialing: { label: 'Em período grátis', color: 'bg-blue-400/15 text-blue-300 ring-1 ring-blue-400/30' },
@@ -228,6 +229,28 @@ export default function AppAssinatura() {
 
   const company = enrichCompanyBillingFields(fetchedCompany || activeCompany) || {};
   const planName = company.plan_name || 'Starter';
+
+  const { data: companyUnits = [] } = useQuery({
+    queryKey: ['company-units-pricing', company?.id],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      if (isSupabaseConfigured && supabase) {
+        const { data } = await supabase.from('units').select('*').eq('company_id', company.id);
+        if (Array.isArray(data) && data.length > 0) return data;
+      }
+      return base44.entities.Unit.filter({ company_id: company.id }, 'sort_order');
+    },
+    enabled: Boolean(company?.id),
+  });
+
+  const activeUnitsCount = Math.max(1, companyUnits.filter((u) => u.active !== false).length);
+  const extraBranchesCount = Math.max(0, activeUnitsCount - 1);
+  const pricing = calculateSubscriptionPrice({
+    planName,
+    basePrice: company.plan_price,
+    activeUnitsCount,
+    extraBranchesCount,
+  });
   const rawStatus = canceledLocalOverride ? 'canceled' : company.subscription_status || 'trialing';
   const billingStatus = canceledLocalOverride ? 'CANCELED' : String(company.billing_status || '').toUpperCase();
   const subStatusUpper = canceledLocalOverride ? 'CANCELED' : String(company.subscription_status || '').toUpperCase();
@@ -440,14 +463,48 @@ export default function AppAssinatura() {
           <div className="relative flex items-start justify-between mb-4 gap-4 flex-wrap">
             <div className="min-w-0">
               <div className="text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-1">Plano atual</div>
-              <div className="text-2xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
-                {planName}
+              <div className="flex items-baseline gap-2.5 flex-wrap">
+                <span className="text-2xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+                  {pricing.isExclusivo ? 'Plano Matriz / Exclusivo' : planName}
+                </span>
+                <span className="text-base font-extrabold text-emerald-400">
+                  {pricing.formattedTotalPrice}
+                  <span className="text-xs text-white/50 font-normal">/mês</span>
+                </span>
               </div>
             </div>
             <span className={`text-[11px] font-semibold px-3 py-1.5 rounded-full ${statusInfo.color} whitespace-nowrap`}>
               {statusInfo.label}
             </span>
           </div>
+
+          {/* Detalhamento do modelo Franquias & Redes para Plano Matriz / Exclusivo */}
+          {pricing.isExclusivo && (
+            <div className="rounded-xl border border-blue-400/30 bg-blue-500/10 p-4 mb-4">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Building2 className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-bold text-blue-200 uppercase tracking-wider">
+                  Detalhamento da Assinatura (Matriz & Filiais)
+                </span>
+              </div>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between items-center text-white/80">
+                  <span>Unidade Matriz (Principal):</span>
+                  <span className="font-semibold text-white">{formatBRL(pricing.basePrice)}/mês</span>
+                </div>
+                <div className="flex justify-between items-center text-white/80">
+                  <span>
+                    Filiais adicionais ativas ({pricing.extraBranches} × {formatBRL(pricing.branchFeePerUnit)}/mês):
+                  </span>
+                  <span className="font-semibold text-white">+{formatBRL(pricing.extraBranchesCost)}/mês</span>
+                </div>
+                <div className="pt-2 border-t border-white/10 flex justify-between items-center text-sm font-bold text-white">
+                  <span>Mensalidade Total Calculada:</span>
+                  <span className="text-emerald-400 text-base">{pricing.formattedTotalPrice}/mês</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 3. Card de Aviso de Cartão e Status da Assinatura */}
           {isCanceled ? (

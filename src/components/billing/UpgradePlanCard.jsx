@@ -151,9 +151,16 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
                       </div>
                     </div>
                   ) : (
-                    <div className="text-3xl font-black text-white mb-3">
-                      R$ {displayPrice}
-                      <span className="text-xs font-medium text-white/40 ml-1">/mês</span>
+                    <div className="mb-3">
+                      <div className="text-3xl font-black text-white">
+                        R$ {displayPrice}
+                        <span className="text-xs font-medium text-white/40 ml-1">/mês</span>
+                      </div>
+                      {String(p.name || p.slug || '').toLowerCase().includes('exclusiv') && (
+                        <div className="text-[11px] text-blue-300 font-semibold mt-1">
+                          Unidade Matriz · + R$ 90,00/mês por filial extra
+                        </div>
+                      )}
                     </div>
                   )}
 
