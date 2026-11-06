@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { setRbacCookie, clearRbacCookie } from '@/lib/rbacCookie';
 
 const TOKEN_KEY = 'partner_session_token';
 const PARTNER_KEY = 'current_partner';
@@ -41,6 +42,7 @@ export function savePartnerSession(partnerData, token) {
     const tok = token || partnerData?.token || `partner_session_${partnerData?.id || Date.now()}`;
     window.localStorage.setItem(TOKEN_KEY, tok);
     window.localStorage.setItem('partner_token', tok);
+    setRbacCookie({ role: 'parceiro', email: partnerData?.email || '' });
   } catch (e) {
     console.warn('[savePartnerSession error]', e);
   }
@@ -57,6 +59,7 @@ export function clearPartnerToken() {
     window.localStorage.removeItem('partner_token');
     window.localStorage.removeItem(PARTNER_KEY);
     window.localStorage.removeItem('partner_user');
+    clearRbacCookie();
   } catch (_) {}
 }
 

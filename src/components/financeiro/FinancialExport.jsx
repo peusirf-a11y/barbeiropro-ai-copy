@@ -22,7 +22,16 @@ import { FileDown, FileSpreadsheet, FileText, X, Filter } from 'lucide-react';
 import { csvCell } from '@/lib/csvSafe';
 
 const fmtBRL = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtDate = (d) => d ? format(new Date(d), 'dd/MM/yyyy', { locale: ptBR }) : '–';
+const fmtDate = (d) => {
+  if (!d) return '–';
+  try {
+    const parsed = new Date(d);
+    if (Number.isNaN(parsed.getTime())) return '–';
+    return format(parsed, 'dd/MM/yyyy', { locale: ptBR });
+  } catch {
+    return '–';
+  }
+};
 
 // Download cross-ambiente: tenta <a download>; se o navegador (ex: WebView Android)
 // não suportar o atributo download ou bloquear o clique programático, abre em nova aba.

@@ -1,31 +1,38 @@
 import { useAuth } from '@/lib/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { isSuperAdmin } from '@/lib/permissions';
+import { getPartnerToken, getSavedPartner } from '@/hooks/usePartnerAuth';
 
 export default function SuperAdminRoute({ children }) {
-  const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user, navigateToLogin } = useAuth();
-
-  console.log('[Guard Check - SuperAdminRoute] Usuário:', user?.email, '| isAuthenticated:', isAuthenticated, '| is_super_admin:', isSuperAdmin(user));
+  const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, user } = useAuth();
+  const partnerToken = getPartnerToken();
+  const savedPartner = getSavedPartner();
+  const isPartnerSession = Boolean(partnerToken || savedPartner);
 
   if (isLoadingAuth || isLoadingPublicSettings) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#F8F7F3]">
-        <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin" />
+      <div className="fixed inset-0 flex items-center justify-center bg-[#070D1E]">
+        <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
       </div>
     );
   }
 
+  // Se for um Parceiro autenticado tentando acessar rota /master/*, redireciona imediatamente tirando da URL restrita
+  if (!isAuthenticated && isPartnerSession) {
+    return <Navigate to="/parceiro/dashboard?forbidden=403" replace />;
+  }
+
   if (!isAuthenticated) {
-    console.warn('[SuperAdminRoute] Redirecionando para /login: Usuário não autenticado.');
     return <Navigate to="/login" replace />;
   }
 
-  // Super Admin é separado de admin de tenant. role=admin NÃO basta.
+  // Super Admin é estritamente separado de dono de barbearia, barbeiro ou parceiro.
   if (!isSuperAdmin(user)) {
-    console.warn('[SuperAdminRoute] Redirecionando para /app/dashboard: Usuário não é super admin.', user?.email);
-    return <Navigate to="/app/dashboard" replace />;
+    if (isPartnerSession) {
+      return <Navigate to="/parceiro/dashboard?forbidden=403" replace />;
+    }
+    return <Navigate to="/app/dashboard?forbidden=403" replace />;
   }
 
-  console.log('[SuperAdminRoute] Acesso permitido para Super Admin:', user?.email);
   return children;
 }

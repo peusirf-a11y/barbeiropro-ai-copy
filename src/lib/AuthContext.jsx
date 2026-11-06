@@ -102,6 +102,10 @@ export const AuthProvider = ({ children }) => {
   const logout = async (shouldRedirect = true) => {
     try {
       localStorage.removeItem('barberpass_mock_user');
+      if (typeof document !== 'undefined') {
+        document.cookie = 'ocorte_role=; path=/; max-age=0; SameSite=Lax';
+        document.cookie = 'ocorte_email=; path=/; max-age=0; SameSite=Lax';
+      }
       if (supabase) {
         await supabase.auth.signOut();
       }

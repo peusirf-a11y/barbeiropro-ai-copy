@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import Logo from '@/components/Logo';
 import { AlertCircle, ShieldAlert, Loader2, Lock, Mail, Eye, EyeOff, ArrowRight, X, MessageCircle } from 'lucide-react';
+import { setRbacCookie } from '@/lib/rbacCookie';
 
 const BLOCKED_STORAGE_KEY = 'ocorte_blocked_account_notice';
 
@@ -186,12 +187,15 @@ export default function BarberLogin() {
           localStorage.setItem('barberpass_auth_email', cleanEmail);
         } catch (_) {}
 
-        // Redireciona imediatamente para o painel correspondente
+        // Sincroniza cookie de RBAC para que o Edge Middleware aplique HTTP 403 em nível de rede
         if (user.is_super_admin) {
+          setRbacCookie({ role: 'super_admin', email: cleanEmail });
           navigate('/master/dashboard', { replace: true });
         } else if (user.isBarbeiro || teamRole === 'barbeiro') {
+          setRbacCookie({ role: 'barbeiro', email: cleanEmail });
           navigate('/app/agenda', { replace: true });
         } else {
+          setRbacCookie({ role: 'barbearia', email: cleanEmail });
           navigate('/app/dashboard', { replace: true });
         }
       } else {

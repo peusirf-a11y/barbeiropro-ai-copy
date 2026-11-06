@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
+import { setRbacCookie } from '@/lib/rbacCookie';
 
 export function useTeamRole() {
   const { user } = useAuth();
@@ -35,14 +36,13 @@ export function useTeamRole() {
           name: user?.user_metadata?.name || 'Super Admin',
           email: cleanEmail,
         };
-        console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+        setRbacCookie({ role: 'super_admin', email: cleanEmail });
         return result;
       }
 
       // 2. Consulta direta na tabela team_members do Supabase usando ilike (case-insensitive)
       if (isSupabaseConfigured && supabase) {
         try {
-          // Busca tanto por cleanEmail quanto por rawEmail de forma insensível a maiúsculas
           const { data: supaTm, error: tmErr } = await supabase
             .from('team_members')
             .select('*')
@@ -85,7 +85,7 @@ export function useTeamRole() {
               unit_ids: supaTm.unit_ids || [],
             };
 
-            console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+            setRbacCookie({ role: memberRole, email: cleanEmail });
             return result;
           }
         } catch (e) {
@@ -115,7 +115,7 @@ export function useTeamRole() {
             team_member_id: tm.id,
           };
 
-          console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+          setRbacCookie({ role: memberRole, email: cleanEmail });
           return result;
         }
       } catch (tmErr) {
@@ -143,7 +143,7 @@ export function useTeamRole() {
               name: user?.user_metadata?.name || 'Administrador',
               email: cleanEmail,
             };
-            console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+            setRbacCookie({ role: 'barbearia', email: cleanEmail });
             return result;
           }
         }
@@ -165,7 +165,7 @@ export function useTeamRole() {
             name: user?.user_metadata?.name || 'Administrador',
             email: cleanEmail,
           };
-          console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+          setRbacCookie({ role: 'barbearia', email: cleanEmail });
           return result;
         }
       } catch (cErr) {
@@ -192,7 +192,7 @@ export function useTeamRole() {
         professional_id: null,
       };
 
-      console.log('[useTeamRole] Perfil identificado:', { email: rawEmail, role: result.role, isBarbeiro: result.isBarbeiro, isAdmin: result.isAdmin });
+      setRbacCookie({ role: 'barbeiro', email: cleanEmail });
       return result;
     },
     enabled: !!cleanEmail,

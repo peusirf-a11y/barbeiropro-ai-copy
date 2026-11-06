@@ -5,7 +5,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { BarChart2 } from 'lucide-react';
+import { BarChart2, FileDown } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import FilterSelect from '@/components/ui/filter-select';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
@@ -13,6 +13,7 @@ import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 import { filterByUnit } from '@/lib/unitFilter';
 import { useUnits } from '@/hooks/useUnits';
 import UnitBreakdownTable from '@/components/relatorios/UnitBreakdownTable';
+import { csvCell } from '@/lib/csvSafe';
 
 const COLORS = ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'];
 
@@ -93,6 +94,41 @@ export default function AppRelatorios() {
   completedAppts.forEach(a => { if (a.customer_id) customerMap[a.customer_id] = (customerMap[a.customer_id] || 0) + 1; });
   const recurringCount = Object.values(customerMap).filter(v => v >= 2).length;
 
+  const handleExportAnalyticalReport = () => {
+    try {
+      const sep = ';';
+      const escape = (v) => csvCell(v, sep);
+      const lines = [
+        'RELATÓRIO ANALÍTICO OPERACIONAL - O CORTE',
+        `Período: ${period === 'this_month' ? 'Este mês' : period === 'last_month' ? 'Mês passado' : 'Todo o período'}`,
+        '',
+        ['Indicador', 'Valor'].join(sep),
+        [escape('Total de Agendamentos'), periodAppts.length].join(sep),
+        [escape('Atendimentos Concluídos'), completedAppts.length].join(sep),
+        [escape('Receita Total (R$)'), (totalRevenue > 0 ? totalRevenue : apptRevenue).toFixed(2).replace('.', ',')].join(sep),
+        [escape('Ticket Médio (R$)'), avgTicket.toFixed(2).replace('.', ',')].join(sep),
+        [escape('Taxa de Cancelamento (%)'), `${cancelledRate}%`].join(sep),
+        '',
+        'DESEMPENHO POR PROFISSIONAL',
+        ['Profissional', 'Atendimentos'].join(sep),
+        ...proData.map((p) => [escape(p.name), p.atendimentos].join(sep)),
+      ];
+
+      const csv = '\uFEFF' + lines.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-analitico-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (err) {
+      console.error('[AppRelatorios] Erro ao exportar relatório:', err);
+    }
+  };
+
   if (loadingCompany || loadingAppts) {
     return (
       <AppLayout>
@@ -111,11 +147,22 @@ export default function AppRelatorios() {
           subtitle="Dados reais da sua operação"
           icon={BarChart2}
         >
-          <FilterSelect value={period} onChange={setPeriod} aria-label="Período">
-            <option value="this_month">Este mês</option>
-            <option value="last_month">Mês passado</option>
-            <option value="all">Todo o período</option>
-          </FilterSelect>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              data-action="export-report"
+              onClick={handleExportAnalyticalReport}
+              className="inline-flex items-center gap-2 px-3 py-2.5 border border-white/10 bg-white/[0.04] text-white/85 rounded-xl text-xs font-semibold hover:border-[#60A5FA]/40 hover:text-[#93C5FD] hover:bg-white/[0.08] transition-all cursor-pointer"
+            >
+              <FileDown className="w-4 h-4" />
+              Exportar Relatório Analítico
+            </button>
+            <FilterSelect value={period} onChange={setPeriod} aria-label="Período">
+              <option value="this_month">Este mês</option>
+              <option value="last_month">Mês passado</option>
+              <option value="all">Todo o período</option>
+            </FilterSelect>
+          </div>
         </AppPageHeader>
 
         {/* Comparativo por unidade — só aparece em modo "Todas as unidades" */}

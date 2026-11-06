@@ -104,8 +104,116 @@ export async function resolveCompanyId(payload = {}) {
   return 'comp_demo_01';
 }
 
+const MASTER_ONLY_FUNCTIONS = new Set([
+  'getMasterMetrics',
+  'getMasterFinance',
+  'listCompanies',
+  'getCompany360',
+  'blockCompany',
+  'activateCompany',
+  'deleteCompanyCascade',
+  'startImpersonation',
+  'listMasterAuditLogs',
+  'getSecurityDashboard',
+  'getComplianceDashboard',
+  'getObservabilityMetrics',
+]);
+
+const FINANCIAL_ADMIN_FUNCTIONS = new Set([
+  'listFinancialEntries',
+  'mutateFinancialEntry',
+]);
+
+async function verifyFunctionRbac(functionName) {
+  if (!MASTER_ONLY_FUNCTIONS.has(functionName) && !FINANCIAL_ADMIN_FUNCTIONS.has(functionName)) {
+    return { allowed: true };
+  }
+
+  let currentEmail = '';
+  let isSuper = false;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
+      if (user) {
+        currentEmail = String(user.email || '').trim().toLowerCase();
+        isSuper =
+          currentEmail === 'pedrojesantos@hotmail.com' ||
+          user.app_metadata?.role === 'superadmin' ||
+          user.user_metadata?.role === 'superadmin';
+      }
+    } catch (_) {}
+  }
+
+  if (!currentEmail && typeof window !== 'undefined') {
+    try {
+      const rawUser = localStorage.getItem('admin_logged_user');
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        currentEmail = String(parsed?.email || '').trim().toLowerCase();
+        if (
+          currentEmail === 'pedrojesantos@hotmail.com' ||
+          parsed?.is_super_admin ||
+          parsed?.app_metadata?.role === 'superadmin'
+        ) {
+          isSuper = true;
+        }
+      }
+      if (!currentEmail) {
+        currentEmail = String(localStorage.getItem('barberpass_auth_email') || '').trim().toLowerCase();
+        if (currentEmail === 'pedrojesantos@hotmail.com') isSuper = true;
+      }
+    } catch (_) {}
+  }
+
+  if (MASTER_ONLY_FUNCTIONS.has(functionName)) {
+    if (currentEmail && !isSuper) {
+      return {
+        allowed: false,
+        status: 403,
+        error: 'HTTP 403 Forbidden: Acesso restrito exclusivamente ao Super Admin (Master).',
+      };
+    }
+    return { allowed: true };
+  }
+
+  if (FINANCIAL_ADMIN_FUNCTIONS.has(functionName) && currentEmail && !isSuper) {
+    try {
+      if (isSupabaseConfigured && supabase) {
+        const { data: tm } = await supabase
+          .from('team_members')
+          .select('role')
+          .ilike('email', currentEmail)
+          .maybeSingle();
+        if (tm?.role && String(tm.role).toLowerCase() === 'barbeiro') {
+          return {
+            allowed: false,
+            status: 403,
+            error: 'HTTP 403 Forbidden: O perfil Profissional / Barbeiro não possui permissão para aceder ao módulo financeiro.',
+          };
+        }
+      }
+    } catch (_) {}
+  }
+
+  return { allowed: true };
+}
+
 export async function invokeFunction(functionName, payload = {}) {
   try {
+    const rbacCheck = await verifyFunctionRbac(functionName);
+    if (!rbacCheck.allowed) {
+      return {
+        status: 403,
+        data: {
+          success: false,
+          status: 403,
+          error: rbacCheck.error,
+        },
+      };
+    }
+
     switch (functionName) {
       case 'getPublicPlans': {
         let plans = [];
