@@ -154,10 +154,21 @@ export default function AppCRM() {
           <CRMVipTab companyId={company.id} customers={customers} />
         )}
         {tab === 'automations' && (
-          <LifecycleCampaignsSection company={company} />
+          <LifecycleCampaignsSection
+            company={company}
+            title="Automações de Retenção"
+            subtitle="Mensagens automáticas baseadas no ciclo de vida de cada cliente."
+          />
         )}
         {tab === 'campaigns' && (
-          <CRMTransactionalTab company={company} />
+          <div className="space-y-6">
+            <LifecycleCampaignsSection
+              company={company}
+              title="Campanhas de CRM por Categoria"
+              subtitle="Filtre, ative e edite campanhas de boas-vindas, fidelização, recuperação, reativação e VIP."
+            />
+            <CRMTransactionalTab company={company} />
+          </div>
         )}
         {tab === 'segments' && (
           <CRMSegmentsTab

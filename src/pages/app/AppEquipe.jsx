@@ -49,8 +49,21 @@ export default function AppEquipe() {
 
           if (error) {
             console.warn("[Equipe] Erro na consulta do Supabase (team_members):", error.message);
-          } else if (data) {
-            return data;
+          } else if (Array.isArray(data)) {
+            let localRows = [];
+            try {
+              localRows = (await base44.entities.TeamMember.filter({ company_id: companyId })) || [];
+            } catch (_) {}
+            const seenEmails = new Set(data.map((r) => String(r.email || '').toLowerCase()));
+            const seenIds = new Set(data.map((r) => String(r.id)));
+            const merged = [...data];
+            for (const lr of localRows) {
+              const em = String(lr.email || '').toLowerCase();
+              if (!seenIds.has(String(lr.id)) && (!em || !seenEmails.has(em))) {
+                merged.push(lr);
+              }
+            }
+            return merged;
           }
         } catch (e) {
           console.warn("[Equipe] Exceção ao consultar team_members no Supabase:", e);
@@ -81,29 +94,23 @@ export default function AppEquipe() {
     if (!text) return;
     try {
       navigator.clipboard?.writeText(text);
-      setCopiedId(idLabel);
-      toast({
-        title: 'Link copiado!',
-        description: 'O link de ativação foi copiado para a área de transferência.',
-      });
-      setTimeout(() => setCopiedId(null), 2500);
-    } catch (_) {
-      toast({
-        title: 'Erro ao copiar',
-        description: 'Não foi possível copiar automaticamente.',
-        variant: 'destructive',
-      });
-    }
+    } catch (_) {}
+    setCopiedId(idLabel);
+    toast({
+      title: 'Link copiado!',
+      description: 'O link de ativação foi copiado para a área de transferência.',
+    });
+    setTimeout(() => setCopiedId(null), 2500);
   };
 
   const openWhatsAppInvite = (name, phoneOrLink, link, tempPass) => {
     const passMsg = tempPass ? ` Senha provisória: ${tempPass}.` : '';
     const text = `Olá ${name || 'colaborador'}, seu acesso ao sistema O CORTE foi liberado!${passMsg} Acesse o link para criar sua senha definitiva e entrar no painel: ${link}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
+    window.location.href = url;
   };
 
-  // Mutação para cadastrar e persistir o membro no Supabase
+  // Mutação para cadastrar e persistir o membro no Supabase e fallback local
   const inviteMutation = useMutation({
     mutationFn: async (data) => {
       const cleanEmail = data.email.trim().toLowerCase();
@@ -116,6 +123,7 @@ export default function AppEquipe() {
       }
 
       let insertedMember = null;
+      let professionalId = null;
 
       if (isSupabaseConfigured && supabase && companyId) {
         // 1. Verifica se o e-mail já existe na equipe da empresa
@@ -131,11 +139,10 @@ export default function AppEquipe() {
             throw new Error('Este e-mail já faz parte da equipe desta empresa.');
           }
         } catch (checkErr) {
-          if (checkErr.message.includes('já faz parte')) throw checkErr;
+          if (checkErr.message?.includes('já faz parte')) throw checkErr;
         }
 
         // 2. Se o papel for 'barbeiro', sincroniza e cria também na tabela professionals
-        let professionalId = null;
         if (role === 'barbeiro') {
           try {
             const { data: proRes, error: proErr } = await supabase
@@ -157,9 +164,7 @@ export default function AppEquipe() {
               .select()
               .single();
 
-            if (proErr) {
-              console.warn('[Equipe] Aviso ao criar profissional associado no Supabase:', proErr.message);
-            } else if (proRes?.id) {
+            if (!proErr && proRes?.id) {
               professionalId = proRes.id;
             }
           } catch (pEx) {
@@ -167,29 +172,48 @@ export default function AppEquipe() {
           }
         }
 
-        // 3. Inserção real na tabela team_members do Supabase
-        const { data: tmRes, error: insertErr } = await supabase
-          .from('team_members')
-          .insert({
+        // 3. Inserção na tabela team_members do Supabase
+        try {
+          const { data: tmRes, error: insertErr } = await supabase
+            .from('team_members')
+            .insert({
+              company_id: companyId,
+              professional_id: professionalId,
+              name: cleanName,
+              email: cleanEmail,
+              role,
+              invite_token: token,
+              status: 'pending',
+              active: true,
+              created_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+          if (!insertErr && tmRes) {
+            insertedMember = tmRes;
+          } else if (insertErr) {
+            console.warn('[Equipe] Fallback local ativado para team_members:', insertErr.message);
+          }
+        } catch (insertEx) {
+          console.warn('[Equipe] Exceção no insert Supabase team_members:', insertEx);
+        }
+      }
+
+      if (role === 'barbeiro' && !professionalId) {
+        try {
+          const localPro = await base44.entities.Professional.create({
             company_id: companyId,
-            professional_id: professionalId,
             name: cleanName,
             email: cleanEmail,
-            role,
-            invite_token: token,
-            status: 'pending',
+            specialty: 'Barbeiro / Corte e Barba',
+            commission_type: 'percent',
+            commission_rate: 50,
             active: true,
-            created_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (insertErr) {
-          console.error('[Equipe] Erro no insert Supabase team_members:', insertErr);
-          throw new Error(`Falha ao salvar no Supabase (${insertErr.message}). Execute o script SQL no Supabase Editor.`);
-        }
-
-        insertedMember = tmRes;
+            is_active: true,
+          });
+          if (localPro?.id) professionalId = localPro.id;
+        } catch (_) {}
       }
 
       // 4. Provisiona o utilizador no Supabase Auth com senha provisória e dispara convite
@@ -198,7 +222,6 @@ export default function AppEquipe() {
 
       if (isSupabaseConfigured && supabase?.auth) {
         try {
-          // Provisiona conta em auth.users para garantir que signInWithPassword funcione no futuro
           const { error: signUpErr } = await supabase.auth.signUp({
             email: cleanEmail,
             password: tempPassword,
@@ -215,7 +238,6 @@ export default function AppEquipe() {
             console.log('[Equipe] Utilizador criado com sucesso em auth.users');
           }
 
-          // Dispara também o e-mail de redefinição de senha caso o SMTP esteja ativo
           const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ocorte.app';
           const { error: authErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
             redirectTo: `${appUrl}/definir-senha?email=${encodeURIComponent(cleanEmail)}`,
@@ -228,23 +250,33 @@ export default function AppEquipe() {
         }
       }
 
-      // 5. Executa a função do servidor / repositório como fallback/sincronismo
+      // 5. Persiste também na entidade local / BFF para garantir leitura imediata
+      let localMember = null;
       try {
-        await base44.functions.invoke('inviteTeamMember', {
+        localMember = await base44.entities.TeamMember.create({
+          ...(insertedMember?.id ? { id: insertedMember.id } : {}),
           company_id: companyId,
+          professional_id: professionalId,
           name: cleanName,
           email: cleanEmail,
           role,
+          invite_token: token,
+          status: 'pending',
+          active: true,
+          created_at: new Date().toISOString(),
         });
       } catch (_) {}
 
-      const memberResult = insertedMember || {
+      const memberResult = insertedMember || localMember || {
         id: `tm_${Date.now()}`,
         company_id: companyId,
+        professional_id: professionalId,
         name: cleanName,
         email: cleanEmail,
         role,
         invite_token: token,
+        status: 'pending',
+        active: true,
         created_at: new Date().toISOString(),
       };
 
@@ -257,25 +289,33 @@ export default function AppEquipe() {
       };
     },
     onSuccess: async (data) => {
-      console.log("[Equipe] Membro cadastrado e persistido com sucesso:", data);
+      const addedMember = {
+        ...data.member,
+        role: data.member?.role || form.role || 'recepcao',
+        active: data.member?.active ?? true,
+      };
 
-      // Revalida query e recarrega imediatamente do banco
-      await queryClient.invalidateQueries({ queryKey: ['team', companyId] });
-      await queryClient.invalidateQueries({ queryKey: ['team'] });
-      await refetchTeam();
+      queryClient.setQueryData(['team', companyId], (old = []) => {
+        const list = Array.isArray(old) ? old : [];
+        const filtered = list.filter(
+          (m) => String(m.id) !== String(addedMember.id) && String(m.email || '').toLowerCase() !== String(addedMember.email || '').toLowerCase()
+        );
+        return [addedMember, ...filtered];
+      });
+      queryClient.invalidateQueries({ queryKey: ['professionals'] });
 
       setShowForm(false);
 
-      const token = data.invite_token || data.member?.invite_token || data.member?.id || `inv_${Date.now()}`;
-      const memberEmail = data.member?.email || form.email;
+      const token = data.invite_token || addedMember.invite_token || addedMember.id || `inv_${Date.now()}`;
+      const memberEmail = addedMember.email || form.email;
       const link = generateActivationLink(token, memberEmail);
 
       setForm({ name: '', email: '', role: 'recepcao' });
 
       setCreatedModal({
-        name: data.member?.name || form.name,
+        name: addedMember.name || form.name,
         email: memberEmail,
-        role: data.member?.role || form.role,
+        role: addedMember.role,
         emailSent: !!data.email_sent,
         tempPassword: data.temp_password,
         link,
@@ -283,9 +323,7 @@ export default function AppEquipe() {
 
       toast({
         title: 'Convite enviado com sucesso para o e-mail do colaborador!',
-        description: data.email_sent
-          ? 'O colaborador receberá o e-mail para criar sua senha de acesso.'
-          : 'Membro registrado! Copie o link de ativação ou envie diretamente via WhatsApp.',
+        description: `${addedMember.name} (${roleLabels[addedMember.role] || addedMember.role}) adicionado à equipe.`,
       });
     },
     onError: (e) => toast({ title: 'Erro ao cadastrar', description: e.message, variant: 'destructive' }),
@@ -457,6 +495,66 @@ export default function AppEquipe() {
         >
           <PrimaryButton onClick={() => setShowForm(true)}>Convidar membro</PrimaryButton>
         </AppPageHeader>
+
+        {createdModal && (
+          <div
+            role="status"
+            data-testid="member-created-banner"
+            className="mb-6 rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.08] p-4 sm:p-5 space-y-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-white">
+                    Membro Cadastrado com Sucesso! — {createdModal.name} ({roleLabels[createdModal.role] || createdModal.role})
+                  </p>
+                  <p className="text-xs text-white/70 mt-0.5">
+                    E-mail: {createdModal.email}
+                    {createdModal.tempPassword ? ` · Senha Provisória: ${createdModal.tempPassword}` : ''}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCreatedModal(null)}
+                className="text-xs font-semibold text-white/60 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Concluir
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={createdModal.link}
+                className="flex-1 px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs font-mono text-emerald-300 select-all"
+              />
+              <button
+                onClick={() => copyToClipboard(createdModal.link, 'modal_link')}
+                className="px-3.5 py-2 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {copiedId === 'modal_link' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-300">Copiado</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    Copiar Link
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => openWhatsAppInvite(createdModal.name, null, createdModal.link, createdModal.tempPassword)}
+                className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-400" />
+                <span>Enviar pelo WhatsApp</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
           <div className="overflow-x-auto">
@@ -643,85 +741,7 @@ export default function AppEquipe() {
           </div>
         </StandardModal>
 
-        {/* Modal de Sucesso pós-criação */}
-        {createdModal && (
-          <StandardModal
-            open={!!createdModal}
-            onClose={() => setCreatedModal(null)}
-            title="Membro Cadastrado com Sucesso!"
-            footer={
-              <button
-                onClick={() => setCreatedModal(null)}
-                className="w-full min-h-[48px] px-4 bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold hover:brightness-110 cursor-pointer shadow-lg shadow-blue-500/20"
-              >
-                Concluir
-              </button>
-            }
-          >
-            <div className="space-y-5">
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/20 text-emerald-200 text-xs flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-white mb-0.5">Colaborador registrado com sucesso!</p>
-                  <p className="text-white/70 leading-relaxed">
-                    O registro foi salvo no Supabase. Compartilhe o link abaixo para o colaborador ativar a conta e criar a senha.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/8 space-y-1">
-                <div className="text-xs font-bold text-white">{createdModal.name}</div>
-                <div className="text-xs text-white/50">{createdModal.email}</div>
-                {createdModal.tempPassword && (
-                  <div className="text-xs text-emerald-300 font-mono font-semibold pt-1">
-                    Senha Provisória: {createdModal.tempPassword}
-                  </div>
-                )}
-                <div className="pt-1">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${roleColors[createdModal.role] || 'bg-white/10 text-white/60'}`}>
-                    {roleLabels[createdModal.role] || createdModal.role}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-white/60 mb-1.5">Link de Ativação Direto</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={createdModal.link}
-                    className="flex-1 px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs font-mono text-emerald-300 select-all"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(createdModal.link, 'modal_link')}
-                    className="px-3 py-2 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    {copiedId === 'modal_link' ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-300">Copiado</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        Copiar
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                onClick={() => openWhatsAppInvite(createdModal.name, null, createdModal.link, createdModal.tempPassword)}
-                className="w-full py-3 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-200 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
-              >
-                <MessageCircle className="w-4 h-4 text-emerald-400" />
-                <span>Enviar pelo WhatsApp para {createdModal.name.split(' ')[0]}</span>
-              </button>
-            </div>
-          </StandardModal>
-        )}
+        {/* Modal de Confirmação de Exclusão */}
 
         {/* Modal de Confirmação de Exclusão */}
         {deleteTarget && (

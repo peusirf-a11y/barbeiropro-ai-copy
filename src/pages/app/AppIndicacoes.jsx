@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Company } from '@/api/entities';
 import { resolveCompanyId } from '@/api/functions';
 import { useCompany } from '@/hooks/useCompany';
+import { useToast } from '@/components/ui/use-toast';
 import { Gift, Copy, CheckCircle2, Loader2, Share2, Store, CalendarCheck, Sparkles, Users } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 
@@ -18,6 +19,7 @@ function generateAlphanumericCode(length = 8) {
 
 export default function AppIndicacoes() {
   const { company: ctxCompany, companyId: ctxCompanyId, isLoading: loadingCtx } = useCompany();
+  const { toast } = useToast();
   const [companyData, setCompanyData] = useState(null);
   const [referralsList, setReferralsList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -156,9 +158,9 @@ export default function AppIndicacoes() {
   }, [loadingCtx, loadCompanyAndReferral]);
 
   const company = companyData || ctxCompany || {};
-  const referralCode = company.referral_code || '';
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const referralLink = referralCode ? `${origin}/cadastro?ref=${referralCode}` : '';
+  const referralCode = company.referral_code || 'OCORTEVIP';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://ocorte.app';
+  const referralLink = `${origin}/cadastro?ref=${referralCode}`;
 
   const freeMonthsBalance = Number(company.free_months_balance || 0);
   const registeredBarbershopsCount = Number(
@@ -168,11 +170,32 @@ export default function AppIndicacoes() {
     company.free_months_redeemed ?? company.free_months_balance ?? 0
   );
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!referralLink) return;
-    navigator.clipboard.writeText(referralLink);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(referralLink);
+      } else {
+        throw new Error('Clipboard indisponível');
+      }
+    } catch {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = referralLink;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (_) {}
+    }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: 'Link copiado!',
+      description: 'Seu link de indicação foi copiado para a área de transferência.',
+    });
+    setTimeout(() => setCopied(false), 5000);
   };
 
   const handleShareWhatsApp = () => {
@@ -180,7 +203,7 @@ export default function AppIndicacoes() {
     const message =
       'Opa, estou usando O Corte para gerenciar minha barbearia e recomendo demais. Cadastra pelo meu link para conhecer: ' +
       referralLink;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    window.location.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
   };
 
   return (
@@ -239,7 +262,7 @@ export default function AppIndicacoes() {
             </div>
           ) : (
             <>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/[0.04] border border-white/10 rounded-xl p-2.5 mb-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/[0.04] border border-white/10 rounded-xl p-2.5 mb-3">
                 <input
                   type="text"
                   readOnly
@@ -255,7 +278,7 @@ export default function AppIndicacoes() {
                   {copied ? (
                     <>
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      Link Copiado!
+                      Link copiado!
                     </>
                   ) : (
                     <>
@@ -265,6 +288,17 @@ export default function AppIndicacoes() {
                   )}
                 </button>
               </div>
+
+              {copied && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-400/35 bg-emerald-500/15 px-3.5 py-2.5 text-xs font-semibold text-emerald-200"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+                  <span>Link copiado com sucesso para a área de transferência!</span>
+                </div>
+              )}
 
               <button
                 type="button"

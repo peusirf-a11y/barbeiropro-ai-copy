@@ -38,13 +38,14 @@ export default function BookingModal({
   onBookingDone,
   onNeedAuth,
   initialService = null,
+  initialProfessional = null,
   hasActivePlans = false,
 }) {
   const primaryColor = sanitizeHexColor(company?.primary_color, '#2563EB');
   const { isDark, tw } = usePublicTheme();
   const accent = getThemeAccent(primaryColor, isDark);
   const [step, setStep] = useState(0); // 0=serviço, 1=prof, 2=data/hora, 3=confirmar, 4=pagar
-  const [selected, setSelected] = useState({ service: initialService, professional: null, date: null, time: null });
+  const [selected, setSelected] = useState({ service: initialService, professional: initialProfessional, date: startOfDay(new Date()), time: null });
   const [form, setForm] = useState({ notes: '' });
   const [formError, setFormError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(() => (canUseSubscription ? 'subscription' : 'avulso'));
@@ -55,14 +56,18 @@ export default function BookingModal({
   const hasWeekdayRestrictions = Array.isArray(allowedWeekdays) && allowedWeekdays.length > 0 && allowedWeekdays.length < 7;
   const isUsingPlan = Boolean(activeSubscription && canUseSubscription && paymentMethod === 'subscription');
 
-  // Ao abrir com serviço inicial, pula para profissional
+  // Ao abrir com serviço inicial, pula para profissional (ou data/hora se profissional também veio pré-selecionado)
   useEffect(() => {
     if (isOpen) {
-      if (initialService) {
-        setSelected({ service: initialService, professional: null, date: null, time: null });
+      const defaultDate = startOfDay(new Date());
+      if (initialService && initialProfessional) {
+        setSelected({ service: initialService, professional: initialProfessional, date: defaultDate, time: null });
+        setStep(2);
+      } else if (initialService) {
+        setSelected({ service: initialService, professional: null, date: defaultDate, time: null });
         setStep(1);
       } else {
-        setSelected({ service: null, professional: null, date: null, time: null });
+        setSelected({ service: null, professional: initialProfessional || null, date: defaultDate, time: null });
         setStep(0);
       }
       setForm({ notes: '' });
@@ -70,7 +75,7 @@ export default function BookingModal({
       setPaymentMethod(canUseSubscription ? 'subscription' : 'avulso');
       idemKeyRef.current = null; // nova sessão → key fresca
     }
-  }, [isOpen, initialService]);
+  }, [isOpen, initialService, initialProfessional]);
 
   useEffect(() => {
     if (canUseSubscription && paymentMethod === 'avulso' && step < 3) {

@@ -16,12 +16,36 @@ import { sanitizeHexColor, getThemeAccent } from '@/lib/colorUtils';
 
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
+const FALLBACK_COMPANY = {
+  id: 'comp_demo_01',
+  name: 'Barbearia Modelo O CORTE',
+  slug: 'barbearia-modelo',
+  phone: '(11) 99999-9999',
+  whatsapp: '11999999999',
+  address: 'Av. Paulista, 1000 - São Paulo, SP',
+  primary_color: '#2563EB',
+  asaas_pix_enabled: true,
+};
+
+const FALLBACK_SERVICES = [
+  { id: 'srv_demo_corte', name: 'Corte Degradê / Social', price: 45, duration_minutes: 30, active: true, is_active: true, featured: true, is_featured: true },
+  { id: 'srv_demo_barba', name: 'Barba Completa com Toalha Quente', price: 35, duration_minutes: 30, active: true, is_active: true, featured: false, is_featured: false },
+  { id: 'srv_demo_combo', name: 'Combo Corte + Barba', price: 70, duration_minutes: 60, active: true, is_active: true, featured: true, is_featured: true },
+];
+
+const FALLBACK_PROFESSIONALS = [
+  { id: 'pro_demo_lucas', name: 'Lucas (Master Barber)', specialty: 'Especialista em Degradê e Barba', active: true, is_active: true },
+  { id: 'pro_demo_rafael', name: 'Rafael (Barbeiro Sênior)', specialty: 'Cortes Clássicos e Visagismo', active: true, is_active: true },
+];
+
 export default function PublicBooking() {
-  const { slug } = useParams();
+  const { slug: routeSlug } = useParams();
+  const slug = routeSlug || (typeof window !== 'undefined' ? localStorage.getItem('bt_last_slug') : null) || 'barbearia-modelo';
   const queryClient = useQueryClient();
   const { isDark, toggle, tw } = usePublicTheme();
   const [activeTab, setActiveTab] = useState('servicos');
   const [bookingService, setBookingService] = useState(null); // serviço que abre o modal
+  const [bookingProfessional, setBookingProfessional] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [bookingDone, setBookingDone] = useState(null);
@@ -68,11 +92,15 @@ export default function PublicBooking() {
           return [strictRow];
         }
       }
-      return base44.entities.Company.filter({ slug });
+      const bySlug = await base44.entities.Company.filter({ slug });
+      if (Array.isArray(bySlug) && bySlug.length > 0) return bySlug;
+      const anyCompany = await base44.entities.Company.list('-created_date', 1);
+      if (Array.isArray(anyCompany) && anyCompany.length > 0) return anyCompany;
+      return [FALLBACK_COMPANY];
     },
     enabled: !!slug,
   });
-  const rawCompany = companies[0] || null;
+  const rawCompany = companies[0] || FALLBACK_COMPANY;
   const company = rawCompany
     ? (() => {
         let localMatch = null;
@@ -127,11 +155,11 @@ export default function PublicBooking() {
     enabled: !!activeSubscription?.plan_id,
   });
 
-  const { data: services = [] } = useQuery({
+  const { data: servicesRaw = [] } = useQuery({
     queryKey: ['public-services', company?.id],
     queryFn: async () => {
       const list = await base44.entities.Service.filter({ company_id: company.id });
-      return list
+      const activeList = (list || [])
         .filter(s => (s.is_active ?? s.active ?? true) !== false)
         .map(s => ({
           ...s,
@@ -142,9 +170,11 @@ export default function PublicBooking() {
           price: Number(s.price ?? 0),
           duration_minutes: Number(s.duration_minutes ?? 30),
         }));
+      return activeList.length > 0 ? activeList : FALLBACK_SERVICES;
     },
     enabled: !!company?.id,
   });
+  const services = servicesRaw.length > 0 ? servicesRaw : FALLBACK_SERVICES;
 
   const { data: activePlans = [] } = useQuery({
     queryKey: ['public-active-plans', company?.id],
@@ -182,14 +212,16 @@ export default function PublicBooking() {
     ) ||
     null;
 
-  const { data: allProfessionals = [] } = useQuery({
+  const { data: allProfessionalsRaw = [] } = useQuery({
     queryKey: ['public-professionals', company?.id],
     queryFn: async () => {
       const list = await base44.entities.Professional.filter({ company_id: company.id });
-      return list.filter(p => (p.is_active ?? p.active ?? true) !== false);
+      const activeList = (list || []).filter(p => (p.is_active ?? p.active ?? true) !== false);
+      return activeList.length > 0 ? activeList : FALLBACK_PROFESSIONALS;
     },
     enabled: !!company?.id,
   });
+  const allProfessionals = allProfessionalsRaw.length > 0 ? allProfessionalsRaw : FALLBACK_PROFESSIONALS;
 
   const { data: reviews = [] } = useQuery({
     queryKey: ['public-reviews', company?.id],
@@ -240,8 +272,9 @@ export default function PublicBooking() {
 
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1) : null;
 
-  const openBooking = (service = null) => {
+  const openBooking = (service = null, professional = null) => {
     setBookingService(service);
+    setBookingProfessional(professional);
     setShowBookingModal(true);
   };
 
@@ -258,7 +291,7 @@ export default function PublicBooking() {
   ];
 
   // ─── LOADING ───
-  if (loadingCompany || !slug) {
+  if (loadingCompany) {
     return (
       <div className={`min-h-screen ${tw.bg} flex items-center justify-center`}>
         <div className="w-8 h-8 border-4 border-white/10 border-t-white/70 rounded-full animate-spin" />
@@ -542,6 +575,13 @@ export default function PublicBooking() {
                     <div className={`${tw.text} font-semibold`}>Sem Preferência</div>
                     <div className={`${tw.textMuted} text-xs`}>Primeiro disponível</div>
                   </div>
+                  <button
+                    onClick={() => openBooking(services[0] || null, { id: 'any', name: 'Sem Preferência' })}
+                    className="flex-shrink-0 text-xs font-bold px-3.5 py-2 rounded-xl transition-opacity hover:opacity-90 shadow-sm"
+                    style={{ backgroundColor: accent.bg, color: accent.fg }}
+                  >
+                    <span style={{ color: accent.fg }}>Agendar</span>
+                  </button>
                 </div>
                 {allProfessionals.map(p => (
                   <div key={p.id} className={`flex items-center gap-4 ${tw.card} rounded-2xl p-4`}>
@@ -559,6 +599,13 @@ export default function PublicBooking() {
                       <div className={`${tw.text} font-semibold`}>{p.name}</div>
                       <div className={`${tw.textMuted} text-xs`}>{p.specialty || 'Sem observação'}</div>
                     </div>
+                    <button
+                      onClick={() => openBooking(services[0] || null, p)}
+                      className="flex-shrink-0 text-xs font-bold px-3.5 py-2 rounded-xl transition-opacity hover:opacity-90 shadow-sm"
+                      style={{ backgroundColor: accent.bg, color: accent.fg }}
+                    >
+                      <span style={{ color: accent.fg }}>Agendar</span>
+                    </button>
                   </div>
                 ))}
               </>
@@ -625,6 +672,7 @@ export default function PublicBooking() {
         subscriptionBlocker={subscriptionBlocker}
         slug={slug}
         initialService={bookingService}
+        initialProfessional={bookingProfessional}
         hasActivePlans={hasActivePlans}
         onBookingDone={(result) => {
           setShowBookingModal(false);

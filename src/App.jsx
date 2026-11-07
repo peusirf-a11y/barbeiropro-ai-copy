@@ -144,6 +144,7 @@ function App() {
             <Route path="/login-base44" element={<BarberLogin />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/lancamento" element={<LaunchLandingPage />} />
+            <Route path="/agendar" element={<PublicBooking />} />
             <Route path="/agendar/:slug" element={<PublicBooking />} />
             <Route path="/cliente/:slug/login" element={<CustomerLoginPage />} />
             <Route path="/cliente/:slug/planos/convite/:token" element={<CustomerPlanInviteRedeem />} />

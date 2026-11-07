@@ -25,7 +25,7 @@ import { safeArray } from '@/lib/safeArray';
 import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 import { buildTenantQueryKey } from '@/lib/query/buildTenantQueryKey';
 
-const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', tags: [] };
+const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active', lifecycle_status: 'primeira_visita', tags: [] };
 
 export default function AppClientes() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
@@ -150,6 +150,7 @@ export default function AppClientes() {
       email: c.email || '',
       notes: c.notes ?? c.observations ?? '',
       status: c.status || 'active',
+      lifecycle_status: getEffectiveLifecycle(c),
       tags: c.tags || [],
     });
     setShowForm(true);
@@ -395,7 +396,17 @@ export default function AppClientes() {
               </div>
             )}
 
-            {editing && <LifecycleStatusCard customer={editing} />}
+            <LifecycleStatusCard
+              customer={editing}
+              value={form.lifecycle_status || (editing ? getEffectiveLifecycle(editing) : 'primeira_visita')}
+              onChange={(nextLc) =>
+                setForm((p) => ({
+                  ...p,
+                  lifecycle_status: nextLc,
+                  lifecycle_updated_at: new Date().toISOString(),
+                }))
+              }
+            />
             <div>
               <label className="text-xs font-semibold text-white/60 block mb-1">Observações</label>
               <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}

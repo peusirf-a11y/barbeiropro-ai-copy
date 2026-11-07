@@ -72,6 +72,7 @@ export default function AppCaixa() {
   const [entryForm, setEntryForm] = useState(emptyEntryForm);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
+  const [lastClosedSummary, setLastClosedSummary] = useState(null);
 
   // Filtros da timeline
   const [filters, setFilters] = useState({});
@@ -142,6 +143,7 @@ export default function AppCaixa() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cash-registers', companyId, activeUnitId] });
+      setLastClosedSummary(null);
       setShowOpen(false);
       setOpenForm({ initial_amount: '', notes: '' });
     },
@@ -159,8 +161,28 @@ export default function AppCaixa() {
       if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao fechar caixa');
       return res.data;
     },
-    onSuccess: (resData) => {
+    onSuccess: (resData, variables) => {
       const closedReg = resData?.register;
+      const parsedCounted = Number(String(variables?.final_amount ?? closedReg?.final_amount ?? 0).replace(',', '.'));
+      const countedAmount = Number.isFinite(parsedCounted) ? parsedCounted : 0;
+      const expectedAmount = Number(closedReg?.expected_amount ?? totals.expected ?? 0);
+      const diffAmount = Number(closedReg?.difference ?? (countedAmount - expectedAmount));
+
+      setLastClosedSummary({
+        id: openCash?.id || closedReg?.id,
+        opened_at: openCash?.opened_at || closedReg?.opened_at,
+        closed_at: closedReg?.closed_at || new Date().toISOString(),
+        initial: Number(totals.initial ?? openCash?.initial_amount ?? 0),
+        totalIn: Number(totals.totalIn ?? closedReg?.total_entries ?? 0),
+        totalOut: Number(totals.totalOut ?? closedReg?.total_exits ?? 0),
+        totalSangria: Number(totals.totalSangria ?? closedReg?.total_sangria ?? 0),
+        totalSuprimento: Number(totals.totalSuprimento ?? closedReg?.total_suprimento ?? 0),
+        expected: expectedAmount,
+        final_amount: countedAmount,
+        difference: diffAmount,
+        notes: variables?.notes || closedReg?.notes || '',
+      });
+
       queryClient.setQueryData(['cash-registers', companyId, activeUnitId], (old = []) =>
         Array.isArray(old)
           ? old.map((r) =>
@@ -169,6 +191,9 @@ export default function AppCaixa() {
                     ...r,
                     ...(closedReg || {}),
                     status: 'fechado',
+                    final_amount: countedAmount,
+                    expected_amount: expectedAmount,
+                    difference: diffAmount,
                     closed_at: closedReg?.closed_at || new Date().toISOString(),
                   }
                 : r
@@ -218,7 +243,7 @@ export default function AppCaixa() {
       setShowEntry(false);
       setEntryForm(emptyEntryForm);
     },
-    onError: (err) => alert(err.message || 'Erro ao salvar lançamento'),
+    onError: (err) => console.error(err.message || 'Erro ao salvar lançamento'),
   });
 
   const entryEditMutation = useMutation({
@@ -243,7 +268,7 @@ export default function AppCaixa() {
       setShowEntry(false);
       setEntryForm(emptyEntryForm);
     },
-    onError: (err) => alert(err.message || 'Erro ao editar lançamento'),
+    onError: (err) => console.error(err.message || 'Erro ao editar lançamento'),
   });
 
   const entryDeleteMutation = useMutation({
@@ -262,7 +287,7 @@ export default function AppCaixa() {
       setDeleteTarget(null);
       setDeleteReason('');
     },
-    onError: (err) => alert(err.message || 'Erro ao excluir lançamento'),
+    onError: (err) => console.error(err.message || 'Erro ao excluir lançamento'),
   });
 
   // Ações
@@ -328,19 +353,98 @@ export default function AppCaixa() {
         )}
 
         {isAllUnits ? null : !openCash ? (
-          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md">
-            <EmptyState
-              icon={Wallet}
-              title="Caixa fechado"
-              description={can('open_register')
-                ? 'Abra o caixa para começar a registrar entradas, saídas, sangrias e suprimentos do dia.'
-                : 'O caixa está fechado. Peça para um responsável (admin ou financeiro) abrir.'}
-              action={can('open_register') ? (
-                <button onClick={() => setShowOpen(true)} className="bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:brightness-110 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all inline-flex items-center gap-2">
-                  <Unlock className="w-4 h-4" />Abrir caixa
-                </button>
-              ) : null}
-            />
+          <div className="space-y-5">
+            {(() => {
+              const latestClosed = registers.find((r) => r.status === 'fechado');
+              const rec = lastClosedSummary || (latestClosed ? {
+                id: latestClosed.id,
+                closed_at: latestClosed.closed_at || latestClosed.updated_at,
+                initial: Number(latestClosed.initial_amount || 0),
+                totalIn: Number(latestClosed.total_entries || 0),
+                totalOut: Number(latestClosed.total_exits || 0),
+                totalSangria: Number(latestClosed.total_sangria || 0),
+                totalSuprimento: Number(latestClosed.total_suprimento || 0),
+                expected: Number(latestClosed.expected_amount ?? latestClosed.initial_amount ?? 0),
+                final_amount: Number(latestClosed.final_amount ?? latestClosed.expected_amount ?? 0),
+                difference: Number(latestClosed.difference ?? 0),
+                notes: latestClosed.notes || '',
+              } : null);
+
+              if (!rec) return null;
+              const isExact = Math.abs(rec.difference) < 0.01;
+              const isPositive = rec.difference > 0;
+
+              return (
+                <div
+                  data-testid="cash-register-reconciliation-summary"
+                  className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.06] backdrop-blur-md p-5 sm:p-6 space-y-4"
+                >
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 mb-1.5">
+                        Caixa Fechado e Conciliado
+                      </span>
+                      <h2 className="text-base sm:text-lg font-bold text-white">
+                        Resumo de Fechamento e Conciliação Diária
+                      </h2>
+                    </div>
+                    {rec.closed_at && (
+                      <span className="text-xs text-white/55">
+                        Fechado em {format(new Date(rec.closed_at), 'dd/MM/yyyy HH:mm')}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="text-[11px] text-white/55">Saldo inicial</div>
+                      <div className="text-sm font-bold text-white mt-0.5">{fmt(rec.initial)}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="text-[11px] text-white/55">Entradas</div>
+                      <div className="text-sm font-bold text-emerald-300 mt-0.5">{fmt(rec.totalIn)}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="text-[11px] text-white/55">Saídas / Sangrias</div>
+                      <div className="text-sm font-bold text-rose-300 mt-0.5">{fmt(rec.totalOut + rec.totalSangria)}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="text-[11px] text-white/55">Saldo esperado</div>
+                      <div className="text-sm font-bold text-[#93C5FD] mt-0.5">{fmt(rec.expected)}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="text-[11px] text-white/55">Saldo contado</div>
+                      <div className="text-sm font-bold text-white mt-0.5">{fmt(rec.final_amount)}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="text-[11px] text-white/55">Diferença / Conciliação</div>
+                      <div
+                        className={`text-sm font-bold mt-0.5 ${
+                          isExact ? 'text-emerald-300' : isPositive ? 'text-blue-300' : 'text-amber-300'
+                        }`}
+                      >
+                        {isExact ? 'R$ 0,00 (Bateu ✓)' : `${isPositive ? '+' : ''}${fmt(rec.difference)}`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md">
+              <EmptyState
+                icon={Wallet}
+                title="Caixa fechado"
+                description={can('open_register')
+                  ? 'Abra o caixa para começar a registrar entradas, saídas, sangrias e suprimentos do dia.'
+                  : 'O caixa está fechado. Peça para um responsável (admin ou financeiro) abrir.'}
+                action={can('open_register') ? (
+                  <button onClick={() => setShowOpen(true)} className="bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:brightness-110 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all inline-flex items-center gap-2">
+                    <Unlock className="w-4 h-4" />Abrir caixa
+                  </button>
+                ) : null}
+              />
+            </div>
           </div>
         ) : (
           <>

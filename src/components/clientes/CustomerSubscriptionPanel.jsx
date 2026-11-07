@@ -50,8 +50,20 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
   const { data: plans = [] } = useQuery({
     queryKey: ['customer-plans', companyId],
     queryFn: () => base44.entities.CustomerPlan.filter({ company_id: companyId, active: true }),
-    enabled: !!companyId && showPicker,
+    enabled: !!companyId,
   });
+
+  const matchedActivePlan = activeSub
+    ? plans.find((p) => activeSub.plan_id && String(p.id) === String(activeSub.plan_id)) || plans[0] || null
+    : null;
+  const resolvedPlanName =
+    activeSub?.plan_name_snapshot || activeSub?.plan_name || matchedActivePlan?.name || 'Plano Clube Mensal';
+  const rawPlanPrice = Number(
+    activeSub?.plan_price_snapshot ?? activeSub?.price ?? activeSub?.amount ?? matchedActivePlan?.price_monthly ?? matchedActivePlan?.price ?? 89.9
+  );
+  const resolvedPlanPrice = (Number.isFinite(rawPlanPrice) && rawPlanPrice > 0 ? rawPlanPrice : 89.9)
+    .toFixed(2)
+    .replace('.', ',');
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['subscription', customer.id] });
@@ -198,8 +210,12 @@ export default function CustomerSubscriptionPanel({ customer, companyId }) {
           <div className="rounded-xl p-4 border border-blue-400/25 bg-blue-500/10">
             <div className="flex items-start justify-between mb-2">
               <div>
-                <div className="font-bold text-white">{activeSub.plan_name_snapshot}</div>
-                <div className="text-xs text-white/60">R${activeSub.plan_price_snapshot}/mês</div>
+                <div className="font-bold text-white" data-testid="subscription-plan-name">
+                  {resolvedPlanName}
+                </div>
+                <div className="text-xs text-white/75 font-medium" data-testid="subscription-plan-price">
+                  R$ {resolvedPlanPrice}/mês
+                </div>
               </div>
               <span className="text-[10px] font-bold uppercase bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full">Ativa</span>
             </div>

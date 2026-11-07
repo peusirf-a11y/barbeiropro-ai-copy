@@ -535,6 +535,28 @@ export default function Checkout() {
                     <ArrowLeft className="w-3.5 h-3.5" /> Editar meus dados
                   </button>
 
+                  <div
+                    data-testid="checkout-signup-summary"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs"
+                  >
+                    <div>
+                      <span className="text-gray-500 block font-medium">Nome da barbearia</span>
+                      <span className="text-[#0F172A] font-bold">{form.business_name || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block font-medium">E-mail de acesso</span>
+                      <span className="text-[#0F172A] font-bold break-all">{form.email || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block font-medium">Responsável</span>
+                      <span className="text-[#0F172A] font-semibold">{form.owner_name || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block font-medium">CPF/CNPJ · WhatsApp</span>
+                      <span className="text-[#0F172A] font-semibold">{form.cpf_cnpj || '—'} · {form.phone || '—'}</span>
+                    </div>
+                  </div>
+
                   <div className="border-b border-black/5 pb-2">
                     <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Como deseja pagar?</div>
                     <h2 className="text-base font-black text-[#0F172A]">Cartão de Crédito</h2>

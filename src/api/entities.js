@@ -365,7 +365,7 @@ export class EntityRepository {
           if (localMatch.status && (!out.status || (localMatch.updated_at && (!out.updated_at || localMatch.updated_at >= out.updated_at)))) {
             out.status = localMatch.status;
           }
-          if (localMatch.lifecycle_status && !out.lifecycle_status) {
+          if (localMatch.lifecycle_status && (!out.lifecycle_status || (localMatch.updated_at && (!out.updated_at || localMatch.updated_at >= out.updated_at)))) {
             out.lifecycle_status = localMatch.lifecycle_status;
           }
         }
@@ -395,17 +395,22 @@ export class EntityRepository {
       }
       if (!out.plan_name && out.plan_name_snapshot) out.plan_name = out.plan_name_snapshot;
       if (!out.plan_name_snapshot && out.plan_name) out.plan_name_snapshot = out.plan_name;
-      if (!out.plan_name && matchedPlan) {
+      if (!out.plan_name && matchedPlan?.name) {
         out.plan_name = matchedPlan.name;
         out.plan_name_snapshot = matchedPlan.name;
       }
-      if (matchedPlan) {
-        if (out.plan_price_snapshot === undefined) {
-          out.plan_price_snapshot = Number(matchedPlan.price_monthly ?? matchedPlan.price ?? 0);
-        }
-        if (!out.plan_type_snapshot) {
-          out.plan_type_snapshot = matchedPlan.type || 'unlimited';
-        }
+      if (!out.plan_name_snapshot) {
+        out.plan_name_snapshot = out.plan_name || matchedPlan?.name || 'Plano Clube Mensal';
+        out.plan_name = out.plan_name_snapshot;
+      }
+      if (out.plan_price_snapshot === undefined || out.plan_price_snapshot === null || out.plan_price_snapshot === '') {
+        const resolvedPrice = Number(out.price ?? out.amount ?? matchedPlan?.price_monthly ?? matchedPlan?.price ?? 89.9);
+        out.plan_price_snapshot = Number.isFinite(resolvedPrice) && resolvedPrice > 0 ? resolvedPrice : 89.9;
+      } else {
+        out.plan_price_snapshot = Number(out.plan_price_snapshot);
+      }
+      if (!out.plan_type_snapshot) {
+        out.plan_type_snapshot = matchedPlan?.type || 'unlimited';
       }
       const resolvedDays = resolvePlanAllowedWeekdays(matchedPlan, out);
       if (resolvedDays) {

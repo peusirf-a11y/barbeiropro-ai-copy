@@ -8,15 +8,29 @@ import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { Zap, Save, FlaskConical, AlertCircle } from 'lucide-react';
+import { Zap, Save, FlaskConical, AlertCircle, Filter } from 'lucide-react';
 import { CAMPAIGN_KEYS, mergeCampaignsConfig } from '@/lib/lifecycleCampaigns';
 import CampaignEditor from './CampaignEditor';
 
-export default function LifecycleCampaignsSection({ company }) {
+const CAMPAIGN_CATEGORIES = [
+  { id: 'all',        label: 'Todas as categorias', keys: CAMPAIGN_KEYS },
+  { id: 'visitantes', label: 'Boas-vindas / Visitantes', keys: ['primeira_visita'] },
+  { id: 'fidelizacao', label: 'Fidelização', keys: ['fiel_sem_plano'] },
+  { id: 'recuperacao', label: 'Recuperação / Em risco', keys: ['em_risco'] },
+  { id: 'reativacao', label: 'Reativação / Inativos', keys: ['inativo', 'perdido'] },
+  { id: 'vip',        label: 'Clientes VIP', keys: ['vip_inativo'] },
+];
+
+export default function LifecycleCampaignsSection({
+  company,
+  title = 'Campanhas e Automações de Retenção',
+  subtitle = 'Gerencie campanhas por categoria de ciclo de vida e configure mensagens automáticas.',
+}) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [campaigns, setCampaigns] = useState(() => mergeCampaignsConfig(company?.lifecycle_campaigns));
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
@@ -29,11 +43,16 @@ export default function LifecycleCampaignsSection({ company }) {
     [campaigns]
   );
 
+  const visibleCampaignKeys = useMemo(() => {
+    const found = CAMPAIGN_CATEGORIES.find(c => c.id === selectedCategory);
+    return found ? found.keys : CAMPAIGN_KEYS;
+  }, [selectedCategory]);
+
   const saveMutation = useMutation({
     mutationFn: () => base44.entities.Company.update(company.id, { lifecycle_campaigns: campaigns }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
-      toast({ title: 'Automações salvas', description: `${enabledCount} campanha(s) ativa(s).` });
+      toast({ title: 'Campanhas salvas', description: `${enabledCount} campanha(s) ativa(s).` });
       setDirty(false);
     },
     onError: (err) => toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' }),
@@ -71,22 +90,50 @@ export default function LifecycleCampaignsSection({ company }) {
 
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6">
-      <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
+      <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15">
             <span className="absolute inset-0 rounded-xl bg-[#60A5FA]/30 blur-md opacity-60" aria-hidden="true" />
             <Zap className="relative w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="font-bold text-white">Automações de retenção</h2>
+            <h2 className="font-bold text-white">{title}</h2>
             <p className="text-xs text-white/55 mt-0.5">
-              Mensagens automáticas baseadas no ciclo de vida de cada cliente.
+              {subtitle}
             </p>
           </div>
         </div>
         <div className="text-right">
           <div className="text-2xl font-black leading-none bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">{enabledCount}<span className="text-sm text-white/40 font-bold">/{CAMPAIGN_KEYS.length}</span></div>
           <div className="text-[10px] text-white/55 font-semibold uppercase tracking-wider mt-0.5">campanhas ativas</div>
+        </div>
+      </div>
+
+      {/* Filtro por Categoria de Campanha */}
+      <div className="mb-4" data-testid="crm-campaign-categories">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-white/50 uppercase tracking-wider mb-2">
+          <Filter className="w-3.5 h-3.5 text-[#60A5FA]" />
+          <span>Categorias de Campanha</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {CAMPAIGN_CATEGORIES.map((cat) => {
+            const active = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                  active
+                    ? 'bg-[#2563EB]/25 text-[#93C5FD] border-[#60A5FA]/50 shadow-sm'
+                    : 'bg-white/[0.03] text-white/60 border-white/10 hover:text-white hover:bg-white/[0.07]'
+                }`}
+              >
+                {cat.label}
+                <span className="ml-1.5 text-[10px] opacity-75">({cat.keys.length})</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -97,8 +144,8 @@ export default function LifecycleCampaignsSection({ company }) {
         </div>
       )}
 
-      <div className="mt-5 space-y-2">
-        {CAMPAIGN_KEYS.map(key => (
+      <div className="mt-4 space-y-2">
+        {visibleCampaignKeys.map(key => (
           <CampaignEditor
             key={key}
             campaignKey={key}
@@ -116,7 +163,7 @@ export default function LifecycleCampaignsSection({ company }) {
           className="inline-flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15"
         >
           <Save className="w-4 h-4" />
-          {saveMutation.isPending ? 'Salvando...' : dirty ? 'Salvar automações' : 'Tudo salvo'}
+          {saveMutation.isPending ? 'Salvando...' : dirty ? 'Salvar campanhas' : 'Tudo salvo'}
         </button>
         <button
           onClick={() => testMutation.mutate()}

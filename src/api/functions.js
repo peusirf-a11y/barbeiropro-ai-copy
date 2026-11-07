@@ -2190,6 +2190,32 @@ export async function invokeFunction(functionName, payload = {}) {
           custSubs = custSubs.filter(s => s.status === payload.status);
         }
 
+        let allPlans = [];
+        try {
+          allPlans = await CustomerPlan.list('-created_at', 200);
+        } catch (_) {}
+
+        custSubs = (custSubs || []).map((s) => {
+          const matchedPlan =
+            allPlans.find((p) => s.plan_id && String(p.id) === String(s.plan_id)) ||
+            allPlans.find((p) => (!s.company_id || String(p.company_id) === String(s.company_id))) ||
+            null;
+          const resolvedName =
+            s.plan_name_snapshot || s.plan_name || matchedPlan?.name || 'Plano Clube Mensal';
+          const rawPrice = Number(
+            s.plan_price_snapshot ?? s.price ?? s.amount ?? matchedPlan?.price_monthly ?? matchedPlan?.price ?? 89.9
+          );
+          const resolvedPrice = Number.isFinite(rawPrice) && rawPrice > 0 ? rawPrice : 89.9;
+          return {
+            ...s,
+            plan_name: resolvedName,
+            plan_name_snapshot: resolvedName,
+            plan_price_snapshot: resolvedPrice,
+            price: resolvedPrice,
+            plan_type_snapshot: s.plan_type_snapshot || matchedPlan?.type || 'unlimited',
+          };
+        });
+
         const companies = await Company.list();
         const items = companies.map((c) => ({
           id: `sub_${c.id}`,

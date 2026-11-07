@@ -24,6 +24,7 @@ import { base44 } from '@/api/base44Client';
 import PartnerLayout from '@/components/partner/PartnerLayout';
 import { getPartnerToken } from '@/hooks/usePartnerAuth';
 import { partnerKeys } from '@/lib/partnerKeys';
+import { useToast } from '@/components/ui/use-toast';
 
 const OFFICIAL_DOMAIN = 'https://ocorte.app';
 
@@ -63,6 +64,7 @@ const COMM_STATUS = {
 
 export default function PartnerDashboard() {
   const token = getPartnerToken();
+  const { toast } = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [showHoldTooltip, setShowHoldTooltip] = useState(false);
@@ -83,7 +85,7 @@ export default function PartnerDashboard() {
   const recentRefs = data?.recent_referrals || [];
   const recentComms = data?.recent_commissions || [];
 
-  const partnerCode = partner?.referral_code || '';
+  const partnerCode = partner?.referral_code || 'PARCEIROVIP';
   const referralLink = partnerCode
     ? `${OFFICIAL_DOMAIN}/landing?ref=${partnerCode}`
     : `${OFFICIAL_DOMAIN}/landing`;
@@ -94,23 +96,57 @@ export default function PartnerDashboard() {
   const handleCopyLink = async () => {
     if (!referralLink) return;
     try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2200);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(referralLink);
+      } else {
+        throw new Error('Clipboard indisponível');
+      }
     } catch {
-      /* fallback silencioso */
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = referralLink;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (_) {}
     }
+    setCopiedLink(true);
+    toast({
+      title: 'Link copiado!',
+      description: 'Seu link de indicação foi copiado para a área de transferência.',
+    });
+    setTimeout(() => setCopiedLink(false), 5000);
   };
 
   const handleCopyCode = async () => {
     if (!partnerCode) return;
     try {
-      await navigator.clipboard.writeText(partnerCode);
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2200);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(partnerCode);
+      } else {
+        throw new Error('Clipboard indisponível');
+      }
     } catch {
-      /* fallback silencioso */
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = partnerCode;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (_) {}
     }
+    setCopiedCode(true);
+    toast({
+      title: 'Código copiado!',
+      description: `Código ${partnerCode} copiado para a área de transferência.`,
+    });
+    setTimeout(() => setCopiedCode(false), 5000);
   };
 
   const handleShareWhatsApp = () => {
@@ -120,7 +156,7 @@ export default function PartnerDashboard() {
       `Cadastrando pelo meu link oficial você libera *7 dias grátis* e condição especial de lançamento:\n` +
       `👉 ${referralLink}`;
     const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
+    window.location.href = waUrl;
   };
 
   return (
@@ -160,32 +196,41 @@ export default function PartnerDashboard() {
 
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex-1 flex items-center px-3.5 py-2.5 bg-white/[0.05] border border-white/12 rounded-xl font-mono text-xs sm:text-sm text-white select-all break-all">
-            {partnerCode ? referralLink : 'Carregando link...'}
+            {referralLink}
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleCopyLink}
-              disabled={!partnerCode}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm hover:brightness-110 active:scale-[0.98] disabled:opacity-50 transition-all cursor-pointer shadow-brand"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-brand"
             >
-              {copiedLink ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copiedLink ? 'Copiado!' : 'Copiar link'}
+              {copiedLink ? <CheckCircle2 className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+              {copiedLink ? 'Link copiado!' : 'Copiar Link'}
             </button>
 
             <button
               type="button"
               onClick={handleShareWhatsApp}
-              disabled={!partnerCode}
               title="Compartilhar no WhatsApp"
-              className="inline-flex items-center justify-center gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-400/30 font-semibold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-400/30 font-semibold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
             >
               <Share2 className="w-4 h-4" />
               <span className="hidden md:inline">WhatsApp</span>
             </button>
           </div>
         </div>
+
+        {copiedLink && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-400/35 bg-emerald-500/15 px-3.5 py-2 text-xs font-semibold text-emerald-200"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+            <span>Link copiado com sucesso para a área de transferência!</span>
+          </div>
+        )}
 
         {/* Cupom / Código do Parceiro */}
         <div className="mt-3 pt-3 border-t border-white/8 flex items-center justify-between flex-wrap gap-2">
