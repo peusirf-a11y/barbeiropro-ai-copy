@@ -1,11 +1,12 @@
-// Aba "Segmentos" — atalhos visuais para cada filtro do banco de clientes.
+// Aba "Segmentos" — atalhos visuais para cada filtro do banco de clientes + configurações de modelos de mensagem.
 // Cada card linka para /app/clientes?filter=<key>.
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, Users } from 'lucide-react';
+import { ArrowRight, Users, MessageSquare } from 'lucide-react';
 import { LIFECYCLE_TOKENS } from '@/lib/customerLifecycle';
+import CRMTransactionalTab from './CRMTransactionalTab';
 
-export default function CRMSegmentsTab({ customers }) {
+export default function CRMSegmentsTab({ customers, company, onOpenTemplates }) {
   const counts = customers.reduce((acc, c) => {
     const lc = c.lifecycle_status || 'primeira_visita';
     acc[lc] = (acc[lc] || 0) + 1;
@@ -24,7 +25,7 @@ export default function CRMSegmentsTab({ customers }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-blue-400/[0.08] border border-blue-400/25 rounded-2xl p-5 backdrop-blur-md">
+      <div className="bg-blue-400/[0.08] border border-blue-400/25 rounded-2xl p-5 backdrop-blur-md flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15">
             <span className="absolute inset-0 rounded-xl bg-[#60A5FA]/30 blur-md opacity-60" aria-hidden="true" />
@@ -35,6 +36,16 @@ export default function CRMSegmentsTab({ customers }) {
             <p className="text-xs text-white/60 mt-0.5">Clique em qualquer segmento para abrir a lista filtrada.</p>
           </div>
         </div>
+        {onOpenTemplates && (
+          <button
+            type="button"
+            onClick={onOpenTemplates}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs font-semibold text-[#93C5FD] transition-colors cursor-pointer"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            Configurar Modelos de Mensagem
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -58,6 +69,16 @@ export default function CRMSegmentsTab({ customers }) {
           );
         })}
       </div>
+
+      {company && (
+        <div className="pt-4 border-t border-white/10 space-y-4">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-[#93C5FD]" />
+            <h3 className="font-bold text-white text-base">Configurações e Modelos de Mensagem</h3>
+          </div>
+          <CRMTransactionalTab company={company} />
+        </div>
+      )}
     </div>
   );
 }

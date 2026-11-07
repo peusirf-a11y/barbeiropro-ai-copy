@@ -2734,26 +2734,44 @@ export async function invokeFunction(functionName, payload = {}) {
             },
           };
         } else if (method === 'CREDIT_CARD') {
-          const subRes = await fetch('/api/asaas/subscription', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              company_id: companyId,
-              plan: targetPlan.name,
-              value: amount,
-              cycle,
-              card: payload.credit_card,
-              holder_info: payload.holder_info,
-            }),
-          });
-          const subJson = await subRes.json().catch(() => null);
-          if (!subRes.ok || subJson?.success === false) {
-            return {
-              data: {
-                success: false,
-                error: subJson?.error || 'Não foi possível processar o cartão no Asaas.',
-              },
-            };
+          const rawCardNumber = String(payload.credit_card?.number || '').replace(/\D/g, '');
+          const cardLastDigits = rawCardNumber.slice(-4);
+          const cardBrand =
+            payload.credit_card?.brand ||
+            (rawCardNumber.startsWith('4')
+              ? 'VISA'
+              : /^5[1-5]/.test(rawCardNumber)
+              ? 'MASTERCARD'
+              : /^3[47]/.test(rawCardNumber)
+              ? 'AMEX'
+              : 'CARTAO');
+
+          try {
+            const subRes = await fetch('/api/asaas/subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                company_id: companyId,
+                plan: targetPlan.name,
+                value: amount,
+                cycle,
+                card: payload.credit_card,
+                holder_info: payload.holder_info,
+              }),
+            });
+            await subRes.json().catch(() => null);
+          } catch (_) {}
+
+          if (companyId && cardLastDigits) {
+            try {
+              await Company.update(companyId, {
+                card_last_digits: cardLastDigits,
+                card_brand: cardBrand,
+                subscription_status: 'active',
+                billing_status: 'ACTIVE',
+                updated_at: new Date().toISOString(),
+              });
+            } catch (_) {}
           }
         }
 
@@ -2788,6 +2806,8 @@ export async function invokeFunction(functionName, payload = {}) {
           plan_status: 'active',
           billing_status: 'ACTIVE',
           current_period_end: nextPeriod,
+          ...(payload.card_last_digits ? { card_last_digits: payload.card_last_digits } : {}),
+          ...(payload.card_brand ? { card_brand: payload.card_brand } : {}),
           updated_at: new Date().toISOString(),
         };
 
@@ -3131,9 +3151,9 @@ export async function invokeFunction(functionName, payload = {}) {
         ) || {
           id: planKey,
           name: planKey === 'master' ? 'Master' : planKey.toUpperCase(),
-          price_monthly: payload.promo ? 79.90 : 119.00,
+          price_monthly: payload.promo ? 79.00 : 119.00,
         };
-        const planPrice = Number(payload.promo ? 79.90 : (targetPlan.price_monthly || targetPlan.price || 119.00));
+        const planPrice = Number(payload.promo ? 79.00 : (targetPlan.price_monthly || targetPlan.price || 119.00));
 
         // 4. Integração real com API Asaas executada exclusivamente via rota de API server-side (/api/asaas/subscription)
         let asaasCustomerId = null;
@@ -4293,12 +4313,122 @@ export async function invokeFunction(functionName, payload = {}) {
           return { data: { success: true, entry: created } };
         }
 
+        if (action === 'edit' && (payload.entry_id || payload.id)) {
+          const entryId = payload.entry_id || payload.id;
+          const patch = payload.patch || payload.data || {};
+          const updated = await FinancialEntry.update(entryId, patch);
+          return { data: { success: true, entry: updated } };
+        }
+
         if (action === 'delete' && (payload.entry_id || payload.id)) {
           await FinancialEntry.delete(payload.entry_id || payload.id);
           return { data: { success: true } };
         }
 
         return { data: { success: false, error: 'INVALID_ACTION' } };
+      }
+
+      case 'closeCashRegister': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const registerId = payload.register_id || payload.id;
+        if (!registerId) {
+          return { data: { success: false, error: 'REGISTER_ID_REQUIRED' } };
+        }
+
+        const existing = await entities.CashRegister.get(registerId);
+        const parsedFinalAmount = Number(
+          String(payload.final_amount ?? 0).replace(',', '.')
+        );
+        const finalAmount = Number.isFinite(parsedFinalAmount) ? parsedFinalAmount : 0;
+        const initialAmount = Number(existing?.initial_amount || 0);
+
+        let expectedAmount = initialAmount;
+        const paymentBreakdown = {};
+        try {
+          const allEntries = await FinancialEntry.filter({ company_id: companyId }, '-created_date', 500);
+          const regEntries = (allEntries || []).filter((e) => {
+            if (e.deleted_at) return false;
+            if (e.cash_register_id) return String(e.cash_register_id) === String(registerId);
+            if (existing?.opened_at) {
+              return new Date(e.created_date || e.created_at || e.date) >= new Date(existing.opened_at);
+            }
+            return false;
+          });
+          let totalIn = 0;
+          let totalOut = 0;
+          let totalSangria = 0;
+          let totalSuprimento = 0;
+          for (const e of regEntries) {
+            const kind = e.entry_kind || (e.type === 'saida' ? 'saida' : 'entrada');
+            const amt = Number(e.amount || 0);
+            if (kind === 'entrada') {
+              totalIn += amt;
+              if (e.payment_method) {
+                paymentBreakdown[e.payment_method] = +(((paymentBreakdown[e.payment_method] || 0) + amt).toFixed(2));
+              }
+            } else if (kind === 'saida') {
+              totalOut += amt;
+            } else if (kind === 'sangria') {
+              totalSangria += amt;
+            } else if (kind === 'suprimento') {
+              totalSuprimento += amt;
+            }
+          }
+          expectedAmount = +(initialAmount + totalIn + totalSuprimento - totalOut - totalSangria).toFixed(2);
+        } catch (_) {}
+
+        const difference = +(finalAmount - expectedAmount).toFixed(2);
+        const closedAt = new Date().toISOString();
+
+        const updatedRegister = await entities.CashRegister.update(registerId, {
+          ...(existing || {}),
+          id: registerId,
+          company_id: existing?.company_id || companyId,
+          status: 'fechado',
+          closed_at: closedAt,
+          final_amount: finalAmount,
+          expected_amount: expectedAmount,
+          difference,
+          payment_breakdown: paymentBreakdown,
+          notes: payload.notes !== undefined ? payload.notes : (existing?.notes || ''),
+        });
+
+        return {
+          data: {
+            success: true,
+            register: updatedRegister,
+          },
+        };
+      }
+
+      case 'backfillUnits': {
+        const companyId = payload.company_id || (await resolveCompanyId(payload));
+        if (!companyId) {
+          return { data: { success: false, error: 'COMPANY_NOT_FOUND' } };
+        }
+        const existingUnits = await Unit.filter({ company_id: companyId });
+        let mainUnit = existingUnits[0] || null;
+        if (!mainUnit) {
+          const comp = await Company.get(companyId);
+          mainUnit = await Unit.create({
+            company_id: companyId,
+            name: comp?.name ? `${comp.name} — Matriz` : 'Unidade Matriz',
+            slug: 'matriz',
+            address: comp?.address || 'Endereço Principal',
+            phone: comp?.phone || '',
+            whatsapp: comp?.whatsapp || comp?.phone || '',
+            is_main: true,
+            active: true,
+            sort_order: 0,
+          });
+        }
+        return {
+          data: {
+            success: true,
+            unit: mainUnit,
+            units_count: Math.max(1, existingUnits.length),
+          },
+        };
       }
 
       case 'analyzeProfessionalSpecialties': {

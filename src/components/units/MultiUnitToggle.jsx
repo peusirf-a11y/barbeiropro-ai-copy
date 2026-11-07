@@ -1,76 +1,111 @@
-// MultiUnitToggle — liga/desliga o recurso multi-unidade da barbearia.
-// Quando ligado pela primeira vez, dispara o backfill (cria a Matriz e migra os registros).
+// Toggle para ativar/desativar o modo Multi-Unidade na empresa.
+// Quando ativado pela primeira vez, garante que a unidade "Matriz" exista (via backfillUnits).
 
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Building2, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function MultiUnitToggle({ company }) {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const enabled = !!company?.multi_unit_enabled;
+  const [optimisticEnabled, setOptimisticEnabled] = useState(null);
 
-  const updateM = useMutation({
+  useEffect(() => {
+    if (company?.multi_unit_enabled !== undefined) {
+      setOptimisticEnabled(Boolean(company.multi_unit_enabled));
+    }
+  }, [company?.multi_unit_enabled]);
+
+  const enabled = optimisticEnabled !== null ? optimisticEnabled : !!company?.multi_unit_enabled;
+
+  const mutation = useMutation({
     mutationFn: async (value) => {
+      setOptimisticEnabled(value);
       await base44.entities.Company.update(company.id, { multi_unit_enabled: value });
-      // Garante backfill na 1ª ativação (idempotente no backend)
       if (value) {
-        try { await base44.functions.invoke('backfillUnits', {}); } catch { /* ignore */ }
+        try { await base44.functions.invoke('backfillUnits', { company_id: company.id }); } catch { /* ignore */ }
       }
+      return value;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['my-company'] });
-      qc.invalidateQueries({ queryKey: ['units', company.id] });
-      toast({ title: enabled ? 'Multi-unidade desativado' : 'Multi-unidade ativado!' });
+    onSuccess: (value) => {
+      setOptimisticEnabled(value);
+      queryClient.setQueriesData({ queryKey: ['my-company'] }, (old) => {
+        if (!old || typeof old !== 'object') return old;
+        if (old.company) {
+          return {
+            ...old,
+            company: { ...old.company, multi_unit_enabled: value },
+          };
+        }
+        return old;
+      });
+      queryClient.invalidateQueries({ queryKey: ['my-company'] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['units', company.id] });
+      toast({
+        title: value ? 'Multi-unidade ativado!' : 'Multi-unidade desativado',
+        description: value
+          ? 'Agora você pode cadastrar filiais e filtrar dados por unidade.'
+          : 'O sistema voltou a operar como unidade única.',
+      });
     },
     onError: (err) => {
-      toast({ title: 'Erro', description: err?.message, variant: 'destructive' });
+      setOptimisticEnabled(!!company?.multi_unit_enabled);
+      toast({
+        title: 'Erro ao atualizar modo Multi-unidade',
+        description: err?.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
     },
   });
 
-  return (
-    <div className={`rounded-2xl p-5 mb-6 border transition-all ${
-      enabled
-        ? 'bg-blue-500/10 border-blue-400/30 shadow-[0_8px_24px_rgba(37,99,235,0.15)]'
-        : 'bg-white/[0.025] border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl'
-    }`}>
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-start gap-3 min-w-0 flex-1">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-            enabled ? 'bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(37,99,235,0.4)]' : 'bg-white/[0.06] text-white/40'
-          }`}>
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-bold text-white text-sm">Recurso multi-unidade</h3>
-            <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
-              {enabled
-                ? 'Ativo. O seletor de unidade aparece no topo do app e cada unidade tem agenda, financeiro e equipe próprios.'
-                : 'Ative para gerenciar mais de uma unidade da barbearia. Recomendado quando você tem 2+ filiais.'}
-            </p>
-          </div>
-        </div>
+  if (!company) return null;
 
-        <button
-          type="button"
-          onClick={() => updateM.mutate(!enabled)}
-          disabled={updateM.isPending}
-          className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors ${
-            enabled ? 'bg-[#2563EB]' : 'bg-white/20'
-          } disabled:opacity-50`}
-          aria-label="Alternar multi-unidade"
-        >
-          <span
-            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-              enabled ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-          {updateM.isPending && (
-            <Loader2 className="absolute -right-6 w-4 h-4 animate-spin text-[#2563EB]" />
-          )}
-        </button>
+  return (
+    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 flex items-center justify-between gap-4">
+      <div className="flex items-start gap-3">
+        <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] flex items-center justify-center flex-shrink-0 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15">
+          <span className="absolute inset-0 rounded-xl bg-[#60A5FA]/30 blur-md opacity-60" aria-hidden="true" />
+          <Building2 className="relative w-5 h-5 text-white" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-white text-sm">Modo Multi-Unidade</h3>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              enabled
+                ? 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30'
+                : 'bg-white/[0.05] text-white/55 border-white/15'
+            }`}>
+              {enabled ? 'Ativo' : 'Desativado'}
+            </span>
+          </div>
+          <p className="text-xs text-white/55 mt-0.5">
+            Ative se a sua barbearia tem mais de uma unidade física (Matriz + Filiais). Se tem apenas uma, mantenha desligado para uma experiência mais simples.
+          </p>
+        </div>
       </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        aria-label="Modo Multi-Unidade"
+        disabled={mutation.isPending}
+        onClick={() => mutation.mutate(!enabled)}
+        className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 cursor-pointer ${
+          enabled ? 'bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] shadow-[0_4px_12px_rgba(37,99,235,0.4)]' : 'bg-white/15'
+        } ${mutation.isPending ? 'opacity-60' : ''}`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform flex items-center justify-center ${
+            enabled ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        >
+          {mutation.isPending && <Loader2 className="w-3 h-3 animate-spin text-[#60A5FA]" />}
+        </span>
+      </button>
     </div>
   );
 }

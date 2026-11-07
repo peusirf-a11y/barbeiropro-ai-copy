@@ -29,7 +29,8 @@ const SIZE_MAP = {
 };
 
 export default function StandardModal({
-  open,
+  open: openProp,
+  isOpen,
   onClose,
   title,
   children,
@@ -38,6 +39,7 @@ export default function StandardModal({
   hideCloseButton = false,
   className = '',
 }) {
+  const open = openProp ?? isOpen;
   // Altura disponível ajustada conforme o teclado (visualViewport).
   // Quando o teclado abre no mobile, visualViewport.height encolhe — usamos isso
   // para fixar a altura do modal de forma que footer + último campo continuem visíveis.

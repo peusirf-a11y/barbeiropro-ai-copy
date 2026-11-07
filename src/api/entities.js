@@ -92,6 +92,14 @@ const CUSTOMER_COLUMNS = new Set([
   'cpf',
   'avatar_url',
   'status',
+  'notes',
+  'observations',
+  'lifecycle_status',
+  'lifecycle_updated_at',
+  'total_appointments',
+  'last_appointment_at',
+  'last_completed_at',
+  'unit_id',
   'created_at',
   'updated_at',
 ]);
@@ -107,6 +115,11 @@ const FINANCIAL_ENTRY_COLUMNS = new Set([
   'status',
   'payment_method',
   'unit_id',
+  'cash_register_id',
+  'origin',
+  'justification',
+  'professional_id',
+  'customer_id',
   'created_at',
 ]);
 
@@ -301,6 +314,73 @@ export class EntityRepository {
       }
       if (!out.asaas_payment_link_url && billingMeta.asaas_payment_link_url) {
         out.asaas_payment_link_url = billingMeta.asaas_payment_link_url;
+      }
+      try {
+        const localCompanies = getLocalTable('companies');
+        const localMatch = localCompanies.find(
+          lc => (out.id && String(lc.id) === String(out.id)) || (out.slug && lc.slug === out.slug)
+        );
+        if (localMatch) {
+          if (localMatch.multi_unit_enabled !== undefined && out.multi_unit_enabled === undefined) {
+            out.multi_unit_enabled = Boolean(localMatch.multi_unit_enabled);
+          } else if (localMatch.multi_unit_enabled !== undefined && localMatch.updated_at && (!out.updated_at || localMatch.updated_at >= out.updated_at)) {
+            out.multi_unit_enabled = Boolean(localMatch.multi_unit_enabled);
+          }
+          if (localMatch.customers_shared_across_units !== undefined && out.customers_shared_across_units === undefined) {
+            out.customers_shared_across_units = Boolean(localMatch.customers_shared_across_units);
+          }
+          if (localMatch.whatsapp_settings && !out.whatsapp_settings) {
+            out.whatsapp_settings = localMatch.whatsapp_settings;
+          }
+          if (localMatch.crm_settings && !out.crm_settings) {
+            out.crm_settings = localMatch.crm_settings;
+          }
+          if (localMatch.lifecycle_campaigns && !out.lifecycle_campaigns) {
+            out.lifecycle_campaigns = localMatch.lifecycle_campaigns;
+          }
+        }
+      } catch (_) {}
+      return out;
+    }
+    if (this.tableName === 'customers') {
+      const out = { ...row };
+      try {
+        const localCustomers = getLocalTable('customers');
+        const localMatch = localCustomers.find(lc => out.id && String(lc.id) === String(out.id));
+        if (localMatch) {
+          if (localMatch.notes !== undefined && (out.notes === undefined || out.notes === null || out.notes === '')) {
+            out.notes = localMatch.notes;
+          } else if (localMatch.notes !== undefined && localMatch.updated_at && (!out.updated_at || localMatch.updated_at >= out.updated_at)) {
+            out.notes = localMatch.notes;
+          }
+          if (localMatch.name && (!out.name || (localMatch.updated_at && (!out.updated_at || localMatch.updated_at >= out.updated_at)))) {
+            out.name = localMatch.name;
+          }
+          if (localMatch.phone && (!out.phone || (localMatch.updated_at && (!out.updated_at || localMatch.updated_at >= out.updated_at)))) {
+            out.phone = localMatch.phone;
+          }
+          if (localMatch.cpf !== undefined && (!out.cpf || (localMatch.updated_at && (!out.updated_at || localMatch.updated_at >= out.updated_at)))) {
+            out.cpf = localMatch.cpf;
+          }
+          if (localMatch.status && (!out.status || (localMatch.updated_at && (!out.updated_at || localMatch.updated_at >= out.updated_at)))) {
+            out.status = localMatch.status;
+          }
+          if (localMatch.lifecycle_status && !out.lifecycle_status) {
+            out.lifecycle_status = localMatch.lifecycle_status;
+          }
+        }
+      } catch (_) {}
+      if (out.notes === undefined && out.observations !== undefined) {
+        out.notes = out.observations;
+      }
+      if (!out.lifecycle_status) {
+        if (out.status === 'inactive') {
+          out.lifecycle_status = 'inativo';
+        } else if (Number(out.total_appointments) >= 5) {
+          out.lifecycle_status = 'fiel';
+        } else {
+          out.lifecycle_status = 'primeira_visita';
+        }
       }
       return out;
     }
@@ -1063,7 +1143,7 @@ export class EntityRepository {
       }
       return item;
     });
-    if (!updatedLocalItem && !CORE_REMOTE_ONLY_TABLES.has(this.tableName)) {
+    if (!updatedLocalItem) {
       updatedLocalItem = { id, ...rawPatch };
       newItems.unshift(updatedLocalItem);
     }

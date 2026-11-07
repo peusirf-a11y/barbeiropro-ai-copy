@@ -160,7 +160,11 @@ export default function AppCRM() {
           <CRMTransactionalTab company={company} />
         )}
         {tab === 'segments' && (
-          <CRMSegmentsTab customers={customers} />
+          <CRMSegmentsTab
+            customers={customers}
+            company={company}
+            onOpenTemplates={() => handleTabChange('campaigns')}
+          />
         )}
         {tab === 'history' && (
           <CRMHistoryTab messages={messages} />

@@ -40,7 +40,7 @@ export default function PremiumHero() {
               OFERTA DE LANÇAMENTO ATIVA
             </div>
             <p className="text-xs sm:text-sm text-amber-100 font-medium leading-relaxed">
-              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold">R$ 79,90/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold">R$ 79,00/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
             </p>
           </div>
 

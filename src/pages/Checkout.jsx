@@ -455,7 +455,7 @@ export default function Checkout() {
                         OFERTA DE LANÇAMENTO ATIVA
                       </div>
                       <div className="text-sm text-amber-900 mt-0.5 leading-snug">
-                        Plano <strong>Master</strong> com condição especial: <strong>R$ 79,90/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+                        Plano <strong>Master</strong> com condição especial: <strong>R$ {LAUNCH_PROMO.priceFormatted}/mês nos primeiros {LAUNCH_PROMO.durationMonths} meses</strong>. Depois, R$ {LAUNCH_PROMO.afterPriceFormatted}/mês. Experimente com 7 dias grátis.
                       </div>
                     </div>
                   </div>

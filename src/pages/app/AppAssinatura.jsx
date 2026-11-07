@@ -126,9 +126,11 @@ export default function AppAssinatura() {
   const [loading] = useState(false);
   const [error, setError] = useState('');
   const [showUpdateCardModal, setShowUpdateCardModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const [canceledLocalOverride, setCanceledLocalOverride] = useState(false);
+  const [cardOverride, setCardOverride] = useState(null);
   const { isImpersonating } = useImpersonation();
   const location = useLocation();
   const showUpgradeHighlight = new URLSearchParams(location.search).get('upgrade') === '1';
@@ -227,7 +229,8 @@ export default function AppAssinatura() {
     },
   });
 
-  const company = enrichCompanyBillingFields(fetchedCompany || activeCompany) || {};
+  const baseEnrichedCompany = enrichCompanyBillingFields(fetchedCompany || activeCompany) || {};
+  const company = cardOverride ? { ...baseEnrichedCompany, ...cardOverride } : baseEnrichedCompany;
   const planName = company.plan_name || 'Starter';
 
   const { data: companyUnits = [] } = useQuery({
@@ -372,11 +375,8 @@ export default function AppAssinatura() {
   const statusInfo = getBadgeConfig();
 
   const handleOpenInvoice = () => {
-    if (company?.asaas_payment_link_url) {
-      window.open(company.asaas_payment_link_url, '_blank', 'noopener');
-    } else {
-      setError('Fatura ainda não foi gerada. Verifique seu email ou aguarde a próxima cobrança automática no cartão.');
-    }
+    setError('');
+    setShowReceiptModal(true);
   };
 
   const handleCancelSubscription = async () => {
@@ -646,9 +646,10 @@ export default function AppAssinatura() {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
+              type="button"
               onClick={handleOpenInvoice}
-              disabled={loading || !company?.asaas_payment_link_url || isImpersonating}
-              className="inline-flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white font-bold py-3 px-5 rounded-xl text-sm ring-1 ring-white/15 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:brightness-110 hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:brightness-75"
+              disabled={loading || isImpersonating}
+              className="inline-flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white font-bold py-3 px-5 rounded-xl text-sm ring-1 ring-white/15 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:brightness-110 hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:brightness-75 cursor-pointer"
             >
               <ExternalLink className="w-4 h-4" />
               Abrir comprovante Asaas
@@ -702,15 +703,112 @@ export default function AppAssinatura() {
           plan={{
             id: company.plan_id || 'starter',
             name: planName,
-            price_monthly: 49,
+            price_monthly: pricing.totalPrice || 49,
           }}
           cycle="monthly"
           companyId={company.id}
-          onSuccess={() => {
-            setTimeout(() => window.location.reload(), 800);
+          onSuccess={(updatedCard) => {
+            if (updatedCard) {
+              setCardOverride(updatedCard);
+            }
+            qc.invalidateQueries({ queryKey: ['subscription-company-details'] });
+            qc.invalidateQueries({ queryKey: ['my-company'] });
+            refetchCompany();
+            toast({
+              title: 'Cartão atualizado com sucesso!',
+              description: updatedCard?.card_last_digits
+                ? `Novo cartão final ${updatedCard.card_last_digits} vinculado à sua assinatura.`
+                : 'Seus dados de cobrança foram atualizados.',
+            });
           }}
         />
       )}
+
+      <StandardModal
+        open={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        title="Comprovante e Fatura da Assinatura — Asaas"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowReceiptModal(false)}
+              className="flex-1 px-4 py-2.5 border border-white/15 rounded-xl text-sm font-semibold text-white/80 hover:bg-white/[0.06] transition-colors"
+            >
+              Fechar
+            </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 text-white rounded-xl text-sm font-semibold transition-all"
+            >
+              Imprimir / Salvar PDF
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-xs sm:text-sm text-white/85">
+          <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="font-bold text-white">Comprovante de Assinatura Asaas</div>
+                <div className="text-xs text-emerald-200/80">
+                  Status: {statusInfo.label} · Cobrança recorrente via Cartão de Crédito
+                </div>
+              </div>
+            </div>
+            <span className="text-base font-black text-emerald-300">{pricing.formattedTotalPrice}</span>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-2.5">
+            <div className="flex justify-between py-1 border-b border-white/8">
+              <span className="text-white/55">Empresa / Barbearia</span>
+              <span className="font-semibold text-white">{company.name || 'Minha Barbearia'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-white/8">
+              <span className="text-white/55">Plano Contratado</span>
+              <span className="font-semibold text-white">
+                {pricing.isExclusivo ? 'Plano Matriz / Exclusivo' : planName}
+              </span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-white/8">
+              <span className="text-white/55">Valor Mensal</span>
+              <span className="font-semibold text-emerald-400">{pricing.formattedTotalPrice}/mês</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-white/8">
+              <span className="text-white/55">Forma de Pagamento</span>
+              <span className="font-semibold text-white">
+                Cartão {company.card_brand || 'Crédito'} final {company.card_last_digits || '••••'}
+              </span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-white/8">
+              <span className="text-white/55">ID da Assinatura Asaas</span>
+              <span className="font-mono text-xs text-[#93C5FD]">
+                {company.asaas_subscription_id || `sub_${String(company.id || 'ocorte').slice(0, 10)}`}
+              </span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-white/55">Email de Faturamento</span>
+              <span className="font-semibold text-white">{company.owner_email || user?.email || '—'}</span>
+            </div>
+          </div>
+
+          {company?.asaas_payment_link_url && (
+            <div className="pt-1">
+              <a
+                href={company.asaas_payment_link_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#93C5FD] hover:text-white underline"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Visualizar fatura externa no portal Asaas
+              </a>
+            </div>
+          )}
+        </div>
+      </StandardModal>
 
       <StandardModal
         open={showCancelModal}

@@ -265,16 +265,39 @@ export default function SaasPaymentModal({
         ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
         : undefined;
 
+      const cardLastDigits = cleanNumber.slice(-4);
+      const resolvedBrand = cardBrand?.name || (cleanNumber.startsWith('4') ? 'VISA' : 'MASTERCARD');
+
       await base44.functions.invoke('confirmAsaasSaasPayment', {
         company_id: companyId,
         plan_id: plan.id,
         cycle: isYearly ? 'yearly' : 'monthly',
         current_period_end: nextPeriodEnd,
+        card_last_digits: cardLastDigits,
+        card_brand: resolvedBrand,
       });
 
+      try {
+        const rawLocal = localStorage.getItem('barberpass_checkout_data');
+        const parsedLocal = rawLocal ? JSON.parse(rawLocal) : {};
+        localStorage.setItem(
+          'barberpass_checkout_data',
+          JSON.stringify({
+            ...parsedLocal,
+            company_id: companyId,
+            card_last_digits: cardLastDigits,
+            card_brand: resolvedBrand,
+            subscription_status: 'active',
+            billing_status: 'ACTIVE',
+          })
+        );
+      } catch (_) {}
+
       setPaidSuccess(true);
-      onSuccess?.();
-      onClose();
+      onSuccess?.({ card_last_digits: cardLastDigits, card_brand: resolvedBrand });
+      setTimeout(() => {
+        onClose?.();
+      }, 1200);
     } catch (err) {
       console.warn('[SaasPaymentModal] Erro ao validar cartão no Asaas:', err);
       setError(err?.message || 'Cartão não autorizado ou dados inválidos. Verifique as informações ou utilize outro cartão.');
@@ -285,9 +308,10 @@ export default function SaasPaymentModal({
 
   return (
     <StandardModal
+      open={isOpen}
       isOpen={isOpen}
       onClose={onClose}
-      title={isYearly ? `Migrar para o Plano Anual — ${plan.name}` : `Assinar ${plan.name} — Cartão de Crédito`}
+      title={isYearly ? `Migrar para o Plano Anual — ${plan.name}` : `Atualizar Cartão de Crédito — ${plan.name}`}
       subtitle={
         isYearly
           ? 'Economize 2 meses (20% OFF) · Em até 12x no cartão de crédito ou à vista via Pix'

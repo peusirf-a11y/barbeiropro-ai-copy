@@ -771,7 +771,7 @@ export async function handleAsaasSubscription(payload = {}) {
       id: payload.plan_id || 'master',
       slug: payload.plan_slug || 'master',
       name: isLaunchPromo ? 'Master' : (payload.plan_name || payload.plan || 'Master'),
-      value: payload.value || payload.price || (isLaunchPromo ? 79.90 : 119.00),
+      value: payload.value || payload.price || (isLaunchPromo ? 79.00 : 119.00),
     };
 
     const creditCard = payload.creditCard || payload.card || {};
@@ -944,7 +944,7 @@ export async function handleAsaasSubscription(payload = {}) {
       } catch (_) {}
     }
 
-    let planValue = Number(plan.value || (isLaunchPromo ? 79.90 : 119.00));
+    let planValue = Number(plan.value || (isLaunchPromo ? 79.00 : 119.00));
     if (isExclusivoPlan) {
       const baseMatrizPrice = Number(plan.value) > 0 ? Number(plan.value) : 249.00;
       planValue = baseMatrizPrice + (extraBranches * 90.00);

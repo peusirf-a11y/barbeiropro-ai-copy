@@ -27,7 +27,7 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
           className="text-center max-w-4xl mx-auto"
         >
           <div className="flex justify-center mb-6">
-            <SectionBadge icon={Rocket}>OFERTA DE LANÇAMENTO ATIVA · Plano Master R$ 79,90/mês</SectionBadge>
+            <SectionBadge icon={Rocket}>OFERTA DE LANÇAMENTO ATIVA · Plano Master R$ 79,00/mês</SectionBadge>
           </div>
 
           <h1 className="text-[40px] sm:text-6xl md:text-7xl lg:text-[80px] font-black leading-[0.97] tracking-[-0.03em] mb-6">
@@ -50,7 +50,7 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
               OFERTA DE LANÇAMENTO ATIVA
             </div>
             <p className="text-xs sm:text-sm text-amber-100 font-medium leading-relaxed">
-              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold">R$ 79,90/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold">R$ 79,00/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
             </p>
           </div>
 

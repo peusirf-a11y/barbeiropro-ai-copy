@@ -149,20 +149,37 @@ export default function AppCaixa() {
 
   const closeMutation = useMutation({
     mutationFn: async (data) => {
+      const parsedAmount = Number(String(data.final_amount ?? 0).replace(',', '.'));
+      const finalAmount = Number.isFinite(parsedAmount) ? parsedAmount : 0;
       const res = await base44.functions.invoke('closeCashRegister', {
         register_id: openCash.id,
-        final_amount: +data.final_amount || 0,
+        final_amount: finalAmount,
         notes: data.notes,
       });
       if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao fechar caixa');
       return res.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cash-registers', companyId, activeUnitId] });
+    onSuccess: (resData) => {
+      const closedReg = resData?.register;
+      queryClient.setQueryData(['cash-registers', companyId, activeUnitId], (old = []) =>
+        Array.isArray(old)
+          ? old.map((r) =>
+              String(r.id) === String(openCash?.id)
+                ? {
+                    ...r,
+                    ...(closedReg || {}),
+                    status: 'fechado',
+                    closed_at: closedReg?.closed_at || new Date().toISOString(),
+                  }
+                : r
+            )
+          : old
+      );
+      queryClient.invalidateQueries({ queryKey: ['cash-registers'] });
       setShowClose(false);
       setCloseForm({ final_amount: '', notes: '' });
     },
-    onError: (err) => alert(err.message || 'Erro ao fechar caixa'),
+    onError: (err) => console.error('[AppCaixa] Erro ao fechar caixa:', err),
   });
 
   // BFF Fase 7: criação via mutateFinancialEntry action='create'.

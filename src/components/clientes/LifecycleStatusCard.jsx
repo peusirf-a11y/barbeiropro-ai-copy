@@ -15,7 +15,7 @@ const LIFECYCLE_LABELS = {
 };
 
 export default function LifecycleStatusCard({ customer }) {
-  const status = customer?.lifecycle_status;
+  const status = customer?.lifecycle_status || 'primeira_visita';
   const meta = status ? LIFECYCLE_LABELS[status] : null;
   const updatedAt = customer?.lifecycle_updated_at;
 

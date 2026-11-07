@@ -5,8 +5,10 @@ import { getPaymentMethodLabel, getPaymentMethodIcon } from '@/lib/cashRegister'
 const fmt = (v) => `R$ ${(Number(v) || 0).toFixed(2).replace('.', ',')}`;
 
 export default function CloseCashModal({ open, onClose, totals, form, setForm, onConfirm, loading }) {
-  const disabled = !form.final_amount && form.final_amount !== '0';
-  const counted = Number(form.final_amount) || 0;
+  const rawStr = String(form.final_amount ?? '').trim();
+  const disabled = rawStr === '';
+  const parsedCounted = Number(rawStr.replace(',', '.'));
+  const counted = Number.isFinite(parsedCounted) ? parsedCounted : 0;
   const diff = +(counted - (totals?.expected || 0)).toFixed(2);
   const breakdownEntries = Object.entries(totals?.breakdown || {});
 

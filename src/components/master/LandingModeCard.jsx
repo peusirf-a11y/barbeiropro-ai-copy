@@ -53,7 +53,7 @@ export default function LandingModeCard() {
           key: FLAG_KEY,
           enabled,
           scope: 'global',
-          description: 'Quando ativada, /landing exibe a landing de lançamento (Plano Master R$ 79,90/mês).',
+          description: 'Quando ativada, /landing exibe a landing de lançamento (Plano Master R$ 79,00/mês).',
         });
         if (created?.id) setFlagId(created.id);
       }
@@ -103,7 +103,7 @@ export default function LandingModeCard() {
       id: 'launch',
       icon: Rocket,
       title: 'Landing de lançamento',
-      desc: 'Oferta Plano Master: R$ 79,90/mês nos primeiros 3 meses (depois R$ 119,00/mês) com 7 dias grátis.',
+      desc: 'Oferta Plano Master: R$ 79,00/mês nos primeiros 3 meses (depois R$ 119,00/mês) com 7 dias grátis.',
     },
   ];
 

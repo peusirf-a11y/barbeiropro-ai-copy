@@ -46,7 +46,7 @@ export default function LaunchFinalCTA() {
             </h2>
 
             <p className="text-base md:text-lg text-white/65 max-w-xl mx-auto mb-10 leading-relaxed">
-              Plano Master com condição especial: R$ 79,90/mês nos primeiros 3 meses. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+              Plano Master com condição especial: R$ 79,00/mês nos primeiros 3 meses. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

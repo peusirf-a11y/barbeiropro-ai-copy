@@ -98,26 +98,60 @@ export default function AppClientes() {
     return res?.data;
   };
 
+  const customersQueryKey = buildTenantQueryKey({ entity: 'customers', companyId, filters: { activeUnitId } });
+
   const createMutation = useMutation({
     mutationFn: (data) => invokeMutation({ action: 'create', data, active_unit_id: activeUnitId }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) }); closeForm(); },
+    onSuccess: (res) => {
+      const created = res?.customer;
+      if (created?.id) {
+        queryClient.setQueryData(customersQueryKey, (old = []) => [
+          created,
+          ...(Array.isArray(old) ? old.filter(c => String(c.id) !== String(created.id)) : []),
+        ]);
+      }
+      queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      closeForm();
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => invokeMutation({ action: 'update', id, data }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) }); closeForm(); },
+    onSuccess: (res, variables) => {
+      const updated = res?.customer;
+      const mergedPatch = { ...(variables?.data || {}), ...(updated || {}) };
+      queryClient.setQueryData(customersQueryKey, (old = []) =>
+        Array.isArray(old)
+          ? old.map(c => (String(c.id) === String(variables.id) ? { ...c, ...mergedPatch } : c))
+          : old
+      );
+      queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      closeForm();
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => invokeMutation({ action: 'delete', id }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
   });
 
   const closeForm = () => { setShowForm(false); setEditing(null); setForm(emptyForm); };
 
   const openEdit = (c) => {
     setEditing(c);
-    setForm({ name: c.name, phone: c.phone || '', email: c.email || '', notes: c.notes || '', status: c.status || 'active', tags: c.tags || [] });
+    setForm({
+      name: c.name,
+      phone: c.phone || '',
+      email: c.email || '',
+      notes: c.notes ?? c.observations ?? '',
+      status: c.status || 'active',
+      tags: c.tags || [],
+    });
     setShowForm(true);
   };
 
@@ -131,12 +165,19 @@ export default function AppClientes() {
     return customerAppts.length;
   };
 
+  const getEffectiveLifecycle = (c) => {
+    if (c?.lifecycle_status) return c.lifecycle_status;
+    if (c?.status === 'inactive') return 'inativo';
+    if (Number(c?.total_appointments) >= 5) return 'fiel';
+    return 'primeira_visita';
+  };
+
   const filtered = customers.filter(c => {
     const matchSearch = (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search);
     let matchFilter = true;
     if (filter === 'vip') matchFilter = c.status === 'vip';
     else if (['primeira_visita', 'fiel', 'em_risco', 'inativo', 'perdido'].includes(filter)) {
-      matchFilter = c.lifecycle_status === filter;
+      matchFilter = getEffectiveLifecycle(c) === filter;
     }
     return matchSearch && matchFilter;
   });
@@ -144,7 +185,8 @@ export default function AppClientes() {
   // Contadores por categoria — exibidos nos chips de filtro
   const counts = customers.reduce((acc, c) => {
     if (c.status === 'vip') acc.vip++;
-    if (c.lifecycle_status) acc[c.lifecycle_status] = (acc[c.lifecycle_status] || 0) + 1;
+    const lc = getEffectiveLifecycle(c);
+    if (lc) acc[lc] = (acc[lc] || 0) + 1;
     return acc;
   }, { vip: 0, primeira_visita: 0, fiel: 0, em_risco: 0, inativo: 0, perdido: 0 });
 
