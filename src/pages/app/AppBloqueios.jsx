@@ -76,7 +76,13 @@ export default function AppBloqueios() {
           };
       return base44.entities.BlockedTime.create(payload);
     },
-    onSuccess: () => {
+    onSuccess: (createdBlock) => {
+      if (createdBlock) {
+        queryClient.setQueryData(['blocked-times', companyId], (old = []) => [
+          createdBlock,
+          ...(Array.isArray(old) ? old.filter(b => String(b.id) !== String(createdBlock.id)) : []),
+        ]);
+      }
       queryClient.invalidateQueries({ queryKey: ['blocked-times'] });
       setShowForm(false);
       setForm(emptyForm);
@@ -85,6 +91,11 @@ export default function AppBloqueios() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.BlockedTime.delete(id),
+    onMutate: async (id) => {
+      queryClient.setQueryData(['blocked-times', companyId], (old = []) =>
+        Array.isArray(old) ? old.filter(b => String(b.id) !== String(id)) : []
+      );
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['blocked-times'] }),
   });
 
@@ -280,7 +291,12 @@ function BlockList({ title, items, proName, onDelete, muted }) {
                 </div>
                 <div className="text-xs text-white/55 truncate mt-0.5">{description}</div>
               </div>
-              <button onClick={() => { if (confirm('Remover bloqueio?')) onDelete(b.id); }} className="text-white/35 hover:text-rose-300 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors">
+              <button
+                type="button"
+                aria-label={`Remover bloqueio ${b.reason || ''}`}
+                onClick={() => onDelete(b.id)}
+                className="text-white/35 hover:text-rose-300 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>

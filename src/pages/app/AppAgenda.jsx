@@ -47,7 +47,7 @@ export default function AppAgenda() {
   const [showNewForm, setShowNewForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
-  const [slotInterval, setSlotInterval] = useState(10); // 10 ou 15 min
+  const [slotInterval, setSlotInterval] = useState(15); // Padrão: 15 min (opções: 5, 10, 15, 30 min)
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const impPatch = useImpersonationPatch();
@@ -477,17 +477,33 @@ export default function AppAgenda() {
                 {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </FilterSelect>
             )}
-            <div className="hidden sm:flex items-center bg-white/[0.03] border border-white/10 rounded-xl p-1 backdrop-blur-sm">
-              {[10, 15].map(v => (
-                <button
-                  key={v}
-                  onClick={() => setSlotInterval(v)}
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all ${slotInterval === v ? 'bg-gradient-to-br from-[#2563EB] to-[#3B82F6] text-white shadow-[0_4px_12px_rgba(37,99,235,0.4)]' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
-                  title={`Intervalo ${v} minutos`}
-                >
-                  {v}min
-                </button>
-              ))}
+            <div
+              role="group"
+              aria-label="Escala de tempo da agenda"
+              data-testid="agenda-time-scale"
+              data-active-scale={`${slotInterval}min`}
+              className="flex items-center gap-0.5 bg-white/[0.03] border border-white/10 rounded-xl p-1 backdrop-blur-sm"
+            >
+              {[5, 10, 15, 30].map(v => {
+                const isActive = slotInterval === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    data-testid={`agenda-scale-${v}min`}
+                    aria-pressed={isActive}
+                    onClick={() => setSlotInterval(v)}
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-br from-[#2563EB] to-[#3B82F6] text-white shadow-[0_4px_12px_rgba(37,99,235,0.4)]'
+                        : 'text-white/60 hover:bg-white/5 hover:text-white'
+                    }`}
+                    title={v === 15 ? `Intervalo padrão (${v} minutos)` : `Intervalo ${v} minutos`}
+                  >
+                    {v}min
+                  </button>
+                );
+              })}
             </div>
             <div className="flex items-center gap-1 bg-white/[0.03] border border-white/10 rounded-xl p-1 backdrop-blur-sm">
               <button onClick={() => setCurrentDate(d => addDays(d, -1))} aria-label="Dia anterior" className="p-1.5 hover:bg-white/5 rounded-lg text-white/70">

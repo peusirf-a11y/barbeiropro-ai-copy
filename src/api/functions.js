@@ -4407,9 +4407,6 @@ export async function invokeFunction(functionName, payload = {}) {
         const closedAt = new Date().toISOString();
 
         const updatedRegister = await entities.CashRegister.update(registerId, {
-          ...(existing || {}),
-          id: registerId,
-          company_id: existing?.company_id || companyId,
           status: 'fechado',
           closed_at: closedAt,
           final_amount: finalAmount,
@@ -4419,10 +4416,40 @@ export async function invokeFunction(functionName, payload = {}) {
           notes: payload.notes !== undefined ? payload.notes : (existing?.notes || ''),
         });
 
+        try {
+          const targetCompanyId = existing?.company_id || companyId;
+          if (targetCompanyId) {
+            const allCompanyRegs = await entities.CashRegister.filter({ company_id: targetCompanyId }, '-opened_at', 50);
+            for (const reg of allCompanyRegs || []) {
+              if (reg && reg.status === 'aberto' && String(reg.id) !== String(registerId)) {
+                await entities.CashRegister.update(reg.id, {
+                  status: 'fechado',
+                  closed_at: closedAt,
+                  final_amount: Number(reg.initial_amount || 0),
+                  expected_amount: Number(reg.initial_amount || 0),
+                  difference: 0,
+                });
+              }
+            }
+          }
+        } catch (_) {}
+
         return {
           data: {
             success: true,
-            register: updatedRegister,
+            register: {
+              ...(existing || {}),
+              ...(updatedRegister || {}),
+              id: registerId,
+              company_id: existing?.company_id || companyId,
+              status: 'fechado',
+              closed_at: closedAt,
+              final_amount: finalAmount,
+              expected_amount: expectedAmount,
+              difference,
+              payment_breakdown: paymentBreakdown,
+              notes: payload.notes !== undefined ? payload.notes : (existing?.notes || ''),
+            },
           },
         };
       }

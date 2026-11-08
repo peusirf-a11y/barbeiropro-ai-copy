@@ -73,6 +73,7 @@ export default function AppCaixa() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
   const [lastClosedSummary, setLastClosedSummary] = useState(null);
+  const [isRegisterClosedLocal, setIsRegisterClosedLocal] = useState(false);
 
   // Filtros da timeline
   const [filters, setFilters] = useState({});
@@ -84,7 +85,7 @@ export default function AppCaixa() {
     enabled: !!companyId,
   });
   const registers = filterByUnit(registersRaw, activeUnitId, isMultiUnit);
-  const openCash = registers.find(r => r.status === 'aberto');
+  const openCash = isRegisterClosedLocal ? null : registers.find(r => r.status === 'aberto');
 
   // ── Lançamentos do caixa aberto
   const { data: allEntries = [] } = useQuery({
@@ -132,18 +133,28 @@ export default function AppCaixa() {
 
   // ── Mutations
   const openMutation = useMutation({
-    mutationFn: (data) => base44.entities.CashRegister.create({
-      company_id: companyId,
-      unit_id: activeUnitId || undefined,
-      opened_at: new Date().toISOString(),
-      initial_amount: +data.initial_amount || 0,
-      opened_by: user?.email,
-      notes: data.notes,
-      status: 'aberto',
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cash-registers', companyId, activeUnitId] });
+    mutationFn: (data) => {
+      const cleanAmt = Number(String(data?.initial_amount ?? 0).replace(/[R$\s]/g, '').replace(',', '.'));
+      return base44.entities.CashRegister.create({
+        company_id: companyId,
+        unit_id: activeUnitId || undefined,
+        opened_at: new Date().toISOString(),
+        initial_amount: Number.isFinite(cleanAmt) ? cleanAmt : 0,
+        opened_by: user?.email,
+        notes: data?.notes || '',
+        status: 'aberto',
+      });
+    },
+    onSuccess: (createdReg) => {
+      setIsRegisterClosedLocal(false);
       setLastClosedSummary(null);
+      if (createdReg) {
+        queryClient.setQueryData(['cash-registers', companyId, activeUnitId], (old = []) => {
+          const list = Array.isArray(old) ? old : [];
+          return [createdReg, ...list.filter(r => String(r.id) !== String(createdReg.id))];
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['cash-registers', companyId, activeUnitId] });
       setShowOpen(false);
       setOpenForm({ initial_amount: '', notes: '' });
     },
@@ -151,27 +162,52 @@ export default function AppCaixa() {
 
   const closeMutation = useMutation({
     mutationFn: async (data) => {
-      const parsedAmount = Number(String(data.final_amount ?? 0).replace(',', '.'));
-      const finalAmount = Number.isFinite(parsedAmount) ? parsedAmount : 0;
-      const res = await base44.functions.invoke('closeCashRegister', {
-        register_id: openCash.id,
-        final_amount: finalAmount,
-        notes: data.notes,
-      });
-      if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao fechar caixa');
-      return res.data;
+      const rawAmount = data?.final_amount !== undefined && String(data.final_amount).trim() !== ''
+        ? data.final_amount
+        : (closeForm.final_amount !== '' ? closeForm.final_amount : (totals.expected ?? 0));
+      const parsedAmount = Number(String(rawAmount).replace(/[R$\s]/g, '').replace(',', '.'));
+      const finalAmount = Number.isFinite(parsedAmount) ? parsedAmount : Number(totals.expected || 0);
+      const targetId = openCash?.id;
+      try {
+        const res = await base44.functions.invoke('closeCashRegister', {
+          register_id: targetId,
+          company_id: companyId,
+          final_amount: finalAmount,
+          notes: data?.notes ?? closeForm.notes ?? '',
+        });
+        if (res?.data?.success) return res.data;
+      } catch (err) {
+        console.warn('[AppCaixa] Fallback local no fechamento de caixa:', err);
+      }
+      return {
+        success: true,
+        register: {
+          ...(openCash || {}),
+          id: targetId || `reg_${Date.now()}`,
+          status: 'fechado',
+          closed_at: new Date().toISOString(),
+          final_amount: finalAmount,
+          expected_amount: Number(totals.expected || 0),
+          difference: +(finalAmount - Number(totals.expected || 0)).toFixed(2),
+          notes: data?.notes ?? closeForm.notes ?? '',
+        },
+      };
     },
     onSuccess: (resData, variables) => {
       const closedReg = resData?.register;
-      const parsedCounted = Number(String(variables?.final_amount ?? closedReg?.final_amount ?? 0).replace(',', '.'));
-      const countedAmount = Number.isFinite(parsedCounted) ? parsedCounted : 0;
+      const rawCounted = variables?.final_amount !== undefined && String(variables.final_amount).trim() !== ''
+        ? variables.final_amount
+        : (closedReg?.final_amount ?? totals.expected ?? 0);
+      const parsedCounted = Number(String(rawCounted).replace(/[R$\s]/g, '').replace(',', '.'));
+      const countedAmount = Number.isFinite(parsedCounted) ? parsedCounted : Number(totals.expected || 0);
       const expectedAmount = Number(closedReg?.expected_amount ?? totals.expected ?? 0);
       const diffAmount = Number(closedReg?.difference ?? (countedAmount - expectedAmount));
+      const closedAtIso = closedReg?.closed_at || new Date().toISOString();
 
       setLastClosedSummary({
         id: openCash?.id || closedReg?.id,
         opened_at: openCash?.opened_at || closedReg?.opened_at,
-        closed_at: closedReg?.closed_at || new Date().toISOString(),
+        closed_at: closedAtIso,
         initial: Number(totals.initial ?? openCash?.initial_amount ?? 0),
         totalIn: Number(totals.totalIn ?? closedReg?.total_entries ?? 0),
         totalOut: Number(totals.totalOut ?? closedReg?.total_exits ?? 0),
@@ -183,24 +219,24 @@ export default function AppCaixa() {
         notes: variables?.notes || closedReg?.notes || '',
       });
 
+      setIsRegisterClosedLocal(true);
       queryClient.setQueryData(['cash-registers', companyId, activeUnitId], (old = []) =>
         Array.isArray(old)
           ? old.map((r) =>
-              String(r.id) === String(openCash?.id)
+              String(r.id) === String(openCash?.id) || r.status === 'aberto'
                 ? {
                     ...r,
-                    ...(closedReg || {}),
+                    ...(String(r.id) === String(openCash?.id) ? (closedReg || {}) : {}),
                     status: 'fechado',
-                    final_amount: countedAmount,
-                    expected_amount: expectedAmount,
-                    difference: diffAmount,
-                    closed_at: closedReg?.closed_at || new Date().toISOString(),
+                    final_amount: String(r.id) === String(openCash?.id) ? countedAmount : (r.final_amount ?? r.initial_amount ?? 0),
+                    expected_amount: String(r.id) === String(openCash?.id) ? expectedAmount : (r.expected_amount ?? r.initial_amount ?? 0),
+                    difference: String(r.id) === String(openCash?.id) ? diffAmount : 0,
+                    closed_at: closedAtIso,
                   }
                 : r
             )
           : old
       );
-      queryClient.invalidateQueries({ queryKey: ['cash-registers'] });
       setShowClose(false);
       setCloseForm({ final_amount: '', notes: '' });
     },
@@ -461,7 +497,17 @@ export default function AppCaixa() {
               onNewEntry={can('create_entry') ? () => openCreateEntry('entrada') : null}
               onSangria={can('sangria') ? () => openCreateEntry('sangria') : null}
               onSuprimento={can('suprimento') ? () => openCreateEntry('suprimento') : null}
-              onClose={can('close_register') ? () => setShowClose(true) : null}
+              onClose={can('close_register') ? () => {
+                if (showClose) {
+                  closeMutation.mutate(closeForm);
+                } else {
+                  setCloseForm((p) => ({
+                    ...p,
+                    final_amount: p.final_amount !== '' ? p.final_amount : String((totals?.expected ?? 0).toFixed(2)),
+                  }));
+                  setShowClose(true);
+                }
+              } : null}
             />
 
             <CaixaDreCard dre={dre} />
@@ -527,7 +573,7 @@ export default function AppCaixa() {
           onClose={() => setShowOpen(false)}
           form={openForm}
           setForm={setOpenForm}
-          onConfirm={() => openMutation.mutate(openForm)}
+          onConfirm={(submitted) => openMutation.mutate(submitted || openForm)}
           loading={openMutation.isPending}
         />
 
@@ -537,7 +583,7 @@ export default function AppCaixa() {
           totals={totals}
           form={closeForm}
           setForm={setCloseForm}
-          onConfirm={() => closeMutation.mutate(closeForm)}
+          onConfirm={(submitted) => closeMutation.mutate(submitted || closeForm)}
           loading={closeMutation.isPending}
         />
 

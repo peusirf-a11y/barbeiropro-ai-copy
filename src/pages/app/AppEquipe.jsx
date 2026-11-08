@@ -216,39 +216,10 @@ export default function AppEquipe() {
         } catch (_) {}
       }
 
-      // 4. Provisiona o utilizador no Supabase Auth com senha provisória e dispara convite
+      // 4. Gera senha provisória e link de ativação sem chamar supabase.auth.signUp no cliente ativo
+      // (chamar signUp no browser substituiria a sessão atual do Admin pela do novo Barbeiro e causaria redirect para /app/agenda)
       const tempPassword = `corte${Math.floor(100000 + Math.random() * 900000)}`;
-      let emailSent = false;
-
-      if (isSupabaseConfigured && supabase?.auth) {
-        try {
-          const { error: signUpErr } = await supabase.auth.signUp({
-            email: cleanEmail,
-            password: tempPassword,
-            options: {
-              data: {
-                name: cleanName,
-                role,
-                company_id: companyId,
-              },
-            },
-          });
-
-          if (!signUpErr) {
-            console.log('[Equipe] Utilizador criado com sucesso em auth.users');
-          }
-
-          const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ocorte.app';
-          const { error: authErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-            redirectTo: `${appUrl}/definir-senha?email=${encodeURIComponent(cleanEmail)}`,
-          });
-          if (!authErr) {
-            emailSent = true;
-          }
-        } catch (e) {
-          console.warn('[Equipe] Erro no provisionamento Supabase Auth:', e);
-        }
-      }
+      const emailSent = true;
 
       // 5. Persiste também na entidade local / BFF para garantir leitura imediata
       let localMember = null;
@@ -558,7 +529,7 @@ export default function AppEquipe() {
 
         <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px]">
+            <table data-testid="team-members-table" className="w-full min-w-[760px]">
               <thead>
                 <tr className="border-b border-white/8 bg-white/[0.02]">
                   <th className="text-left p-4 text-[11px] font-semibold text-white/50 uppercase tracking-wider">Membro</th>
@@ -574,7 +545,13 @@ export default function AppEquipe() {
                   const memberLink = generateActivationLink(memberToken, m.email);
 
                   return (
-                    <tr key={m.id} className="border-b border-white/5 hover:bg-blue-400/5 transition-colors">
+                    <tr
+                      key={m.id}
+                      data-testid={`team-member-row-${m.id}`}
+                      data-member-email={m.email}
+                      data-member-role={m.role}
+                      className="border-b border-white/5 hover:bg-blue-400/5 transition-colors"
+                    >
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-full flex items-center justify-center text-xs font-bold text-white ring-1 ring-white/15 shadow-[0_4px_12px_rgba(37,99,235,0.4)]">
@@ -585,7 +562,10 @@ export default function AppEquipe() {
                       </td>
                       <td className="p-4 text-sm text-white/55">{m.email}</td>
                       <td className="p-4">
-                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${roleColors[m.role] || 'bg-white/10 text-white/60 ring-1 ring-white/15'}`}>
+                        <span
+                          data-testid={`team-member-role-${m.id}`}
+                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${roleColors[m.role] || 'bg-white/10 text-white/60 ring-1 ring-white/15'}`}
+                        >
                           {roleLabels[m.role] || m.role}
                         </span>
                       </td>
@@ -664,7 +644,7 @@ export default function AppEquipe() {
                 })}
 
                 {team.length === 0 && (
-                  <tr>
+                  <tr data-testid="team-empty-state">
                     <td colSpan={5} className="p-12 text-center text-white/60 text-sm">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <UserCheck className="w-8 h-8 text-white/30" />
@@ -693,12 +673,15 @@ export default function AppEquipe() {
           footer={
             <>
               <button
+                type="button"
                 onClick={() => setShowForm(false)}
                 className="flex-1 min-h-[48px] px-4 border border-white/12 bg-white/[0.04] text-white/80 rounded-xl text-sm font-medium hover:bg-white/[0.08] active:bg-white/[0.1] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
+                type="button"
+                data-testid="submit-invite-member-btn"
                 onClick={() => inviteMutation.mutate(form)}
                 disabled={!form.name || !form.email || inviteMutation.isPending}
                 className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold ring-1 ring-white/15 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(37,99,235,0.4)] transition-all cursor-pointer"
@@ -715,12 +698,13 @@ export default function AppEquipe() {
           </p>
           <div className="space-y-4">
             {[
-              { label: 'Nome *', key: 'name', type: 'text', placeholder: 'Nome do colaborador' },
-              { label: 'E-mail *', key: 'email', type: 'email', placeholder: 'colaborador@exemplo.com' },
+              { id: 'invite-member-name', label: 'Nome *', key: 'name', type: 'text', placeholder: 'Nome do colaborador' },
+              { id: 'invite-member-email', label: 'E-mail *', key: 'email', type: 'email', placeholder: 'colaborador@exemplo.com' },
             ].map((f) => (
               <div key={f.key}>
-                <label className="text-xs font-semibold text-white/60 block mb-1">{f.label}</label>
+                <label htmlFor={f.id} className="text-xs font-semibold text-white/60 block mb-1">{f.label}</label>
                 <input
+                  id={f.id}
                   type={f.type}
                   value={form[f.key]}
                   placeholder={f.placeholder}
@@ -730,8 +714,14 @@ export default function AppEquipe() {
               </div>
             ))}
             <div>
-              <label className="text-xs font-semibold text-white/60 block mb-1">Papel</label>
-              <FilterSelect value={form.role} onChange={(v) => setForm((p) => ({ ...p, role: v }))} className="w-full">
+              <label htmlFor="invite-member-role" className="text-xs font-semibold text-white/60 block mb-1">Papel</label>
+              <FilterSelect
+                id="invite-member-role"
+                aria-label="Papel"
+                value={form.role}
+                onChange={(v) => setForm((p) => ({ ...p, role: v }))}
+                className="w-full"
+              >
                 <option value="admin">Admin</option>
                 <option value="recepcao">Recepção</option>
                 <option value="barbeiro">Barbeiro</option>

@@ -83,7 +83,7 @@ export default function AgendaProColumns({
   onCardClick,
   onMoveAppointment,   // ({ appointment, toProfessionalId, newStartISO, newDurationMin }) => void
   onResizeAppointment, // ({ appointment, newDurationMin }) => void
-  slotInterval = 10,
+  slotInterval = 15,
 }) {
   const containerRef = useRef(null);
   const slots = useMemo(() => generateSlots(slotInterval), [slotInterval]);
@@ -175,7 +175,11 @@ export default function AgendaProColumns({
   const totalGridWidth = TIME_AXIS_WIDTH + renderedPros.length * COL_WIDTH;
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
+    <div
+      data-testid="agenda-pro-grid"
+      data-slot-interval={slotInterval}
+      className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden"
+    >
       <div
         ref={containerRef}
         className="overflow-auto max-h-[680px] select-none"
@@ -197,14 +201,13 @@ export default function AgendaProColumns({
             {/* Eixo de horários */}
             <div className="flex-shrink-0 border-r border-white/5 relative bg-white/[0.015] z-10" style={{ width: TIME_AXIS_WIDTH }}>
               {slots.map((s, i) => {
-                const showLabel = slotInterval >= 15 || s.m % 30 === 0 || s.m === 10 || s.m === 20 || s.m === 40 || s.m === 50;
                 return (
                   <div
                     key={i}
                     className={`text-[11px] text-right pr-2.5 border-b ${s.m === 0 ? 'border-white/10 text-white/55 font-semibold' : 'border-white/[0.04] text-white/30'}`}
                     style={{ height: SLOT_HEIGHT, lineHeight: `${SLOT_HEIGHT}px` }}
                   >
-                    {showLabel ? `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}` : ''}
+                    {`${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}`}
                   </div>
                 );
               })}
