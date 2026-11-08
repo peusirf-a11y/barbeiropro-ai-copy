@@ -6,12 +6,36 @@ import GlowButton from '@/components/landing/GlowButton';
 import SectionBadge from '@/components/landing/SectionBadge';
 
 const INCLUDED = [
-  'Agendamento online com link público',
-  'Gestão completa de clientes e histórico',
-  'Gestão financeira e caixa diário',
-  'Gestão da equipe e comissões',
-  'Relatórios e indicadores em tempo real',
-  'Atualizações inclusas para sempre',
+  {
+    title: 'Agendamento online com link público',
+    desc: 'Página exclusiva /agendar/:slug 24h com confirmação imediata.',
+    tag: 'Essencial · Plano Master',
+  },
+  {
+    title: 'CRM de retenção & clientes VIP',
+    desc: 'Histórico completo, alertas de retorno e fidelização inteligente.',
+    tag: 'Plano Master · IA Retenção',
+  },
+  {
+    title: 'Gestão financeira e caixa diário',
+    desc: 'Abertura/fechamento de caixa, Pix Asaas e clubes de assinatura.',
+    tag: 'Plano Master · Financeiro',
+  },
+  {
+    title: 'Gestão da equipe e comissões',
+    desc: 'Cálculo automático de percentuais por serviço e barbeiro.',
+    tag: 'Plano Master · Equipe',
+  },
+  {
+    title: 'Relatórios e indicadores em tempo real',
+    desc: 'DRE operacional, ticket médio, horários de pico e exportação.',
+    tag: 'Plano Master · BI',
+  },
+  {
+    title: 'Automação de WhatsApp & Avaliações',
+    desc: 'Lembretes anti-falta automáticos e coleta de reviews pós-corte.',
+    tag: 'Plano Master · Automação',
+  },
 ];
 
 export default function LaunchOffer({ vagasRestantes }) {
@@ -82,21 +106,33 @@ export default function LaunchOffer({ vagasRestantes }) {
                 </div>
               </div>
 
-              {/* Coluna features */}
+              {/* Coluna features em Cards Comerciais */}
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-white/55 mb-4">
-                  Tudo isso incluso:
+                <div className="text-[10px] font-bold uppercase tracking-wider text-white/55 mb-3">
+                  Catálogo Comercial — Recursos do Plano Master:
                 </div>
-                <ul className="space-y-2.5">
+                <div className="grid grid-cols-1 gap-2.5">
                   {INCLUDED.map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <span className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center">
-                        <Check className="w-3 h-3 text-emerald-300" />
-                      </span>
-                      <span className="text-sm text-white/85">{item}</span>
-                    </li>
+                    <div
+                      key={item.title}
+                      data-testid="launch-master-feature-card"
+                      className="rounded-xl border border-white/10 bg-white/[0.04] p-3 hover:border-[#60A5FA]/40 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="flex-shrink-0 w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5 text-emerald-300" />
+                          </span>
+                          <span className="text-xs sm:text-sm font-bold text-white">{item.title}</span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 whitespace-nowrap">
+                          {item.tag}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/65 leading-relaxed pl-6">{item.desc}</p>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             </div>
           </div>

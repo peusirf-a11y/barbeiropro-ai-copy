@@ -29,7 +29,13 @@ export default function ComplianceAudit({ auditLogs = [], privacyLogs = [], comp
 
   const filtered = useMemo(() => logs.filter(l => {
     if (filterSev    && String(l.severity || '').toLowerCase() !== filterSev.toLowerCase()) return false;
-    if (filterCo     && l.company_id !== filterCo)        return false;
+    if (filterCo) {
+      const coQ = String(filterCo).trim().toLowerCase();
+      const matchCo =
+        String(l.company_id || '').toLowerCase().includes(coQ) ||
+        String(l.target_id || '').toLowerCase().includes(coQ);
+      if (!matchCo) return false;
+    }
     if (filterAction && !String(l.action || '').toUpperCase().includes(filterAction.toUpperCase())) return false;
     return true;
   }), [logs, filterSev, filterCo, filterAction]);

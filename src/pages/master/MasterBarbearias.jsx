@@ -16,6 +16,8 @@ import {
   Globe,
   Send,
   AlertCircle,
+  CheckCircle2,
+  X,
 } from 'lucide-react';
 import CompaniesTable from '@/components/master/CompaniesTable';
 import StandardModal from '@/components/ui/standard-modal';
@@ -82,6 +84,7 @@ export default function MasterBarbearias() {
   const [form, setForm] = useState(INITIAL_FORM_STATE);
   const [customSlug, setCustomSlug] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [createdConfirmation, setCreatedConfirmation] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -136,27 +139,59 @@ export default function MasterBarbearias() {
 
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      const createdCompany = data?.company || {};
+      const authInfo = data?.auth || {};
+      const resolvedName = createdCompany.name || variables?.name || form.name;
+      const resolvedOwnerEmail =
+        createdCompany.owner_email || variables?.owner_email || form.owner_email;
+      const resolvedSlugVal =
+        createdCompany.slug || sanitizeSlug(customSlug || resolvedName);
+      const resolvedPlan = createdCompany.plan_name || variables?.plan || form.plan;
+
+      // Atualiza imediatamente o cache de barbearias para garantir exibição instantânea na tabela
+      if (createdCompany && (createdCompany.id || resolvedName)) {
+        queryClient.setQueriesData({ queryKey: ['master-companies'] }, (oldData) => {
+          if (!oldData?.data?.companies) return oldData;
+          const exists = oldData.data.companies.some(
+            (c) =>
+              (createdCompany.id && c.id === createdCompany.id) ||
+              (c.name === resolvedName && c.owner_email === resolvedOwnerEmail)
+          );
+          if (exists) return oldData;
+          return {
+            ...oldData,
+            data: {
+              ...oldData.data,
+              companies: [createdCompany, ...oldData.data.companies],
+            },
+          };
+        });
+      }
+
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       queryClient.invalidateQueries({ queryKey: ['master-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['master-audit-log'] });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
 
-      const createdCompany = data?.company || {};
-      const authInfo = data?.auth || {};
-
-      let toastDescription = `A barbearia "${createdCompany.name || form.name}" (/agendar/${createdCompany.slug || resolvedSlug}) foi provisionada com sucesso.`;
+      let toastDescription = `A barbearia "${resolvedName}" (/agendar/${resolvedSlugVal}) foi criada e provisionada com sucesso para ${resolvedOwnerEmail}.`;
 
       if (authInfo.user_already_existed) {
         toastDescription += ` O e-mail já possuía conta e foi vinculado diretamente à empresa.`;
       } else if (authInfo.invite_sent) {
-        toastDescription += ` Convite de criação de senha enviado para ${createdCompany.owner_email || form.owner_email}.`;
-      } else if (authInfo.warning) {
-        toastDescription += ` (${authInfo.warning})`;
+        toastDescription += ` Convite de criação de senha enviado para ${resolvedOwnerEmail}.`;
       }
 
+      setCreatedConfirmation({
+        name: resolvedName,
+        owner_email: resolvedOwnerEmail,
+        slug: resolvedSlugVal,
+        plan: resolvedPlan,
+        description: toastDescription,
+      });
+
       toast({
-        title: 'Barbearia provisionada com sucesso!',
+        title: 'Barbearia criada e provisionada com sucesso!',
         description: toastDescription,
       });
 
@@ -204,6 +239,44 @@ export default function MasterBarbearias() {
           <Plus className="w-4 h-4" /> Nova empresa (Onboarding Assistido)
         </button>
       </div>
+
+      {createdConfirmation && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="company-created-confirmation"
+          className="flex items-start justify-between gap-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3.5 text-emerald-400 shadow-sm"
+        >
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+            <div className="text-xs leading-relaxed">
+              <div className="font-bold text-sm text-emerald-300">
+                Barbearia criada e provisionada com sucesso!
+              </div>
+              <p className="text-emerald-200/90 mt-0.5">{createdConfirmation.description}</p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-emerald-300/90">
+                <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 font-semibold">
+                  Empresa: {createdConfirmation.name}
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 font-semibold">
+                  Proprietário: {createdConfirmation.owner_email}
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 font-mono">
+                  /agendar/{createdConfirmation.slug}
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreatedConfirmation(null)}
+            aria-label="Fechar confirmação"
+            className="text-emerald-300/70 hover:text-emerald-200 p-1 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       <CompaniesTable />
 

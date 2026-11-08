@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Loader2, ArrowUpCircle, Check, Zap, Sparkles, CreditCard } from 'lucide-react';
 import { filterPlansVisibleToCompany } from '@/lib/planVisibility';
+import { getFeatureMeta, BADGE_STYLES } from '@/lib/featureCatalog';
 import SaasPaymentModal from './SaasPaymentModal';
 
 export default function UpgradePlanCard({ currentPlanId, companyId, highlight = false }) {
@@ -165,14 +166,37 @@ export default function UpgradePlanCard({ currentPlanId, companyId, highlight = 
                   )}
 
                   {Array.isArray(p.features) && p.features.length > 0 && (
-                    <ul className="space-y-1.5 my-4">
-                      {p.features.slice(0, 6).map((f) => (
-                        <li key={f} className="flex items-center gap-2 text-xs text-white/70">
-                          <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                          <span className="capitalize">{f.replace(/_/g, ' ')}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="space-y-2 my-4">
+                      {p.features.slice(0, 6).map((f) => {
+                        const meta = getFeatureMeta(f);
+                        const badge = (meta?.badge && BADGE_STYLES[meta.badge]) || BADGE_STYLES.master;
+                        const label = meta?.name || String(f).replace(/_/g, ' ');
+                        const desc =
+                          meta?.description ||
+                          'Recurso comercial incluído no plano com liberação imediata.';
+                        const tag = meta?.commercial_tag || badge?.label || p.name;
+                        return (
+                          <div
+                            key={f}
+                            data-testid={`upgrade-feature-card-${f}`}
+                            className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                                <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                                <span className="capitalize">{label}</span>
+                              </div>
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 whitespace-nowrap">
+                                {tag}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-white/60 leading-snug mt-1 pl-5">
+                              {desc}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
 

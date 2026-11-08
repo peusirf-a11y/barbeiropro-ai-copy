@@ -24,13 +24,41 @@ const PLANS = [
     ctaText: 'Começar com Clássico',
     ctaLink: '/register?plan=classico',
     features: [
-      '1 barbeiro cadastrado',
-      'Agendamentos online ilimitados',
-      'Link público e exclusivo da barbearia',
-      'Recebimento via PIX e cartões integrado',
-      'Painel financeiro com fechamento de caixa',
-      'Lembretes automáticos no WhatsApp',
-      'Cadastro e histórico de clientes',
+      {
+        title: '1 barbeiro cadastrado',
+        desc: 'Agenda dedicada com controle de horários e serviços individuais.',
+        tag: 'Essencial',
+      },
+      {
+        title: 'Agendamentos online ilimitados',
+        desc: 'Receba marcações 24h por dia sem limite de volume mensal.',
+        tag: 'Agenda Online',
+      },
+      {
+        title: 'Link público e exclusivo da barbearia',
+        desc: 'Página /agendar/:slug otimizada para conversão no celular.',
+        tag: 'Canal Público',
+      },
+      {
+        title: 'Recebimento via PIX e cartões integrado',
+        desc: 'Cobrança automática integrada ao Asaas com confirmação instantânea.',
+        tag: 'Pagamentos',
+      },
+      {
+        title: 'Painel financeiro com fechamento de caixa',
+        desc: 'Controle diário de entradas, saídas, sangrias e saldo em tempo real.',
+        tag: 'Financeiro',
+      },
+      {
+        title: 'Lembretes automáticos no WhatsApp',
+        desc: 'Notificações automáticas para reduzir faltas e atrasos.',
+        tag: 'Automação',
+      },
+      {
+        title: 'Cadastro e histórico de clientes',
+        desc: 'Base completa de clientes com registro de cortes e frequência.',
+        tag: 'CRM Básico',
+      },
     ],
   },
   {
@@ -50,15 +78,46 @@ const PLANS = [
     ctaText: 'Aproveitar Oferta Master',
     ctaLink: '/register?plan=master',
     features: [
-      'Barbeiros e profissionais ilimitados',
-      'Agendamentos online ilimitados',
-      'Todos os recursos do Plano Clássico',
-      'CRM de retenção inteligente (IA anti-churn)',
-      'Clientes VIP e clubes de assinatura recorrente',
-      'Cálculo e conciliação automática de comissões',
-      'Automação de mensagens e pós-atendimento',
-      'Relatórios avançados de faturamento e ticket médio',
-      'Suporte prioritário humanizado no WhatsApp',
+      {
+        title: 'Barbeiros e profissionais ilimitados',
+        desc: 'Cadastre toda a sua bancada com agendas sincronizadas e permissões por perfil.',
+        tag: 'Plano Master · Equipe',
+      },
+      {
+        title: 'Agendamentos online ilimitados',
+        desc: 'Link público inteligente com encaixe automático e zero comissão por corte.',
+        tag: 'Essencial · Master',
+      },
+      {
+        title: 'CRM de retenção inteligente (IA anti-churn)',
+        desc: 'Identifica clientes ausentes há mais de 30 dias e dispara ações de recuperação.',
+        tag: 'Premium · IA Retenção',
+      },
+      {
+        title: 'Clientes VIP e clubes de assinatura recorrente',
+        desc: 'Crie planos mensais recorrentes (BarberPass) com cobrança automática e controle de usos.',
+        tag: 'Plano Master · Recorrência',
+      },
+      {
+        title: 'Cálculo e conciliação automática de comissões',
+        desc: 'Regras flexíveis por serviço ou profissional com extrato pronto para repasse.',
+        tag: 'Plano Master · Financeiro',
+      },
+      {
+        title: 'Automação de mensagens e pós-atendimento',
+        desc: 'Lembretes, confirmação de presença e coleta de avaliações 5 estrelas via WhatsApp.',
+        tag: 'Plano Master · Automação',
+      },
+      {
+        title: 'Relatórios avançados de faturamento e ticket médio',
+        desc: 'DRE operacional, ranking de barbeiros, horários de pico e exportação contábil.',
+        tag: 'Plano Master · BI',
+      },
+      {
+        title: 'Suporte prioritário humanizado no WhatsApp',
+        desc: 'Atendimento direto com especialistas para acelerar a operação da sua barbearia.',
+        tag: 'VIP · Prioritário',
+      },
     ],
   },
   {
@@ -77,15 +136,36 @@ const PLANS = [
     ctaText: 'Escolher Exclusivo',
     ctaLink: '/register?plan=exclusivo',
     features: [
-      'Unidade Matriz com governança centralizada',
-      'Filiais adicionais por apenas +R$ 90,00/mês cada',
-      'Barbeiros, filiais e agendamentos ilimitados',
-      'Todos os recursos do Plano Master incluídos',
-      'Painel executivo consolidado com DRE por unidade',
-      'White-label e personalização completa da marca',
-      'Exportação contábil e auditoria financeira',
-      'Onboarding assistido e migração de dados',
-      'SLA de atendimento VIP e consultor dedicado',
+      {
+        title: 'Unidade Matriz com governança centralizada',
+        desc: 'Controle todas as unidades em um único painel executivo multi-tenant.',
+        tag: 'Enterprise · Matriz',
+      },
+      {
+        title: 'Filiais adicionais por apenas +R$ 90,00/mês cada',
+        desc: 'Expansão previsível com seletor instantâneo de filial e estoque independente.',
+        tag: 'Multi-unidades',
+      },
+      {
+        title: 'Todos os recursos do Plano Master incluídos',
+        desc: 'Acesso integral a IA Growth, clubes de assinatura, comissões e CRM VIP.',
+        tag: 'Master Incluso',
+      },
+      {
+        title: 'Painel executivo consolidado com DRE por unidade',
+        desc: 'Comparativo financeiro em tempo real entre matriz e cada filial ativa.',
+        tag: 'Enterprise · BI',
+      },
+      {
+        title: 'White-label e personalização completa da marca',
+        desc: 'Identidade visual própria nos links públicos e comunicações com clientes.',
+        tag: 'Enterprise · Branding',
+      },
+      {
+        title: 'Onboarding assistido e SLA VIP dedicado',
+        desc: 'Migração assistida de dados e gerente de conta dedicado para a sua rede.',
+        tag: 'Enterprise · VIP',
+      },
     ],
   },
 ];
@@ -208,31 +288,60 @@ export default function PricingSection() {
                     </p>
                   </div>
 
-                  {/* Lista de Recursos (Features) */}
-                  <div className="space-y-3 flex-1 mb-6">
+                  {/* Catálogo de Recursos em Cards Comerciais */}
+                  <div className="space-y-2.5 flex-1 mb-6">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-3">
-                      {isMaster ? 'Tudo que sua barbearia precisa:' : 'Recursos inclusos:'}
+                      {isMaster ? 'Catálogo Comercial — Recursos do Plano Master:' : 'Recursos comerciais inclusos:'}
                     </p>
-                    <ul className="space-y-2.5">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-2.5">
-                          <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                            isMaster
-                              ? 'bg-emerald-400/20 text-emerald-300'
-                              : 'bg-white/10 text-white/70'
-                          }`}>
-                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    <div className="grid grid-cols-1 gap-2">
+                      {plan.features.map((feature) => {
+                        const fTitle = typeof feature === 'string' ? feature : feature.title;
+                        const fDesc = typeof feature === 'string' ? '' : feature.desc;
+                        const fTag = typeof feature === 'string' ? plan.name : feature.tag;
+                        return (
+                          <div
+                            key={fTitle}
+                            data-testid={`pricing-feature-card-${plan.key}`}
+                            className={`rounded-xl border p-2.5 transition-colors ${
+                              isMaster
+                                ? 'border-[#60A5FA]/25 bg-white/[0.04] hover:border-[#60A5FA]/50'
+                                : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start gap-2">
+                                <div
+                                  className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                    isMaster ? 'bg-emerald-400/20 text-emerald-300' : 'bg-white/10 text-white/70'
+                                  }`}
+                                >
+                                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                </div>
+                                <span className="text-xs md:text-[13px] font-bold text-white leading-snug">
+                                  {fTitle}
+                                </span>
+                              </div>
+                              {fTag && (
+                                <span
+                                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
+                                    isMaster
+                                      ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+                                      : 'bg-white/10 text-white/70 border-white/15'
+                                  }`}
+                                >
+                                  {fTag}
+                                </span>
+                              )}
+                            </div>
+                            {fDesc && (
+                              <p className="text-[11px] text-white/60 leading-snug mt-1 pl-6">
+                                {fDesc}
+                              </p>
+                            )}
                           </div>
-                          <span className={`text-xs md:text-[13px] leading-snug ${
-                            isMaster && (feature.includes('ilimitados') || feature.includes('CRM') || feature.includes('VIP'))
-                              ? 'text-white font-semibold'
-                              : 'text-white/75'
-                          }`}>
-                            {feature}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 

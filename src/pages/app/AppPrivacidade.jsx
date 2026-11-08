@@ -113,6 +113,9 @@ export default function AppPrivacidade() {
   const [activeTab, setActiveTab] = useState('logs');
   const [expandedLog, setExpandedLog] = useState(null);
   const [showCookieModal, setShowCookieModal] = useState(false);
+  const [anonymizeReason, setAnonymizeReason] = useState('Solicitação formal do titular (LGPD Art. 18, VI)');
+  const [anonymizeError, setAnonymizeError] = useState('');
+  const isJustificationEmpty = !String(anonymizeReason || '').trim();
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies'],
@@ -171,22 +174,47 @@ export default function AppPrivacidade() {
 
   // Anonimizar cliente
   const anonymizeMutation = useMutation({
-    mutationFn: ({ customerId, reason }) => base44.functions.invoke('anonymizeCustomer', {
-      company_id: company.id,
-      customer_id: customerId,
-      reason,
-    }),
+    mutationFn: async ({ customerId, reason }) => {
+      const cleanReason = String(reason || '').trim();
+      if (!cleanReason) {
+        throw new Error('Campo obrigatório: A justificativa para anonimização é obrigatória (LGPD Art. 18).');
+      }
+      const res = await base44.functions.invoke('anonymizeCustomer', {
+        company_id: company?.id,
+        customer_id: customerId,
+        reason: cleanReason,
+      });
+      if (res?.error || !res?.data?.success) {
+        throw new Error(
+          res?.error ||
+            res?.data?.error ||
+            'Campo obrigatório: A justificativa para anonimização é obrigatória (LGPD Art. 18).'
+        );
+      }
+      return res;
+    },
     onSuccess: (res) => {
+      setAnonymizeError('');
       toast({ title: 'Cliente anonimizado', description: res?.data?.message });
       setSelectedCustomerId(null);
       setSearchPhone('');
     },
-    onError: (err) => toast({ title: 'Erro', description: err?.response?.data?.error || 'Erro ao anonimizar', variant: 'destructive' }),
+    onError: (err) => {
+      const msg = err?.message || err?.response?.data?.error || 'A justificativa para anonimização é obrigatória.';
+      setAnonymizeError(msg);
+      toast({ title: 'Erro', description: msg, variant: 'destructive' });
+    },
   });
 
   const handleAnonymize = (customer) => {
-    if (!confirm(`⚠️ ATENÇÃO: Esta operação é IRREVERSÍVEL.\n\nO cliente "${customer.name}" terá nome, telefone, e-mail e dados pessoais removidos.\nDados financeiros e operacionais são mantidos.\n\nConfirmar anonimização?`)) return;
-    anonymizeMutation.mutate({ customerId: customer.id, reason: 'solicitação via painel admin' });
+    if (!customer) return;
+    const cleanReason = String(anonymizeReason || '').trim();
+    if (!cleanReason) {
+      setAnonymizeError('Campo obrigatório: A justificativa para anonimização é obrigatória (LGPD Art. 18). Informe o motivo antes de prosseguir.');
+      return;
+    }
+    setAnonymizeError('');
+    anonymizeMutation.mutate({ customerId: customer.id, reason: cleanReason });
   };
 
   const severityColor = {
@@ -377,11 +405,57 @@ export default function AppPrivacidade() {
                 </div>
 
                 {/* Ações LGPD */}
-                <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-                  <h3 className="font-bold text-white mb-1">Ações sobre os dados</h3>
-                  <p className="text-xs text-white/55 mb-4">Exercício dos direitos do titular (LGPD Art. 18)</p>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
+                  <div>
+                    <h3 className="font-bold text-white mb-1">Ações sobre os dados</h3>
+                    <p className="text-xs text-white/55">Exercício dos direitos do titular (LGPD Art. 18)</p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="app-anonymize-justification" className="text-xs font-semibold text-white/70 block mb-1">
+                      Justificativa para anonimização (LGPD Art. 18) *
+                    </label>
+                    <input
+                      id="app-anonymize-justification"
+                      type="text"
+                      required
+                      aria-required="true"
+                      aria-invalid={Boolean(anonymizeError) || isJustificationEmpty}
+                      value={anonymizeReason}
+                      onChange={(e) => {
+                        const nextVal = e.target.value;
+                        setAnonymizeReason(nextVal);
+                        if (nextVal.trim()) {
+                          setAnonymizeError('');
+                        } else {
+                          setAnonymizeError(
+                            'Campo obrigatório: A justificativa para anonimização é obrigatória (LGPD Art. 18). Informe o motivo antes de prosseguir.'
+                          );
+                        }
+                      }}
+                      placeholder="Informe a justificativa legal obrigatória para anonimizar o titular..."
+                      className={`w-full px-3 py-2 border rounded-lg text-sm text-white bg-white/[0.03] focus:outline-none ${
+                        anonymizeError || isJustificationEmpty ? 'border-red-500' : 'border-white/15'
+                      }`}
+                    />
+                    {(anonymizeError || isJustificationEmpty) && (
+                      <div
+                        role="alert"
+                        data-testid="anonymize-justification-error"
+                        className="mt-2 flex items-center gap-2 text-xs font-semibold text-red-300 bg-red-500/15 border border-red-500/30 rounded-lg px-3 py-2"
+                      >
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                        <span>
+                          {anonymizeError ||
+                            'Campo obrigatório: A justificativa para anonimização é obrigatória (LGPD Art. 18). Informe o motivo antes de prosseguir.'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex flex-col sm:flex-row gap-3">
                     <button
+                      type="button"
                       onClick={() => exportMutation.mutate(selectedCustomerId)}
                       disabled={exportMutation.isPending}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-400/12 text-[#93C5FD] ring-1 ring-blue-400/25 rounded-xl text-sm font-semibold hover:bg-blue-400/20 hover:text-white transition-colors disabled:opacity-50"
@@ -390,12 +464,14 @@ export default function AppPrivacidade() {
                       {exportMutation.isPending ? 'Exportando…' : 'Exportar dados (JSON)'}
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         const customer = foundCustomers.find(c => c.id === selectedCustomerId);
                         if (customer) handleAnonymize(customer);
                       }}
-                      disabled={anonymizeMutation.isPending}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-400/12 text-red-300 ring-1 ring-red-400/25 rounded-xl text-sm font-semibold hover:bg-red-400/20 transition-colors disabled:opacity-50"
+                      disabled={isJustificationEmpty || anonymizeMutation.isPending}
+                      aria-disabled={isJustificationEmpty || anonymizeMutation.isPending}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-400/12 text-red-300 ring-1 ring-red-400/25 rounded-xl text-sm font-semibold hover:bg-red-400/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <UserX className="w-4 h-4" />
                       {anonymizeMutation.isPending ? 'Anonimizando…' : 'Anonimizar cliente'}

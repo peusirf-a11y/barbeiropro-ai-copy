@@ -9,11 +9,92 @@ import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Package } from 'lucide-re
 import { useToast } from '@/components/ui/use-toast';
 import StandardModal from '@/components/ui/standard-modal';
 import FeatureToggleGrid from '@/components/master/FeatureToggleGrid';
-import { canonicalFeatureKey } from '@/lib/featureCatalog';
+import { canonicalFeatureKey, FEATURE_CATALOG, BADGE_STYLES, getFeatureMeta } from '@/lib/featureCatalog';
 import PlanVisibilityControl from '@/components/planos/PlanVisibilityControl';
 import PlanInviteGenerator from '@/components/planos/PlanInviteGenerator';
 import CompanyMultiSelect from '@/components/master/CompanyMultiSelect';
-import { Globe, Lock, Link2 } from 'lucide-react';
+import { Globe, Lock, Link2, Sparkles } from 'lucide-react';
+
+const DEFAULT_SAAS_PLANS = [
+  {
+    id: 'plan-classico',
+    name: 'Plano Clássico',
+    slug: 'classico',
+    price_monthly: 69,
+    active: true,
+    sort_order: 1,
+    order_index: 1,
+    visibility: 'public',
+    limits: { barbers: 2, appointments_month: 0, storage_mb: 500 },
+    features: ['online_booking', 'pix', 'cashier', 'whatsapp'],
+  },
+  {
+    id: 'plan-master',
+    name: 'Plano Master',
+    slug: 'master',
+    price_monthly: 119,
+    active: true,
+    sort_order: 2,
+    order_index: 2,
+    visibility: 'public',
+    limits: { barbers: 8, appointments_month: 0, storage_mb: 2048 },
+    features: [
+      'online_booking',
+      'crm_retention',
+      'vip_customers',
+      'lifecycle_automation',
+      'online_payments',
+      'subscriptions',
+      'pix',
+      'cashier',
+      'financial_dashboard',
+      'advanced_reports',
+      'commissions',
+      'combos',
+      'whatsapp',
+      'ai_growth',
+      'referral_program',
+      'reviews',
+      'smart_insights',
+      'team_management',
+      'advanced_dashboard',
+    ],
+  },
+  {
+    id: 'plan-exclusivo',
+    name: 'Plano Matriz / Exclusivo',
+    slug: 'exclusivo',
+    price_monthly: 249,
+    active: true,
+    sort_order: 3,
+    order_index: 3,
+    visibility: 'public',
+    limits: { barbers: 0, appointments_month: 0, storage_mb: 10240 },
+    features: [
+      'online_booking',
+      'crm_retention',
+      'vip_customers',
+      'lifecycle_automation',
+      'online_payments',
+      'subscriptions',
+      'pix',
+      'cashier',
+      'financial_dashboard',
+      'advanced_reports',
+      'commissions',
+      'multi_units',
+      'combos',
+      'whatsapp',
+      'ai_growth',
+      'referral_program',
+      'reviews',
+      'smart_insights',
+      'team_management',
+      'custom_branding',
+      'advanced_dashboard',
+    ],
+  },
+];
 
 const emptyForm = {
   name: '',
@@ -62,10 +143,12 @@ export default function PlansManager() {
           .order('order_index', { ascending: true });
 
         if (!error && Array.isArray(data)) {
-          return data.filter((p) => !p.company_id);
+          const saasPlans = data.filter((p) => !p.company_id);
+          if (saasPlans.length > 0) return saasPlans;
         }
       }
-      return base44.entities.Plan.list('order_index', 100);
+      const list = await base44.entities.Plan.list('order_index', 100);
+      return Array.isArray(list) && list.length > 0 ? list : DEFAULT_SAAS_PLANS;
     },
   });
 
@@ -232,13 +315,28 @@ export default function PlansManager() {
             </div>
 
             {(p.features || []).length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {(p.features || []).slice(0, 4).map(f => (
-                  <span key={f} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30">{f}</span>
-                ))}
-                {(p.features || []).length > 4 && (
-                  <span className="text-[10px] text-muted-foreground self-center">+{p.features.length - 4}</span>
-                )}
+              <div className="grid grid-cols-1 gap-1.5">
+                {(p.features || []).slice(0, 4).map((f) => {
+                  const meta = getFeatureMeta(f);
+                  const badge = (meta?.badge && BADGE_STYLES[meta.badge]) || BADGE_STYLES.master;
+                  return (
+                    <div
+                      key={f}
+                      data-testid={`plan-feature-card-${f}`}
+                      className="rounded-lg border border-border bg-muted/30 p-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-foreground">{meta?.name || f}</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${badge.className}`}>
+                          {meta?.commercial_tag || badge.label}
+                        </span>
+                      </div>
+                      {meta?.description && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{meta.description}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -261,7 +359,7 @@ export default function PlansManager() {
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => { if (confirm(`Excluir plano "${p.name}"?`)) remove.mutate(p.id); }}
+                  onClick={() => remove.mutate(p.id)}
                   className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                   aria-label="Excluir"
                 >
@@ -277,7 +375,7 @@ export default function PlansManager() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {['Plano', 'Preço/mês', 'Limites', 'Features', 'Status', 'Ações'].map(h => (
+              {['Plano', 'Preço/mês', 'Limites', 'Features Comerciais', 'Status', 'Ações'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
               ))}
             </tr>
@@ -290,7 +388,7 @@ export default function PlansManager() {
               <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">Nenhum plano cadastrado.</td></tr>
             )}
             {plans.map(p => (
-              <tr key={p.id} className="border-b border-border hover:bg-muted/40 transition-colors">
+              <tr key={p.id} className="border-b border-border hover:bg-muted/40 transition-colors align-top">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="font-semibold text-sm text-foreground">{p.name}</div>
@@ -313,13 +411,32 @@ export default function PlansManager() {
                   <div>{p.limits?.appointments_month ? `${p.limits.appointments_month} ag/mês` : '∞ agend./mês'}</div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1 max-w-[220px]">
-                    {(p.features || []).slice(0, 3).map(f => (
-                      <span key={f} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30">{f}</span>
-                    ))}
-                    {(p.features || []).length > 3 && (
-                      <span className="text-[10px] text-muted-foreground">+{p.features.length - 3}</span>
-                    )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-w-[440px]">
+                    {(p.features || []).slice(0, 4).map((f) => {
+                      const meta = getFeatureMeta(f);
+                      const badge = (meta?.badge && BADGE_STYLES[meta.badge]) || BADGE_STYLES.master;
+                      return (
+                        <div
+                          key={f}
+                          data-testid={`plan-row-feature-card-${f}`}
+                          className="rounded-lg border border-border bg-muted/30 p-2"
+                        >
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-[11px] font-semibold text-foreground truncate">
+                              {meta?.name || f}
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${badge.className}`}>
+                              {meta?.commercial_tag || badge.label}
+                            </span>
+                          </div>
+                          {meta?.description && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
+                              {meta.description}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -339,7 +456,7 @@ export default function PlansManager() {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => { if (confirm(`Excluir plano "${p.name}"?`)) remove.mutate(p.id); }}
+                      onClick={() => remove.mutate(p.id)}
                       className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                       title="Excluir"
                     >
@@ -351,6 +468,44 @@ export default function PlansManager() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Catálogo de Funcionalidades Comerciais do Plano Master */}
+      <div
+        data-testid="plans-manager-master-feature-catalog"
+        className="p-4 sm:p-5 border-t border-border bg-muted/20"
+      >
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-blue-500" />
+            <h3 className="font-bold text-sm text-foreground">
+              Catálogo de Funcionalidades Comerciais — Plano Master
+            </h3>
+          </div>
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30">
+            Cards Comerciais com Descrição e Tag
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {FEATURE_CATALOG.filter((f) => !f.hidden).map((f) => {
+            const badge = (f.badge && BADGE_STYLES[f.badge]) || BADGE_STYLES.master;
+            return (
+              <div
+                key={`pm-catalog-${f.key}`}
+                data-testid={`plans-catalog-card-${f.key}`}
+                className="rounded-xl border border-border bg-card p-3 shadow-2xs flex flex-col justify-between gap-1.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-xs font-bold text-foreground">{f.label}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${badge.className}`}>
+                    {f.commercial_tag || badge.label}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">{f.description}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <StandardModal

@@ -69,18 +69,35 @@ export default function MasterAudit() {
       if (activeFilters.severity && String(l.severity || '').toLowerCase() !== String(activeFilters.severity).toLowerCase()) {
         return false;
       }
-      if (activeFilters.action && l.action !== activeFilters.action) {
-        return false;
+      if (activeFilters.action) {
+        const expectedAction = String(activeFilters.action).trim().toUpperCase();
+        const actualAction = String(l.action || '').trim().toUpperCase();
+        if (!actualAction.includes(expectedAction)) {
+          return false;
+        }
       }
-      if (activeFilters.company_id && l.company_id !== activeFilters.company_id) {
-        return false;
+      if (activeFilters.company_id) {
+        const expectedCompany = String(activeFilters.company_id).trim().toLowerCase();
+        const matchCompany =
+          String(l.company_id || '').toLowerCase().includes(expectedCompany) ||
+          String(l.target_id || '').toLowerCase().includes(expectedCompany) ||
+          String(l.impersonated_company_id || '').toLowerCase().includes(expectedCompany);
+        if (!matchCompany) {
+          return false;
+        }
+      }
+      if (activeFilters.correlation_id) {
+        const expectedCorr = String(activeFilters.correlation_id).trim().toLowerCase();
+        if (!String(l.correlation_id || '').toLowerCase().includes(expectedCorr)) {
+          return false;
+        }
       }
       if (activeFilters.impersonated_only && !l.impersonated_company_id && normalizedActor !== 'impersonation') {
         return false;
       }
       if (activeFilters.search) {
-        const s = String(activeFilters.search).toLowerCase();
-        const hay = `${l.action || ''} ${l.actor_email || ''} ${l.actor_name || ''} ${l.target_type || ''} ${l.target_id || ''}`.toLowerCase();
+        const s = String(activeFilters.search).toLowerCase().trim();
+        const hay = `${l.action || ''} ${l.actor_email || ''} ${l.actor_name || ''} ${l.target_type || ''} ${l.target_id || ''} ${l.company_id || ''} ${l.correlation_id || ''}`.toLowerCase();
         if (!hay.includes(s)) return false;
       }
       return true;
