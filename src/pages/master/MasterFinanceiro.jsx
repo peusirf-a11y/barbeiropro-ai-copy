@@ -1,9 +1,10 @@
 // Master Finance — Fase 3.
 // MRR/ARR, breakdown por plano, churn, receita histórica 12m,
 // top empresas, saúde da base, custo com parceiros + Exportação Analítica.
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { RefreshCw, FileDown } from 'lucide-react';
+import { RefreshCw, FileDown, CheckCircle2 } from 'lucide-react';
 import FinanceKpiRow from '@/components/master/finance/FinanceKpiRow';
 import RevenueByPlan from '@/components/master/finance/RevenueByPlan';
 import RevenueHistoryChart from '@/components/master/finance/RevenueHistoryChart';
@@ -11,8 +12,12 @@ import TopCompaniesByRevenue from '@/components/master/finance/TopCompaniesByRev
 import PartnersCostCard from '@/components/master/finance/PartnersCostCard';
 import SubscriptionHealthBar from '@/components/master/finance/SubscriptionHealthBar';
 import { csvCell } from '@/lib/csvSafe';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function MasterFinanceiro() {
+  const { toast } = useToast();
+  const [exportNotice, setExportNotice] = useState(null);
+
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['master-finance'],
     queryFn: async () => {
@@ -70,16 +75,29 @@ export default function MasterFinanceiro() {
         ),
       ];
 
+      const filename = `relatorio-analitico-master-${new Date().toISOString().slice(0, 10)}.csv`;
       const csv = '\uFEFF' + lines.join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `relatorio-analitico-master-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 30_000);
+
+      setExportNotice({
+        filename,
+        mrr: Number(rev.mrr || 0),
+        arr: Number(rev.arr || 0),
+        paying: Number(rev.paying_companies || 0),
+        timestamp: new Date().toLocaleTimeString('pt-BR'),
+      });
+      toast({
+        title: 'Relatório Analítico Exportado (CSV)',
+        description: `Arquivo ${filename} gerado e baixado com sucesso.`,
+      });
     } catch (err) {
       console.error('[MasterFinanceiro] Falha ao exportar relatório analítico:', err);
     }
@@ -113,6 +131,7 @@ export default function MasterFinanceiro() {
           <button
             type="button"
             data-action="export-report"
+            data-testid="export-analytical-report-btn"
             onClick={handleExportAnalyticalReport}
             className="text-xs font-semibold px-3 py-2 rounded-xl bg-[#2563EB] text-white hover:bg-[#1D4ED8] inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
           >
@@ -130,6 +149,24 @@ export default function MasterFinanceiro() {
           </button>
         </div>
       </div>
+
+      {exportNotice && (
+        <div
+          role="status"
+          data-testid="analytical-report-export-confirmation"
+          className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-semibold"
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <span>
+              Relatório Analítico Financeiro exportado com sucesso (<strong>{exportNotice.filename}</strong>) às {exportNotice.timestamp} · MRR: R$ {exportNotice.mrr.toFixed(2).replace('.', ',')} · ARR: R$ {exportNotice.arr.toFixed(2).replace('.', ',')}
+            </span>
+          </div>
+          <button type="button" onClick={() => setExportNotice(null)} className="underline text-[11px]">
+            Fechar
+          </button>
+        </div>
+      )}
 
       {/* KPIs principais */}
       <FinanceKpiRow revenue={revenue} churn={churn} partners={partners_cost} />

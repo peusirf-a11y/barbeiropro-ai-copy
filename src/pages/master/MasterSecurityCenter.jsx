@@ -54,10 +54,11 @@ function KpiCard({ label, value, icon: Icon, color = 'blue', urgent }) {
 }
 
 export default function MasterSecurityCenter() {
-  const [activeTab, setActiveTab] = useState('incidents');
+  const [activeTab, setActiveTab] = useState('events');
   const [filterSev, setFilterSev] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterCo, setFilterCo] = useState('');
+  const [csvExportConfirmation, setCsvExportConfirmation] = useState('');
 
   const { data: events = [], isLoading, refetch } = useQuery({
     queryKey: ['master-security-events'],
@@ -100,10 +101,16 @@ export default function MasterSecurityCenter() {
       EVENT_LABELS[e.event_type] || e.event_type, e.severity,
       e.actor_email, e.company_id, e.ip_address, e.blocked ? 'Sim' : 'Não',
     ].map(v => `"${safeCsv(v)}"`).join(','));
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+    const url = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' }));
+    a.href = url;
     a.download = `security_events_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    setCsvExportConfirmation(`Eventos de segurança exportados para CSV com sucesso (${filtered.length} registros).`);
   };
 
   // Score de segurança por tenant (heurístico)
@@ -131,23 +138,44 @@ export default function MasterSecurityCenter() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-xl text-sm hover:bg-muted text-foreground bg-card">
+          <button type="button" onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-xl text-sm hover:bg-muted text-foreground bg-card cursor-pointer">
             <RefreshCw className="w-3.5 h-3.5" /> Atualizar
           </button>
-          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-xl text-sm hover:bg-muted text-foreground bg-card">
-            <Download className="w-3.5 h-3.5" /> CSV
+          <button
+            type="button"
+            data-testid="security-export-csv-btn"
+            onClick={exportCSV}
+            className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-xl text-sm hover:bg-muted text-foreground bg-card cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5" /> Exportar CSV
           </button>
         </div>
       </div>
 
+      {csvExportConfirmation && (
+        <div
+          role="status"
+          data-testid="security-csv-export-confirmation"
+          className="flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-semibold"
+        >
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" />
+            {csvExportConfirmation}
+          </span>
+          <button type="button" onClick={() => setCsvExportConfirmation('')} className="underline text-[11px]">
+            Fechar
+          </button>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-1 bg-muted rounded-xl p-1">
         {[
-          { key: 'incidents', label: 'Incidentes', icon: Activity },
           { key: 'events', label: 'Eventos', icon: ShieldAlert },
+          { key: 'incidents', label: 'Incidentes', icon: Activity },
         ].map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
-            className={`flex items-center gap-1.5 flex-1 text-sm font-semibold py-2 px-3 rounded-lg transition-all ${activeTab === t.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+            className={`flex items-center gap-1.5 flex-1 text-sm font-semibold py-2 px-3 rounded-lg transition-all cursor-pointer ${activeTab === t.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
             <t.icon className="w-3.5 h-3.5" />{t.label}
           </button>
         ))}

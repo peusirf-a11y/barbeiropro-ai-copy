@@ -70,6 +70,7 @@ import PartnerSettings from './pages/partner/PartnerSettings';
 import PartnerGuard from './components/partner/PartnerGuard';
 
 // Demo pages (public)
+import DemoLayout from './components/layout/DemoLayout';
 import DemoDashboard from './pages/demo/DemoDashboard.jsx';
 import DemoAgenda from './pages/demo/DemoAgenda.jsx';
 import DemoClientes from './pages/demo/DemoClientes';
@@ -176,6 +177,8 @@ function App() {
             <Route path="/demo/financeiro" element={<DemoFinanceiro />} />
             <Route path="/demo/relatorios" element={<DemoRelatorios />} />
             <Route path="/demo/ai-growth" element={<DemoAIGrowth />} />
+            <Route path="/demo/observability" element={<DemoLayout><div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto"><MasterObservability /></div></DemoLayout>} />
+            <Route path="/demo/observabilidade" element={<DemoLayout><div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto"><MasterObservability /></div></DemoLayout>} />
 
             {/* ── ONBOARDING (authenticated, not yet completed) ── */}
             <Route path="/onboarding" element={

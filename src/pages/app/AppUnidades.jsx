@@ -29,7 +29,7 @@ export default function AppUnidades() {
 
   const { data: queriedUnits = [], isLoading } = useQuery({
     queryKey: ['units', companyId],
-    queryFn: () => base44.entities.Unit.filter({ company_id: companyId }, 'sort_order'),
+    queryFn: () => base44.entities.Unit.filter({ company_id: companyId }, 'created_at'),
     enabled: !!companyId,
   });
 

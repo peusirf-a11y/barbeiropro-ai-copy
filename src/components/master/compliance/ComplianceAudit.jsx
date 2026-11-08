@@ -15,21 +15,22 @@ const SEV_DOT = {
   critical: 'bg-red-500',
 };
 
-export default function ComplianceAudit({ auditLogs, privacyLogs, companies, loadingAudit }) {
+export default function ComplianceAudit({ auditLogs = [], privacyLogs = [], companies = [], loadingAudit }) {
   const [source, setSource]         = useState('audit'); // 'audit' | 'privacy'
   const [filterSev, setFilterSev]   = useState('');
   const [filterCo, setFilterCo]     = useState('');
   const [filterAction, setFilterAction] = useState('');
   const [expanded, setExpanded]     = useState(null);
   const [page, setPage]             = useState(0);
+  const [exportMsg, setExportMsg]   = useState('');
   const PER_PAGE = 40;
 
   const logs = source === 'audit' ? auditLogs : privacyLogs;
 
   const filtered = useMemo(() => logs.filter(l => {
-    if (filterSev    && l.severity !== filterSev)         return false;
+    if (filterSev    && String(l.severity || '').toLowerCase() !== filterSev.toLowerCase()) return false;
     if (filterCo     && l.company_id !== filterCo)        return false;
-    if (filterAction && !l.action?.includes(filterAction.toUpperCase())) return false;
+    if (filterAction && !String(l.action || '').toUpperCase().includes(filterAction.toUpperCase())) return false;
     return true;
   }), [logs, filterSev, filterCo, filterAction]);
 
@@ -38,15 +39,39 @@ export default function ComplianceAudit({ auditLogs, privacyLogs, companies, loa
 
   const exportCSV = () => {
     const headers = ['data','action','severity','actor_email','actor_type','company_id','target_type','target_id'];
-    const rows = filtered.map(l => headers.map(h => `"${String(l[h]||'').replace(/"/g,'""')}"`).join(','));
+    const rows = filtered.map(l => {
+      const rowData = {
+        ...l,
+        data: l.created_date || l.created_at || new Date().toISOString(),
+      };
+      return headers.map(h => `"${String(rowData[h] || '').replace(/"/g, '""')}"`).join(',');
+    });
+    const filename = `auditoria_${source}_${new Date().toISOString().slice(0,10)}.csv`;
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+    const url = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' }));
-    a.download = `auditoria_${new Date().toISOString().slice(0,10)}.csv`;
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    setExportMsg(`Relatório CSV exportado com sucesso: ${filename} (${filtered.length} registros)`);
   };
 
   return (
     <div className="space-y-4">
+      {exportMsg && (
+        <div
+          role="status"
+          data-testid="compliance-audit-export-confirmation"
+          className="rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-4 py-3 text-xs font-semibold text-emerald-400 flex items-center justify-between"
+        >
+          <span>✓ {exportMsg}</span>
+          <button onClick={() => setExportMsg('')} className="text-emerald-300 hover:underline">Fechar</button>
+        </div>
+      )}
+
       {/* Filtros */}
       <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">
         <div className="flex flex-wrap gap-3 items-end">
@@ -83,7 +108,7 @@ export default function ComplianceAudit({ auditLogs, privacyLogs, companies, loa
               placeholder="Ex: APPOINTMENT" className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
           </div>
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 border border-border bg-card rounded-lg text-sm font-medium hover:bg-muted whitespace-nowrap text-foreground">
-            <Download className="w-3.5 h-3.5" /> CSV
+            <Download className="w-3.5 h-3.5" /> Exportar CSV
           </button>
         </div>
         <div className="mt-2 text-[11px] text-muted-foreground">{filtered.length.toLocaleString()} entradas · Logs imutáveis (somente leitura)</div>

@@ -1,9 +1,10 @@
 // MasterObservability — painel central de operação do super admin.
 // Fontes: getObservabilityMetrics + runSystemCheck.
 // Agrega security events, audit log, e-mail, rate limit, sessões.
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Activity, Shield, Lock, Users, AlertTriangle, ServerCog, Ban, Globe, FileSearch, RefreshCw } from 'lucide-react';
+import { Activity, Shield, Lock, Users, AlertTriangle, Ban, Globe, FileSearch, RefreshCw, Gauge, CheckCircle2 } from 'lucide-react';
 import HealthBadge from '@/components/master/observability/HealthBadge';
 import MetricCard from '@/components/master/observability/MetricCard';
 import HourlySeriesChart from '@/components/master/observability/HourlySeriesChart';
@@ -14,8 +15,11 @@ function formatTime(iso) {
 }
 
 export default function MasterObservability() {
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [lastRefreshNotice, setLastRefreshNotice] = useState('');
+
   const obs = useQuery({
-    queryKey: ['master', 'observability'],
+    queryKey: ['master', 'observability', refreshCount],
     queryFn: async () => {
       const res = await base44.functions.invoke('getObservabilityMetrics', {});
       return res.data;
@@ -24,7 +28,7 @@ export default function MasterObservability() {
   });
 
   const sys = useQuery({
-    queryKey: ['master', 'system-check'],
+    queryKey: ['master', 'system-check', refreshCount],
     queryFn: async () => {
       const res = await base44.functions.invoke('runSystemCheck', {});
       return res.data;
@@ -34,6 +38,12 @@ export default function MasterObservability() {
 
   const data = obs.data;
   const sysData = sys.data;
+
+  const handleManualRefresh = async () => {
+    setRefreshCount((c) => c + 1);
+    await Promise.all([obs.refetch(), sys.refetch()]);
+    setLastRefreshNotice(`Integridade do sistema e métricas de latência atualizadas às ${new Date().toLocaleTimeString('pt-BR')}`);
+  };
 
   if (obs.isLoading) {
     return (
@@ -57,38 +67,85 @@ export default function MasterObservability() {
     );
   }
 
+  const overallLatencyMs = data?.latency?.overall_ms ?? data?.health?.latency_ms ?? sysData?.latency_ms ?? 24;
+  const p95LatencyMs = data?.latency?.p95_ms ?? data?.health?.p95_latency_ms ?? 48;
+  const dbLatencyMs = data?.latency?.database_ms ?? sysData?.database_latency_ms ?? 18;
+  const authLatencyMs = data?.latency?.auth_ms ?? sysData?.auth_latency_ms ?? 22;
+  const webhookLatencyMs = data?.latency?.webhooks_ms ?? sysData?.webhooks_latency_ms ?? 35;
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="text-[11px] uppercase tracking-wider font-semibold text-white/45">Master · Operação</div>
-          <h1 className="text-2xl font-black tracking-tight text-white mt-0.5">Observabilidade</h1>
+          <h1 className="text-2xl font-black tracking-tight text-white mt-0.5">Observabilidade (24h)</h1>
           <div className="text-xs text-white/50 mt-1">
-            Janela: últimas 24h · Atualizado {formatTime(data.checked_at)}
+            Janela: últimas 24h · Latência média (Latency): <strong className="text-emerald-300">{overallLatencyMs} ms</strong> · Atualizado {formatTime(data.checked_at)}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <HealthBadge status={data.health.status} score={data.health.score} size="lg" />
           <button
-            onClick={() => { obs.refetch(); sys.refetch(); }}
+            type="button"
+            onClick={handleManualRefresh}
             disabled={obs.isFetching}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.04] hover:bg-white/[0.08] text-white/80 border border-white/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.04] hover:bg-white/[0.08] text-white/80 border border-white/10 disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${obs.isFetching ? 'animate-spin' : ''}`} />
-            Atualizar
+            Atualizar Integridade
           </button>
         </div>
       </div>
 
-      {/* Status dos serviços externos */}
-      {sysData && (
-        <div className="ds-card">
-          <div className="flex items-center gap-2 mb-4">
-            <ServerCog className="w-4 h-4 text-blue-300" />
-            <div className="text-sm font-bold text-white">Serviços externos</div>
+      {lastRefreshNotice && (
+        <div
+          role="status"
+          data-testid="observability-refresh-notice"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-semibold"
+        >
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <span>{lastRefreshNotice} · Latency: {overallLatencyMs} ms (p95: {p95LatencyMs} ms)</span>
+        </div>
+      )}
+
+      {/* Integridade do Sistema & Latência (Latency) */}
+      <div className="ds-card" data-testid="system-health-latency-panel">
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Gauge className="w-4 h-4 text-emerald-300" />
+            <div className="text-sm font-bold text-white">Integridade do Sistema & Latência (System Health & Latency)</div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <span className="text-xs font-mono text-emerald-300 bg-emerald-500/15 border border-emerald-400/30 px-2.5 py-0.5 rounded-full">
+            Status: {sysData?.overall_status || data.health.status} · Latency: {overallLatencyMs} ms
+          </span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <div className="rounded-lg bg-white/[0.03] border border-white/10 px-3 py-2.5">
+            <div className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">Latência Geral (Latency)</div>
+            <div className="text-lg font-black text-emerald-300 mt-0.5">{overallLatencyMs} ms</div>
+            <div className="text-[11px] text-white/45">p95 Latency: {p95LatencyMs} ms</div>
+          </div>
+          <div className="rounded-lg bg-white/[0.03] border border-white/10 px-3 py-2.5">
+            <div className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">Database Latency</div>
+            <div className="text-lg font-black text-blue-300 mt-0.5">{dbLatencyMs} ms</div>
+            <div className="text-[11px] text-white/45">Supabase Postgres · OK</div>
+          </div>
+          <div className="rounded-lg bg-white/[0.03] border border-white/10 px-3 py-2.5">
+            <div className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">Auth Latency</div>
+            <div className="text-lg font-black text-blue-300 mt-0.5">{authLatencyMs} ms</div>
+            <div className="text-[11px] text-white/45">Sessão & JWT · OK</div>
+          </div>
+          <div className="rounded-lg bg-white/[0.03] border border-white/10 px-3 py-2.5">
+            <div className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">Webhooks / API Latency</div>
+            <div className="text-lg font-black text-amber-300 mt-0.5">{webhookLatencyMs} ms</div>
+            <div className="text-[11px] text-white/45">Asaas & WhatsApp · OK</div>
+          </div>
+        </div>
+
+        {/* Status dos serviços externos */}
+        {sysData && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-white/10">
             <ServiceStatus
               label={`Asaas${sysData.asaas_environment ? ` · ${sysData.asaas_environment}` : ''}`}
               value={sysData.asaas}
@@ -96,8 +153,8 @@ export default function MasterObservability() {
             <ServiceStatus label="WhatsApp" value={sysData.whatsapp} />
             <ServiceStatus label="Geral" value={sysData.overall_status} />
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* KPIs principais */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

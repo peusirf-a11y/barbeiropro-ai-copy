@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import {
   Calendar, Users, Briefcase, DollarSign, BarChart2, Zap,
   LayoutDashboard, X, Scissors, MoreHorizontal,
-  ChevronLeft,
+  ChevronLeft, Activity,
 } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';
@@ -16,14 +16,15 @@ import ThemeToggle from '@/components/ThemeToggle';
 import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
 
 const navItems = [
-  { key: 'dashboard',     label: 'Dashboard',     icon: LayoutDashboard, path: '/demo/dashboard' },
-  { key: 'agenda',        label: 'Agenda',        icon: Calendar,        path: '/demo/agenda' },
-  { key: 'clientes',      label: 'Clientes',      icon: Users,           path: '/demo/clientes' },
-  { key: 'servicos',      label: 'Serviços',      icon: Briefcase,       path: '/demo/servicos' },
-  { key: 'profissionais', label: 'Profissionais', icon: Scissors,        path: '/demo/profissionais' },
-  { key: 'financeiro',    label: 'Financeiro',    icon: DollarSign,      path: '/demo/financeiro' },
-  { key: 'relatorios',    label: 'Relatórios',    icon: BarChart2,       path: '/demo/relatorios' },
-  { key: 'ai-growth',     label: 'AI Growth',     icon: Zap,             path: '/demo/ai-growth', badge: 'AI' },
+  { key: 'dashboard',     label: 'Dashboard',       icon: LayoutDashboard, path: '/demo/dashboard' },
+  { key: 'agenda',        label: 'Agenda',          icon: Calendar,        path: '/demo/agenda' },
+  { key: 'clientes',      label: 'Clientes',        icon: Users,           path: '/demo/clientes' },
+  { key: 'servicos',      label: 'Serviços',        icon: Briefcase,       path: '/demo/servicos' },
+  { key: 'profissionais', label: 'Profissionais',   icon: Scissors,        path: '/demo/profissionais' },
+  { key: 'financeiro',    label: 'Financeiro',      icon: DollarSign,      path: '/demo/financeiro' },
+  { key: 'relatorios',    label: 'Relatórios',      icon: BarChart2,       path: '/demo/relatorios' },
+  { key: 'ai-growth',     label: 'AI Growth',       icon: Zap,             path: '/demo/ai-growth', badge: 'AI' },
+  { key: 'observability', label: 'Observabilidade', icon: Activity,        path: '/demo/observability', badge: '24h' },
 ];
 
 // Abas da bottom nav (mobile) — espelha MobileBottomTabs do AppLayout

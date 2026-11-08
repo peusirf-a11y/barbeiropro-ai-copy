@@ -354,6 +354,28 @@ export const FEATURE_REGISTRY = [
     badge: 'premium',
     icon: 'Lightbulb',
   }),
+  def({
+    key: 'ai_smart_scheduling_experimental',
+    name: 'Agendamento Inteligente Experimental (IA)',
+    category: 'ai',
+    description: 'Feature flag experimental: motor preditivo de encaixe automático de horários via IA.',
+    badge: 'experimental',
+    experimental: true,
+    default_enabled: false,
+    hidden: false,
+    icon: 'Sparkles',
+  }),
+  def({
+    key: 'dynamic_pricing_experimental',
+    name: 'Precificação Dinâmica Experimental',
+    category: 'ai',
+    description: 'Feature flag experimental: ajuste automático de preços em horários de baixa demanda.',
+    badge: 'experimental',
+    experimental: true,
+    default_enabled: false,
+    hidden: false,
+    icon: 'TrendingUp',
+  }),
 
   // ── ADMIN & PLATAFORMA ────────────────────────────────────────────────────
   def({
@@ -463,9 +485,10 @@ export function getDefaultEnabledKeys() {
 }
 
 export const BADGE_STYLES = {
-  beta:       { label: 'Beta',       className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  premium:    { label: 'Premium',    className: 'bg-violet-50 text-violet-700 border-violet-200' },
-  enterprise: { label: 'Enterprise', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-  soon:       { label: 'Em breve',   className: 'bg-sky-50 text-sky-700 border-sky-200' },
-  hidden:     { label: 'Oculto',     className: 'bg-gray-100 text-gray-500 border-gray-200' },
+  experimental: { label: 'Experimental', className: 'bg-amber-500/15 text-amber-500 border-amber-500/30' },
+  beta:         { label: 'Beta',         className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  premium:      { label: 'Premium',      className: 'bg-violet-50 text-violet-700 border-violet-200' },
+  enterprise:   { label: 'Enterprise',   className: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  soon:         { label: 'Em breve',     className: 'bg-sky-50 text-sky-700 border-sky-200' },
+  hidden:       { label: 'Oculto',       className: 'bg-gray-100 text-gray-500 border-gray-200' },
 };

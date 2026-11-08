@@ -9,7 +9,7 @@ export function useUnits() {
   const { companyId } = useCompany();
   const { data: units = [], isLoading } = useQuery({
     queryKey: ['units', companyId],
-    queryFn: () => base44.entities.Unit.filter({ company_id: companyId, active: true }, 'sort_order'),
+    queryFn: () => base44.entities.Unit.filter({ company_id: companyId, active: true }, 'created_at'),
     enabled: !!companyId,
     staleTime: 30_000,
   });
