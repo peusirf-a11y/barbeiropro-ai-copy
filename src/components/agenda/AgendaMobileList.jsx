@@ -36,10 +36,20 @@ export default function AgendaMobileList({
     return safeCustomers.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
   }, [safeCustomers]);
   const dayAppts = useMemo(() => {
+    const targetYmd = format(selectedDate, 'yyyy-MM-dd');
     return safeAppointments
       .filter(a => {
-        const d = new Date(a.scheduled_at);
-        return d.toDateString() === selectedDate.toDateString();
+        if (!a) return false;
+        if (a.date && String(a.date).slice(0, 10) === targetYmd) return true;
+        if (a.scheduled_at) {
+          const d = new Date(a.scheduled_at);
+          if (!Number.isNaN(d.getTime())) {
+            if (d.toDateString() === selectedDate.toDateString()) return true;
+            if (format(d, 'yyyy-MM-dd') === targetYmd) return true;
+          }
+          if (String(a.scheduled_at).slice(0, 10) === targetYmd) return true;
+        }
+        return false;
       })
       .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
   }, [safeAppointments, selectedDate]);

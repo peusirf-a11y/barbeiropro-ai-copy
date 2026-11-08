@@ -18,10 +18,10 @@ import { useMemo, useEffect, useRef } from 'react';
 import { getStatusToken, isClientWithoutPreference } from '@/lib/statusTokens';
 import useAgendaDnD from './useAgendaDnD';
 
-const SLOT_HEIGHT = 28;       // altura px de cada slot
+const SLOT_HEIGHT = 36;       // altura px de cada slot
 const START_HOUR = 8;
 const END_HOUR = 21;
-const COL_WIDTH = 200;        // largura desktop por coluna
+const COL_WIDTH = 220;        // largura desktop por coluna
 const TIME_AXIS_WIDTH = 64;
 
 function generateSlots(stepMin) {
@@ -36,7 +36,27 @@ function generateSlots(stepMin) {
 
 function minutesFromStart(date) {
   const d = new Date(date);
-  return (d.getHours() - START_HOUR) * 60 + d.getMinutes();
+  if (Number.isNaN(d.getTime())) return 60;
+  const raw = (d.getHours() - START_HOUR) * 60 + d.getMinutes();
+  const maxMin = (END_HOUR - START_HOUR) * 60 - 15;
+  return Math.max(0, Math.min(maxMin, raw));
+}
+
+function isSameSelectedDay(appt, selectedDate) {
+  if (!appt || !selectedDate) return false;
+  const targetYmd = format(selectedDate, 'yyyy-MM-dd');
+  if (appt.date && String(appt.date).slice(0, 10) === targetYmd) {
+    return true;
+  }
+  if (appt.scheduled_at) {
+    const d = new Date(appt.scheduled_at);
+    if (!Number.isNaN(d.getTime())) {
+      if (d.toDateString() === selectedDate.toDateString()) return true;
+      if (format(d, 'yyyy-MM-dd') === targetYmd) return true;
+    }
+    if (String(appt.scheduled_at).slice(0, 10) === targetYmd) return true;
+  }
+  return false;
 }
 
 // Acha o próximo horário livre do profissional considerando os agendamentos
@@ -88,19 +108,72 @@ export default function AgendaProColumns({
   const containerRef = useRef(null);
   const slots = useMemo(() => generateSlots(slotInterval), [slotInterval]);
   const totalMinutes = (END_HOUR - START_HOUR) * 60;
-  const gridHeight = totalMinutes / slotInterval * SLOT_HEIGHT;
+  const gridHeight = (totalMinutes / slotInterval) * SLOT_HEIGHT;
 
-  // Filtra apenas o dia selecionado
+  const basePros = useMemo(() => {
+    if (Array.isArray(professionals) && professionals.length > 0) {
+      return professionals;
+    }
+    return [{ id: '__default_pro__', name: 'Barbeiro Principal' }];
+  }, [professionals]);
+
+  // Filtra apenas o dia selecionado (resiliente a timezone e campo date/scheduled_at)
   const dayAppts = useMemo(() => {
-    return appointments.filter(a => {
-      const d = new Date(a.scheduled_at);
-      return d.toDateString() === selectedDate.toDateString();
-    });
+    return (appointments || [])
+      .filter(a => isSameSelectedDay(a, selectedDate))
+      .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
   }, [appointments, selectedDate]);
+
+  // Mapeia cada agendamento do dia para uma coluna de profissional válida
+  // (se professional_id não bater com nenhum pro ativo, tenta por nome ou aloca na 1ª coluna)
+  const apptsByProId = useMemo(() => {
+    const map = {};
+    for (const p of basePros) {
+      map[p.id] = [];
+    }
+    const proIds = new Set(basePros.map(p => String(p.id)));
+    const firstProId = basePros[0]?.id;
+
+    for (const appt of dayAppts) {
+      const rawPid = appt.professional_id ? String(appt.professional_id) : '';
+      if (rawPid && proIds.has(rawPid)) {
+        map[rawPid].push(appt);
+        continue;
+      }
+      const pName = String(appt.professional_name || '').trim().toLowerCase();
+      const byName = pName
+        ? basePros.find(p => String(p.name || '').trim().toLowerCase() === pName)
+        : null;
+      if (byName) {
+        map[byName.id].push(appt);
+      } else if (firstProId) {
+        map[firstProId].push(appt);
+      }
+    }
+    return map;
+  }, [basePros, dayAppts]);
+
+  // Ordena colunas para que os profissionais com agendamentos no dia selecionado apareçam nas primeiras colunas à esquerda
+  const renderedPros = useMemo(() => {
+    return [...basePros].sort((a, b) => {
+      const aAppts = apptsByProId[a.id] || [];
+      const bAppts = apptsByProId[b.id] || [];
+      const aHas = aAppts.length > 0 ? 1 : 0;
+      const bHas = bAppts.length > 0 ? 1 : 0;
+      if (aHas !== bHas) return bHas - aHas;
+      if (aHas && bHas) {
+        const aConfirmed = aAppts.filter(x => x.status === 'confirmado').length;
+        const bConfirmed = bAppts.filter(x => x.status === 'confirmado').length;
+        if (aConfirmed !== bConfirmed) return bConfirmed - aConfirmed;
+        return new Date(aAppts[0].scheduled_at) - new Date(bAppts[0].scheduled_at);
+      }
+      return 0;
+    });
+  }, [basePros, apptsByProId]);
 
   const dayBlocks = useMemo(() => {
     const result = [];
-    for (const b of blocks) {
+    for (const b of blocks || []) {
       if (b.recurring) {
         if (typeof b.weekday !== 'number') continue;
         if (selectedDate.getDay() !== b.weekday) continue;
@@ -129,7 +202,7 @@ export default function AgendaProColumns({
     slotHeight: SLOT_HEIGHT,
     colWidth: COL_WIDTH,
     timeAxisWidth: TIME_AXIS_WIDTH,
-    professionals,
+    professionals: renderedPros,
     scrollContainerRef: containerRef,
     onCommitMove: onMoveAppointment,
     onCommitResize: onResizeAppointment,
@@ -141,18 +214,26 @@ export default function AgendaProColumns({
   const showNowLine = nowOffset >= 0 && nowOffset <= totalMinutes;
 
   useEffect(() => {
-    if (showNowLine && containerRef.current) {
+    if (!containerRef.current) return;
+    containerRef.current.scrollLeft = 0;
+    if (dayAppts.length > 0) {
+      const firstMin = minutesFromStart(dayAppts[0].scheduled_at);
+      const targetTop = (firstMin / slotInterval) * SLOT_HEIGHT - 48;
+      containerRef.current.scrollTop = Math.max(0, targetTop);
+    } else if (showNowLine) {
       const targetTop = (nowOffset / slotInterval) * SLOT_HEIGHT - 120;
       containerRef.current.scrollTop = Math.max(0, targetTop);
+    } else {
+      containerRef.current.scrollTop = 0;
     }
-  }, [showNowLine, nowOffset, slotInterval]);
+  }, [selectedDate, dayAppts, showNowLine, nowOffset, slotInterval]);
 
   function getApptCard(appt) {
     const svc = services.find(s => s.id === appt.service_id);
-    // custom_duration_minutes (resize manual) sobrescreve a duração padrão do serviço
     const dur = appt.custom_duration_minutes || svc?.duration_minutes || 30;
     const top = (minutesFromStart(appt.scheduled_at) / slotInterval) * SLOT_HEIGHT;
-    const height = (dur / slotInterval) * SLOT_HEIGHT - 2;
+    const rawHeight = (dur / slotInterval) * SLOT_HEIGHT - 2;
+    const height = Math.max(46, rawHeight);
     return { top, height, dur };
   }
 
@@ -171,15 +252,51 @@ export default function AgendaProColumns({
     </div>
   );
 
-  const renderedPros = professionals;
   const totalGridWidth = TIME_AXIS_WIDTH + renderedPros.length * COL_WIDTH;
 
   return (
     <div
       data-testid="agenda-pro-grid"
       data-slot-interval={slotInterval}
+      data-selected-date={format(selectedDate, 'yyyy-MM-dd')}
       className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden"
     >
+      {/* Resumo explícito da programação do dia selecionado */}
+      <div
+        data-testid="selected-day-schedule-summary"
+        className="px-4 py-2.5 border-b border-white/8 bg-white/[0.02] flex flex-wrap items-center justify-between gap-2"
+      >
+        <div className="text-xs font-semibold text-white/80">
+          Programação do dia ({format(selectedDate, 'dd/MM/yyyy')}):{' '}
+          <span className="text-emerald-300 font-bold">
+            {dayAppts.length} {dayAppts.length === 1 ? 'agendamento no dia' : 'agendamentos no dia'}
+          </span>
+        </div>
+        {dayAppts.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {dayAppts.map((a) => {
+              const token = getStatusToken(a.status);
+              const tStr = format(new Date(a.scheduled_at), 'HH:mm');
+              return (
+                <button
+                  key={`day-chip-${a.id}`}
+                  type="button"
+                  onClick={() => onCardClick?.(a)}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/25 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span className="font-bold text-emerald-300">{tStr}</span>
+                  <span className="font-semibold text-white">{a.customer_name || 'Cliente'}</span>
+                  <span className="text-white/70">· {a.service_name || 'Corte'}</span>
+                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.2 rounded bg-emerald-400/20 text-emerald-200">
+                    {token.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div
         ref={containerRef}
         className="overflow-auto max-h-[680px] select-none"
@@ -190,9 +307,9 @@ export default function AgendaProColumns({
           <div className="sticky top-0 z-20 bg-[#0A1124]/95 backdrop-blur-xl border-b border-white/8 flex">
             <div className="flex-shrink-0 border-r border-white/5" style={{ width: TIME_AXIS_WIDTH }} />
             {renderedPros.map(pro => {
-              const proAppts = dayAppts.filter(a => a.professional_id === pro.id);
+              const proAppts = apptsByProId[pro.id] || [];
               const nextFree = findNextFreeSlot({ proAppts, services, selectedDate, isToday });
-              return <ProHeader key={pro.id} pro={pro} nextFree={nextFree} width={COL_WIDTH} />;
+              return <ProHeader key={pro.id} pro={pro} nextFree={nextFree} count={proAppts.length} width={COL_WIDTH} />;
             })}
           </div>
 
@@ -226,12 +343,12 @@ export default function AgendaProColumns({
 
             {/* Colunas dos profissionais */}
             <div className="flex flex-1">
-              {renderedPros.map((pro, idx) => (
+              {renderedPros.map((pro) => (
                 <ProColumn
                   key={pro.id}
                   pro={pro}
                   slots={slots}
-                  dayAppts={dayAppts.filter(a => a.professional_id === pro.id)}
+                  dayAppts={apptsByProId[pro.id] || []}
                   proBlocks={dayBlocks.filter(b => !b.professional_id || b.professional_id === pro.id)}
                   getApptCard={getApptCard}
                   getBlockCard={getBlockCard}
@@ -246,7 +363,7 @@ export default function AgendaProColumns({
                   width={COL_WIDTH}
                   canMove={!!onMoveAppointment}
                   canResize={!!onResizeAppointment}
-                  professionals={professionals}
+                  professionals={renderedPros}
                 />
               ))}
             </div>
@@ -259,7 +376,7 @@ export default function AgendaProColumns({
 
 /* ─────────────────── Sub-components ─────────────────── */
 
-function ProHeader({ pro, nextFree, width }) {
+function ProHeader({ pro, nextFree, count, width }) {
   return (
     <div
       className="flex flex-col items-center justify-center px-3 py-3 border-r border-white/5 last:border-r-0 flex-shrink-0"
@@ -274,6 +391,11 @@ function ProHeader({ pro, nextFree, width }) {
         </div>
       )}
       <div className="text-sm font-semibold text-white mt-1.5 text-center truncate max-w-full">{pro.name}</div>
+      {count > 0 && (
+        <div className="text-[10px] text-blue-300 font-semibold mt-0.5">
+          {count} {count === 1 ? 'agendamento' : 'agendamentos'}
+        </div>
+      )}
       {nextFree && (
         <div className="text-[10px] text-emerald-300 font-medium mt-0.5">
           Livre às {format(nextFree, 'HH:mm')}
@@ -289,8 +411,23 @@ function ProColumn({
   onCardClick, startMove, startResize,
   draggingId, resizingId, isGhostTarget, ghost,
   renderCardIcons, width, canMove, canResize,
-  professionals,
 }) {
+  // Calcula colunas lado-a-lado caso haja agendamentos no mesmo horário na mesma coluna
+  const positionedAppts = useMemo(() => {
+    const items = dayAppts.map((appt) => {
+      const { top, height, dur } = getApptCard(appt);
+      return { appt, top, height, bottom: top + height, dur };
+    });
+    return items.map((item, idx) => {
+      const overlapping = items.filter(
+        (other) => other.top < item.bottom && other.bottom > item.top
+      );
+      const overlapCount = Math.max(1, overlapping.length);
+      const overlapIdx = Math.max(0, overlapping.findIndex((o) => o.appt.id === item.appt.id));
+      return { ...item, overlapCount, overlapIdx, idx };
+    });
+  }, [dayAppts, getApptCard]);
+
   return (
     <div
       className={`relative border-r border-white/5 last:border-r-0 transition-colors flex-shrink-0 ${isGhostTarget ? 'bg-[#2563EB]/8' : ''}`}
@@ -336,8 +473,7 @@ function ProColumn({
       )}
 
       {/* Cards de agendamento */}
-      {dayAppts.map(appt => {
-        const { top, height, dur } = getApptCard(appt);
+      {positionedAppts.map(({ appt, top, height, dur, overlapCount, overlapIdx }) => {
         const token = getStatusToken(appt.status);
         const startTime = format(new Date(appt.scheduled_at), 'HH:mm');
         const endDate = addMinutes(new Date(appt.scheduled_at), dur);
@@ -347,48 +483,62 @@ function ProColumn({
         const isDragging = draggingId === appt.id;
         const isResizing = resizingId === appt.id;
         const noPreference = isClientWithoutPreference(appt);
-        // Sem preferência: pode mover entre colunas. Com preferência: só no mesmo profissional.
         const canChangePro = noPreference;
-        // Cursor: grab se pode mover (livre ou restrito à mesma coluna), not-allowed se não pode mover
         const cursorClass = !movable ? 'cursor-pointer' : canChangePro ? 'cursor-grab active:cursor-grabbing' : 'cursor-ns-resize';
+
+        const widthPct = 100 / overlapCount;
+        const leftPct = overlapIdx * widthPct;
 
         return (
           <div
             key={appt.id}
+            data-testid={`schedule-appointment-card-${appt.id}`}
+            data-appointment-status={appt.status}
             onPointerDown={(e) => movable && startMove(e, appt, dur, canChangePro)}
             onClick={(e) => {
-              // só dispara click se não houve drag (hook bloqueia se moveu >4px)
               if (!isDragging && !isResizing) onCardClick?.(appt);
               e.stopPropagation();
             }}
-            className={`absolute left-1.5 right-1.5 rounded-xl ${token.cardBg} ${token.cardText} px-2.5 py-2 text-left overflow-hidden backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:-translate-y-px hover:z-10 hover:brightness-110 ${cursorClass} ${isDragging ? 'opacity-30' : 'transition-all duration-150'} ${noPreference ? 'border-2 border-dashed' : 'border border-solid'} ${token.cardBorder}`}
-            style={{ top: top + 1, height, touchAction: 'none' }}
+            className={`absolute rounded-xl ${token.cardBg} ${token.cardText} px-2.5 py-1.5 text-left overflow-hidden backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:-translate-y-px hover:z-20 hover:brightness-110 ${cursorClass} ${isDragging ? 'opacity-30' : 'transition-all duration-150'} ${noPreference ? 'border-2 border-dashed' : 'border border-solid'} ${token.cardBorder}`}
+            style={{
+              top: top + 1,
+              height,
+              left: `calc(${leftPct}% + 4px)`,
+              width: `calc(${widthPct}% - 8px)`,
+              touchAction: 'none',
+            }}
             title={noPreference
-              ? `${appt.customer_name || 'Cliente'} · Sem preferência de barbeiro · ${startTime}–${endTime}`
-              : `${appt.customer_name || 'Cliente'} · ${appt.service_name} · ${startTime}–${endTime}`}
+              ? `${appt.customer_name || 'Cliente'} · Sem preferência de barbeiro · ${startTime}–${endTime} (${token.label})`
+              : `${appt.customer_name || 'Cliente'} · ${appt.service_name} · ${startTime}–${endTime} (${token.label})`}
           >
-            {height >= 36 && renderCardIcons(appt)}
-            <div className="font-semibold text-[12px] leading-tight truncate flex items-center gap-1">
-              {appt.customer_name || 'Cliente'}
-              {noPreference && (
-                <span className="text-[9px] font-medium px-1 py-px rounded bg-white/10 text-white/70 border border-dashed border-white/25 flex-shrink-0" title="Cliente sem preferência de barbeiro">
-                  sem pref.
-                </span>
-              )}
-              {appt.payment_method === 'subscription' && (
-                <span className="text-[9px] font-bold px-1 py-px rounded bg-violet-400/20 text-violet-200 border border-violet-400/30" title="Pago pelo plano de assinatura">
-                  PLANO
-                </span>
-              )}
-              {appt.paid_online && (
-                <span className="text-[9px] font-bold px-1 py-px rounded bg-emerald-400/20 text-emerald-200 border border-emerald-400/30" title="Pago online">
-                  PAGO
-                </span>
-              )}
+            {height >= 72 && renderCardIcons(appt)}
+            <div className="font-semibold text-[11px] leading-tight truncate flex items-center justify-between gap-1">
+              <span className="truncate">{appt.customer_name || 'Cliente'}</span>
+              <span className="text-[9px] font-bold px-1 py-px rounded bg-white/10 text-white/90 flex-shrink-0">
+                {token.label}
+              </span>
             </div>
-            <div className="text-[11px] opacity-80 truncate leading-tight mt-0.5">{appt.service_name}</div>
-            {height > 56 && (
-              <div className="text-[10px] opacity-60 mt-1">{startTime} - {endTime}</div>
+            <div className="text-[10px] opacity-85 truncate leading-tight mt-0.5">
+              {appt.service_name || 'Corte'} · {startTime} - {endTime}
+            </div>
+            {(noPreference || appt.payment_method === 'subscription' || appt.paid_online) && (
+              <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                {noPreference && (
+                  <span className="text-[8px] font-medium px-1 py-px rounded bg-white/10 text-white/70 border border-dashed border-white/25 flex-shrink-0">
+                    sem pref.
+                  </span>
+                )}
+                {appt.payment_method === 'subscription' && (
+                  <span className="text-[8px] font-bold px-1 py-px rounded bg-violet-400/20 text-violet-200 border border-violet-400/30">
+                    PLANO
+                  </span>
+                )}
+                {appt.paid_online && (
+                  <span className="text-[8px] font-bold px-1 py-px rounded bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                    PAGO
+                  </span>
+                )}
+              </div>
             )}
 
             {/* Handle de resize na borda inferior */}

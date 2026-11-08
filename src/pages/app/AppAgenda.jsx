@@ -319,8 +319,11 @@ export default function AppAgenda() {
   const filteredAppts = filterPro === 'all' ? apptsByUnit : apptsByUnit.filter(a => a.professional_id === filterPro);
   const visiblePros = filterPro === 'all' ? prosByUnit : prosByUnit.filter(p => p.id === filterPro);
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
   const upcomingAppointments = filteredAppts
-    .filter(a => !['cancelado', 'faltou', 'pending_payment'].includes(a.status) && new Date(a.scheduled_at) >= new Date(Date.now() - 2 * 60 * 60 * 1000))
+    .filter(a => !['cancelado', 'faltou', 'pending_payment'].includes(a.status) && new Date(a.scheduled_at) >= todayStart)
     .sort((a, b) => {
       if (lastCreatedApptId) {
         if (String(a.id) === String(lastCreatedApptId)) return -1;
@@ -329,17 +332,17 @@ export default function AppAgenda() {
       return new Date(a.scheduled_at) - new Date(b.scheduled_at);
     });
 
-  // Se hoje não tiver agendamentos mas houver agendamento confirmado nos próximos dias, posiciona automaticamente no próximo dia agendado
+  // Se hoje não tiver agendamentos futuros confirmados mas houver agendamento confirmado nos próximos dias, posiciona automaticamente no próximo dia agendado
   useEffect(() => {
-    if (hasAutoJumpedRef.current || filteredAppts.length === 0) return;
-    const todayHasAppt = filteredAppts.some(a => !['cancelado', 'faltou'].includes(a.status) && isSameDay(new Date(a.scheduled_at), new Date()));
-    if (!todayHasAppt && upcomingAppointments.length > 0) {
+    if (hasAutoJumpedRef.current || upcomingAppointments.length === 0) return;
+    const todayHasUpcoming = upcomingAppointments.some(a => isSameDay(new Date(a.scheduled_at), new Date()));
+    if (!todayHasUpcoming) {
       hasAutoJumpedRef.current = true;
       setCurrentDate(new Date(upcomingAppointments[0].scheduled_at));
-    } else if (todayHasAppt) {
+    } else {
       hasAutoJumpedRef.current = true;
     }
-  }, [filteredAppts, upcomingAppointments]);
+  }, [upcomingAppointments]);
 
   // Conflict + block check via lib reutilizável
   // custom_duration_minutes (resize manual) sobrescreve a duração padrão do serviço
@@ -635,37 +638,30 @@ export default function AppAgenda() {
           </button>
         </div>
 
-        {visiblePros.length > 0 ? (
-          isMobile ? (
-            <AgendaMobileList
-              selectedDate={currentDate}
-              professionals={visiblePros}
-              appointments={filteredAppts}
-              services={services}
-              customers={customers}
-              subByCustomer={subByCustomer}
-              hasActivePlans={customerPlans.some(p => p.active !== false)}
-              onCardClick={setSelectedAppt}
-              onOfferPlan={!isBarbeiro ? setOfferCustomer : undefined}
-            />
-          ) : (
-            <AgendaProColumns
-              selectedDate={currentDate}
-              professionals={visiblePros}
-              appointments={apptsByUnit}
-              services={services}
-              blocks={blockedTimes}
-              onCardClick={setSelectedAppt}
-              onMoveAppointment={!isBarbeiro ? handleMoveAppointment : undefined}
-              onResizeAppointment={!isBarbeiro ? handleResizeAppointment : undefined}
-              slotInterval={slotInterval}
-            />
-          )
+        {isMobile ? (
+          <AgendaMobileList
+            selectedDate={currentDate}
+            professionals={visiblePros.length > 0 ? visiblePros : [{ id: '__default_pro__', name: 'Barbeiro Principal' }]}
+            appointments={filteredAppts}
+            services={services}
+            customers={customers}
+            subByCustomer={subByCustomer}
+            hasActivePlans={customerPlans.some(p => p.active !== false)}
+            onCardClick={setSelectedAppt}
+            onOfferPlan={!isBarbeiro ? setOfferCustomer : undefined}
+          />
         ) : (
-          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-6 sm:p-10 text-center text-white/50">
-            <Calendar className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2.5 opacity-30" />
-            <p className="text-sm">Nenhum profissional cadastrado.</p>
-          </div>
+          <AgendaProColumns
+            selectedDate={currentDate}
+            professionals={visiblePros.length > 0 ? visiblePros : [{ id: '__default_pro__', name: 'Barbeiro Principal' }]}
+            appointments={filteredAppts}
+            services={services}
+            blocks={blockedTimes}
+            onCardClick={setSelectedAppt}
+            onMoveAppointment={!isBarbeiro ? handleMoveAppointment : undefined}
+            onResizeAppointment={!isBarbeiro ? handleResizeAppointment : undefined}
+            slotInterval={slotInterval}
+          />
         )}
 
         {/* Legenda — cores padronizadas em todo o sistema */}

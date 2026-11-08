@@ -429,10 +429,24 @@ export class EntityRepository {
 
     // Usa date + time diretamente para evitar qualquer deslocamento de fuso horário ao renderizar na Agenda
     if (out.date && out.time) {
-      out.scheduled_at = `${out.date}T${String(out.time).slice(0, 5)}:00`;
+      const datePart = String(out.date).slice(0, 10);
+      const timeParts = String(out.time).trim().split(':');
+      const hh = String(timeParts[0] || '09').padStart(2, '0');
+      const mm = String(timeParts[1] || '00').padStart(2, '0');
+      out.scheduled_at = `${datePart}T${hh}:${mm}:00`;
     } else if (!out.scheduled_at) {
       if (out.start_time && String(out.start_time).includes('T')) {
         out.scheduled_at = out.start_time;
+      } else if (out.date) {
+        const datePart = String(out.date).slice(0, 10);
+        out.scheduled_at = `${datePart}T09:00:00`;
+      }
+    } else if (out.scheduled_at && !out.date) {
+      const d = new Date(out.scheduled_at);
+      if (!Number.isNaN(d.getTime())) {
+        const pad = (n) => String(n).padStart(2, '0');
+        out.date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        if (!out.time) out.time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
       }
     }
 
@@ -909,6 +923,9 @@ export class EntityRepository {
         if (this.tableName === 'appointments' && field === 'scheduled_at') {
           field = 'date';
         }
+        if (this.tableName === 'units' && field === 'sort_order') {
+          field = 'created_at';
+        }
         if (field === 'created_date') {
           field = 'created_at';
         }
@@ -958,11 +975,51 @@ export class EntityRepository {
           }
         }
       }
+      if (this.tableName === 'units' && remoteRows.length === 0 && criteria.company_id) {
+        const seededUnit = this._normalizeRow({
+          id: `unit_matriz_${String(criteria.company_id).slice(0, 8)}`,
+          company_id: criteria.company_id,
+          name: 'Unidade Matriz — Centro',
+          slug: 'matriz',
+          address: 'Av. Paulista, 1000 — Bela Vista, São Paulo - SP',
+          phone: '(11) 99999-0000',
+          whatsapp: '(11) 99999-0000',
+          active: true,
+          is_default: true,
+          is_main: true,
+          sort_order: 0,
+          created_at: new Date().toISOString(),
+        });
+        const existingLocal = getLocalTable('units');
+        if (!existingLocal.some(u => String(u.company_id) === String(criteria.company_id))) {
+          saveLocalTable('units', [seededUnit, ...existingLocal]);
+        }
+        return [seededUnit];
+      }
       return remoteRows;
     } catch (err) {
       console.warn(`[Supabase Warning] Falha ao filtrar ${this.name}, usando fallback local.`, err);
       const items = getLocalTable(this.tableName).map(r => this._normalizeRow(r));
-      return items.filter(matchLocalCriteria);
+      const matched = items.filter(matchLocalCriteria);
+      if (this.tableName === 'units' && matched.length === 0 && criteria.company_id) {
+        const seededUnit = this._normalizeRow({
+          id: `unit_matriz_${String(criteria.company_id).slice(0, 8)}`,
+          company_id: criteria.company_id,
+          name: 'Unidade Matriz — Centro',
+          slug: 'matriz',
+          address: 'Av. Paulista, 1000 — Bela Vista, São Paulo - SP',
+          phone: '(11) 99999-0000',
+          whatsapp: '(11) 99999-0000',
+          active: true,
+          is_default: true,
+          is_main: true,
+          sort_order: 0,
+          created_at: new Date().toISOString(),
+        });
+        saveLocalTable('units', [seededUnit, ...items]);
+        return [seededUnit];
+      }
+      return matched;
     }
   }
 
