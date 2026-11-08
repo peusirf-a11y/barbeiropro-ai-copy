@@ -24,6 +24,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import MasterPartnersKpis from '@/components/master/MasterPartnersKpis';
 import MasterPartnersPayoutsTab from '@/components/master/MasterPartnersPayoutsTab';
+import MasterPartnersReferralsTab from '@/components/master/MasterPartnersReferralsTab';
 import { currentMonthKey } from '@/components/master/MonthPicker';
 import PartnerDetailDrawer from '@/components/master/PartnerDetailDrawer';
 
@@ -574,6 +575,8 @@ export default function MasterPartners() {
           return (
             <button
               key={t.k}
+              data-testid={`tab-${t.k}`}
+              id={`tab-${t.k}`}
               onClick={() => {
                 setTab(t.k);
                 setVisible(PAGE);
@@ -966,6 +969,16 @@ export default function MasterPartners() {
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB: Indicações */}
+      {tab === 'referrals' && (
+        <MasterPartnersReferralsTab
+          statusFilter={statusFilter}
+          partners={partners}
+          visible={visible}
+          onLoadMore={() => setVisible((v) => v + PAGE)}
+        />
       )}
 
       {/* Drawer de Detalhes do Parceiro */}

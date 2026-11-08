@@ -4487,18 +4487,107 @@ export async function invokeFunction(functionName, payload = {}) {
 
         if (action === 'list_referrals') {
           const partnerId = payload.partner_id;
-          const refs = commissionList
-            .filter((c) => !partnerId || c.partner_id === partnerId)
-            .map((c) => ({
-              id: `ref_${c.id}`,
-              partner_id: c.partner_id,
-              company_id: c.company_id,
-              company_name: c.company_name || 'Barbearia Indicada',
-              plan_name: Number(c.invoice_amount) >= 200 ? 'Exclusivo' : 'Master',
-              commission: c.amount,
-              status: 'active',
-              created_at: c.created_at,
-            }));
+          const status = payload.status;
+          const search = (payload.search || '').trim().toLowerCase();
+
+          let storedRefs = [];
+          try {
+            if (typeof window !== 'undefined') {
+              const raw = localStorage.getItem('ocorte_partner_referrals');
+              if (raw) storedRefs = JSON.parse(raw);
+            }
+          } catch (_) {}
+
+          let refs = Array.isArray(storedRefs) && storedRefs.length > 0 ? [...storedRefs] : [];
+
+          if (refs.length === 0) {
+            refs = commissionList.map((c, idx) => {
+              const compName = c.company_name || 'Barbearia Indicada';
+              const safeIso = c.created_date || c.created_at || new Date(Date.now() - (idx + 1) * 86400000).toISOString();
+              return {
+                id: `ref_${c.id || idx}`,
+                partner_id: c.partner_id || 'partner-seed-01',
+                partner_name: c.partner_name || 'Rafael Mendes (Parceiro Ouro)',
+                referral_code: c.referral_code || 'RAFAEL30',
+                company_id: c.company_id || `comp_${idx}`,
+                company_name: compName,
+                referred_company_name: compName,
+                referred_email: `contato@${compName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'barbearia'}.com.br`,
+                plan_name: Number(c.invoice_amount) >= 200 ? 'Exclusivo' : 'Master',
+                invoice_amount: Number(c.invoice_amount) || 119.0,
+                commission: Number(c.amount) || 35.7,
+                attribution_type: idx % 2 === 0 ? 'link' : 'cupom',
+                status: c.status === 'approved' || c.status === 'paid' ? 'active' : 'converted',
+                created_at: safeIso,
+                created_date: safeIso,
+                fraud_reasons: [],
+              };
+            });
+
+            // Adiciona indicações complementares com status 'converted' e 'pending'
+            refs.push(
+              {
+                id: 'ref_seed_trial_01',
+                partner_id: 'partner-seed-01',
+                partner_name: 'Rafael Mendes (Parceiro Ouro)',
+                referral_code: 'RAFAEL30',
+                company_id: 'comp_trial_01',
+                company_name: 'Navalha de Ouro Barber Club',
+                referred_company_name: 'Navalha de Ouro Barber Club',
+                referred_email: 'contato@navalhadaouro.com.br',
+                plan_name: 'Master',
+                invoice_amount: 119.0,
+                commission: 35.7,
+                attribution_type: 'cupom',
+                status: 'converted',
+                created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+                created_date: new Date(Date.now() - 2 * 86400000).toISOString(),
+                fraud_reasons: [],
+              },
+              {
+                id: 'ref_seed_click_02',
+                partner_id: 'partner-seed-02',
+                partner_name: 'Camila Rocha Consultoria',
+                referral_code: 'CAMILA30',
+                company_id: null,
+                company_name: 'Barbearia Vintage Lead',
+                referred_company_name: 'Barbearia Vintage Lead',
+                referred_email: 'vintage.lead@gmail.com',
+                plan_name: 'Master',
+                invoice_amount: 119.0,
+                commission: 0,
+                attribution_type: 'link',
+                status: 'pending',
+                created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+                created_date: new Date(Date.now() - 1 * 86400000).toISOString(),
+                fraud_reasons: [],
+              }
+            );
+
+            try {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('ocorte_partner_referrals', JSON.stringify(refs));
+              }
+            } catch (_) {}
+          }
+
+          if (partnerId) {
+            refs = refs.filter((r) => r.partner_id === partnerId);
+          }
+          if (status && status !== 'all') {
+            refs = refs.filter((r) => r.status === status);
+          }
+          if (search) {
+            refs = refs.filter(
+              (r) =>
+                (r.referred_company_name && r.referred_company_name.toLowerCase().includes(search)) ||
+                (r.company_name && r.company_name.toLowerCase().includes(search)) ||
+                (r.referred_email && r.referred_email.toLowerCase().includes(search)) ||
+                (r.partner_name && r.partner_name.toLowerCase().includes(search)) ||
+                (r.id && r.id.toLowerCase().includes(search))
+            );
+          }
+
           return { data: { success: true, referrals: refs } };
         }
 

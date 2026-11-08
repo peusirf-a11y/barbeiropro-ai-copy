@@ -14,6 +14,7 @@ export const partnerKeys = {
 
 export const referralKeys = {
   all: () => ['referrals'],
+  list: (filters = {}) => ['referrals', 'list', filters],
   byPartner: (partnerId, filters = {}) => ['referrals', 'byPartner', partnerId, filters],
   byCompany: (companyId) => ['referrals', 'byCompany', companyId],
   detail: (id) => ['referrals', 'detail', id],
