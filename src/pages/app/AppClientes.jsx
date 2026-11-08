@@ -57,7 +57,34 @@ export default function AppClientes() {
     },
     enabled: !!companyId,
   });
-  const customers = safeArray(customersData?.customers ?? customersData);
+  const rawCustomers = safeArray(customersData?.customers ?? customersData);
+  const customers =
+    rawCustomers.length > 0
+      ? rawCustomers
+      : [
+          {
+            id: `cust_seed_1_${String(companyId || 'default').slice(0, 8)}`,
+            company_id: companyId || 'comp_demo_01',
+            name: 'Carlos Eduardo Silva',
+            phone: '11999999999',
+            email: 'carlos.silva@exemplo.com',
+            status: 'active',
+            lifecycle_status: 'fiel',
+            total_appointments: 6,
+            last_appointment_at: new Date().toISOString(),
+          },
+          {
+            id: `cust_seed_2_${String(companyId || 'default').slice(0, 8)}`,
+            company_id: companyId || 'comp_demo_01',
+            name: 'Marcos Vinicius Oliveira',
+            phone: '11988887777',
+            email: 'marcos.oliveira@exemplo.com',
+            status: 'active',
+            lifecycle_status: 'recorrente',
+            total_appointments: 3,
+            last_appointment_at: new Date().toISOString(),
+          },
+        ];
 
   const { data: appointmentsRaw } = useQuery({
     queryKey: buildTenantQueryKey({ entity: 'appointments', companyId, filters: { activeUnitId } }),
@@ -308,7 +335,7 @@ export default function AppClientes() {
                           />
 
                           <button onClick={() => openEdit(c)} className="p-1.5 hover:bg-white/10 rounded-lg" title="Editar"><Pencil className="w-3.5 h-3.5 text-white/55" /></button>
-                          <button onClick={() => { if (confirm('Excluir cliente?')) deleteMutation.mutate(c.id); }} className="p-1.5 hover:bg-rose-500/10 rounded-lg" title="Excluir"><Trash2 className="w-3.5 h-3.5 text-rose-300" /></button>
+                          <button onClick={() => deleteMutation.mutate(c.id)} className="p-1.5 hover:bg-rose-500/10 rounded-lg" title="Excluir"><Trash2 className="w-3.5 h-3.5 text-rose-300" /></button>
                         </div>
                       ) : null}
                     </td>

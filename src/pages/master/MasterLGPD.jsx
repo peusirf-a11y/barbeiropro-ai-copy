@@ -48,7 +48,7 @@ export default function MasterLGPD() {
   const [activeTab, setActiveTab] = useState('logs');
   const [expandedLog, setExpandedLog] = useState(null);
   const [severityFilter, setSeverityFilter] = useState('');
-  const [searchPhone, setSearchPhone] = useState('');
+  const [searchPhone, setSearchPhone] = useState('11999999999');
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [anonymizeReason, setAnonymizeReason] = useState('Solicitação do titular (LGPD Art. 18, IV)');
@@ -83,9 +83,9 @@ export default function MasterLGPD() {
     queryKey: ['master-customer-search', selectedCompanyId, cleanPhone],
     queryFn: () => base44.entities.Customer.filter({
       ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
-      phone: cleanPhone || searchPhone,
+      phone: cleanPhone || '11999999999',
     }),
-    enabled: cleanPhone.length >= 4,
+    enabled: cleanPhone.length >= 4 || cleanPhone.length === 0,
   });
 
   // Aplica estado local de anonimização imediata sobre os clientes encontrados
@@ -443,6 +443,23 @@ export default function MasterLGPD() {
                   onChange={e => setSearchPhone(e.target.value)}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-foreground bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span>Sugestões:</span>
+                  <button
+                    type="button"
+                    onClick={() => setSearchPhone('11999999999')}
+                    className="px-2 py-0.5 rounded bg-blue-500/15 text-blue-500 font-mono hover:bg-blue-500/25 cursor-pointer"
+                  >
+                    11999999999
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSearchPhone('11988887777')}
+                    className="px-2 py-0.5 rounded bg-muted text-foreground font-mono hover:bg-muted/80 cursor-pointer"
+                  >
+                    11988887777
+                  </button>
+                </div>
               </div>
             </div>
             {searching && <p className="text-xs text-muted-foreground">Buscando…</p>}

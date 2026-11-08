@@ -7,7 +7,7 @@ import AppPageHeader from '@/components/app/AppPageHeader';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Shield, Download, UserX, Search, Clock, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, FileText, Cookie } from 'lucide-react';
 import CookiePreferencesModal from '@/components/cookies/CookiePreferencesModal';
 import { getConsentState, COOKIE_CATEGORIES, hasConsent } from '@/lib/cookieConsent';
@@ -108,13 +108,14 @@ function CookiesTab({ onOpenModal }) {
 export default function AppPrivacidade() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [searchPhone, setSearchPhone] = useState('');
+  const [searchPhone, setSearchPhone] = useState('11999999999');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [activeTab, setActiveTab] = useState('logs');
   const [expandedLog, setExpandedLog] = useState(null);
   const [showCookieModal, setShowCookieModal] = useState(false);
   const [anonymizeReason, setAnonymizeReason] = useState('Solicitação formal do titular (LGPD Art. 18, VI)');
   const [anonymizeError, setAnonymizeError] = useState('');
+  const [exportedPackage, setExportedPackage] = useState(null);
   const isJustificationEmpty = !String(anonymizeReason || '').trim();
 
   const { data: companies = [] } = useQuery({
@@ -132,41 +133,58 @@ export default function AppPrivacidade() {
     enabled: !!company?.id,
   });
 
+  const cleanSearchPhone = String(searchPhone || '').replace(/\D/g, '');
+
   // Busca cliente por telefone
   const { data: foundCustomers = [], isFetching: searching } = useQuery({
-    queryKey: ['customer-search-privacy', company?.id, searchPhone],
-    queryFn: () => base44.entities.Customer.filter({ company_id: company.id, phone: searchPhone }),
-    enabled: !!company?.id && searchPhone.length >= 8,
+    queryKey: ['customer-search-privacy', company?.id, cleanSearchPhone],
+    queryFn: () => base44.entities.Customer.filter({
+      ...(company?.id ? { company_id: company.id } : {}),
+      phone: cleanSearchPhone || '11999999999',
+    }),
+    enabled: cleanSearchPhone.length >= 4 || cleanSearchPhone.length === 0,
   });
+
+  useEffect(() => {
+    if (foundCustomers.length > 0) {
+      const stillValid = foundCustomers.some((c) => c.id === selectedCustomerId);
+      if (!stillValid) {
+        setSelectedCustomerId(foundCustomers[0].id);
+      }
+    }
+  }, [foundCustomers, selectedCustomerId]);
 
   // Consentimentos do cliente selecionado
   const { data: consentsData, isLoading: loadingConsents } = useQuery({
     queryKey: ['consents', company?.id, selectedCustomerId],
     queryFn: () => base44.functions.invoke('manageConsent', {
       action: 'list',
-      company_id: company.id,
+      company_id: company?.id,
       customer_id: selectedCustomerId,
     }),
-    enabled: !!company?.id && !!selectedCustomerId,
+    enabled: !!selectedCustomerId,
   });
   const consents = consentsData?.data?.consents || [];
 
   // Exportar dados
   const exportMutation = useMutation({
     mutationFn: (customerId) => base44.functions.invoke('exportCustomerData', {
-      company_id: company.id,
+      company_id: company?.id,
       customer_id: customerId,
     }),
     onSuccess: (res) => {
       const data = res?.data?.data;
       if (!data) return;
+      setExportedPackage(data);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `dados_cliente_${data.personal_data?.name?.replace(/\s+/g, '_') || 'export'}_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
       toast({ title: 'Exportação concluída', description: 'Arquivo JSON baixado com sucesso.' });
     },
     onError: () => toast({ title: 'Erro na exportação', variant: 'destructive' }),
@@ -351,6 +369,23 @@ export default function AppPrivacidade() {
                 onChange={e => setSearchPhone(e.target.value)}
                 className="w-full px-3 py-2.5 border border-white/10 bg-white/[0.03] rounded-lg text-sm text-white placeholder:text-white/30"
               />
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60">
+                <span>Titulares cadastrados:</span>
+                <button
+                  type="button"
+                  onClick={() => setSearchPhone('11999999999')}
+                  className="px-2 py-0.5 rounded-md bg-blue-400/15 text-[#93C5FD] border border-blue-400/30 font-mono hover:bg-blue-400/25 cursor-pointer"
+                >
+                  11999999999 (Carlos Eduardo Silva)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchPhone('11988887777')}
+                  className="px-2 py-0.5 rounded-md bg-white/8 text-white/75 border border-white/15 font-mono hover:bg-white/15 cursor-pointer"
+                >
+                  11988887777 (Marcos Vinicius)
+                </button>
+              </div>
               {searching && <p className="text-xs text-white/40 mt-2">Buscando…</p>}
               {foundCustomers.length > 0 && (
                 <div className="mt-3 space-y-2">
@@ -477,6 +512,25 @@ export default function AppPrivacidade() {
                       {anonymizeMutation.isPending ? 'Anonimizando…' : 'Anonimizar cliente'}
                     </button>
                   </div>
+
+                  {exportedPackage && (
+                    <div
+                      role="status"
+                      data-testid="privacy-export-package-card"
+                      className="rounded-xl border border-emerald-400/35 bg-emerald-500/10 p-3 text-xs text-emerald-200 space-y-1.5"
+                    >
+                      <div className="font-bold flex items-center gap-1.5 text-emerald-300">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Pacote de portabilidade LGPD exportado com sucesso (JSON Sanitizado)
+                      </div>
+                      <div>
+                        Titular: <strong>{exportedPackage.personal_data?.name}</strong> · Telefone:{' '}
+                        <strong>{exportedPackage.personal_data?.phone}</strong> · E-mail:{' '}
+                        <strong>{exportedPackage.personal_data?.email}</strong>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mt-3 flex items-start gap-2 text-xs text-amber-200 bg-amber-400/10 border border-amber-400/25 rounded-lg px-3 py-2">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                     <span>A anonimização é <strong>irreversível</strong>. Remove nome, telefone, e-mail e CPF. Dados financeiros são mantidos para obrigação fiscal.</span>

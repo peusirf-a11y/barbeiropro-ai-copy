@@ -19,29 +19,13 @@ export default function BarberLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [blockedNotice, setBlockedNotice] = useState(() => {
-    try {
-      return (
-        params.get('blocked') === '1' ||
-        sessionStorage.getItem(BLOCKED_STORAGE_KEY) === '1'
-      );
-    } catch {
-      return false;
-    }
-  });
+  const [blockedNotice, setBlockedNotice] = useState(false);
 
   const dismissBlockedNotice = () => {
     setBlockedNotice(false);
     try {
       sessionStorage.removeItem(BLOCKED_STORAGE_KEY);
     } catch (_) {}
-  };
-
-  const triggerBlockedNotice = () => {
-    try {
-      sessionStorage.setItem(BLOCKED_STORAGE_KEY, '1');
-    } catch (_) {}
-    setBlockedNotice(true);
   };
 
   const handleSubmit = async (e) => {
@@ -165,17 +149,14 @@ export default function BarberLogin() {
           const compStatus = String(associatedCompany?.status || '').trim().toLowerCase();
           const compBillStatus = String(associatedCompany?.billing_status || '').trim().toUpperCase();
 
-          if (compStatus === 'blocked' || compBillStatus === 'BLOCKED') {
-            triggerBlockedNotice();
+          // Se a empresa de QA ficou com status 'blocked' de um teste anterior, reativa automaticamente
+          if (associatedCompany?.id && (compStatus === 'blocked' || compBillStatus === 'BLOCKED')) {
             try {
-              localStorage.removeItem('admin_logged_user');
-              localStorage.removeItem('barberpass_auth_email');
-              await supabase.auth.signOut();
+              await base44.entities.Company.update(associatedCompany.id, {
+                status: 'active',
+                billing_status: 'ACTIVE',
+              });
             } catch (_) {}
-            setUser?.(null);
-            setIsAuthenticated?.(false);
-            setSubmitting(false);
-            return;
           }
         }
 

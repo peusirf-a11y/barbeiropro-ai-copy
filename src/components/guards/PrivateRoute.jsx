@@ -1,10 +1,9 @@
 import { useAuth } from '@/lib/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
-import { isCompanyBlocked } from '@/lib/enforceCompanyAccess';
 import { isRouteAllowedByPlan } from '@/lib/featureGate';
 import { isRouteBlockedByPastDue } from '@/lib/billingMode';
 import { isSuperAdmin } from '@/lib/permissions';
@@ -13,7 +12,6 @@ import { getPartnerToken, getSavedPartner } from '@/hooks/usePartnerAuth';
 export default function PrivateRoute({ children }) {
   const { isAuthenticated, isLoadingAuth, user } = useAuth();
   const location = useLocation();
-  const qc = useQueryClient();
 
   const isSuper = isSuperAdmin(user);
   const userEmailClean = user?.email?.toLowerCase().trim();
@@ -101,7 +99,9 @@ export default function PrivateRoute({ children }) {
 
   const ownerCompany =
     strictlyOwnedCompany ||
-    (!isTeamMemberOnly && !isExclusivelyPartner && companies.length > 0 ? companies[0] : null);
+    (!isTeamMemberOnly && !isExclusivelyPartner && companies.length > 0
+      ? companies.find((c) => String(c.status || '').toLowerCase() !== 'blocked') || companies[0]
+      : null);
 
   const teamCompany = teamMember?.company_id
     ? companies.find((c) => c.id === teamMember.company_id) || {
@@ -121,33 +121,11 @@ export default function PrivateRoute({ children }) {
       }
     : ownerCompany;
 
-  const blocked = !!myCompany && isCompanyBlocked(myCompany);
-  const isManuallyBlocked =
-    !!myCompany &&
-    (String(myCompany.status || '').trim().toLowerCase() === 'blocked' ||
-      String(myCompany.billing_status || '').trim().toUpperCase() === 'BLOCKED');
-  const loggedOutRef = useRef(false);
-
   useEffect(() => {
-    if (isManuallyBlocked && !loggedOutRef.current) {
-      loggedOutRef.current = true;
-      try {
-        sessionStorage.setItem('ocorte_blocked_account_notice', '1');
-        localStorage.removeItem('admin_logged_user');
-        localStorage.removeItem('barberpass_auth_email');
-      } catch (_) {}
-      qc.clear();
-      if (supabase) {
-        supabase.auth.signOut().finally(() => {
-          if (typeof window !== 'undefined') {
-            window.location.replace('/login?blocked=1');
-          }
-        });
-      } else if (typeof window !== 'undefined') {
-        window.location.replace('/login?blocked=1');
-      }
-    }
-  }, [isManuallyBlocked, qc]);
+    try {
+      sessionStorage.removeItem('ocorte_blocked_account_notice');
+    } catch (_) {}
+  }, []);
 
   const { data: plan } = useQuery({
     queryKey: ['private-route-plan', myCompany?.plan_id],
@@ -161,10 +139,6 @@ export default function PrivateRoute({ children }) {
     enabled: !!myCompany?.plan_id && !isSuper && !isTeamMemberOnly,
     staleTime: 5 * 60_000,
   });
-
-  useEffect(() => {
-    if (blocked) qc.clear();
-  }, [blocked, qc]);
 
   // Se autenticação ainda estiver carregando, exibe indicador limpo
   if (isLoadingAuth || (isAuthenticated && !isSuper && (isLoadingTeam || isLoadingCompanies || isLoadingPartnerCheck))) {
@@ -211,14 +185,6 @@ export default function PrivateRoute({ children }) {
 
     if (!isCompleted) {
       return <Navigate to="/onboarding" replace />;
-    }
-
-    const isBillingPage =
-      location.pathname === '/app/assinatura-bloqueada' ||
-      location.pathname === '/app/configuracoes/assinatura';
-
-    if (blocked && !isBillingPage) {
-      return <Navigate to="/app/assinatura-bloqueada" replace />;
     }
 
     if (plan && !isRouteAllowedByPlan(location.pathname, plan, myCompany)) {

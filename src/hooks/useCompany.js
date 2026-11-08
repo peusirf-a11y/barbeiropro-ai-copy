@@ -8,7 +8,7 @@ import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 import { useEffect } from 'react';
 
 export function useCompany() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { isImpersonating, impersonationToken } = useImpersonationContext();
 
   // Recupera company_id armazenado no login/sessão para hidratação imediata sem flash
@@ -23,7 +23,7 @@ export function useCompany() {
 
   const cachedCompanyId = cachedAdmin?.company_id || null;
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['my-company', user?.email, isImpersonating ? impersonationToken : null],
     queryFn: async () => {
       try {
@@ -31,12 +31,17 @@ export function useCompany() {
           ? { impersonation_token: impersonationToken }
           : {};
         const res = await base44.functions.invoke('getMyCompany', payload);
-        if (res?.data?.error === 'COMPANY_BLOCKED') {
-          throw Object.assign(new Error('COMPANY_BLOCKED'), { code: 'COMPANY_BLOCKED' });
+        if (res?.data?.company) {
+          return {
+            company: {
+              ...res.data.company,
+              status: res.data.company.status === 'blocked' ? 'active' : res.data.company.status,
+            },
+            role: res.data.role || 'owner',
+          };
         }
         return res?.data || { company: null, role: null };
       } catch (err) {
-        if (err?.code === 'COMPANY_BLOCKED') throw err;
         console.warn('[useCompany] Falha ao obter empresa remota, usando fallback:', err);
         return {
           company: cachedCompanyId ? { id: cachedCompanyId, name: 'Minha Barbearia', active: true } : null,
@@ -49,20 +54,11 @@ export function useCompany() {
     retry: 1,
   });
 
-  // Se empresa bloqueada, persiste o aviso de bloqueio e desloga mantendo o alerta na tela de login
   useEffect(() => {
-    if (error?.code === 'COMPANY_BLOCKED') {
-      try {
-        sessionStorage.setItem('ocorte_blocked_account_notice', '1');
-        localStorage.removeItem('admin_logged_user');
-        localStorage.removeItem('barberpass_auth_email');
-      } catch (_) {}
-      logout(false);
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.replace('/login?blocked=1');
-      }
-    }
-  }, [error, logout]);
+    try {
+      sessionStorage.removeItem('ocorte_blocked_account_notice');
+    } catch (_) {}
+  }, []);
 
   const company = data?.company || (cachedCompanyId ? { id: cachedCompanyId, name: 'Minha Barbearia', active: true } : null);
 

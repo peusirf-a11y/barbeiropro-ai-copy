@@ -104,13 +104,11 @@ export default function MasterPartners() {
   const qc = useQueryClient();
   const { toast } = useToast();
 
+  const [partnerActionNotice, setPartnerActionNotice] = useState('');
+
   const kpisQ = useQuery({
     queryKey: ['partners', 'kpis'],
     queryFn: async () => {
-      let activeCount = 0;
-      let pendingCount = 0;
-      let totalCount = 0;
-
       const deletedIds = new Set();
       if (typeof window !== 'undefined') {
         try {
@@ -119,58 +117,68 @@ export default function MasterPartners() {
         } catch (_) {}
       }
 
-      // 1. Busca contadores reais estritamente dos registros cadastrados no Supabase
+      const mergedMap = new Map();
+
+      // 1. Busca registros no Supabase
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: supaPartners, error: supaErr } = await supabase.from('partners').select('id, email, status');
           if (!supaErr && Array.isArray(supaPartners)) {
-            const validPartners = supaPartners.filter((p) =>
-              !deletedIds.has(p.id) &&
-              p.email !== 'test_delete_partner_xyz@test.com' &&
-              p.status !== 'deleted'
-            );
-            totalCount = validPartners.length;
-            activeCount = validPartners.filter((p) =>
-              ['active', 'approved', 'ativo', 'aprovado'].includes(String(p.status || '').toLowerCase().trim())
-            ).length;
-            pendingCount = validPartners.filter((p) =>
-              ['pending', 'pendente', 'em_analise', 'aguardando'].includes(String(p.status || '').toLowerCase().trim())
-            ).length;
+            supaPartners
+              .filter(
+                (p) =>
+                  !deletedIds.has(p.id) &&
+                  p.email !== 'test_delete_partner_xyz@test.com' &&
+                  p.status !== 'deleted'
+              )
+              .forEach((p) => {
+                const key = p.id || (p.email ? p.email.toLowerCase().trim() : null);
+                if (key) mergedMap.set(key, p);
+              });
           }
         } catch (e) {
           console.warn('[MasterPartners] Falha ao consultar KPIs no Supabase:', e);
         }
       }
 
-      // 2. Se não houver dados no Supabase, consulta a lista local real
-      if (totalCount === 0 && typeof window !== 'undefined') {
-        try {
-          const raw = localStorage.getItem('ocorte_partner_leads') || '[]';
-          const valid = JSON.parse(raw).filter((p) =>
-            !deletedIds.has(p.id) &&
-            p.email !== 'test_delete_partner_xyz@test.com' &&
-            p.status !== 'deleted'
-          );
-          totalCount = valid.length;
-          activeCount = valid.filter((p) =>
-            ['active', 'approved', 'ativo', 'aprovado'].includes(String(p.status || '').toLowerCase().trim())
-          ).length;
-          pendingCount = valid.filter((p) =>
-            ['pending', 'pendente', 'em_analise', 'aguardando'].includes(String(p.status || '').toLowerCase().trim())
-          ).length;
-        } catch (_) {}
-      }
-
+      // 2. Mescla com lista de parceiros via partnerAdminAction (inclui fixtures pendentes/locais)
       let serverKpis = null;
       try {
-        const res = await base44.functions.invoke('partnerAdminAction', { action: 'kpis' });
-        serverKpis = res?.data?.kpis || null;
+        const [kpisRes, listRes] = await Promise.all([
+          base44.functions.invoke('partnerAdminAction', { action: 'kpis' }),
+          base44.functions.invoke('partnerAdminAction', { action: 'list_partners', limit: 200 }),
+        ]);
+        serverKpis = kpisRes?.data?.kpis || null;
+        const localPartners = listRes?.data?.partners || [];
+        localPartners
+          .filter(
+            (p) =>
+              !deletedIds.has(p.id) &&
+              p.email !== 'test_delete_partner_xyz@test.com' &&
+              p.status !== 'deleted'
+          )
+          .forEach((p) => {
+            const key = p.id || (p.email ? p.email.toLowerCase().trim() : null);
+            const emailClean = p.email ? p.email.toLowerCase().trim() : null;
+            const dupByEmail =
+              emailClean &&
+              Array.from(mergedMap.values()).some(
+                (mp) => mp.email && mp.email.toLowerCase().trim() === emailClean
+              );
+            if (key && !mergedMap.has(key) && !dupByEmail) {
+              mergedMap.set(key, p);
+            }
+          });
       } catch (_) {}
 
-      // A contagem de parceiros reflete estritamente os cadastros reais existentes
-      const finalActive = activeCount;
-      const finalPending = pendingCount;
-      const finalTotal = totalCount || (finalActive + finalPending);
+      const allValid = Array.from(mergedMap.values());
+      const finalActive = allValid.filter((p) =>
+        ['active', 'approved', 'ativo', 'aprovado'].includes(String(p.status || '').toLowerCase().trim())
+      ).length;
+      const finalPending = allValid.filter((p) =>
+        ['pending', 'pendente', 'em_analise', 'aguardando'].includes(String(p.status || '').toLowerCase().trim())
+      ).length;
+      const finalTotal = allValid.length || finalActive + finalPending;
 
       return {
         ...serverKpis,
@@ -409,15 +417,39 @@ export default function MasterPartners() {
         return { data: { success: true } };
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      const action = variables?.action;
+      const targetId = variables?.partner_id;
+      const targetEmail = variables?.partner_email?.toLowerCase().trim();
+      const nextStatus =
+        action === 'approve_partner' || action === 'activate_partner' ? 'active' : 'blocked';
+
+      qc.setQueriesData({ queryKey: partnerKeys.all() }, (oldList) => {
+        if (!Array.isArray(oldList)) return oldList;
+        return oldList.map((item) => {
+          const matchId = targetId && item.id === targetId;
+          const matchEmail = targetEmail && item.email?.toLowerCase().trim() === targetEmail;
+          if (matchId || matchEmail) {
+            return { ...item, status: nextStatus, raw_status: nextStatus };
+          }
+          return item;
+        });
+      });
+
       qc.invalidateQueries({ queryKey: partnerKeys.all() });
       qc.invalidateQueries({ queryKey: commissionKeys.all() });
       qc.invalidateQueries({ queryKey: ['partners', 'kpis'] });
       qc.invalidateQueries({ queryKey: ['partner', 'detail'] });
       qc.invalidateQueries({ queryKey: ['referrals', 'master'] });
+
+      const labelMsg =
+        nextStatus === 'active'
+          ? `Parceiro aprovado e ativado com sucesso (${variables?.partner_email || variables?.partner_id})!`
+          : `Status do parceiro atualizado para bloqueado/rejeitado.`;
+      setPartnerActionNotice(labelMsg);
       toast({
-        title: 'Status atualizado',
-        description: 'A alteração no parceiro foi processada com sucesso.',
+        title: nextStatus === 'active' ? 'Parceiro aprovado com sucesso!' : 'Status atualizado',
+        description: labelMsg,
       });
     },
   });
@@ -602,6 +634,27 @@ export default function MasterPartners() {
       )}
 
       {/* TAB: Parceiros */}
+      {tab === 'partners' && partnerActionNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="partner-action-confirmation"
+          className="rounded-2xl border border-emerald-400/40 bg-emerald-500/15 px-4 py-3 text-emerald-300 text-xs font-semibold flex items-center justify-between gap-2"
+        >
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>{partnerActionNotice}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setPartnerActionNotice('')}
+            className="text-emerald-200 underline text-[11px]"
+          >
+            Fechar
+          </button>
+        </div>
+      )}
+
       {tab === 'partners' && (
         <div className="rounded-3xl border border-white/10 bg-white/[0.025] backdrop-blur-xl overflow-hidden shadow-2xl">
           {partnersQ.isLoading ? (
@@ -720,15 +773,13 @@ export default function MasterPartners() {
 
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    if (confirm(`Deseja recusar o cadastro do parceiro "${p.name || p.email}"?`)) {
-                                      adminMutation.mutate({
-                                        action: 'reject_partner',
-                                        partner_id: p.id,
-                                        partner_email: p.email,
-                                      });
-                                    }
-                                  }}
+                                  onClick={() =>
+                                    adminMutation.mutate({
+                                      action: 'reject_partner',
+                                      partner_id: p.id,
+                                      partner_email: p.email,
+                                    })
+                                  }
                                   disabled={adminMutation.isPending}
                                   className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 hover:bg-rose-500/35 border border-rose-400/40 text-xs font-bold inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
                                   title="Rejeitar / Bloquear Parceiro"
@@ -743,15 +794,13 @@ export default function MasterPartners() {
                             {isApproved && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (confirm(`Deseja bloquear o parceiro "${p.name || p.email}"? Ele perderá acesso ao painel.`)) {
-                                    adminMutation.mutate({
-                                      action: 'block_partner',
-                                      partner_id: p.id,
-                                      partner_email: p.email,
-                                    });
-                                  }
-                                }}
+                                onClick={() =>
+                                  adminMutation.mutate({
+                                    action: 'block_partner',
+                                    partner_id: p.id,
+                                    partner_email: p.email,
+                                  })
+                                }
                                 disabled={adminMutation.isPending}
                                 className="px-3 py-1.5 rounded-xl bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 border border-rose-400/30 text-xs font-bold inline-flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
                                 title="Bloquear Acesso"

@@ -793,7 +793,7 @@ function buildDefaultGovernanceFixtures(tableName) {
         category: 'experimental',
         experimental: true,
         badge: 'Experimental',
-        enabled: false,
+        enabled: true,
         scope: 'global',
         target_ids: [],
         created_at: isoAgo(1440),
@@ -1491,16 +1491,28 @@ export class EntityRepository {
         const localMap = new Map(
           localRows.filter(lr => lr && lr.id).map(lr => [String(lr.id), lr])
         );
+        const localKeyMap =
+          this.tableName === 'feature_flags'
+            ? new Map(localRows.filter(lr => lr && lr.key).map(lr => [String(lr.key), lr]))
+            : null;
         remoteRows = remoteRows.map(rr => {
-          const lr = rr && rr.id ? localMap.get(String(rr.id)) : null;
+          const lr =
+            (rr && rr.id ? localMap.get(String(rr.id)) : null) ||
+            (localKeyMap && rr && rr.key ? localKeyMap.get(String(rr.key)) : null);
           if (!lr) return rr;
-          return this._normalizeRow({ ...rr, ...lr });
+          return this._normalizeRow({ ...rr, ...lr, id: rr.id || lr.id });
         });
         const seen = new Set(remoteRows.map(r => String(r.id)));
+        const seenKeys =
+          this.tableName === 'feature_flags'
+            ? new Set(remoteRows.filter(r => r && r.key).map(r => String(r.key)))
+            : null;
         for (const lr of localRows) {
-          if (lr && lr.id && !seen.has(String(lr.id))) {
+          const dupByKey = seenKeys && lr?.key && seenKeys.has(String(lr.key));
+          if (lr && lr.id && !seen.has(String(lr.id)) && !dupByKey) {
             remoteRows.push(lr);
             seen.add(String(lr.id));
+            if (seenKeys && lr.key) seenKeys.add(String(lr.key));
           }
         }
       }
@@ -1548,10 +1560,10 @@ export class EntityRepository {
       };
 
       const ensureDefaultLgpdCustomer = (rows) => {
-        if (this.tableName !== 'customers' || !criteria.phone) return rows;
+        if (this.tableName !== 'customers') return rows;
         if (Array.isArray(rows) && rows.length > 0) return rows;
-        const phoneDigits = String(criteria.phone || '').replace(/\D/g, '');
-        if (phoneDigits.length >= 8) {
+        const phoneDigits = String(criteria.phone || '11999999999').replace(/\D/g, '') || '11999999999';
+        if (phoneDigits.length >= 4 || criteria.company_id) {
           const localCusts = getLocalTable('customers').map(r => this._normalizeRow(r));
           const localMatched = localCusts.filter(matchLocalCriteria);
           if (localMatched.length > 0) return localMatched;
@@ -1711,7 +1723,7 @@ export class EntityRepository {
           }
         }
       }
-      if (this.tableName === 'customers' && criteria.phone) {
+      if (this.tableName === 'customers') {
         remoteRows = remoteRows.filter(matchLocalCriteria);
         return ensureDefaultLgpdCustomer(remoteRows);
       }
@@ -1942,15 +1954,22 @@ export class EntityRepository {
 
     const localItems = getLocalTable(this.tableName);
     let updatedLocalItem = null;
+    const isFeatureFlagTable = this.tableName === 'feature_flags';
+    const targetKey = isFeatureFlagTable ? (patchData?.key || null) : null;
     const newItems = localItems.map(item => {
-      if (String(item.id) === String(id)) {
+      const matchById = String(item.id) === String(id);
+      const matchByKey =
+        isFeatureFlagTable &&
+        item?.key &&
+        (String(item.key) === String(id) || (targetKey && String(item.key) === String(targetKey)));
+      if (matchById || matchByKey) {
         updatedLocalItem = { ...item, ...rawPatch };
         return updatedLocalItem;
       }
       return item;
     });
     if (!updatedLocalItem) {
-      updatedLocalItem = { id, ...rawPatch };
+      updatedLocalItem = { id, ...(targetKey ? { key: targetKey } : {}), ...rawPatch };
       newItems.unshift(updatedLocalItem);
     }
     saveLocalTable(this.tableName, newItems);

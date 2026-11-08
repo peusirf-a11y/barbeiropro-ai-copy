@@ -8,13 +8,22 @@
 //   - editar overrides de cada EMPRESA (link → /master/barbearias/:id)
 
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { FEATURE_CATALOG, FEATURE_CATEGORIES, BADGE_STYLES } from '@/lib/featureCatalog';
+import { clearFeatureFlagCache } from '@/lib/featureFlags';
 import { Layers, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react';
 
 const sortedCategories = Object.entries(FEATURE_CATEGORIES)
   .sort(([, a], [, b]) => (a.sort || 0) - (b.sort || 0));
 
 export default function FeatureCatalogManager() {
+  const queryClient = useQueryClient();
+  const { data: flags = [] } = useQuery({
+    queryKey: ['feature-flags'],
+    queryFn: () => base44.entities.FeatureFlag.list('-created_date', 200),
+  });
+
   const [experimentalState, setExperimentalState] = useState(() => {
     const init = {};
     for (const f of FEATURE_CATALOG) {
@@ -25,11 +34,85 @@ export default function FeatureCatalogManager() {
     return init;
   });
 
-  const handleToggleExperimental = (key) => {
+  const isExperimentalFeatureEnabled = (feature) => {
+    const matchedFlag = Array.isArray(flags)
+      ? flags.find((fl) => String(fl?.key || '') === String(feature.key))
+      : null;
+    if (matchedFlag && matchedFlag.enabled !== undefined) {
+      return Boolean(matchedFlag.enabled);
+    }
+    if (experimentalState[feature.key] !== undefined) {
+      return Boolean(experimentalState[feature.key]);
+    }
+    return Boolean(feature.default_enabled);
+  };
+
+  const handleToggleExperimental = async (feature) => {
+    const key = feature.key;
+    const currentEnabled = isExperimentalFeatureEnabled(feature);
+    const nextEnabled = !currentEnabled;
+
     setExperimentalState((prev) => ({
       ...prev,
-      [key]: !prev[key],
+      [key]: nextEnabled,
     }));
+
+    // Atualiza imediatamente a lista de feature flags na memória do React Query
+    queryClient.setQueryData(['feature-flags'], (oldFlags = []) => {
+      const list = Array.isArray(oldFlags) ? oldFlags : [];
+      const exists = list.some((fl) => String(fl?.key || '') === String(key));
+      if (exists) {
+        return list.map((fl) =>
+          String(fl?.key || '') === String(key) ? { ...fl, enabled: nextEnabled } : fl
+        );
+      }
+      return [
+        {
+          id: `flag-exp-${key}`,
+          key,
+          name: feature.label,
+          description: feature.description,
+          category: 'experimental',
+          experimental: true,
+          badge: 'Experimental',
+          enabled: nextEnabled,
+          scope: 'global',
+          target_ids: [],
+          created_date: new Date().toISOString(),
+        },
+        ...list,
+      ];
+    });
+
+    try {
+      const currentFlags = queryClient.getQueryData(['feature-flags']) || flags || [];
+      const existing = Array.isArray(currentFlags)
+        ? currentFlags.find((fl) => String(fl?.key || '') === String(key))
+        : null;
+
+      if (existing?.id) {
+        await base44.entities.FeatureFlag.update(existing.id, {
+          enabled: nextEnabled,
+          key,
+        });
+      } else {
+        await base44.entities.FeatureFlag.create({
+          key,
+          name: feature.label,
+          description: feature.description,
+          category: 'experimental',
+          experimental: true,
+          badge: 'Experimental',
+          enabled: nextEnabled,
+          scope: 'global',
+          target_ids: [],
+        });
+      }
+      clearFeatureFlagCache();
+      queryClient.invalidateQueries({ queryKey: ['feature-flags'] });
+    } catch (err) {
+      console.warn('[FeatureCatalogManager] Erro ao sincronizar feature flag experimental:', err);
+    }
   };
 
   const masterCommercialFeatures = FEATURE_CATALOG.filter(
@@ -123,7 +206,7 @@ export default function FeatureCatalogManager() {
                   {items.map((f) => {
                     const badge = (f.badge && BADGE_STYLES[f.badge]) || BADGE_STYLES.master;
                     const isExperimental = Boolean(f.experimental || f.badge === 'experimental');
-                    const isEnabled = Boolean(experimentalState[f.key]);
+                    const isEnabled = isExperimentalFeatureEnabled(f);
                     return (
                       <div
                         key={f.key}
@@ -143,7 +226,7 @@ export default function FeatureCatalogManager() {
                             {isExperimental && (
                               <button
                                 type="button"
-                                onClick={() => handleToggleExperimental(f.key)}
+                                onClick={() => handleToggleExperimental(f)}
                                 aria-label={`Alternar ${f.label}`}
                                 data-testid={`catalog-toggle-${f.key}`}
                                 className="inline-flex items-center gap-1 text-xs font-semibold cursor-pointer"

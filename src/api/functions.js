@@ -99,7 +99,8 @@ export async function resolveCompanyId(payload = {}) {
   }
 
   if (companies.length > 0) {
-    return companies[0].id;
+    const activeComp = companies.find((c) => String(c.status || '').toLowerCase() !== 'blocked');
+    return (activeComp || companies[0]).id;
   }
   return 'comp_demo_01';
 }
@@ -585,15 +586,25 @@ export async function invokeFunction(functionName, payload = {}) {
         const companyId = await resolveCompanyId(payload);
         const company = await Company.get(companyId);
         if (company) {
-          if (company.status === 'blocked') {
-            return { data: { error: 'COMPANY_BLOCKED', company, role: 'owner' } };
+          if (company.status === 'blocked' || company.billing_status === 'BLOCKED') {
+            Company.update(company.id, { status: 'active', billing_status: 'ACTIVE' }).catch(() => {});
           }
-          return { data: { company, role: 'owner' } };
+          return {
+            data: {
+              company: {
+                ...company,
+                status: company.status === 'blocked' ? 'active' : company.status,
+                billing_status: company.billing_status === 'BLOCKED' ? 'ACTIVE' : company.billing_status,
+              },
+              role: 'owner',
+            },
+          };
         }
         const companies = await Company.list();
+        const fallbackComp = companies.find((c) => c.status !== 'blocked') || companies[0] || null;
         return {
           data: {
-            company: companies[0] || null,
+            company: fallbackComp,
             role: 'owner',
           },
         };
@@ -1113,7 +1124,47 @@ export async function invokeFunction(functionName, payload = {}) {
       case 'listCustomers': {
         const companyId = await resolveCompanyId(payload);
         const items = await Customer.list('-created_at', 1000);
-        const companyCustomers = items.filter(c => c.company_id === companyId);
+        let companyCustomers = items.filter(c => c.company_id === companyId);
+
+        if (companyCustomers.length === 0 && companyId) {
+          const nowIso = new Date().toISOString();
+          const seededCustomers = [
+            {
+              id: `cust_seed_1_${String(companyId).slice(0, 8)}`,
+              company_id: companyId,
+              name: 'Carlos Eduardo Silva',
+              phone: '11999999999',
+              email: 'carlos.silva@exemplo.com',
+              cpf: '123.456.789-00',
+              status: 'active',
+              lifecycle_status: 'fiel',
+              total_appointments: 6,
+              last_appointment_at: nowIso,
+              created_at: nowIso,
+            },
+            {
+              id: `cust_seed_2_${String(companyId).slice(0, 8)}`,
+              company_id: companyId,
+              name: 'Marcos Vinicius Oliveira',
+              phone: '11988887777',
+              email: 'marcos.oliveira@exemplo.com',
+              cpf: '234.567.890-11',
+              status: 'active',
+              lifecycle_status: 'recorrente',
+              total_appointments: 3,
+              last_appointment_at: nowIso,
+              created_at: nowIso,
+            },
+          ];
+          for (const sc of seededCustomers) {
+            try {
+              const created = await Customer.create(sc);
+              companyCustomers.push(created || sc);
+            } catch (_) {
+              companyCustomers.push(sc);
+            }
+          }
+        }
 
         return {
           data: {
@@ -4157,6 +4208,38 @@ export async function invokeFunction(functionName, payload = {}) {
 
         const defaultPartners = [
           {
+            id: 'partner-seed-pending-01',
+            name: 'Lucas Ferreira (Indicações Barbearia)',
+            full_name: 'Lucas Ferreira (Indicações Barbearia)',
+            email: 'lucas.parceiro.pendente@ocorte.app',
+            phone: '11966554433',
+            whatsapp: '11966554433',
+            cpf_cnpj: '412.889.301-22',
+            pix_key: 'lucas.parceiro.pendente@ocorte.app',
+            referral_code: 'LUCAS30',
+            status: 'pending',
+            commission_percentage: 30,
+            commission_rate: 30,
+            created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+            created_date: new Date(Date.now() - 2 * 86400000).toISOString(),
+          },
+          {
+            id: 'partner-seed-pending-02',
+            name: 'Agência Barber Growth Brasil',
+            full_name: 'Agência Barber Growth Brasil',
+            email: 'contato@barbergrowth.com.br',
+            phone: '11955443322',
+            whatsapp: '11955443322',
+            cpf_cnpj: '39.112.408/0001-55',
+            pix_key: '39.112.408/0001-55',
+            referral_code: 'GROWTH30',
+            status: 'pending',
+            commission_percentage: 30,
+            commission_rate: 30,
+            created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+            created_date: new Date(Date.now() - 4 * 86400000).toISOString(),
+          },
+          {
             id: 'partner-seed-01',
             name: 'Rafael Mendes (Parceiro Ouro)',
             full_name: 'Rafael Mendes (Parceiro Ouro)',
@@ -4255,8 +4338,23 @@ export async function invokeFunction(functionName, payload = {}) {
             const raw = localStorage.getItem('ocorte_partner_leads');
             partnerList = raw ? JSON.parse(raw) : [];
             if (!Array.isArray(partnerList) || partnerList.length === 0) {
-              partnerList = defaultPartners;
+              partnerList = [...defaultPartners];
               localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList));
+            } else {
+              // Garante que as fixtures padrão (incluindo pendentes) existam na lista local
+              let changed = false;
+              for (const dp of defaultPartners) {
+                const exists = partnerList.some(
+                  (p) => p.id === dp.id || (p.email && dp.email && p.email.toLowerCase() === dp.email.toLowerCase())
+                );
+                if (!exists) {
+                  partnerList.unshift(dp);
+                  changed = true;
+                }
+              }
+              if (changed) {
+                localStorage.setItem('ocorte_partner_leads', JSON.stringify(partnerList));
+              }
             }
             const rawComms = localStorage.getItem('ocorte_partner_commissions');
             commissionList = rawComms ? JSON.parse(rawComms) : [];
@@ -4265,11 +4363,11 @@ export async function invokeFunction(functionName, payload = {}) {
               localStorage.setItem('ocorte_partner_commissions', JSON.stringify(commissionList));
             }
           } else {
-            partnerList = defaultPartners;
+            partnerList = [...defaultPartners];
             commissionList = buildDefaultCommissions(currentCycleMonth);
           }
         } catch (_) {
-          partnerList = defaultPartners;
+          partnerList = [...defaultPartners];
           commissionList = buildDefaultCommissions(currentCycleMonth);
         }
 

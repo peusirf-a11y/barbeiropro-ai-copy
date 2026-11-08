@@ -22,10 +22,21 @@ export default function FeatureFlagsManager() {
   const [targetInput, setTargetInput] = useState('');
   const [toggleNotice, setToggleNotice] = useState('');
 
-  const { data: flags = [], isLoading } = useQuery({
+  const { data: rawFlags = [], isLoading } = useQuery({
     queryKey: ['feature-flags'],
     queryFn: () => base44.entities.FeatureFlag.list('-created_date', 200),
   });
+
+  // Deduplica por key para evitar entradas duplicadas entre seed local e banco remoto
+  const flags = Array.isArray(rawFlags)
+    ? Array.from(
+        rawFlags.reduce((acc, item) => {
+          const k = item?.key || item?.id;
+          if (k && !acc.has(k)) acc.set(k, item);
+          return acc;
+        }, new Map()).values()
+      )
+    : [];
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['feature-flags'] });
@@ -33,8 +44,26 @@ export default function FeatureFlagsManager() {
   };
 
   const toggle = useMutation({
-    mutationFn: ({ id, enabled, key }) => base44.entities.FeatureFlag.update(id, { enabled }),
+    mutationFn: ({ id, enabled, key }) => base44.entities.FeatureFlag.update(id, { enabled, key }),
+    onMutate: async (variables) => {
+      qc.setQueryData(['feature-flags'], (old = []) => {
+        const list = Array.isArray(old) ? old : [];
+        return list.map((f) =>
+          f.id === variables.id || (variables.key && f.key === variables.key)
+            ? { ...f, enabled: variables.enabled }
+            : f
+        );
+      });
+    },
     onSuccess: (_data, variables) => {
+      qc.setQueryData(['feature-flags'], (old = []) => {
+        const list = Array.isArray(old) ? old : [];
+        return list.map((f) =>
+          f.id === variables.id || (variables.key && f.key === variables.key)
+            ? { ...f, enabled: variables.enabled }
+            : f
+        );
+      });
       invalidate();
       const msg = `Feature flag "${variables.key || variables.id}" ${variables.enabled ? 'ativada (ON)' : 'desativada (OFF)'} com sucesso.`;
       setToggleNotice(msg);
