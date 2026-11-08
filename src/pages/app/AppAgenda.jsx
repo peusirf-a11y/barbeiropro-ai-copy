@@ -48,6 +48,7 @@ export default function AppAgenda() {
   const [form, setForm] = useState(emptyForm);
   const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
   const [slotInterval, setSlotInterval] = useState(15); // Padrão: 15 min (opções: 5, 10, 15, 30 min)
+  const [lastCreatedApptId, setLastCreatedApptId] = useState(null);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const impPatch = useImpersonationPatch();
@@ -208,6 +209,21 @@ export default function AppAgenda() {
     onSuccess: (res) => {
       // BFF retorna { appointment } — sem unwrapping vinha como undefined.
       const created = res?.appointment;
+      if (created) {
+        setLastCreatedApptId(created.id);
+        hasAutoJumpedRef.current = true;
+        if (created.scheduled_at) {
+          const parsedDate = new Date(created.scheduled_at);
+          if (!Number.isNaN(parsedDate.getTime())) {
+            setCurrentDate(parsedDate);
+          }
+        }
+        const key = buildTenantQueryKey({ entity: 'appointments', companyId });
+        queryClient.setQueriesData({ queryKey: key }, (old) => {
+          const list = Array.isArray(old) ? old : [];
+          return [created, ...list.filter((a) => String(a.id) !== String(created.id))];
+        });
+      }
       queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'appointments', companyId }) });
       queryClient.invalidateQueries({ queryKey: buildTenantQueryKey({ entity: 'customers', companyId }) });
       setShowNewForm(false);
@@ -305,7 +321,13 @@ export default function AppAgenda() {
 
   const upcomingAppointments = filteredAppts
     .filter(a => !['cancelado', 'faltou', 'pending_payment'].includes(a.status) && new Date(a.scheduled_at) >= new Date(Date.now() - 2 * 60 * 60 * 1000))
-    .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+    .sort((a, b) => {
+      if (lastCreatedApptId) {
+        if (String(a.id) === String(lastCreatedApptId)) return -1;
+        if (String(b.id) === String(lastCreatedApptId)) return 1;
+      }
+      return new Date(a.scheduled_at) - new Date(b.scheduled_at);
+    });
 
   // Se hoje não tiver agendamentos mas houver agendamento confirmado nos próximos dias, posiciona automaticamente no próximo dia agendado
   useEffect(() => {
@@ -534,7 +556,7 @@ export default function AppAgenda() {
               <span>Próximos agendamentos confirmados ({upcomingAppointments.length}):</span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {upcomingAppointments.slice(0, 4).map(a => {
+              {upcomingAppointments.slice(0, 12).map(a => {
                 const d = new Date(a.scheduled_at);
                 const isSelectedDay = isSameDay(d, currentDate);
                 return (

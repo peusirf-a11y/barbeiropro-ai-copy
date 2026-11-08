@@ -196,6 +196,16 @@ export default function PixPaymentBox({
         <span className="text-lg font-black tabular-nums">{timeStr}</span>
       </div>
 
+      {bookingPayload?.notes && (
+        <div
+          data-testid="pix-box-booking-notes"
+          className="mb-4 px-3.5 py-2.5 rounded-xl bg-gray-50 border border-black/8 flex items-start justify-between gap-2 text-xs"
+        >
+          <span className="font-semibold text-gray-500">Observações:</span>
+          <span className="font-bold text-gray-800 text-right">{bookingPayload.notes}</span>
+        </div>
+      )}
+
       {/* Renderização da Imagem do QR Code */}
       {encodedImage && (
         <div className="flex justify-center mb-4">

@@ -683,6 +683,9 @@ export default function BookingModal({
                     <Row label="Serviço" value={selected.service?.name} tw={tw} />
                     <Row label="Profissional" value={selected.professional?.name} tw={tw} />
                     <Row label="Data e hora" value={`${selected.date ? format(selected.date, "d 'de' MMM", { locale: ptBR }) : ''} às ${selected.time}`} tw={tw} />
+                    {form.notes && (
+                      <Row label="Observações" value={form.notes} tw={tw} />
+                    )}
                     <div className={`flex justify-between items-center pt-2 border-t ${tw.divider}`}>
                       <span className={`${tw.textMuted} text-sm`}>Valor</span>
                       <span className="text-emerald-500 font-black text-lg">R$ {selected.service?.price?.toFixed(2)}</span>
@@ -716,10 +719,15 @@ export default function BookingModal({
                   )}
 
                   <div>
-                    <label className={`text-xs font-semibold ${tw.textMuted} block mb-1`}>Observações (opcional)</label>
-                    <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
+                    <label htmlFor="booking-notes" className={`text-xs font-semibold ${tw.textMuted} block mb-1`}>Observações (opcional)</label>
+                    <textarea
+                      id="booking-notes"
+                      value={form.notes}
+                      onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                      rows={2}
                       placeholder="Preferências ou informações adicionais"
-                      className={`w-full px-4 py-3 border ${tw.divider} rounded-xl text-sm ${tw.card} ${tw.text} resize-none`} />
+                      className={`w-full px-4 py-3 border ${tw.divider} rounded-xl text-sm ${tw.card} ${tw.text} resize-none`}
+                    />
                   </div>
 
                   <BookingConsentBlock companyId={company.id} customerId={loggedCustomer?.id} customerToken={customerToken} />

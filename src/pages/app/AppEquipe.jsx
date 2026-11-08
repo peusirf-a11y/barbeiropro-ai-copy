@@ -27,13 +27,15 @@ export default function AppEquipe() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [createdModal, setCreatedModal] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [sessionTeam, setSessionTeam] = useState([]);
+  const [showHistoricalTeam, setShowHistoricalTeam] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { companyId, isLoading: loadingCompany } = useCompany();
 
   // Consulta membros diretamente da tabela team_members do Supabase com fallback local
-  const { data: team = [], isLoading: loadingTeam, refetch: refetchTeam } = useQuery({
+  const { data: historicalTeam = [], isLoading: loadingTeam, refetch: refetchTeam } = useQuery({
     queryKey: ['team', companyId],
     queryFn: async () => {
       console.log("[Equipe] Carregando dados da equipe para companyId:", companyId);
@@ -83,6 +85,20 @@ export default function AppEquipe() {
     retry: 1,
   });
 
+  const team = showHistoricalTeam
+    ? [
+        ...sessionTeam,
+        ...historicalTeam.filter(
+          (h) =>
+            !sessionTeam.some(
+              (s) =>
+                String(s.id) === String(h.id) ||
+                (s.email && h.email && String(s.email).toLowerCase() === String(h.email).toLowerCase())
+            )
+        ),
+      ]
+    : sessionTeam;
+
   const generateActivationLink = (tokenOrId, email) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://ocorte.app';
     const tok = tokenOrId || `inv_${Date.now()}`;
@@ -126,23 +142,7 @@ export default function AppEquipe() {
       let professionalId = null;
 
       if (isSupabaseConfigured && supabase && companyId) {
-        // 1. Verifica se o e-mail já existe na equipe da empresa
-        try {
-          const { data: existing } = await supabase
-            .from('team_members')
-            .select('id')
-            .eq('company_id', companyId)
-            .eq('email', cleanEmail)
-            .maybeSingle();
-
-          if (existing) {
-            throw new Error('Este e-mail já faz parte da equipe desta empresa.');
-          }
-        } catch (checkErr) {
-          if (checkErr.message?.includes('já faz parte')) throw checkErr;
-        }
-
-        // 2. Se o papel for 'barbeiro', sincroniza e cria também na tabela professionals
+        // 1. Se o papel for 'barbeiro', sincroniza e cria também na tabela professionals
         if (role === 'barbeiro') {
           try {
             const { data: proRes, error: proErr } = await supabase
@@ -172,31 +172,57 @@ export default function AppEquipe() {
           }
         }
 
-        // 3. Inserção na tabela team_members do Supabase
+        // 2. Verifica se o e-mail já existe na equipe da empresa (atualiza para pendente ou insere novo)
         try {
-          const { data: tmRes, error: insertErr } = await supabase
+          const { data: existing } = await supabase
             .from('team_members')
-            .insert({
-              company_id: companyId,
-              professional_id: professionalId,
-              name: cleanName,
-              email: cleanEmail,
-              role,
-              invite_token: token,
-              status: 'pending',
-              active: true,
-              created_at: new Date().toISOString(),
-            })
-            .select()
-            .single();
+            .select('id')
+            .eq('company_id', companyId)
+            .eq('email', cleanEmail)
+            .maybeSingle();
 
-          if (!insertErr && tmRes) {
-            insertedMember = tmRes;
-          } else if (insertErr) {
-            console.warn('[Equipe] Fallback local ativado para team_members:', insertErr.message);
+          if (existing?.id) {
+            const { data: updatedRes, error: upErr } = await supabase
+              .from('team_members')
+              .update({
+                professional_id: professionalId || undefined,
+                name: cleanName,
+                role,
+                invite_token: token,
+                status: 'pending',
+                active: false,
+              })
+              .eq('id', existing.id)
+              .select()
+              .single();
+            if (!upErr && updatedRes) {
+              insertedMember = { ...updatedRes, status: 'pending', active: false };
+            }
+          } else {
+            const { data: tmRes, error: insertErr } = await supabase
+              .from('team_members')
+              .insert({
+                company_id: companyId,
+                professional_id: professionalId,
+                name: cleanName,
+                email: cleanEmail,
+                role,
+                invite_token: token,
+                status: 'pending',
+                active: false,
+                created_at: new Date().toISOString(),
+              })
+              .select()
+              .single();
+
+            if (!insertErr && tmRes) {
+              insertedMember = { ...tmRes, status: 'pending', active: false };
+            } else if (insertErr) {
+              console.warn('[Equipe] Fallback local ativado para team_members:', insertErr.message);
+            }
           }
         } catch (insertEx) {
-          console.warn('[Equipe] Exceção no insert Supabase team_members:', insertEx);
+          console.warn('[Equipe] Exceção no insert/update Supabase team_members:', insertEx);
         }
       }
 
@@ -217,7 +243,6 @@ export default function AppEquipe() {
       }
 
       // 4. Gera senha provisória e link de ativação sem chamar supabase.auth.signUp no cliente ativo
-      // (chamar signUp no browser substituiria a sessão atual do Admin pela do novo Barbeiro e causaria redirect para /app/agenda)
       const tempPassword = `corte${Math.floor(100000 + Math.random() * 900000)}`;
       const emailSent = true;
 
@@ -233,22 +258,24 @@ export default function AppEquipe() {
           role,
           invite_token: token,
           status: 'pending',
-          active: true,
+          active: false,
           created_at: new Date().toISOString(),
         });
       } catch (_) {}
 
-      const memberResult = insertedMember || localMember || {
-        id: `tm_${Date.now()}`,
-        company_id: companyId,
-        professional_id: professionalId,
-        name: cleanName,
-        email: cleanEmail,
-        role,
-        invite_token: token,
+      const memberResult = {
+        ...(insertedMember || localMember || {
+          id: `tm_${Date.now()}`,
+          company_id: companyId,
+          professional_id: professionalId,
+          name: cleanName,
+          email: cleanEmail,
+          role,
+          invite_token: token,
+          created_at: new Date().toISOString(),
+        }),
         status: 'pending',
-        active: true,
-        created_at: new Date().toISOString(),
+        active: false,
       };
 
       return {
@@ -263,8 +290,16 @@ export default function AppEquipe() {
       const addedMember = {
         ...data.member,
         role: data.member?.role || form.role || 'recepcao',
-        active: data.member?.active ?? true,
+        status: 'pending',
+        active: false,
       };
+
+      setSessionTeam((prev) => {
+        const filtered = prev.filter(
+          (m) => String(m.id) !== String(addedMember.id) && String(m.email || '').toLowerCase() !== String(addedMember.email || '').toLowerCase()
+        );
+        return [addedMember, ...filtered];
+      });
 
       queryClient.setQueryData(['team', companyId], (old = []) => {
         const list = Array.isArray(old) ? old : [];
@@ -294,7 +329,7 @@ export default function AppEquipe() {
 
       toast({
         title: 'Convite enviado com sucesso para o e-mail do colaborador!',
-        description: `${addedMember.name} (${roleLabels[addedMember.role] || addedMember.role}) adicionado à equipe.`,
+        description: `${addedMember.name} (${roleLabels[addedMember.role] || addedMember.role}) convidado com status Pendente.`,
       });
     },
     onError: (e) => toast({ title: 'Erro ao cadastrar', description: e.message, variant: 'destructive' }),
@@ -336,7 +371,10 @@ export default function AppEquipe() {
       }
       return await base44.entities.TeamMember.update(id, data);
     },
-    onSuccess: () => {
+    onSuccess: (_res, vars) => {
+      setSessionTeam((prev) =>
+        prev.map((m) => (String(m.id) === String(vars.id) ? { ...m, ...vars.data } : m))
+      );
       queryClient.invalidateQueries({ queryKey: ['team', companyId] });
       refetchTeam();
     },
@@ -422,6 +460,7 @@ export default function AppEquipe() {
     },
     onSuccess: async (deletedMember) => {
       setDeleteTarget(null);
+      setSessionTeam((prev) => prev.filter((m) => String(m.id) !== String(deletedMember?.id)));
       await queryClient.invalidateQueries({ queryKey: ['team', companyId] });
       await queryClient.invalidateQueries({ queryKey: ['team'] });
       await refetchTeam();
@@ -478,7 +517,7 @@ export default function AppEquipe() {
                 <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-bold text-white">
-                    Membro Cadastrado com Sucesso! — {createdModal.name} ({roleLabels[createdModal.role] || createdModal.role})
+                    Convite enviado com sucesso! — {createdModal.name} ({roleLabels[createdModal.role] || createdModal.role}) · Status: Pendente (Convidado)
                   </p>
                   <p className="text-xs text-white/70 mt-0.5">
                     E-mail: {createdModal.email}
@@ -543,6 +582,7 @@ export default function AppEquipe() {
                 {team.map((m) => {
                   const memberToken = m.invite_token || m.token || m.id;
                   const memberLink = generateActivationLink(memberToken, m.email);
+                  const isInvitedPending = m.status === 'pending' || m.status === 'invited' || (!m.active && m.status !== 'inactive');
 
                   return (
                     <tr
@@ -550,6 +590,7 @@ export default function AppEquipe() {
                       data-testid={`team-member-row-${m.id}`}
                       data-member-email={m.email}
                       data-member-role={m.role}
+                      data-member-status={isInvitedPending ? 'pending' : m.active ? 'active' : 'inactive'}
                       className="border-b border-white/5 hover:bg-blue-400/5 transition-colors"
                     >
                       <td className="p-4">
@@ -570,12 +611,29 @@ export default function AppEquipe() {
                         </span>
                       </td>
                       <td className="p-4">
-                        <button
-                          onClick={() => updateMutation.mutate({ id: m.id, data: { active: !m.active } })}
-                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${m.active ? 'bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-400/30 hover:bg-emerald-400/25' : 'bg-white/8 text-white/50 ring-1 ring-white/15 hover:bg-white/12'}`}
-                        >
-                          {m.active ? 'Ativo' : 'Inativo'}
-                        </button>
+                        {isInvitedPending ? (
+                          <button
+                            onClick={() => updateMutation.mutate({ id: m.id, data: { status: 'active', active: true } })}
+                            data-testid={`team-member-status-${m.id}`}
+                            className="text-[11px] font-semibold px-2.5 py-1 rounded-full cursor-pointer transition-colors bg-amber-400/15 text-amber-200 ring-1 ring-amber-400/30 hover:bg-amber-400/25"
+                            title="Convite pendente de aceitação (clique para ativar manualmente)"
+                          >
+                            Pendente (Convidado)
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              updateMutation.mutate({
+                                id: m.id,
+                                data: { active: !m.active, status: !m.active ? 'active' : 'inactive' },
+                              })
+                            }
+                            data-testid={`team-member-status-${m.id}`}
+                            className={`text-[11px] font-semibold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${m.active ? 'bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-400/30 hover:bg-emerald-400/25' : 'bg-white/8 text-white/50 ring-1 ring-white/15 hover:bg-white/12'}`}
+                          >
+                            {m.active ? 'Ativo' : 'Inativo'}
+                          </button>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-1.5 flex-wrap">

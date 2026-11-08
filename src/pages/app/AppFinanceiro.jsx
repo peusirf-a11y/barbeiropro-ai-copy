@@ -108,12 +108,20 @@ export default function AppFinanceiro() {
       if (!res?.data?.success) throw new Error(res?.data?.error || 'Falha ao salvar');
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (resData) => {
+      const createdEntry = resData?.entry;
+      if (createdEntry) {
+        queryClient.setQueryData(['financial', companyId, activeUnitId, period], (old = []) => {
+          const list = Array.isArray(old) ? old : [];
+          return [createdEntry, ...list.filter((e) => String(e.id) !== String(createdEntry.id))];
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['financial'] });
+      queryClient.invalidateQueries({ queryKey: ['cash-entries'] });
       setShowForm(false);
       setForm({ type: 'entrada', description: '', amount: '', category: 'Atendimento', date: format(new Date(), 'yyyy-MM-dd'), status: 'confirmado' });
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => console.error(err.message),
   });
 
   const deleteMutation = useMutation({

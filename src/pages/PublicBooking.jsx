@@ -336,7 +336,8 @@ export default function PublicBooking() {
 
   // ─── AGENDAMENTO CONCLUÍDO ───
   if (bookingDone) {
-    const { selected } = bookingDone;
+    const { selected, form: doneForm } = bookingDone;
+    const savedNotes = doneForm?.notes || bookingDone?.notes || '';
     return (
       <div className={`min-h-screen ${tw.bg} flex flex-col`}>
         <div className="flex-1 flex items-center justify-center p-6">
@@ -351,6 +352,9 @@ export default function PublicBooking() {
               <Row label="Profissional" value={selected?.professional?.name} tw={tw} />
               {selected?.date && selected?.time && (
                 <Row label="Data" value={`${format(selected.date, "d 'de' MMM", { locale: ptBR })} às ${selected.time}`} tw={tw} />
+              )}
+              {savedNotes && (
+                <Row label="Observações" value={savedNotes} tw={tw} />
               )}
               <div className={`flex justify-between items-center pt-2 border-t ${tw.divider}`}>
                 <span className={`${tw.textMuted} text-sm`}>Valor</span>

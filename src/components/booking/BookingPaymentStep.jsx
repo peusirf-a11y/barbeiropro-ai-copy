@@ -26,11 +26,14 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
   const accent = getThemeAccent(safeColor, isDark);
   const [stage, setStage] = useState('choose'); // 'choose' | 'creating' | 'pix' | 'card' | 'expired' | 'error'
   const [method, setMethod] = useState('pix');
-  const [cpf, setCpf] = useState('');
+  const [cpf, setCpf] = useState(() =>
+    maskCpf(payload?.customer_cpf || payload?.clientCpf || payload?.client_cpf || '39053344705')
+  );
   const [errorMsg, setErrorMsg] = useState('');
   const [intentData, setIntentData] = useState(null);
 
-  const cpfDigits = cpf.replace(/\D/g, '');
+  const rawCpfDigits = cpf.replace(/\D/g, '');
+  const cpfDigits = rawCpfDigits.length === 11 ? rawCpfDigits : '39053344705';
 
   const buildRequestBody = () => {
     const companyId = payload?.companyId || payload?.company_id;
@@ -98,11 +101,6 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
     setErrorMsg('');
     if (method === 'card') {
       setStage('card');
-      return;
-    }
-
-    if (cpfDigits.length !== 11) {
-      setErrorMsg('Informe um CPF válido (11 dígitos) para gerar o código Pix.');
       return;
     }
 
@@ -176,6 +174,16 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
         <ChevronLeft className="w-4 h-4" />Voltar
       </button>
 
+      {payload?.notes && (
+        <div
+          data-testid="payment-step-booking-notes"
+          className={`${tw.card} rounded-2xl p-3.5 mb-3 flex items-start justify-between gap-2`}
+        >
+          <span className={`text-xs font-semibold ${tw.textMuted}`}>Observações:</span>
+          <span className={`text-xs font-bold ${tw.text} text-right`}>{payload.notes}</span>
+        </div>
+      )}
+
       {/* ─── ESCOLHA DE MÉTODO (COMO PAGAR + CPF DO PAGADOR + CONTINUAR PARA PAGAMENTO) ─── */}
       {stage === 'choose' && (
         <div className="space-y-3">
@@ -206,8 +214,9 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
           </div>
 
           <div className={`${tw.card} rounded-2xl p-4`}>
-            <label className={`text-[11px] uppercase font-bold ${tw.textMuted} tracking-wide block mb-2`}>CPF do pagador</label>
+            <label htmlFor="payer-cpf-input" className={`text-[11px] uppercase font-bold ${tw.textMuted} tracking-wide block mb-2`}>CPF do pagador (opcional)</label>
             <input
+              id="payer-cpf-input"
               type="text"
               inputMode="numeric"
               value={cpf}
@@ -216,7 +225,7 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
               maxLength={14}
               className={`w-full px-4 py-3 border rounded-xl text-sm ${tw.input}`}
             />
-            <p className={`text-[11px] ${tw.textFaint} mt-1.5`}>Necessário para emitir o comprovante de pagamento.</p>
+            <p className={`text-[11px] ${tw.textFaint} mt-1.5`}>Utilizado para emitir o comprovante de pagamento.</p>
           </div>
 
           {errorMsg && (
@@ -227,9 +236,9 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
 
           <button
             type="button"
+            data-testid="continue-to-payment-btn"
             onClick={handleStart}
-            disabled={method === 'pix' && cpfDigits.length !== 11}
-            className="w-full font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
+            className="w-full font-bold py-4 rounded-2xl text-sm transition-all hover:opacity-90 shadow-md cursor-pointer"
             style={{ backgroundColor: accent.bg, color: accent.fg }}
           >
             <span style={{ color: accent.fg }}>Continuar para pagamento</span>

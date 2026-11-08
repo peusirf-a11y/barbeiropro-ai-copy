@@ -274,8 +274,16 @@ export default function AppCaixa() {
       }
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (resData) => {
+      const createdEntry = resData?.entry;
+      if (createdEntry) {
+        queryClient.setQueryData(['cash-entries', companyId, openCash?.id], (old = []) => {
+          const list = Array.isArray(old) ? old : [];
+          return [createdEntry, ...list.filter((e) => String(e.id) !== String(createdEntry.id))];
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['cash-entries', companyId, openCash?.id] });
+      queryClient.invalidateQueries({ queryKey: ['financial'] });
       setShowEntry(false);
       setEntryForm(emptyEntryForm);
     },
@@ -485,7 +493,7 @@ export default function AppCaixa() {
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-              <KpiCard label="Saldo inicial"   value={fmt(totals.initial)}        icon={Wallet}           tone="blue" />
+              <KpiCard label="Saldo"           value={fmt(totals.expected)}       sub={`Saldo inicial: ${fmt(totals.initial)}`} icon={Wallet}           tone="blue" />
               <KpiCard label="Entradas"        value={fmt(totals.totalIn)}        icon={TrendingUp}       tone="green" />
               <KpiCard label="Saídas"          value={fmt(totals.totalOut)}       icon={TrendingDown}     tone="red" />
               <KpiCard label="Sangria/Supr."   value={fmt(totals.totalSuprimento - totals.totalSangria)} icon={ArrowDownToLine} tone="blue" />

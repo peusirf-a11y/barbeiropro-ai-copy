@@ -109,6 +109,7 @@ const FINANCIAL_ENTRY_COLUMNS = new Set([
   'company_id',
   'type',
   'entry_kind',
+  'category',
   'description',
   'amount',
   'date',
