@@ -52,7 +52,7 @@ export default function MasterCompanyDetail() {
     );
   }
 
-  const { company, plan, counters, financial, audit_log, last_activity } = data;
+  const { company, plan, counters, financial, audit_log, payment_history, last_activity } = data;
 
   return (
     <div className="space-y-5">
@@ -97,8 +97,8 @@ export default function MasterCompanyDetail() {
       {/* Tab content */}
       {tab === 'overview'  && <Company360Overview company={company} plan={plan} />}
       {tab === 'financial' && <Company360Financial company={company} plan={plan} counters={counters} financial={financial} />}
-      {tab === 'payments'  && <Company360Payments company={company} />}
-      {tab === 'history'   && <Company360History logs={audit_log} />}
+      {tab === 'payments'  && <Company360Payments company={company} plan={plan} paymentHistory={payment_history} />}
+      {tab === 'history'   && <Company360History logs={audit_log} company={company} />}
       {tab === 'features'  && <CompanyFeatureOverrides company={company} plan={plan} />}
     </div>
   );

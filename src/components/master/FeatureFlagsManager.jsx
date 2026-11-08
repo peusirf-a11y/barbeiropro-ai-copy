@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { ToggleLeft, ToggleRight, Plus, X, Trash2, Globe, Briefcase, Building2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { clearFeatureFlagCache } from '@/lib/featureFlags';
+import { useToast } from '@/components/ui/use-toast';
 
 const scopeMeta = {
   global: { icon: Globe, label: 'Global', color: 'text-blue-500 bg-blue-500/15 border border-blue-500/30' },
@@ -15,6 +16,7 @@ const emptyForm = { key: '', description: '', enabled: true, scope: 'global', ta
 
 export default function FeatureFlagsManager() {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [targetInput, setTargetInput] = useState('');
@@ -34,22 +36,51 @@ export default function FeatureFlagsManager() {
     mutationFn: ({ id, enabled, key }) => base44.entities.FeatureFlag.update(id, { enabled }),
     onSuccess: (_data, variables) => {
       invalidate();
-      setToggleNotice(`Feature flag "${variables.key || variables.id}" ${variables.enabled ? 'ativada (ON)' : 'desativada (OFF)'} com sucesso.`);
+      const msg = `Feature flag "${variables.key || variables.id}" ${variables.enabled ? 'ativada (ON)' : 'desativada (OFF)'} com sucesso.`;
+      setToggleNotice(msg);
+      toast({
+        title: 'Feature flag atualizada',
+        description: msg,
+      });
     },
   });
 
   const remove = useMutation({
     mutationFn: (id) => base44.entities.FeatureFlag.delete(id),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      setToggleNotice('Feature flag removida com sucesso.');
+    },
   });
 
   const create = useMutation({
     mutationFn: (data) => base44.entities.FeatureFlag.create(data),
-    onSuccess: () => {
+    onSuccess: (createdFlag, variables) => {
+      const flagKey = createdFlag?.key || variables?.key || 'nova-flag';
+      const isEnabled = (createdFlag?.enabled ?? variables?.enabled) !== false;
+      const newEntry = {
+        id: createdFlag?.id || `ff-${Date.now()}`,
+        key: flagKey,
+        description: createdFlag?.description ?? variables?.description ?? '',
+        enabled: isEnabled,
+        scope: createdFlag?.scope || variables?.scope || 'global',
+        target_ids: createdFlag?.target_ids || variables?.target_ids || [],
+        created_date: createdFlag?.created_date || new Date().toISOString(),
+      };
+      qc.setQueryData(['feature-flags'], (old = []) => {
+        const list = Array.isArray(old) ? old : [];
+        return [newEntry, ...list.filter((f) => f.key !== flagKey)];
+      });
       invalidate();
       setShowForm(false);
       setForm(emptyForm);
       setTargetInput('');
+      const msg = `Feature flag "${flagKey}" criada com sucesso (${isEnabled ? 'Ativo / Habilitada' : 'Inativo'})!`;
+      setToggleNotice(msg);
+      toast({
+        title: 'Feature flag criada com sucesso',
+        description: msg,
+      });
     },
   });
 
@@ -75,12 +106,13 @@ export default function FeatureFlagsManager() {
       {toggleNotice && (
         <div
           role="status"
+          aria-live="polite"
           data-testid="feature-flag-toggle-notice"
-          className="mx-4 mt-3 px-4 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-semibold flex items-center justify-between gap-2"
+          className="mx-4 mt-3 px-4 py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-semibold flex items-center justify-between gap-2"
         >
           <span className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            {toggleNotice}
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-500" />
+            <span>{toggleNotice}</span>
           </span>
           <button type="button" onClick={() => setToggleNotice('')} className="underline text-[11px]">
             Fechar
@@ -104,7 +136,7 @@ export default function FeatureFlagsManager() {
             String(f.description || '').toLowerCase().includes('experimental');
           const isEnabled = f.enabled !== false;
           return (
-            <div key={f.id} data-testid={`feature-flag-row-${f.key}`} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors">
+            <div key={f.id || f.key} data-testid={`feature-flag-row-${f.key}`} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-sm text-foreground font-semibold">{f.key}</span>
@@ -166,9 +198,9 @@ export default function FeatureFlagsManager() {
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">Chave *</label>
                 <input
                   value={form.key}
-                  onChange={e => setForm(p => ({ ...p, key: e.target.value.replace(/\s+/g, '_').toLowerCase() }))}
+                  onChange={e => setForm(p => ({ ...p, key: e.target.value.replace(/\s+/g, '-').toLowerCase() }))}
                   className="w-full px-3 py-2 border border-border rounded-lg text-sm font-mono bg-background text-foreground"
-                  placeholder="ex: ai_growth"
+                  placeholder="ex: ai_growth ou explore-test-2026"
                 />
               </div>
               <div>

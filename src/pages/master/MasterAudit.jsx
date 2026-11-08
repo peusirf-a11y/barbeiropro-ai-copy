@@ -1,5 +1,5 @@
 // MasterAudit — Dashboard enterprise de auditoria cross-tenant.
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
@@ -11,6 +11,25 @@ import AuditTimeline from '@/components/master/AuditTimeline';
 import { useToast } from '@/components/ui/use-toast';
 
 const PAGE_LIMIT = 50;
+
+function resolveNormalizedActorType(item) {
+  const rawActor = String(item?.actor_type || '').toLowerCase();
+  const act = String(item?.action || '').toUpperCase();
+  const email = String(item?.actor_email || item?.actor_name || '').toLowerCase();
+  if (rawActor === 'impersonation' || item?.impersonated_company_id || act.includes('IMPERSONATION')) {
+    return 'impersonation';
+  }
+  if (rawActor === 'webhook' || act.includes('WEBHOOK') || email.includes('webhook')) {
+    return 'webhook';
+  }
+  if (rawActor === 'automation' || email.includes('automacao') || email.includes('automation')) {
+    return 'automation';
+  }
+  if (rawActor === 'system' || email === 'sistema' || email === 'system' || (!rawActor && !email)) {
+    return 'system';
+  }
+  return rawActor || 'user';
+}
 
 export default function MasterAudit() {
   const queryClient = useQueryClient();
@@ -37,14 +56,40 @@ export default function MasterAudit() {
       });
       return res?.data;
     },
-    keepPreviousData: true,
-    staleTime: 15_000,
+    staleTime: 0,
   });
 
-  const logs = data?.logs || [];
+  const logs = useMemo(() => {
+    const rawLogs = data?.logs || [];
+    return rawLogs.filter((l) => {
+      const normalizedActor = resolveNormalizedActorType(l);
+      if (activeFilters.actor_type && normalizedActor !== String(activeFilters.actor_type).toLowerCase()) {
+        return false;
+      }
+      if (activeFilters.severity && String(l.severity || '').toLowerCase() !== String(activeFilters.severity).toLowerCase()) {
+        return false;
+      }
+      if (activeFilters.action && l.action !== activeFilters.action) {
+        return false;
+      }
+      if (activeFilters.company_id && l.company_id !== activeFilters.company_id) {
+        return false;
+      }
+      if (activeFilters.impersonated_only && !l.impersonated_company_id && normalizedActor !== 'impersonation') {
+        return false;
+      }
+      if (activeFilters.search) {
+        const s = String(activeFilters.search).toLowerCase();
+        const hay = `${l.action || ''} ${l.actor_email || ''} ${l.actor_name || ''} ${l.target_type || ''} ${l.target_id || ''}`.toLowerCase();
+        if (!hay.includes(s)) return false;
+      }
+      return true;
+    });
+  }, [data?.logs, activeFilters]);
+
   const kpis = data?.kpis || null;
   const hasMore = Boolean(data?.has_more);
-  const total = Number(data?.total || logs.length || 0);
+  const total = logs.length;
   const hasActiveFilters = Object.values(activeFilters).some((v) => v !== '' && v !== null && v !== undefined);
 
   // Substitui o objeto de filtros por completo (garante que desmarcar um chip ou limpar remova chaves antigas)

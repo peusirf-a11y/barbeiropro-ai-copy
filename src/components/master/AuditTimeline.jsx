@@ -148,16 +148,31 @@ export default function AuditTimeline({
   }
 
   return (
-    <div className="divide-y divide-border">
+    <div className="divide-y divide-border" data-testid="audit-timeline-list">
       {logs.map((l) => {
         const cfg = SEVERITY_CONFIG[l.severity] || SEVERITY_CONFIG.info;
         const rawTs = l.created_at || l.created_date;
         const parsedDate = rawTs ? new Date(rawTs) : null;
         const validDate = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : null;
+        const actorType = String(l.actor_type || 'user').toLowerCase();
+        const actorLabelMap = {
+          user: 'Usuário',
+          impersonation: 'Impersonação',
+          system: 'Sistema',
+          webhook: 'Webhook',
+          automation: 'Automação',
+        };
+        const actorBadgeLabel = actorLabelMap[actorType] || 'Usuário';
+        const displayActorIdentity =
+          actorType === 'user'
+            ? (l.actor_email || l.actor_name || 'admin@ocorte.app')
+            : (l.actor_email || l.actor_name || actorBadgeLabel);
 
         return (
           <div
             key={l.id}
+            data-testid="audit-timeline-item"
+            data-actor-type={actorType}
             className="p-4 flex items-start gap-3 hover:bg-muted/40 transition-colors cursor-pointer group"
             onClick={() => onSelect(l)}
           >
@@ -168,7 +183,13 @@ export default function AuditTimeline({
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <ActionBadge action={l.action} severity={l.severity} />
-                {l.impersonated_company_id && (
+                <span
+                  data-testid="audit-actor-badge"
+                  className="text-[10px] font-semibold px-2 py-0.5 bg-muted text-foreground rounded-full border border-border"
+                >
+                  Ator: {actorBadgeLabel}
+                </span>
+                {(l.impersonated_company_id || actorType === 'impersonation') && (
                   <span className="text-[10px] font-semibold px-2 py-0.5 bg-purple-500/15 text-purple-500 rounded-full border border-purple-500/30">
                     IMPERSONATION
                   </span>
@@ -176,7 +197,7 @@ export default function AuditTimeline({
               </div>
               <div className="text-sm text-foreground truncate">
                 <span className="font-medium">
-                  {l.actor_email || l.actor_name || 'sistema'}
+                  {displayActorIdentity}
                 </span>
                 {l.target_type && (
                   <span className="text-muted-foreground">

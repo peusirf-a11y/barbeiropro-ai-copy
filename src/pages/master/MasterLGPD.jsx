@@ -52,6 +52,7 @@ export default function MasterLGPD() {
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [anonymizeReason, setAnonymizeReason] = useState('Solicitação do titular (LGPD Art. 18, IV)');
+  const [anonymizeError, setAnonymizeError] = useState('');
   const [anonymizedCustomers, setAnonymizedCustomers] = useState({});
   const [exportedPackage, setExportedPackage] = useState(null);
   const [csvExportNotice, setCsvExportNotice] = useState('');
@@ -157,15 +158,21 @@ export default function MasterLGPD() {
 
   // Anonimizar titular de dados
   const anonymizeMutation = useMutation({
-    mutationFn: ({ customerId, companyId, reason }) =>
-      base44.functions.invoke('anonymizeCustomer', {
+    mutationFn: ({ customerId, companyId, reason }) => {
+      const cleanReason = String(reason || '').trim();
+      if (!cleanReason) {
+        throw new Error('A justificativa para anonimização é obrigatória (LGPD Art. 18).');
+      }
+      return base44.functions.invoke('anonymizeCustomer', {
         company_id: companyId,
         customer_id: customerId,
-        reason: reason || anonymizeReason || 'Solicitação do titular (LGPD Art. 18)',
-      }),
+        reason: cleanReason,
+      });
+    },
     onSuccess: (res, variables) => {
       const payload = res?.data || {};
       const shortId = String(variables.customerId || '').slice(0, 6) || '001';
+      setAnonymizeError('');
       setAnonymizedCustomers((prev) => ({
         ...prev,
         [variables.customerId]: {
@@ -173,21 +180,30 @@ export default function MasterLGPD() {
           masked_phone: payload.masked_phone || '***-ANONIMIZADO',
           masked_email: `anon_${shortId}@privacidade.ocorte.app`,
           status: 'anonymized',
-          reason: payload.reason || variables.reason || anonymizeReason,
+          reason: payload.reason || variables.reason,
           anonymized_at: payload.anonymized_at || new Date().toISOString(),
         },
       }));
       queryClient.invalidateQueries({ queryKey: ['master-privacy-logs'] });
       queryClient.invalidateQueries({ queryKey: ['master-consents'] });
     },
+    onError: (err) => {
+      setAnonymizeError(err?.message || 'Informe uma justificativa obrigatória antes de prosseguir com a anonimização.');
+    },
   });
 
   const handleAnonymize = (customer) => {
     if (!customer) return;
+    const trimmedReason = String(anonymizeReason || '').trim();
+    if (!trimmedReason) {
+      setAnonymizeError('A justificativa para anonimização é obrigatória (LGPD Art. 18). Informe o motivo antes de prosseguir.');
+      return;
+    }
+    setAnonymizeError('');
     anonymizeMutation.mutate({
       customerId: customer.id,
       companyId: customer.company_id || selectedCompanyId,
-      reason: anonymizeReason.trim() || 'Solicitação do titular (LGPD Art. 18)',
+      reason: trimmedReason,
     });
   };
 
@@ -488,16 +504,35 @@ export default function MasterLGPD() {
                 {/* Campo de justificativa para anonimização */}
                 <div>
                   <label htmlFor="lgpd-anonymize-justification" className="text-xs font-semibold text-muted-foreground block mb-1">
-                    Justificativa para anonimização (LGPD Art. 18)
+                    Justificativa para anonimização (LGPD Art. 18) *
                   </label>
                   <input
                     id="lgpd-anonymize-justification"
                     type="text"
+                    required
+                    aria-invalid={Boolean(anonymizeError)}
                     value={anonymizeReason}
-                    onChange={(e) => setAnonymizeReason(e.target.value)}
-                    placeholder="Informe a justificativa legal para anonimizar o titular..."
-                    className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    onChange={(e) => {
+                      setAnonymizeReason(e.target.value);
+                      if (e.target.value.trim()) setAnonymizeError('');
+                    }}
+                    placeholder="Informe a justificativa legal obrigatória para anonimizar o titular..."
+                    className={`w-full px-3 py-2 border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 ${
+                      anonymizeError
+                        ? 'border-red-500 focus:ring-red-500/30'
+                        : 'border-border focus:ring-blue-500/20'
+                    }`}
                   />
+                  {anonymizeError && (
+                    <div
+                      role="alert"
+                      data-testid="anonymize-justification-error"
+                      className="mt-2 flex items-center gap-2 text-xs font-semibold text-red-500 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2"
+                    >
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span>{anonymizeError}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -535,7 +570,7 @@ export default function MasterLGPD() {
                     <div>
                       <div className="font-bold">Titular anonimizado com sucesso (Status: Anonimizado)</div>
                       <div>
-                        Nome mascarado: <strong>{selectedCustomer.name}</strong> · Telefone: <strong>{selectedCustomer.phone}</strong> · Justificativa: <em>{selectedCustomer.anonymized_reason || anonymizeReason}</em>
+                        Nome mascarado: <strong>{selectedCustomer.name}</strong> · Telefone: <strong>{selectedCustomer.phone}</strong> · Justificativa: <em>{selectedCustomer.anonymized_reason}</em>
                       </div>
                     </div>
                   </div>

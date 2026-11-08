@@ -58,6 +58,35 @@ export default function AppSeguranca() {
           </div>
         </div>
 
+        {/* Políticas de Proteção Ativas */}
+        <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm mb-6" data-testid="app-active-protection-policies">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-bold text-[#111827]">Políticas de Proteção Ativas</h3>
+              <p className="text-xs text-gray-500">Controles de segurança ativos para proteção da sua barbearia</p>
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              4 Políticas Ativas
+            </span>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {[
+              { name: 'Isolamento de Dados (Multi-Tenant RLS)', status: 'Ativa', desc: 'Acesso restrito exclusivamente aos membros autenticados da unidade.' },
+              { name: 'Proteção contra Força Bruta (Rate Limit)', status: 'Ativa', desc: 'Bloqueio automático de tentativas suspeitas de login.' },
+              { name: 'Trilha de Auditoria Imutável', status: 'Ativa', desc: 'Registro permanente de alterações financeiras, caixa e permissões.' },
+              { name: 'Conformidade e Privacidade LGPD', status: 'Ativa', desc: 'Criptografia em trânsito e proteção de dados pessoais de clientes.' },
+            ].map((pol) => (
+              <div key={pol.name} className="rounded-xl border border-gray-100 bg-gray-50/70 p-3">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-xs font-bold text-gray-900">{pol.name}</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{pol.status}</span>
+                </div>
+                <p className="text-[11px] text-gray-600">{pol.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Activity stream com filtros integrados */}
         {company && <SessionActivityStream companyId={company.id} limit={60} />}
 

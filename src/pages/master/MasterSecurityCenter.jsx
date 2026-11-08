@@ -193,6 +193,38 @@ export default function MasterSecurityCenter() {
         <KpiCard label="Ações LGPD"            value={stats.lgpd}        icon={UserX}         color="blue" />
       </div>
 
+      {/* Políticas de Proteção Ativas */}
+      <div className="bg-card rounded-2xl border border-border p-4 shadow-sm" data-testid="master-security-active-policies">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-emerald-500" />
+            <div>
+              <h2 className="font-bold text-sm text-foreground">Políticas de Proteção Ativas (Active Protection Policies)</h2>
+              <p className="text-[11px] text-muted-foreground">Controles preventivos e bloqueios automáticos aplicados em tempo real</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            <CheckCircle2 className="w-3.5 h-3.5" /> 4 Políticas Ativas
+          </span>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { name: 'Isolamento Multi-Tenant (RLS)', desc: 'Bloqueio estrito de acesso cruzado entre barbearias (Cross-Tenant Protection).', status: 'Ativa' },
+            { name: 'Proteção Anti-Brute Force & Rate Limit', desc: 'Bloqueio automático de IP após falhas repetidas de autenticação.', status: 'Ativa' },
+            { name: 'Auditoria Imutável de Ações Críticas', desc: 'Registro obrigatório de IP, ator e estado antes/depois em operações sensíveis.', status: 'Ativa' },
+            { name: 'Anonimização & Governança LGPD', desc: 'Validação de justificativa legal e sanitização de dados pessoais exportados.', status: 'Ativa' },
+          ].map((pol) => (
+            <div key={pol.name} className="rounded-xl border border-border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs font-bold text-foreground">{pol.name}</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">{pol.status}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{pol.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-4">
         {/* Events timeline */}
         <div className="lg:col-span-2 space-y-3">

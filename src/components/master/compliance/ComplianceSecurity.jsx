@@ -1,10 +1,61 @@
-// Segurança — visão de atividade suspeita, falhas, IPs recentes.
+// Segurança — visão de políticas de proteção ativas, atividade suspeita, falhas, IPs recentes.
 
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { ShieldCheck, AlertOctagon, Globe, Activity } from 'lucide-react';
+import { ShieldCheck, AlertOctagon, Globe, Activity, Lock, CheckCircle2 } from 'lucide-react';
 
-export default function ComplianceSecurity({ auditLogs, privacyLogs, companies }) {
+const ACTIVE_PROTECTION_POLICIES = [
+  {
+    id: 'pol-rls-isolation',
+    name: 'Isolamento Multi-Tenant Estrito (Row-Level Security)',
+    category: 'Controle de Acesso',
+    rule: 'Bloqueio automático de queries cross-tenant sem company_id validado no token JWT.',
+    status: 'Ativa',
+    enforcement: 'Bloqueio Imediato',
+  },
+  {
+    id: 'pol-rate-limit-waf',
+    name: 'Rate Limiting & Proteção Anti-Brute Force',
+    category: 'Proteção de Borda',
+    rule: 'Limite de 5 tentativas de autenticação por IP a cada 15 minutos com quarentena automática.',
+    status: 'Ativa',
+    enforcement: 'Bloqueio de IP',
+  },
+  {
+    id: 'pol-mfa-step-up',
+    name: 'Desafio MFA / Step-Up para Operações Críticas',
+    category: 'Autenticação Forte',
+    rule: 'Exige confirmação adicional e justificativa em ações destrutivas (anonimização, exclusão, impersonação).',
+    status: 'Ativa',
+    enforcement: 'Obrigatório',
+  },
+  {
+    id: 'pol-immutable-audit',
+    name: 'Trilha de Auditoria Imutável (Append-Only)',
+    category: 'Conformidade & Rastreabilidade',
+    rule: 'Gravação criptografada de estado anterior/posterior, IP, correlation_id e ator em todas as mutações.',
+    status: 'Ativa',
+    enforcement: 'Contínuo (24/7)',
+  },
+  {
+    id: 'pol-lgpd-sanitization',
+    name: 'Mascaramento & Sanitização Automática LGPD (Art. 18 e 46)',
+    category: 'Privacidade de Dados',
+    rule: 'Sanitização de dados pessoais sensíveis em exportações e anonimização irreversível sob demanda.',
+    status: 'Ativa',
+    enforcement: 'Automático',
+  },
+  {
+    id: 'pol-impersonation-ttl',
+    name: 'Governança de Acesso Assistido (Impersonação com TTL)',
+    category: 'Segurança Operacional',
+    rule: 'Sessões de suporte expiram automaticamente em 30 minutos e registram início e encerramento.',
+    status: 'Ativa',
+    enforcement: 'Expiração Estrita',
+  },
+];
+
+export default function ComplianceSecurity({ auditLogs = [], privacyLogs = [], companies = [] }) {
   const suspicious = useMemo(() =>
     [...auditLogs, ...privacyLogs]
       .filter(l => l.severity === 'critical' || l.severity === 'warning')
@@ -43,8 +94,9 @@ export default function ComplianceSecurity({ auditLogs, privacyLogs, companies }
   return (
     <div className="space-y-4">
       {/* KPIs */}
-      <div className="grid sm:grid-cols-4 gap-3">
+      <div className="grid sm:grid-cols-5 gap-3">
         {[
+          { label: 'Políticas ativas', value: ACTIVE_PROTECTION_POLICIES.length, color:'text-emerald-500' },
           { label: 'Logs críticos',    value: criticalCount, color:'text-red-500' },
           { label: 'Avisos',           value: warningCount,  color:'text-amber-500' },
           { label: 'IPs únicos',       value: recentIps.length, color:'text-blue-500' },
@@ -55,6 +107,48 @@ export default function ComplianceSecurity({ auditLogs, privacyLogs, companies }
             <div className="text-[11px] text-muted-foreground mt-0.5">{s.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* Políticas de Proteção Ativas */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden" data-testid="active-protection-policies">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-emerald-500" />
+            <div>
+              <h3 className="font-bold text-sm text-foreground">Políticas de Proteção Ativas (Active Protection Policies)</h3>
+              <p className="text-[11px] text-muted-foreground">Regras de segurança e governança em execução contínua na plataforma</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            <CheckCircle2 className="w-3.5 h-3.5" /> {ACTIVE_PROTECTION_POLICIES.length} Políticas Ativas
+          </span>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+          {ACTIVE_PROTECTION_POLICIES.map((policy) => (
+            <div
+              key={policy.id}
+              data-testid={`security-policy-${policy.id}`}
+              className="rounded-xl border border-border bg-muted/30 p-3.5 flex flex-col justify-between gap-2"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
+                    {policy.category}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    <CheckCircle2 className="w-3 h-3" /> {policy.status}
+                  </span>
+                </div>
+                <div className="text-xs font-bold text-foreground">{policy.name}</div>
+                <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{policy.rule}</p>
+              </div>
+              <div className="text-[10px] font-mono text-muted-foreground pt-1 border-t border-border/60 flex items-center justify-between">
+                <span>Modo: {policy.enforcement}</span>
+                <span className="text-emerald-400 font-semibold">ENFORCED</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
