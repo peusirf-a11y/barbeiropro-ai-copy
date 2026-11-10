@@ -32,17 +32,9 @@ export default function PremiumNav() {
           <a href="#recorrencia" className="hover:text-white transition-colors">Recorrência</a>
           <a href="#resultados" className="hover:text-white transition-colors">Resultados</a>
           <a href="#precos" className="hover:text-white transition-colors text-white/90">Preços</a>
-          <Link to="/agendar/barbearia-modelo" className="text-[#93C5FD] hover:text-white font-semibold transition-colors">
-            Agendar Horário
-          </Link>
         </div>
         <div className="flex items-center gap-2">
           <PWAInstallButton />
-          <Link to="/agendar/barbearia-modelo">
-            <button className="h-10 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold text-[#93C5FD] hover:text-white hover:bg-white/5 transition-colors">
-              Agendar Corte
-            </button>
-          </Link>
           <Link to="/demo/dashboard" className="hidden sm:block">
             <button className="h-10 px-4 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition-colors">
               Demo
