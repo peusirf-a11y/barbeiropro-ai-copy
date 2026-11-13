@@ -12,7 +12,7 @@ const BENEFITS = [
 
 export default function LaunchBenefits() {
   return (
-    <section className="relative py-24 px-5 md:px-8">
+    <section id="beneficios" className="relative py-24 px-5 md:px-8">
       <div className="max-w-6xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <div className="flex justify-center mb-5">

@@ -1,6 +1,7 @@
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/react';
-import { QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
@@ -261,6 +262,7 @@ function App() {
           </Routes>
         </Router>
         <Toaster />
+        <SonnerToaster richColors position="top-right" closeButton theme="system" />
         <Analytics />
        </ActiveUnitProvider>
        </BookingSessionProvider>

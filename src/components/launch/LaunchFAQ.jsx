@@ -68,7 +68,7 @@ export default function LaunchFAQ() {
   const [open, setOpen] = useState(0);
 
   return (
-    <section className="relative py-24 px-5 md:px-8">
+    <section id="faq" className="relative py-24 px-5 md:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-12">
           <div className="flex justify-center mb-5">

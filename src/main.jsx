@@ -164,15 +164,24 @@ if (rootElement) {
   )
 }
 
-// Registro do Service Worker para habilitar instalação PWA (WebAPK / Standalone no Android e iOS)
+// Registro do Service Worker apenas em produção; em dev/preview remove workers antigos para evitar cache obsoleto
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js', { scope: '/' })
-      .catch((err) => {
-        if (import.meta.env.DEV) {
-          console.warn('[PWA ServiceWorker registration error]:', err)
-        }
-      })
-  })
+    if (import.meta.env.PROD) {
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .catch(() => {});
+    } else {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => Promise.all(registrations.map((reg) => reg.unregister())))
+        .catch(() => {});
+      if ('caches' in window) {
+        caches
+          .keys()
+          .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+          .catch(() => {});
+      }
+    }
+  });
 }

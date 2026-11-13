@@ -1,4 +1,5 @@
 // Modal de fechamento de caixa — mostra resumo + breakdown e exige saldo contado.
+// Design System: Premium Business SaaS & Business Intelligence
 import StandardModal from '@/components/ui/standard-modal';
 import { getPaymentMethodLabel, getPaymentMethodIcon } from '@/lib/cashRegister';
 
@@ -26,13 +27,13 @@ export default function CloseCashModal({ open, onClose, totals, form, setForm, o
     <StandardModal
       open={open}
       onClose={onClose}
-      title="Fechar caixa"
+      title="Fechar Caixa & Conciliação"
       footer={
         <>
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 min-h-[48px] px-4 border border-white/10 rounded-xl text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+            className="flex-1 min-h-[44px] px-4 border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm font-semibold text-[#55596A] dark:text-[#CBD5E1] bg-[#FFFFFF] dark:bg-[#171827] hover:bg-[#F1F2F7] dark:hover:bg-[#232538] transition-colors cursor-pointer"
           >
             Cancelar
           </button>
@@ -41,37 +42,45 @@ export default function CloseCashModal({ open, onClose, totals, form, setForm, o
             data-testid="confirm-close-cash-btn"
             onClick={handleConfirm}
             disabled={loading}
-            className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold hover:brightness-110 disabled:opacity-50 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all"
+            className="flex-1 min-h-[44px] px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl text-sm font-bold disabled:opacity-50 shadow-sm transition-all cursor-pointer"
           >
-            {loading ? 'Fechando...' : 'Confirmar fechamento'}
+            {loading ? 'Fechando...' : 'Confirmar Fechamento'}
           </button>
         </>
       }
     >
-      <form onSubmit={handleConfirm} className="space-y-3">
-        <div className="bg-blue-400/[0.08] border border-blue-400/25 rounded-xl p-4">
-          <div className="text-[11px] uppercase tracking-wider text-[#93C5FD] font-bold mb-2">Resumo</div>
-          <div className="grid grid-cols-2 gap-y-1.5 text-xs">
-            <span className="text-white/55">Saldo inicial</span><span className="font-semibold text-right text-white">{fmt(totals?.initial)}</span>
-            <span className="text-white/55">Entradas</span><span className="font-semibold text-right text-emerald-300">+{fmt(totals?.totalIn)}</span>
-            <span className="text-white/55">Suprimentos</span><span className="font-semibold text-right text-emerald-300">+{fmt(totals?.totalSuprimento)}</span>
-            <span className="text-white/55">Saídas</span><span className="font-semibold text-right text-rose-300">-{fmt(totals?.totalOut)}</span>
-            <span className="text-white/55">Sangrias</span><span className="font-semibold text-right text-rose-300">-{fmt(totals?.totalSangria)}</span>
+      <form onSubmit={handleConfirm} className="space-y-4">
+        <div className="bg-[#EFF6FF] dark:bg-blue-950/20 border border-[#DBEAFE] dark:border-blue-800/40 rounded-xl p-4">
+          <div className="text-[11px] uppercase tracking-wider text-[#2563EB] dark:text-blue-300 font-bold mb-2.5">Balanço Esperado</div>
+          <div className="grid grid-cols-2 gap-y-2 text-xs">
+            <span className="text-[#55596A] dark:text-[#8F9BBF] font-medium">Saldo inicial</span>
+            <span className="font-bold text-right text-[#171827] dark:text-white tabular-nums">{fmt(totals?.initial)}</span>
+            <span className="text-[#55596A] dark:text-[#8F9BBF] font-medium">Entradas brutas</span>
+            <span className="font-bold text-right text-emerald-600 dark:text-emerald-400 tabular-nums">+{fmt(totals?.totalIn)}</span>
+            <span className="text-[#55596A] dark:text-[#8F9BBF] font-medium">Suprimentos</span>
+            <span className="font-bold text-right text-[#2563EB] dark:text-blue-400 tabular-nums">+{fmt(totals?.totalSuprimento)}</span>
+            <span className="text-[#55596A] dark:text-[#8F9BBF] font-medium">Saídas operacionais</span>
+            <span className="font-bold text-right text-rose-600 dark:text-rose-400 tabular-nums">-{fmt(totals?.totalOut)}</span>
+            <span className="text-[#55596A] dark:text-[#8F9BBF] font-medium">Sangrias de caixa</span>
+            <span className="font-bold text-right text-amber-600 dark:text-amber-400 tabular-nums">-{fmt(totals?.totalSangria)}</span>
           </div>
-          <div className="border-t border-blue-400/20 mt-3 pt-3 flex items-center justify-between">
-            <span className="text-xs font-semibold text-white/55">Saldo esperado</span>
-            <span className="text-2xl font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">{fmt(totals?.expected)}</span>
+          <div className="border-t border-[#DBEAFE] dark:border-blue-800/40 mt-3 pt-3 flex items-center justify-between">
+            <span className="text-xs font-bold text-[#55596A] dark:text-[#8F9BBF]">Saldo em Gaveta Esperado</span>
+            <span className="text-2xl font-black text-[#171827] dark:text-white tabular-nums">{fmt(totals?.expected)}</span>
           </div>
         </div>
 
         {breakdownEntries.length > 0 && (
-          <div className="bg-white/[0.025] border border-white/8 rounded-xl p-3">
-            <div className="text-[11px] uppercase tracking-wider text-white/55 font-bold mb-2">Entradas por forma de pagamento</div>
-            <div className="space-y-1">
+          <div className="bg-[#F8FAFC] dark:bg-[#1C1E30] border border-[#E5E7EF] dark:border-[#232538] rounded-xl p-3">
+            <div className="text-[11px] uppercase tracking-wider text-[#59658F] dark:text-[#8F9BBF] font-bold mb-2">Entradas por forma de pagamento</div>
+            <div className="space-y-1.5">
               {breakdownEntries.map(([method, amount]) => (
                 <div key={method} className="flex items-center justify-between text-xs">
-                  <span className="text-white/85">{getPaymentMethodIcon(method)} {getPaymentMethodLabel(method)}</span>
-                  <span className="font-semibold text-white">{fmt(amount)}</span>
+                  <span className="text-[#171827] dark:text-white font-medium flex items-center gap-1.5">
+                    <span>{getPaymentMethodIcon(method)}</span>
+                    <span>{getPaymentMethodLabel(method)}</span>
+                  </span>
+                  <span className="font-bold text-[#171827] dark:text-white tabular-nums">{fmt(amount)}</span>
                 </div>
               ))}
             </div>
@@ -79,7 +88,7 @@ export default function CloseCashModal({ open, onClose, totals, form, setForm, o
         )}
 
         <div>
-          <label htmlFor="close-cash-final-amount" className="text-xs font-semibold text-white/60 block mb-1">Saldo real contado (R$) *</label>
+          <label htmlFor="close-cash-final-amount" className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Saldo real contado em gaveta (R$) *</label>
           <input
             id="close-cash-final-amount"
             data-testid="close-cash-amount-input"
@@ -88,21 +97,22 @@ export default function CloseCashModal({ open, onClose, totals, form, setForm, o
             placeholder={expectedVal.toFixed(2)}
             value={form.final_amount}
             onChange={e => setForm(p => ({ ...p, final_amount: e.target.value }))}
-            className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+            className="w-full px-3.5 py-2.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]/25 font-bold tabular-nums"
           />
-          <div className={`text-xs font-semibold mt-1 ${diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-            {diff === 0 ? 'Caixa bate certo ✓' : `${diff > 0 ? '+' : ''}${fmt(Math.abs(diff))} ${diff > 0 ? 'de sobra' : 'de falta'}`}
+          <div className={`text-xs font-bold mt-1.5 tabular-nums ${diff === 0 ? 'text-emerald-600 dark:text-emerald-400' : diff > 0 ? 'text-[#2563EB] dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>
+            {diff === 0 ? '✓ Valor confere perfeitamente com o esperado' : `${diff > 0 ? '+' : ''}${fmt(Math.abs(diff))} ${diff > 0 ? 'de sobra' : 'de falta'}`}
           </div>
         </div>
 
         <div>
-          <label htmlFor="close-cash-notes" className="text-xs font-semibold text-white/60 block mb-1">Observação (justificativa de diferença)</label>
+          <label htmlFor="close-cash-notes" className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Observação (justificativa de diferença)</label>
           <textarea
             id="close-cash-notes"
             rows={2}
             value={form.notes}
             onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-            className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+            placeholder="Opcional: motivo de eventuais sobras ou faltas..."
+            className="w-full px-3.5 py-2.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-[#55596A]/50 resize-none focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]/25 font-medium"
           />
         </div>
       </form>

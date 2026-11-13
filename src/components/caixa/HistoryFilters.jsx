@@ -37,19 +37,21 @@ export function resolveRange(preset, customFrom, customTo) {
 
 export default function HistoryFilters({ preset, setPreset, customFrom, setCustomFrom, customTo, setCustomTo }) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4 sm:p-5 mb-5">
-      <div className="flex items-center gap-2 mb-3 text-[11px] uppercase tracking-wider font-bold text-white/55">
-        <Calendar className="w-3.5 h-3.5" /> Período
+    <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] shadow-sm p-4 sm:p-5 mb-5">
+      <div className="flex items-center gap-2 mb-3 text-[11px] uppercase tracking-wider font-bold text-[#59658F] dark:text-[#8F9BBF]">
+        <Calendar className="w-3.5 h-3.5 text-[#59658F] dark:text-[#8F9BBF]" strokeWidth={1.75} />
+        <span>Janela de Período</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {RANGE_PRESETS.map(p => (
           <button
             key={p.key}
+            type="button"
             onClick={() => setPreset(p.key)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               preset === p.key
-                ? 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white shadow-[0_4px_12px_rgba(37,99,235,0.4)] ring-1 ring-white/15'
-                : 'bg-white/[0.04] border border-white/10 text-white/65 hover:border-[#60A5FA]/30 hover:text-[#93C5FD] hover:bg-white/[0.06]'
+                ? 'bg-[#171827] text-white dark:bg-[#2563EB] shadow-xs'
+                : 'bg-[#F8FAFC] dark:bg-[#1C1E30] border border-[#E5E7EF] dark:border-[#232538] text-[#55596A] dark:text-[#8F9BBF] hover:border-[#2563EB]'
             }`}
           >
             {p.label}
@@ -57,26 +59,26 @@ export default function HistoryFilters({ preset, setPreset, customFrom, setCusto
         ))}
       </div>
       {preset === 'custom' && (
-        <div className="grid grid-cols-2 gap-3 mt-3">
+        <div className="grid grid-cols-2 gap-3 mt-3.5">
           <div>
-            <label className="text-[11px] font-semibold text-white/55 block mb-1">De</label>
+            <label className="text-[11px] font-bold text-[#59658F] dark:text-[#8F9BBF] block mb-1">De</label>
             <input
               type="date"
               value={customFrom || ''}
               max={customTo || todayISO()}
               onChange={e => setCustomFrom(e.target.value)}
-              className="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+              className="w-full px-3 py-2 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-xs sm:text-sm text-[#171827] dark:text-white font-semibold focus:outline-none focus:border-[#2563EB]"
             />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-white/55 block mb-1">Até</label>
+            <label className="text-[11px] font-bold text-[#59658F] dark:text-[#8F9BBF] block mb-1">Até</label>
             <input
               type="date"
               value={customTo || ''}
               min={customFrom || ''}
               max={todayISO()}
               onChange={e => setCustomTo(e.target.value)}
-              className="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+              className="w-full px-3 py-2 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-xs sm:text-sm text-[#171827] dark:text-white font-semibold focus:outline-none focus:border-[#2563EB]"
             />
           </div>
         </div>

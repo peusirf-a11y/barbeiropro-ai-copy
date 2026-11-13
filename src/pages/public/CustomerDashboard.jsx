@@ -322,16 +322,16 @@ function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending 
           <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: primaryColor }}>Plano ativo</div>
           <div className={`font-black text-lg ${tw.text}`}>{planName}</div>
           {planPrice !== undefined && planPrice !== null && (
-            <div className={`text-xs ${tw.textMuted}`}>R${planPrice}/mês</div>
+            <div className={`text-xs ${tw.textMuted} tabular-nums`}>R${planPrice}/mês</div>
           )}
           {sub.card_last_digits && (
             <div className={`text-[11px] ${tw.textMuted} mt-1 flex items-center gap-1.5`}>
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>{sub.card_brand ? `${sub.card_brand} ` : ''}•••• {sub.card_last_digits}</span>
+              <CreditCard className="w-3.5 h-3.5" strokeWidth={1.75} />
+              <span className="tabular-nums">{sub.card_brand ? `${sub.card_brand} ` : ''}•••• {sub.card_last_digits}</span>
             </div>
           )}
           {allowedDays && allowedDays.length > 0 && allowedDays.length < 7 && (
-            <div className="text-[11px] text-amber-400 font-medium mt-1.5">
+            <div className="text-[11px] text-amber-500 dark:text-amber-400 font-medium mt-1.5">
               {formatAllowedWeekdaysError(allowedDays)}
             </div>
           )}
@@ -341,25 +341,25 @@ function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending 
             <div className={`text-xs font-bold px-2.5 py-1 rounded-full ${tw.iconBg} ${tw.textMuted}`}>Ilimitado</div>
           ) : (
             <>
-              <div className={`text-3xl font-black ${tw.text}`}>{sub.uses_remaining ?? 0}</div>
+              <div className={`text-3xl font-black ${tw.text} tabular-nums`}>{sub.uses_remaining ?? 0}</div>
               <div className={`text-[10px] ${tw.textMuted} uppercase tracking-wide`}>restantes</div>
             </>
           )}
         </div>
       </div>
       {cycleEnd && !Number.isNaN(cycleEnd.getTime()) && (
-        <div className={`text-xs ${tw.textFaint} border-t ${tw.divider} pt-3 mb-3`}>
+        <div className={`text-xs ${tw.textFaint} border-t ${tw.divider} pt-3 mb-3 tabular-nums`}>
           Renova em {format(cycleEnd, "d 'de' MMM", { locale: ptBR })}
         </div>
       )}
       <div className="flex gap-2">
         <button onClick={onPause} disabled={isPending}
-          className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold ${tw.textMuted} ${tw.iconBg} hover:opacity-80 border ${tw.divider} px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all`}>
-          <Pause className="w-3.5 h-3.5" /> Pausar
+          className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold ${tw.textMuted} ${tw.iconBg} hover:opacity-80 border ${tw.divider} px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all cursor-pointer`}>
+          <Pause className="w-3.5 h-3.5" strokeWidth={1.75} /> Pausar
         </button>
         <button onClick={onCancel} disabled={isPending}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all">
-          <X className="w-3.5 h-3.5" /> Cancelar
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-rose-500 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all cursor-pointer">
+          <X className="w-3.5 h-3.5" strokeWidth={1.75} /> Cancelar
         </button>
       </div>
     </div>
@@ -412,18 +412,18 @@ function AppointmentCard({ appt, primaryColor, tw, muted }) {
     <div className={`flex items-center gap-4 ${tw.card} rounded-2xl p-4 transition-all ${muted ? 'opacity-50' : ''}`}>
       <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${tw.iconBg}`}>
         <span className={`text-[10px] uppercase tracking-wide ${tw.textMuted}`}>{format(date, 'MMM', { locale: ptBR })}</span>
-        <span className={`text-lg font-black ${tw.text} leading-none`}>{format(date, 'd')}</span>
+        <span className={`text-lg font-black ${tw.text} leading-none tabular-nums`}>{format(date, 'd')}</span>
       </div>
       <div className="flex-1 min-w-0">
         <div className={`font-bold text-sm ${tw.text} truncate`}>{appt.service_name || 'Serviço'}</div>
-        <div className={`text-xs ${tw.textMuted} truncate`}>
+        <div className={`text-xs ${tw.textMuted} truncate tabular-nums`}>
           {format(date, "HH:mm")} · {appt.professional_name || 'Profissional'}
         </div>
       </div>
       <div className="flex-shrink-0 text-right">
         <div className={`text-[10px] uppercase tracking-wide font-semibold ${statusColor}`}>{statusLabel}</div>
         {isPaidOnline && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 mt-1 inline-block">
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 mt-1 inline-block">
             {isCardPayment ? 'PAGO CARTÃO' : 'PAGO PIX'}
           </span>
         )}

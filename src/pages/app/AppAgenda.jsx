@@ -4,12 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { appointmentConflict, blockedConflict } from '@/lib/scheduling';
 import AgendaProColumns from '@/components/agenda/AgendaProColumns';
 import AgendaMobileList from '@/components/agenda/AgendaMobileList';
+import AgendaTanStackTable from '@/components/agenda/AgendaTanStackTable';
 import EditAppointmentModal from '@/components/agenda/EditAppointmentModal';
 import UseSubscriptionDialog from '@/components/agenda/UseSubscriptionDialog';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
@@ -48,6 +49,7 @@ export default function AppAgenda() {
   const [form, setForm] = useState(emptyForm);
   const [filterPro, setFilterPro] = useState(isBarbeiro && myProId ? myProId : 'all');
   const [slotInterval, setSlotInterval] = useState(15); // Padrão: 15 min (opções: 5, 10, 15, 30 min)
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table' (TanStack Table)
   const [lastCreatedApptId, setLastCreatedApptId] = useState(null);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -492,10 +494,43 @@ export default function AppAgenda() {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-2xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Agendamentos</h1>
-            <p className="text-white/50 text-sm mt-1 capitalize">{format(currentDate, "EEEE, dd MMM yyyy", { locale: ptBR })}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#59658F]/15 text-[#59658F] dark:text-[#B5D7E8] border border-[#59658F]/25 uppercase tracking-widest">
+                Gestão da Bancada
+              </span>
+            </div>
+            <h1 className="text-2xl font-black tracking-tight text-[#171827] dark:text-white">Agendamentos & Grade</h1>
+            <p className="text-[#55596A] dark:text-[#8F9BBF] text-xs sm:text-sm mt-0.5 capitalize font-medium">{format(currentDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            {/* Seletor de Modo: Grade vs Tabela BI */}
+            <div className="hidden sm:flex items-center gap-0.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-[#171827] text-white dark:bg-[#2563EB] shadow-sm'
+                    : 'text-[#55596A] dark:text-[#8F9BBF] hover:text-[#171827]'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" strokeWidth={1.75} />
+                <span>Grade</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'table'
+                    ? 'bg-[#171827] text-white dark:bg-[#2563EB] shadow-sm'
+                    : 'text-[#55596A] dark:text-[#8F9BBF] hover:text-[#171827]'
+                }`}
+              >
+                <TableIcon className="w-3.5 h-3.5" strokeWidth={1.75} />
+                <span>Tabela BI</span>
+              </button>
+            </div>
+
             {!isBarbeiro && professionals.length > 0 && (
               <FilterSelect value={filterPro} onChange={setFilterPro} aria-label="Filtrar por profissional">
                 <option value="all">Todos os profissionais</option>
@@ -507,7 +542,7 @@ export default function AppAgenda() {
               aria-label="Escala de tempo da agenda"
               data-testid="agenda-time-scale"
               data-active-scale={`${slotInterval}min`}
-              className="flex items-center gap-0.5 bg-white/[0.03] border border-white/10 rounded-xl p-1 backdrop-blur-sm"
+              className="flex items-center gap-0.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl p-1 shadow-sm"
             >
               {[5, 10, 15, 30].map(v => {
                 const isActive = slotInterval === v;
@@ -518,10 +553,10 @@ export default function AppAgenda() {
                     data-testid={`agenda-scale-${v}min`}
                     aria-pressed={isActive}
                     onClick={() => setSlotInterval(v)}
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all ${
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all tabular-nums cursor-pointer ${
                       isActive
-                        ? 'bg-gradient-to-br from-[#2563EB] to-[#3B82F6] text-white shadow-[0_4px_12px_rgba(37,99,235,0.4)]'
-                        : 'text-white/60 hover:bg-white/5 hover:text-white'
+                        ? 'bg-[#2563EB] text-white shadow-sm'
+                        : 'text-[#55596A] dark:text-[#8F9BBF] hover:bg-[#F1F2F7] dark:hover:bg-[#232538]'
                     }`}
                     title={v === 15 ? `Intervalo padrão (${v} minutos)` : `Intervalo ${v} minutos`}
                   >
@@ -530,18 +565,18 @@ export default function AppAgenda() {
                 );
               })}
             </div>
-            <div className="flex items-center gap-1 bg-white/[0.03] border border-white/10 rounded-xl p-1 backdrop-blur-sm">
-              <button onClick={() => setCurrentDate(d => addDays(d, -1))} aria-label="Dia anterior" className="p-1.5 hover:bg-white/5 rounded-lg text-white/70">
-                <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+            <div className="flex items-center gap-1 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl p-1 shadow-sm">
+              <button onClick={() => setCurrentDate(d => addDays(d, -1))} aria-label="Dia anterior" className="p-1.5 hover:bg-[#F1F2F7] dark:hover:bg-[#232538] rounded-lg text-[#55596A] dark:text-[#8F9BBF]">
+                <ChevronLeft className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
               </button>
-              <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold px-3 py-1 rounded-lg hover:bg-white/5 text-white/80">Hoje</button>
-              <button onClick={() => setCurrentDate(d => addDays(d, 1))} aria-label="Próximo dia" className="p-1.5 hover:bg-white/5 rounded-lg text-white/70">
-                <ChevronRight className="w-4 h-4" aria-hidden="true" />
+              <button onClick={() => setCurrentDate(new Date())} className="text-xs font-bold px-3 py-1 rounded-lg hover:bg-[#F1F2F7] dark:hover:bg-[#232538] text-[#171827] dark:text-white">Hoje</button>
+              <button onClick={() => setCurrentDate(d => addDays(d, 1))} aria-label="Próximo dia" className="p-1.5 hover:bg-[#F1F2F7] dark:hover:bg-[#232538] rounded-lg text-[#55596A] dark:text-[#8F9BBF]">
+                <ChevronRight className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
               </button>
             </div>
             {!isBarbeiro && !isAllUnits && (
-              <button onClick={() => setShowNewForm(true)} className="bg-gradient-to-br from-[#1D4ED8] via-[#2563EB] to-[#3B82F6] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:brightness-110 transition-all flex items-center gap-2 shadow-[0_8px_24px_rgba(37,99,235,0.4)] hover:shadow-[0_12px_32px_rgba(37,99,235,0.55)] ring-1 ring-white/15">
-                <Plus className="w-4 h-4" />Novo
+              <button onClick={() => setShowNewForm(true)} className="bg-[#171827] hover:bg-[#232538] text-white dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-sm border border-transparent hover:border-[#B5D7E8]/30 cursor-pointer">
+                <Plus className="w-4 h-4 text-[#B5D7E8]" strokeWidth={1.75} /><span>Novo</span>
               </button>
             )}
           </div>
@@ -649,6 +684,11 @@ export default function AppAgenda() {
             hasActivePlans={customerPlans.some(p => p.active !== false)}
             onCardClick={setSelectedAppt}
             onOfferPlan={!isBarbeiro ? setOfferCustomer : undefined}
+          />
+        ) : viewMode === 'table' ? (
+          <AgendaTanStackTable
+            appointments={filteredAppts}
+            onCardClick={setSelectedAppt}
           />
         ) : (
           <AgendaProColumns

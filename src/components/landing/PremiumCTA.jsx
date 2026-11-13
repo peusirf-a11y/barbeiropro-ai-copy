@@ -1,5 +1,4 @@
 // CTA final cinematográfico — botão gigante com glow.
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import GlowButton from './GlowButton';
@@ -34,12 +33,12 @@ export default function PremiumCTA() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
-            <Link to="/checkout">
-              <GlowButton className="h-14 px-9 text-base">Começar agora — 7 dias grátis</GlowButton>
-            </Link>
-            <Link to="/demo/dashboard">
-              <GlowButton variant="ghost" className="h-14 px-9 text-base">Explorar a demo</GlowButton>
-            </Link>
+            <GlowButton to="/checkout" className="h-14 px-9 text-base">
+              Começar agora — 7 dias grátis
+            </GlowButton>
+            <GlowButton to="/demo/dashboard" variant="ghost" className="h-14 px-9 text-base">
+              Explorar a demo
+            </GlowButton>
           </div>
 
           <div className="flex items-center justify-center gap-5 text-xs text-white/40">

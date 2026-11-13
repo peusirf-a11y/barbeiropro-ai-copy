@@ -147,7 +147,7 @@ export default function AppComissoes() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md">
+          <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] shadow-sm">
             <EmptyState
               icon={DollarSign}
               title="Nenhuma comissão no período"
@@ -157,27 +157,34 @@ export default function AppComissoes() {
         ) : (
           <>
             {/* Resumo por profissional */}
-            <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden mb-6">
-              <div className="px-5 py-3 border-b border-white/8 text-[11px] font-semibold uppercase tracking-wider text-white/55 bg-white/[0.02]">Por profissional</div>
-              <div className="divide-y divide-white/5">
+            <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] shadow-sm overflow-hidden mb-6">
+              <div className="px-5 py-3.5 border-b border-[#E5E7EF] dark:border-[#232538] text-[11px] font-bold uppercase tracking-wider text-[#59658F] dark:text-[#8F9BBF] bg-[#F8FAFC] dark:bg-[#1C1E30] flex items-center justify-between">
+                <span>Comissões por Profissional</span>
+                <span className="text-xs font-semibold normal-case tracking-normal text-[#55596A] dark:text-[#8F9BBF] tabular-nums">
+                  {summary.length} {summary.length === 1 ? 'profissional' : 'profissionais'}
+                </span>
+              </div>
+              <div className="divide-y divide-[#E5E7EF] dark:divide-[#232538]">
                 {summary.map(row => (
-                  <div key={row.id} className="flex items-center gap-4 p-4 flex-wrap hover:bg-white/[0.04] transition-colors">
-                    <div className="relative w-9 h-9 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] rounded-full flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_rgba(37,99,235,0.4)] ring-1 ring-white/15">
-                      <span className="absolute inset-0 rounded-full bg-[#60A5FA]/30 blur-md opacity-60" aria-hidden="true" />
-                      <Users className="relative w-4 h-4 text-white" />
+                  <div key={row.id} className="flex items-center gap-4 p-4 flex-wrap hover:bg-[#F8FAFC] dark:hover:bg-[#1C1E30] transition-colors">
+                    <div className="w-10 h-10 bg-[#EFF6FF] dark:bg-blue-950/40 text-[#2563EB] dark:text-blue-300 border border-[#DBEAFE] dark:border-blue-800/40 rounded-xl flex items-center justify-center flex-shrink-0 shadow-xs font-bold text-xs">
+                      <Users className="w-4 h-4 text-[#2563EB] dark:text-blue-300" strokeWidth={1.75} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-white truncate">{row.name || '–'}</div>
-                      <div className="text-xs text-white/55">{row.count} atendimentos</div>
+                      <div className="font-bold text-sm text-[#171827] dark:text-white truncate">{row.name || '–'}</div>
+                      <div className="text-xs text-[#55596A] dark:text-[#8F9BBF] font-medium tabular-nums mt-0.5">{row.count} atendimentos concluídos</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-base font-bold bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">R$ {row.total.toFixed(2)}</div>
-                      {row.pendente > 0 && <div className="text-xs text-amber-300 font-semibold">R$ {row.pendente.toFixed(2)} pendente</div>}
+                      <div className="text-base font-black text-[#171827] dark:text-white tabular-nums">R$ {row.total.toFixed(2).replace('.', ',')}</div>
+                      {row.pendente > 0 && <div className="text-xs text-amber-600 dark:text-amber-400 font-bold tabular-nums">R$ {row.pendente.toFixed(2).replace('.', ',')} pendente</div>}
                     </div>
                     {canPay && row.ids_pendentes.length > 0 && (
-                      <button onClick={() => { if (confirm(`Marcar ${row.ids_pendentes.length} comissões de ${row.name} como pagas?`)) payMutation.mutate(row.ids_pendentes); }}
-                        className="bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white text-xs font-semibold px-3 py-2 rounded-xl hover:brightness-110 flex items-center gap-1.5 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all">
-                        <Check className="w-3.5 h-3.5" />Marcar como pago
+                      <button
+                        onClick={() => { if (confirm(`Marcar ${row.ids_pendentes.length} comissões de ${row.name} como pagas?`)) payMutation.mutate(row.ids_pendentes); }}
+                        className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        <span>Marcar como pago</span>
                       </button>
                     )}
                   </div>
@@ -186,20 +193,25 @@ export default function AppComissoes() {
             </div>
 
             {/* Detalhe */}
-            <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
-              <div className="px-5 py-3 border-b border-white/8 text-[11px] font-semibold uppercase tracking-wider text-white/55 bg-white/[0.02]">Detalhamento</div>
-              <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto">
+            <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] shadow-sm overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#E5E7EF] dark:border-[#232538] text-[11px] font-bold uppercase tracking-wider text-[#59658F] dark:text-[#8F9BBF] bg-[#F8FAFC] dark:bg-[#1C1E30] flex items-center justify-between">
+                <span>Extrato Detalhado de Comissões</span>
+                <span className="text-xs font-semibold normal-case tracking-normal text-[#55596A] dark:text-[#8F9BBF] tabular-nums">
+                  {filtered.length} lançamentos
+                </span>
+              </div>
+              <div className="divide-y divide-[#E5E7EF] dark:divide-[#232538] max-h-[500px] overflow-y-auto">
                 {filtered.map(c => (
-                  <div key={c.id} className="flex items-center gap-4 p-4 hover:bg-white/[0.04] transition-colors">
+                  <div key={c.id} className="flex items-center gap-4 p-4 hover:bg-[#F8FAFC] dark:hover:bg-[#1C1E30] transition-colors">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm text-white truncate">{c.service_name || '–'}</div>
-                      <div className="text-xs text-white/55">
-                        {c.professional_name} · {format(new Date(c.earned_at), "d MMM yyyy", { locale: ptBR })}
-                        {' · '}{c.commission_type === 'percent' ? `${c.commission_value}% de R$ ${c.service_price?.toFixed(2)}` : `valor fixo`}
+                      <div className="font-bold text-sm text-[#171827] dark:text-white truncate">{c.service_name || '–'}</div>
+                      <div className="text-xs text-[#55596A] dark:text-[#8F9BBF] font-medium mt-0.5">
+                        <strong className="text-[#171827] dark:text-white font-semibold">{c.professional_name}</strong> · <span className="tabular-nums">{format(new Date(c.earned_at), "d 'de' MMM 'de' yyyy", { locale: ptBR })}</span>
+                        {' · '}<span className="tabular-nums">{c.commission_type === 'percent' ? `${c.commission_value}% de R$ ${c.service_price?.toFixed(2).replace('.', ',')}` : `valor fixo`}</span>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-white">R$ {c.amount?.toFixed(2)}</div>
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${c.status === 'pago' ? 'bg-emerald-400/[0.12] text-emerald-200 border-emerald-400/30' : 'bg-amber-400/[0.12] text-amber-200 border-amber-400/30'}`}>
+                    <div className="text-sm font-black text-[#171827] dark:text-white tabular-nums">R$ {c.amount?.toFixed(2).replace('.', ',')}</div>
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${c.status === 'pago' ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/40'}`}>
                       {c.status === 'pago' ? 'Pago' : 'Pendente'}
                     </span>
                   </div>

@@ -7,30 +7,58 @@ export default function PartnerGoalCard({ goal, generated, progress }) {
   const hit = progress >= 100;
   const remaining = Math.max(0, (goal || 0) - (generated || 0));
   return (
-    <div className={`rounded-2xl border ${hit ? 'border-emerald-400/35 bg-emerald-500/[0.08]' : 'border-[#60A5FA]/25 bg-gradient-to-br from-[#2563EB]/10 via-white/[0.03] to-[#60A5FA]/10'} backdrop-blur-md p-5`}>
+    <div
+      className={`rounded-2xl border p-5 shadow-sm ${
+        hit
+          ? 'border-emerald-500/30 bg-emerald-500/[0.04] dark:bg-emerald-500/10'
+          : 'border-[#E5E7EF] dark:border-[#232538] bg-white dark:bg-[#171827]'
+      }`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className={`w-9 h-9 rounded-xl ${hit ? 'bg-emerald-400/15 ring-1 ring-emerald-400/30' : 'bg-blue-400/15 ring-1 ring-blue-400/30'} flex items-center justify-center`}>
-            {hit ? <TrendingUp className="w-4 h-4 text-emerald-300" /> : <Target className="w-4 h-4 text-[#93C5FD]" />}
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              hit
+                ? 'bg-emerald-500/15 border border-emerald-500/30'
+                : 'bg-[#2563EB]/10 dark:bg-[#2563EB]/20 border border-[#2563EB]/20'
+            }`}
+          >
+            {hit ? (
+              <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-300" strokeWidth={1.75} />
+            ) : (
+              <Target className="w-4 h-4 text-[#2563EB] dark:text-[#93C5FD]" strokeWidth={1.75} />
+            )}
           </div>
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-white/55">Meta do mês</div>
-            <div className="text-[11px] text-white/45">{hit ? '🎉 Meta atingida!' : `Falta ${brl(remaining)}`}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-[#59658F] dark:text-white/60">
+              Meta do mês
+            </div>
+            <div className="text-[11px] text-[#55596A] dark:text-white/50 tabular-nums">
+              {hit ? 'Meta atingida' : `Falta ${brl(remaining)}`}
+            </div>
           </div>
         </div>
-        <div className={`text-2xl font-black ${hit ? 'text-emerald-300' : 'text-white'}`}>{progress}%</div>
+        <div
+          className={`text-2xl font-black tabular-nums ${
+            hit ? 'text-emerald-600 dark:text-emerald-300' : 'text-[#171827] dark:text-white'
+          }`}
+        >
+          {progress}%
+        </div>
       </div>
 
-      <div className="h-3 rounded-full bg-white/[0.06] overflow-hidden border border-white/8">
+      <div className="h-2.5 rounded-full bg-slate-100 dark:bg-white/[0.08] overflow-hidden border border-[#E5E7EF] dark:border-[#232538]">
         <div
-          className={`h-full rounded-full transition-all duration-700 ${hit ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : 'bg-gradient-to-r from-[#1D4ED8] to-[#60A5FA]'}`}
+          className={`h-full rounded-full transition-all duration-700 ${
+            hit ? 'bg-emerald-500' : 'bg-[#2563EB]'
+          }`}
           style={{ width: `${Math.min(100, progress)}%` }}
         />
       </div>
 
-      <div className="flex items-center justify-between mt-2.5 text-xs">
-        <span className="text-white/65">{brl(generated)} gerado</span>
-        <span className="text-white/45">/ {brl(goal)} meta</span>
+      <div className="flex items-center justify-between mt-2.5 text-xs tabular-nums">
+        <span className="text-[#171827] dark:text-white/70 font-semibold">{brl(generated)} gerado</span>
+        <span className="text-[#55596A] dark:text-white/45">/ {brl(goal)} meta</span>
       </div>
     </div>
   );

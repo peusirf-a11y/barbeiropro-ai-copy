@@ -38,35 +38,39 @@ export default function PartnerLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen text-white font-inter">
+    <div className="min-h-screen bg-[#F1F2F7] dark:bg-[#0F101A] text-[#171827] dark:text-[#E5E7F3] font-inter">
       <AppBackgroundLayer />
 
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#050816]/80 border-b border-white/5">
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#171827] border-b border-[#232538] text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setOpen(true)}
-              className="p-2 rounded-lg hover:bg-white/[0.06] text-white/80 hover:text-white"
+              className="p-2 rounded-lg hover:bg-white/[0.08] text-white/80 hover:text-white transition-colors"
               aria-label="Abrir menu"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5" strokeWidth={1.75} />
             </button>
             <Link to="/parceiro/dashboard" className="flex items-center gap-3 min-w-0">
               <BrandMark size={32} tone="dark" />
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#2563EB]/15 border border-[#60A5FA]/25 text-[11px] font-bold text-[#93C5FD]">
-                <Gift className="w-3 h-3" /> PARCEIRO
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#2563EB]/20 border border-[#2563EB]/40 text-[11px] font-bold text-[#B5D7E8]">
+                <Gift className="w-3 h-3 text-[#B5D7E8]" strokeWidth={1.75} /> PARCEIRO
               </span>
             </Link>
           </div>
           <div className="flex items-center gap-3">
             {partner && (
               <div className="hidden sm:block text-right">
-                <div className="text-[11px] text-white/40 leading-none">Olá,</div>
-                <div className="text-sm font-bold mt-0.5">{partner.name?.split(' ')[0]}</div>
+                <div className="text-[11px] text-[#59658F] dark:text-white/50 leading-none">Olá,</div>
+                <div className="text-sm font-bold text-white mt-0.5">{partner.name?.split(' ')[0]}</div>
               </div>
             )}
-            <button onClick={logout} className="p-2 rounded-lg hover:bg-white/5 text-white/60 hover:text-rose-400" aria-label="Sair">
-              <LogOut className="w-4 h-4" />
+            <button
+              onClick={logout}
+              className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-rose-400 transition-colors"
+              aria-label="Sair"
+            >
+              <LogOut className="w-4 h-4" strokeWidth={1.75} />
             </button>
           </div>
         </div>
@@ -79,23 +83,23 @@ export default function PartnerLayout({ children }) {
             className="absolute inset-0 bg-black/60 backdrop-blur-[3px] animate-fade-in"
             onClick={() => setOpen(false)}
           />
-          <aside className="absolute left-0 top-0 h-full w-[82%] max-w-[300px] bg-[#0A1124] border-r border-white/8 shadow-[0_30px_80px_rgba(0,0,0,0.7)] flex flex-col animate-slide-up sm:animate-fade-in">
-            <div className="px-4 h-16 flex items-center justify-between border-b border-white/8 flex-shrink-0">
+          <aside className="absolute left-0 top-0 h-full w-[82%] max-w-[300px] bg-[#171827] border-r border-[#232538] shadow-[0_30px_80px_rgba(0,0,0,0.7)] flex flex-col animate-slide-up sm:animate-fade-in text-white">
+            <div className="px-4 h-16 flex items-center justify-between border-b border-[#232538] flex-shrink-0">
               <BrandMark size={32} tone="dark" />
               <button
                 onClick={() => setOpen(false)}
-                className="p-2 rounded-lg hover:bg-white/10 text-white/70"
+                className="p-2 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
                 aria-label="Fechar menu"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" strokeWidth={1.75} />
               </button>
             </div>
 
             {partner && (
-              <div className="px-4 py-3 border-b border-white/8">
-                <div className="text-[11px] text-white/45">Conectado como</div>
-                <div className="text-sm font-bold truncate">{partner.name}</div>
-                <div className="text-[11px] text-white/55 truncate">{partner.email}</div>
+              <div className="px-4 py-3 border-b border-[#232538] bg-white/[0.02]">
+                <div className="text-[11px] text-[#59658F] dark:text-white/50">Conectado como</div>
+                <div className="text-sm font-bold text-white truncate">{partner.name}</div>
+                <div className="text-[11px] text-white/60 truncate">{partner.email}</div>
               </div>
             )}
 
@@ -109,23 +113,23 @@ export default function PartnerLayout({ children }) {
                     to={item.path}
                     className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       active
-                        ? 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white shadow-[0_8px_24px_rgba(37,99,235,0.4)]'
-                        : 'text-white/70 hover:text-white hover:bg-white/[0.05]'
+                        ? 'bg-[#2563EB] text-white shadow-sm'
+                        : 'text-white/70 hover:text-white hover:bg-white/[0.06]'
                     }`}
                   >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.75} />
                     {item.label}
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="p-3 border-t border-white/8">
+            <div className="p-3 border-t border-[#232538]">
               <button
                 onClick={() => { setOpen(false); logout(); }}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-rose-300 hover:bg-rose-500/10"
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-rose-300 hover:bg-rose-500/10 transition-colors"
               >
-                <LogOut className="w-4 h-4" /> Sair
+                <LogOut className="w-4 h-4" strokeWidth={1.75} /> Sair
               </button>
             </div>
           </aside>

@@ -1,4 +1,5 @@
 // Filtros da página de Auditoria: período, ator (email), tipo de ação.
+// Design System: Premium Business SaaS & Business Intelligence
 import HistoryFilters from '@/components/caixa/HistoryFilters';
 
 const ACTIONS = [
@@ -23,26 +24,26 @@ export default function AuditFilters({
         customFrom={customFrom} setCustomFrom={setCustomFrom}
         customTo={customTo} setCustomTo={setCustomTo}
       />
-      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] shadow-sm p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="text-[11px] font-semibold text-white/55 uppercase tracking-wider block mb-1.5">Ação</label>
+          <label className="text-[11px] font-bold text-[#59658F] dark:text-[#8F9BBF] uppercase tracking-wider block mb-1.5">Ação Operacional</label>
           <select
             value={action}
             onChange={e => setAction(e.target.value)}
-            className="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+            className="w-full px-3 py-2 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-xs sm:text-sm text-[#171827] dark:text-white font-semibold focus:outline-none focus:border-[#2563EB] cursor-pointer"
           >
-            {ACTIONS.map(a => <option key={a.value} value={a.value} className="bg-[#0A1124]">{a.label}</option>)}
+            {ACTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-[11px] font-semibold text-white/55 uppercase tracking-wider block mb-1.5">Usuário</label>
+          <label className="text-[11px] font-bold text-[#59658F] dark:text-[#8F9BBF] uppercase tracking-wider block mb-1.5">Usuário Responsável</label>
           <select
             value={actor}
             onChange={e => setActor(e.target.value)}
-            className="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+            className="w-full px-3 py-2 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-xs sm:text-sm text-[#171827] dark:text-white font-semibold focus:outline-none focus:border-[#2563EB] cursor-pointer"
           >
-            <option value="" className="bg-[#0A1124]">Todos</option>
-            {teamEmails.map(e => <option key={e} value={e} className="bg-[#0A1124]">{e}</option>)}
+            <option value="">Todos os usuários</option>
+            {teamEmails.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
         </div>
       </div>

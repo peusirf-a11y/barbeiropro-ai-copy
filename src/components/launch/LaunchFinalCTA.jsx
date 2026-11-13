@@ -1,5 +1,4 @@
 // Bloco final de conversão
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Rocket } from 'lucide-react';
 import GlowButton from '@/components/landing/GlowButton';
@@ -50,12 +49,12 @@ export default function LaunchFinalCTA() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link to="/checkout?promo=lancamento">
-                <GlowButton className="w-full sm:w-auto">Começar agora — 7 dias grátis</GlowButton>
-              </Link>
-              <Link to="/demo/dashboard">
-                <GlowButton variant="ghost" className="w-full sm:w-auto">Ver demonstração</GlowButton>
-              </Link>
+              <GlowButton to="/checkout?promo=lancamento" className="w-full sm:w-auto">
+                Começar agora — 7 dias grátis
+              </GlowButton>
+              <GlowButton to="/demo/dashboard" variant="ghost" className="w-full sm:w-auto">
+                Ver demonstração
+              </GlowButton>
             </div>
           </div>
         </motion.div>

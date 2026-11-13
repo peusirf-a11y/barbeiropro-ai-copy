@@ -35,7 +35,7 @@ export default function ResultsBand() {
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${r.tone} to-transparent opacity-60`} />
               <div className="relative">
-                <div className="text-3xl md:text-5xl font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">
+                <div className="text-3xl md:text-5xl font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent tabular-nums">
                   {r.value}
                 </div>
                 <div className="text-xs md:text-sm text-white/55 mt-2 leading-snug">{r.label}</div>

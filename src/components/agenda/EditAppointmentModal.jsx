@@ -183,16 +183,16 @@ export default function EditAppointmentModal({
     <>
       <button
         onClick={onClose}
-        className="flex-1 min-h-[48px] px-4 border border-white/10 rounded-xl text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] active:bg-white/[0.08] transition-colors"
+        className="flex-1 min-h-[44px] px-4 border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm font-semibold text-[#55596A] dark:text-[#CBD5E1] bg-[#FFFFFF] dark:bg-[#171827] hover:bg-[#F1F2F7] dark:hover:bg-[#232538] transition-colors cursor-pointer"
       >
         Cancelar
       </button>
       <button
         onClick={handleSave}
         disabled={isSaving}
-        className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold hover:brightness-110 active:scale-[0.98] disabled:opacity-50 transition-all shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15"
+        className="flex-1 min-h-[44px] px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl text-sm font-bold disabled:opacity-50 transition-all shadow-sm cursor-pointer"
       >
-        {isSaving ? 'Salvando…' : 'Salvar'}
+        {isSaving ? 'Salvando…' : 'Salvar Alterações'}
       </button>
     </>
   );
@@ -202,7 +202,7 @@ export default function EditAppointmentModal({
       <StandardModal
         open
         onClose={onClose}
-        title="Editar agendamento"
+        title="Detalhes do Agendamento"
         size="lg"
         footer={footer}
       >
@@ -216,46 +216,46 @@ export default function EditAppointmentModal({
         )}
 
         {/* Identificação do cliente (read-only) */}
-        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3 mb-4">
+        <div className="rounded-xl border border-[#E5E7EF] dark:border-[#232538] bg-[#F8FAFC] dark:bg-[#1C1E30] p-3.5 mb-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <span className="text-[11px] text-white/50 block">Cliente</span>
-              <p className="font-semibold text-sm text-white">{appointment.customer_name}</p>
+              <span className="text-[11px] font-bold text-[#59658F] dark:text-[#8F9BBF] uppercase tracking-wider block">Cliente</span>
+              <p className="font-bold text-sm text-[#171827] dark:text-white mt-0.5">{appointment.customer_name}</p>
               <div className="mt-1"><CustomerTypeBadge customer={safeCustomers.find(c => c.id === appointment.customer_id)} /></div>
             </div>
             <div>
-              <span className="text-[11px] text-white/50 block">Telefone</span>
-              <p className="font-semibold text-sm text-white">{appointment.customer_phone || '–'}</p>
+              <span className="text-[11px] font-bold text-[#59658F] dark:text-[#8F9BBF] uppercase tracking-wider block">Telefone</span>
+              <p className="font-bold text-sm text-[#171827] dark:text-white mt-0.5 tabular-nums">{appointment.customer_phone || '–'}</p>
             </div>
           </div>
         </div>
 
         {/* Campos editáveis */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-white/60 block mb-1">Serviço *</label>
+            <label className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Serviço *</label>
             <MobileSelect
               value={form.service_id}
               onChange={v => setForm(p => ({ ...p, service_id: v }))}
               disabled={isBarbeiro}
               placeholder="Selecionar serviço"
-              className="w-full px-3 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3.5 py-2.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Selecionar serviço</option>
               {safeServices.map(s => (
-                <option key={s.id} value={s.id}>{s.name} · {s.duration_minutes}min · R${s.price}</option>
+                <option key={s.id} value={s.id}>{s.name} · {s.duration_minutes}min · R$ {s.price}</option>
               ))}
             </MobileSelect>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-white/60 block mb-1">Profissional *</label>
+            <label className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Profissional *</label>
             <MobileSelect
               value={form.professional_id}
               onChange={v => setForm(p => ({ ...p, professional_id: v }))}
               disabled={isBarbeiro}
               placeholder="Selecionar profissional"
-              className="w-full px-3 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3.5 py-2.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Selecionar profissional</option>
               {safeProfessionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -264,24 +264,24 @@ export default function EditAppointmentModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-white/60 block mb-1">Início *</label>
+              <label className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Início *</label>
               <input
                 type="datetime-local"
                 value={form.scheduled_at}
                 onChange={e => setForm(p => ({ ...p, scheduled_at: e.target.value }))}
-                className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white [color-scheme:dark] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+                className="w-full px-3.5 py-2.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white font-semibold focus:outline-none focus:border-[#2563EB]"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-white/60 block mb-1">Fim (calculado)</label>
-              <div className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm bg-white/[0.02] text-white/70">
-                {endTime || '–'} <span className="text-[11px] text-white/45">· {duration}min</span>
+              <label className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Fim estimado</label>
+              <div className="w-full px-3.5 py-2.5 border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm bg-[#F8FAFC] dark:bg-[#1C1E30] text-[#171827] dark:text-white font-semibold tabular-nums">
+                {endTime || '–'} <span className="text-xs font-normal text-[#55596A] dark:text-[#8F9BBF]">· {duration}min</span>
               </div>
             </div>
           </div>
 
           <div>
-            <span className="text-xs font-semibold text-white/60 block mb-1.5">Status</span>
+            <span className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Status do Agendamento</span>
             <div className="grid grid-cols-3 gap-2">
               {STATUS_KEYS.map(key => {
                 const t = STATUS_TOKENS[key];
@@ -291,7 +291,11 @@ export default function EditAppointmentModal({
                     key={key}
                     type="button"
                     onClick={() => handleStatusClick(key)}
-                    className={`text-xs font-medium px-2 py-2 rounded-lg border transition-all ${active ? `${t.pill} ring-2 ring-offset-1 ring-offset-[#0A1124] ring-current` : 'bg-white/[0.03] text-white/65 border-white/10 hover:bg-white/[0.06] hover:text-white'}`}
+                    className={`text-xs font-bold px-2 py-2 rounded-xl border transition-all cursor-pointer ${
+                      active
+                        ? `${t.pill} ring-1 ring-current shadow-xs`
+                        : 'bg-[#FFFFFF] dark:bg-[#171827] text-[#55596A] dark:text-[#8F9BBF] border-[#E5E7EF] dark:border-[#232538] hover:border-[#2563EB]'
+                    }`}
                   >
                     {t.label}
                   </button>
@@ -300,29 +304,28 @@ export default function EditAppointmentModal({
             </div>
           </div>
 
-          {/* Marcação paralela: pago. Independe do status (cliente pode estar
-              "agendado" mas já ter pago; ou "concluído" mas ainda não ter pago). */}
+          {/* Marcação paralela: pago */}
           <div>
-            <span className="text-xs font-semibold text-white/60 block mb-1.5">Pagamento</span>
+            <span className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Situação do Pagamento</span>
             <button
               type="button"
               onClick={() => setForm(p => ({ ...p, paid: !p.paid }))}
               disabled={appointment.paid_online}
               title={appointment.paid_online ? 'Pago online antecipadamente — não é possível alterar' : ''}
-              className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border text-sm font-semibold transition-all ${
+              className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 form.paid
-                  ? 'bg-emerald-400/15 text-emerald-200 border-emerald-400/40 ring-2 ring-emerald-400/25'
-                  : 'bg-white/[0.03] text-white/65 border-white/10 hover:bg-white/[0.06] hover:text-white'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40 shadow-xs'
+                  : 'bg-[#FFFFFF] dark:bg-[#171827] text-[#55596A] dark:text-[#8F9BBF] border-[#E5E7EF] dark:border-[#232538] hover:border-[#2563EB]'
               } disabled:opacity-60 disabled:cursor-not-allowed`}
             >
               <span className="flex items-center gap-2">
-                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${form.paid ? 'bg-emerald-500 border-emerald-400' : 'border-white/30 bg-white/5'}`}>
-                  {form.paid && <span className="text-white text-[10px] leading-none">✓</span>}
+                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${form.paid ? 'bg-emerald-600 border-emerald-500' : 'border-[#CBD5E1] bg-white'}`}>
+                  {form.paid && <span className="text-white text-[9px] leading-none">✓</span>}
                 </span>
-                {form.paid ? 'Pago' : 'Marcar como pago'}
+                <span>{form.paid ? 'Pago' : 'Marcar como pago'}</span>
               </span>
               {appointment.paid_online && (
-                <span className="text-[10px] font-bold uppercase bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-bold uppercase bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
                   {appointment.payment_status === 'confirmed_card' || appointment.payment_method === 'credit_card' || appointment.payment_method === 'card'
                     ? 'Cartão Online'
                     : 'Pix Online'}
@@ -332,26 +335,28 @@ export default function EditAppointmentModal({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-white/60 block mb-1">Observações</label>
+            <label className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Observações da bancada</label>
             <textarea
               rows={2}
               value={form.notes}
               onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 resize-none"
+              placeholder="Anotações internas sobre o atendimento..."
+              className="w-full px-3.5 py-2.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-[#55596A]/50 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]/25 resize-none font-medium"
             />
           </div>
         </div>
 
         {error && (
-          <div className="mt-3 flex items-start gap-2 text-rose-200 text-sm bg-rose-500/10 border border-rose-400/30 rounded-lg p-2.5">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />{error}
+          <div className="mt-3.5 flex items-start gap-2.5 text-rose-800 dark:text-rose-300 text-xs font-semibold bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800/40 rounded-xl p-3">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-600" strokeWidth={1.75} />
+            <span>{error}</span>
           </div>
         )}
 
         {!isBarbeiro && onDelete && (
           <button
             onClick={() => { if (confirm('Excluir este agendamento?')) onDelete(appointment.id); }}
-            className="w-full text-xs text-rose-300 hover:text-rose-200 font-medium py-2 mt-3 transition-colors"
+            className="w-full text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 font-bold py-2 mt-3.5 transition-colors cursor-pointer"
           >
             Excluir agendamento
           </button>

@@ -15,7 +15,7 @@ export default function ThemeToggle({ className = '' }) {
       aria-checked={isDark}
       aria-label={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
       title={isDark ? 'Tema claro' : 'Tema escuro'}
-      className={`relative inline-flex items-center w-[58px] h-[30px] rounded-full p-0.5 transition-colors duration-300 ring-1 focus:outline-none focus:ring-2 focus:ring-[#60A5FA]/40
+      className={`relative z-10 inline-flex items-center w-[58px] h-[30px] rounded-full p-0.5 transition-colors duration-300 ring-1 focus:outline-none focus:ring-2 focus:ring-[#60A5FA]/40 cursor-pointer touch-manipulation select-none
         ${isDark
           ? 'bg-white/[0.06] ring-white/15 hover:bg-white/[0.1]'
           : 'bg-slate-200/80 ring-slate-300 hover:bg-slate-200'}
@@ -29,7 +29,7 @@ export default function ThemeToggle({ className = '' }) {
 
       {/* Knob deslizante */}
       <span
-        className={`relative z-10 w-[24px] h-[24px] rounded-full flex items-center justify-center shadow-lg ring-1 transition-all duration-300 ease-out
+        className={`pointer-events-none relative z-10 w-[24px] h-[24px] rounded-full flex items-center justify-center shadow-lg ring-1 transition-all duration-300 ease-out
           ${isDark
             ? 'translate-x-[28px] bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] ring-white/20 shadow-[0_2px_12px_rgba(37,99,235,0.55)]'
             : 'translate-x-0 bg-gradient-to-br from-white to-amber-50 ring-amber-200/60 shadow-[0_2px_10px_rgba(245,158,11,0.35)]'}`}

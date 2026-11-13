@@ -345,14 +345,19 @@ export default function AppDashboard() {
       <div {...ptrProps}>
         {ptrIndicator}
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto">
-        {/* Header */}
+        {/* Header Executivo */}
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-black tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
-            {isBarbeiro ? `Olá, ${userName}` : 'Dashboard'}
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#59658F]/15 text-[#59658F] dark:text-[#B5D7E8] border border-[#59658F]/25 uppercase tracking-widest">
+              Business Intelligence
+            </span>
+          </div>
+          <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-[#171827] dark:text-white">
+            {isBarbeiro ? `Olá, ${userName}` : 'Painel de Indicadores'}
           </h1>
-          <p className="text-white/50 text-sm mt-1 capitalize">
+          <p className="text-[#55596A] dark:text-[#8F9BBF] text-xs sm:text-sm mt-1 capitalize font-medium">
             {format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} ·{' '}
-            <span className="text-white/70 font-medium">
+            <span className="text-[#171827] dark:text-white font-bold">
               {isBarbeiro ? userName : (company?.name && company.name.toLowerCase() !== 'teste' ? company.name : 'Sua barbearia')}
             </span>
           </p>

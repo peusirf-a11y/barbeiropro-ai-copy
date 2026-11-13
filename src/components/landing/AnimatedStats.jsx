@@ -24,7 +24,7 @@ export default function AnimatedStats() {
                 transition={{ delay: i * 0.08, duration: 0.5 }}
                 className="text-center py-8 px-4"
               >
-                <div className="text-3xl md:text-4xl font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">
+                <div className="text-3xl md:text-4xl font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent tabular-nums">
                   {s.value}
                 </div>
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-white/50 mt-2">{s.label}</div>

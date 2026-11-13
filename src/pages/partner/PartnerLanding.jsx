@@ -216,17 +216,17 @@ export default function PartnerLanding() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-between text-white font-inter">
+    <div className="min-h-screen flex flex-col justify-between bg-[#F1F2F7] dark:bg-[#0F101A] text-[#171827] dark:text-[#E5E7F3] font-inter">
       <AppBackgroundLayer />
 
       {/* Header compacto */}
       <header className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
         <Link to="/landing">
-          <BrandMark size={30} tone="dark" />
+          <BrandMark size={32} tone="dark" />
         </Link>
         <Link
           to="/parceiro/login"
-          className="text-xs sm:text-sm font-semibold text-white/75 hover:text-white transition-colors px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10"
+          className="text-xs sm:text-sm font-semibold text-[#171827] dark:text-white/80 hover:text-[#2563EB] dark:hover:text-white transition-colors px-3 py-1.5 rounded-xl bg-white dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] shadow-sm"
         >
           Já tem conta? Entrar →
         </Link>
@@ -239,16 +239,16 @@ export default function PartnerLanding() {
           <div className="lg:col-span-7 space-y-5 sm:space-y-6">
             {/* BLOCO 1: HERO & PROPOSTA DIRETA */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-[#2563EB]/15 border border-[#60A5FA]/30 text-[#93C5FD] text-[11px] sm:text-xs font-extrabold px-3 py-1.5 rounded-full mb-3.5 tracking-wide">
-                <Gift className="w-3.5 h-3.5 flex-shrink-0" />
+              <div className="inline-flex items-center gap-2 bg-[#2563EB]/10 border border-[#2563EB]/25 text-[#2563EB] dark:text-[#93C5FD] text-[11px] sm:text-xs font-extrabold px-3 py-1.5 rounded-full mb-3.5 tracking-wide">
+                <Gift className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.75} />
                 <span>PROGRAMA DE PARCEIROS OFICIAL — O CORTE</span>
               </div>
 
-              <h1 className="text-2xl sm:text-4xl lg:text-[42px] font-black tracking-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent leading-[1.15] mb-3">
+              <h1 className="text-2xl sm:text-4xl lg:text-[42px] font-black tracking-tight text-[#171827] dark:text-white leading-[1.15] mb-3">
                 Ganhe 30% todo mês por cada barbearia indicada
               </h1>
 
-              <p className="text-white/70 text-sm sm:text-base leading-relaxed">
+              <p className="text-[#55596A] dark:text-white/70 text-sm sm:text-base leading-relaxed">
                 Indique barbearias da sua região e receba comissão recorrente direto no seu Pix durante 1 ano inteiro por cada cliente ativo.
               </p>
             </div>
@@ -256,68 +256,68 @@ export default function PartnerLanding() {
             {/* BLOCO 2: GANHOS & SIMULADOR VISUAL (Cards Compactos) */}
             <div className="space-y-4">
               {/* 1. Cartão de Valores Base */}
-              <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-4 sm:p-6 shadow-xl space-y-4">
+              <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-white dark:bg-[#171827] p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
-                      <TrendingUp className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-300">
+                      <TrendingUp className="w-4 h-4" strokeWidth={1.75} />
                     </div>
-                    <h2 className="text-sm sm:text-base font-extrabold text-white">
+                    <h2 className="text-sm sm:text-base font-extrabold text-[#171827] dark:text-white">
                       30% de Comissão Recorrente
                     </h2>
                   </div>
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
                     12 meses consecutivos
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/8 flex items-center justify-between sm:block">
-                    <div className="text-xs text-white/60 font-medium">
-                      Meses 1 a 3 <span className="text-white/40">(Preço de Lançamento)</span>
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-[#E5E7EF] dark:border-[#232538] flex items-center justify-between sm:block">
+                    <div className="text-xs text-[#55596A] dark:text-white/60 font-medium">
+                      Meses 1 a 3 <span className="text-slate-400 dark:text-white/40">(Preço de Lançamento)</span>
                     </div>
-                    <div className="text-lg sm:text-xl font-black text-white sm:mt-1">
-                      R$ 23,97 <span className="text-xs font-normal text-white/50">/ mês</span>
+                    <div className="text-lg sm:text-xl font-black text-[#171827] dark:text-white sm:mt-1 tabular-nums">
+                      R$ 23,97 <span className="text-xs font-normal text-[#55596A] dark:text-white/50">/ mês</span>
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/8 flex items-center justify-between sm:block">
-                    <div className="text-xs text-white/60 font-medium">
-                      Mês 4 a 12 <span className="text-white/40">(Plano Padrão)</span>
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-[#E5E7EF] dark:border-[#232538] flex items-center justify-between sm:block">
+                    <div className="text-xs text-[#55596A] dark:text-white/60 font-medium">
+                      Mês 4 a 12 <span className="text-slate-400 dark:text-white/40">(Plano Padrão)</span>
                     </div>
-                    <div className="text-lg sm:text-xl font-black text-[#93C5FD] sm:mt-1">
-                      R$ 35,70 <span className="text-xs font-normal text-white/50">/ mês</span>
+                    <div className="text-lg sm:text-xl font-black text-[#2563EB] dark:text-[#93C5FD] sm:mt-1 tabular-nums">
+                      R$ 35,70 <span className="text-xs font-normal text-[#55596A] dark:text-white/50">/ mês</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#2563EB]/20 via-emerald-500/15 to-emerald-500/10 border border-emerald-400/30 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-white">
-                    <Sparkles className="w-4 h-4 text-emerald-300 flex-shrink-0" />
-                    <span>Até <strong className="text-emerald-300">~R$ 393,21</strong> por barbearia ao longo de 1 ano</span>
+                <div className="p-3.5 rounded-xl bg-[#2563EB]/5 border border-[#2563EB]/20 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#171827] dark:text-white">
+                    <Sparkles className="w-4 h-4 text-[#2563EB] dark:text-emerald-300 flex-shrink-0" strokeWidth={1.75} />
+                    <span>Até <strong className="text-[#2563EB] dark:text-emerald-300 tabular-nums">~R$ 393,21</strong> por barbearia ao longo de 1 ano</span>
                   </div>
                 </div>
               </div>
 
               {/* 2. Tabela Rápida de Projeção (Compacta, focada em escala) */}
-              <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-4 sm:p-6 shadow-xl">
+              <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-white dark:bg-[#171827] p-5 sm:p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#93C5FD]">
+                  <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#59658F] dark:text-[#93C5FD]">
                     Simulador de Ganhos em Escala
                   </h3>
-                  <span className="text-[11px] text-white/45">Projeção Mês 4+</span>
+                  <span className="text-[11px] text-[#55596A] dark:text-white/45">Projeção Mês 4+</span>
                 </div>
 
-                <div className="divide-y divide-white/8">
+                <div className="divide-y divide-[#E5E7EF] dark:divide-[#232538]">
                   {EARNINGS_PROJECTION.map((row, idx) => (
                     <div
                       key={idx}
                       className="py-2.5 sm:py-3 flex items-center justify-between gap-2 text-xs sm:text-sm"
                     >
-                      <span className="font-bold text-white">{row.count}</span>
+                      <span className="font-semibold text-[#171827] dark:text-white">{row.count}</span>
                       <div className="flex items-center gap-2 sm:gap-3 text-right">
-                        <span className="font-bold text-[#93C5FD]">{row.monthly}</span>
-                        <span className="text-[11px] sm:text-xs font-extrabold text-emerald-300 bg-emerald-500/10 border border-emerald-400/20 px-2 py-0.5 rounded-lg">
+                        <span className="font-bold text-[#2563EB] dark:text-[#93C5FD] tabular-nums">{row.monthly}</span>
+                        <span className="text-[11px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg tabular-nums">
                           {row.yearly}
                         </span>
                       </div>
@@ -332,13 +332,13 @@ export default function PartnerLanding() {
           <form
             onSubmit={submit}
             noValidate
-            className="lg:col-span-5 rounded-2xl sm:rounded-3xl border border-white/12 bg-white/[0.045] backdrop-blur-2xl p-5 sm:p-7 shadow-2xl lg:sticky lg:top-6"
+            className="lg:col-span-5 rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-white dark:bg-[#171827] p-6 sm:p-7 shadow-sm lg:sticky lg:top-6"
           >
             <div className="flex items-center justify-between gap-2 mb-5">
-              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+              <h2 className="text-base sm:text-lg font-black text-[#171827] dark:text-white tracking-tight">
                 Cadastre-se como Parceiro
               </h2>
-              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#2563EB]/20 border border-[#60A5FA]/30 text-[#93C5FD]">
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/25 text-[#2563EB] dark:text-[#93C5FD]">
                 30% recorrente
               </span>
             </div>
@@ -346,7 +346,7 @@ export default function PartnerLanding() {
             <div className="space-y-3.5 mb-5">
               {/* 1. Nome completo ou Razão Social */}
               <div>
-                <label className="block text-xs font-semibold text-white/75 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#59658F] dark:text-white/70 mb-1">
                   Nome completo ou Razão Social *
                 </label>
                 <input
@@ -355,13 +355,13 @@ export default function PartnerLanding() {
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                   placeholder="Seu nome ou empresa"
-                  className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
                 />
               </div>
 
               {/* 2. E-mail */}
               <div>
-                <label className="block text-xs font-semibold text-white/75 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#59658F] dark:text-white/70 mb-1">
                   E-mail *
                 </label>
                 <input
@@ -370,13 +370,13 @@ export default function PartnerLanding() {
                   value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   placeholder="seu.email@exemplo.com"
-                  className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
                 />
               </div>
 
               {/* 3. WhatsApp (com DDD) */}
               <div>
-                <label className="block text-xs font-semibold text-white/75 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#59658F] dark:text-white/70 mb-1">
                   WhatsApp (com DDD) *
                 </label>
                 <input
@@ -385,28 +385,28 @@ export default function PartnerLanding() {
                   value={form.phone}
                   onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
                   placeholder="(11) 99999-9999"
-                  className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
                 />
               </div>
 
               {/* 4. Chave Pix */}
               <div>
-                <label className="block text-xs font-semibold text-white/75 mb-1">
-                  Chave Pix (para receber as comissões) *
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#59658F] dark:text-white/70 mb-1">
+                  Chave Pix (para receber comissões) *
                 </label>
                 <input
                   type="text"
                   required
                   value={form.pix_key}
                   onChange={(e) => setForm((p) => ({ ...p, pix_key: e.target.value }))}
-                  placeholder="CPF, CNPJ, e-mail, celular ou chave aleatória"
-                  className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
+                  placeholder="CPF, CNPJ, e-mail, celular ou aleatória"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm font-mono text-emerald-600 dark:text-emerald-300 placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
                 />
               </div>
 
               {/* 5. Senha de acesso */}
               <div>
-                <label className="block text-xs font-semibold text-white/75 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#59658F] dark:text-white/70 mb-1">
                   Senha de acesso (mínimo 8 caracteres) *
                 </label>
                 <div className="relative">
@@ -416,23 +416,23 @@ export default function PartnerLanding() {
                     value={form.password}
                     onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
                     placeholder="Crie sua senha segura"
-                    className="w-full px-3.5 py-2.5 pr-10 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
+                    className="w-full px-3.5 py-2.5 pr-10 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 hover:text-[#171827] dark:hover:text-white p-1"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
                   </button>
                 </div>
               </div>
             </div>
 
             {error && (
-              <div className="bg-rose-500/15 border border-rose-400/40 text-rose-200 text-xs p-3.5 rounded-xl mb-4 font-medium flex items-start gap-2.5 animate-shake">
-                <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs p-3.5 rounded-xl mb-4 font-medium flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 mt-0.5 flex-shrink-0" strokeWidth={1.75} />
                 <div className="leading-relaxed">{error}</div>
               </div>
             )}
@@ -441,7 +441,7 @@ export default function PartnerLanding() {
               type="submit"
               onClick={submit}
               disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl text-sm shadow-[0_8px_24px_rgba(37,99,235,0.4)] disabled:opacity-60 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.99] text-white font-bold py-3 px-4 rounded-xl text-sm shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               {loading ? (
                 <>
@@ -450,13 +450,13 @@ export default function PartnerLanding() {
                 </>
               ) : (
                 <>
-                  <Gift className="w-4 h-4" />
+                  <Gift className="w-4 h-4" strokeWidth={1.75} />
                   <span>Quero ser parceiro oficial</span>
                 </>
               )}
             </button>
 
-            <p className="text-[11px] text-white/50 text-center mt-3 leading-relaxed">
+            <p className="text-[11px] text-[#55596A] dark:text-white/50 text-center mt-3 leading-relaxed">
               Repasses mensais via Pix • Sem taxa de adesão • Cancele quando quiser
             </p>
           </form>
@@ -464,10 +464,10 @@ export default function PartnerLanding() {
       </main>
 
       {/* Rodapé enxuto com link discreto */}
-      <footer className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 text-center border-t border-white/5 mt-8">
+      <footer className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 text-center border-t border-[#E5E7EF] dark:border-[#232538] mt-8">
         <Link
           to="/termos-de-uso"
-          className="text-xs text-white/40 hover:text-white/70 transition-colors underline underline-offset-4"
+          className="text-xs text-[#55596A] dark:text-white/40 hover:text-[#2563EB] dark:hover:text-white/70 transition-colors underline underline-offset-4"
         >
           Termos do Programa de Parceiros
         </Link>

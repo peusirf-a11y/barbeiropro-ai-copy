@@ -44,15 +44,18 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
           </p>
 
           {/* Banner amarelo de destaque da Oferta de Lançamento */}
-          <div className="max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left">
+          <Link
+            to="/checkout?promo=lancamento"
+            className="block max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left hover:border-amber-400/70 hover:scale-[1.01] transition-all cursor-pointer group"
+          >
             <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 mb-1">
-              <Rocket className="w-3.5 h-3.5 text-amber-300" />
-              OFERTA DE LANÇAMENTO ATIVA
+              <Rocket className="w-3.5 h-3.5 text-amber-300 group-hover:translate-x-0.5 transition-transform" />
+              OFERTA DE LANÇAMENTO ATIVA · Clique para aproveitar
             </div>
             <p className="text-xs sm:text-sm text-amber-100 font-medium leading-relaxed">
-              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold">R$ 79,00/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold tabular-nums">R$ 79,00/mês nos primeiros 3 meses</strong>. Depois, <span className="tabular-nums">R$ 119,00/mês</span>. Experimente com 7 dias grátis →
             </p>
-          </div>
+          </Link>
 
           {/* Highlights checkmark grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 max-w-3xl mx-auto mb-10">
@@ -61,22 +64,22 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
                 key={h}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/8 text-left"
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" strokeWidth={1.75} />
                 <span className="text-[13px] font-semibold text-white/85">{h}</span>
               </div>
             ))}
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
-            <Link to="/checkout?promo=lancamento">
-              <GlowButton className="w-full sm:w-auto">Experimentar 7 dias grátis</GlowButton>
-            </Link>
-            <Link to="/login">
-              <GlowButton variant="ghost" className="w-full sm:w-auto border border-white/20 bg-white/5 hover:bg-white/10">Entrar na minha conta</GlowButton>
-            </Link>
-            <Link to="/demo/dashboard">
-              <GlowButton variant="ghost" className="w-full sm:w-auto text-white/70 hover:text-white">Ver demonstração</GlowButton>
-            </Link>
+            <GlowButton to="/checkout?promo=lancamento" className="w-full sm:w-auto">
+              Experimentar 7 dias grátis
+            </GlowButton>
+            <GlowButton to="/login" variant="ghost" className="w-full sm:w-auto border border-white/20 bg-white/5 hover:bg-white/10">
+              Entrar na minha conta
+            </GlowButton>
+            <GlowButton to="/demo/dashboard" variant="ghost" className="w-full sm:w-auto text-white/70 hover:text-white">
+              Ver demonstração
+            </GlowButton>
           </div>
 
           {/* Contador de vagas */}
@@ -90,15 +93,15 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
               <div className="flex items-center gap-2">
                 <span className="relative flex items-center justify-center">
                   <span className="absolute inset-0 rounded-full bg-amber-400 blur-md opacity-60" />
-                  <Users className="relative w-4 h-4 text-amber-200" />
+                  <Users className="relative w-4 h-4 text-amber-200" strokeWidth={1.75} />
                 </span>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-amber-100">
-                  Oferta para os {vagasTotais} primeiros clientes
+                  Oferta para os <strong className="tabular-nums">{vagasTotais}</strong> primeiros clientes
                 </span>
               </div>
               <span className="text-[11px] font-bold text-amber-200 flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                Restam {vagasRestantes}
+                <Sparkles className="w-3 h-3" strokeWidth={1.75} />
+                <span>Restam <strong className="tabular-nums">{vagasRestantes}</strong></span>
               </span>
             </div>
             <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
@@ -107,7 +110,7 @@ export default function LaunchHero({ vagasRestantes, vagasTotais }) {
                 style={{ width: `${percent}%` }}
               />
             </div>
-            <p className="text-[11px] font-semibold text-amber-100 mt-2 text-left">
+            <p className="text-[11px] font-semibold text-amber-100 mt-2 text-left tabular-nums">
               {vagasTotais - vagasRestantes} de {vagasTotais} vagas preenchidas
             </p>
           </motion.div>

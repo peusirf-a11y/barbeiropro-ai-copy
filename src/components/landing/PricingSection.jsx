@@ -261,7 +261,7 @@ export default function PricingSection() {
                   <div className="pt-4 pb-6 border-y border-white/8 mb-6">
                     {plan.originalPrice && (
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-white/40 line-through">
+                        <span className="text-xs text-white/40 line-through tabular-nums">
                           De R$ {plan.originalPrice}
                         </span>
                         <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -271,10 +271,10 @@ export default function PricingSection() {
                     )}
                     <div className="flex items-baseline gap-1">
                       <span className="text-sm font-bold text-white/50">R$</span>
-                      <span className="text-5xl md:text-6xl font-black text-white tracking-tight leading-none">
+                      <span className="text-5xl md:text-6xl font-black text-white tracking-tight leading-none tabular-nums">
                         {plan.price}
                       </span>
-                      <span className="text-lg font-bold text-white/60">
+                      <span className="text-lg font-bold text-white/60 tabular-nums">
                         {plan.cents}
                       </span>
                       <span className="text-xs font-semibold text-white/40 ml-1">
@@ -347,18 +347,16 @@ export default function PricingSection() {
 
                 {/* Rodapé do Card com CTA */}
                 <div className="p-7 md:p-8 pt-0">
-                  <Link to={plan.ctaLink} className="block w-full">
-                    {isMaster ? (
-                      <GlowButton className="w-full h-12 text-sm font-black justify-center shadow-lg shadow-blue-600/30">
-                        {plan.ctaText}
-                      </GlowButton>
-                    ) : (
-                      <button className="w-full h-12 rounded-xl text-sm font-bold text-white/90 bg-white/[0.05] hover:bg-white/[0.10] border border-white/15 hover:border-white/30 transition-all flex items-center justify-center gap-2 group cursor-pointer">
-                        <span>{plan.ctaText}</span>
-                        <ArrowRight className="w-4 h-4 text-white/50 group-hover:translate-x-1 group-hover:text-white transition-all" />
-                      </button>
-                    )}
-                  </Link>
+                  {isMaster ? (
+                    <GlowButton to={plan.ctaLink} className="w-full h-12 text-sm font-black justify-center shadow-lg shadow-blue-600/30">
+                      {plan.ctaText}
+                    </GlowButton>
+                  ) : (
+                    <Link to={plan.ctaLink} className="w-full h-12 rounded-xl text-sm font-bold text-white/90 bg-white/[0.05] hover:bg-white/[0.10] border border-white/15 hover:border-white/30 transition-all flex items-center justify-center gap-2 group cursor-pointer">
+                      <span>{plan.ctaText}</span>
+                      <ArrowRight className="w-4 h-4 text-white/50 group-hover:translate-x-1 group-hover:text-white transition-all" />
+                    </Link>
+                  )}
 
                   <div className="flex items-center justify-center gap-1.5 mt-3 text-[11px] text-white/40">
                     <Shield className="w-3.5 h-3.5 text-emerald-400/70" />

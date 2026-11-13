@@ -58,22 +58,25 @@ export default function CookieBanner({ onDismiss }) {
             {/* Botões */}
             <div className="flex flex-col sm:flex-row gap-2 mt-3.5">
               <button
+                type="button"
                 onClick={handleAcceptAll}
-                className="flex-1 sm:flex-none order-1 px-4 py-2.5 bg-[#2563EB] text-white text-xs font-bold rounded-xl hover:bg-[#1d4ed8] transition-colors shadow-[0_2px_8px_rgba(37,99,235,0.3)]"
+                className="flex-1 sm:flex-none order-1 px-4 py-2.5 bg-[#2563EB] text-white text-xs font-bold rounded-xl hover:bg-[#1d4ed8] transition-colors shadow-[0_2px_8px_rgba(37,99,235,0.3)] cursor-pointer touch-manipulation"
               >
                 Aceitar todos
               </button>
               <button
+                type="button"
                 onClick={handleRejectOptional}
-                className="flex-1 sm:flex-none order-3 sm:order-2 px-4 py-2.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-200 transition-colors"
+                className="flex-1 sm:flex-none order-3 sm:order-2 px-4 py-2.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-200 transition-colors cursor-pointer touch-manipulation"
               >
                 Recusar opcionais
               </button>
               <button
+                type="button"
                 onClick={() => setShowPreferences(true)}
-                className="flex-1 sm:flex-none order-2 sm:order-3 flex items-center justify-center gap-1 px-4 py-2.5 border border-black/10 text-gray-600 text-xs font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                className="flex-1 sm:flex-none order-2 sm:order-3 flex items-center justify-center gap-1 px-4 py-2.5 border border-black/10 text-gray-600 text-xs font-semibold rounded-xl hover:bg-gray-50 transition-colors cursor-pointer touch-manipulation"
               >
-                <Settings2 className="w-3.5 h-3.5" />
+                <Settings2 className="w-3.5 h-3.5 pointer-events-none" />
                 Personalizar
               </button>
             </div>

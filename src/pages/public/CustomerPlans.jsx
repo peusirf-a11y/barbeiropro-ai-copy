@@ -133,25 +133,25 @@ export default function CustomerPlans() {
                     {p.description && <div className={`text-xs ${tw.textMuted} mt-0.5`}>{p.description}</div>}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-2xl font-black" style={{ color: accent.bg }}>R${p.price_monthly}</div>
+                    <div className="text-2xl font-black tabular-nums" style={{ color: accent.bg }}>R${p.price_monthly}</div>
                     <div className={`text-[10px] ${tw.textFaint} uppercase tracking-wide`}>por mês</div>
                   </div>
                 </div>
                 <div className={`flex items-center gap-2 text-xs ${tw.textMuted} mb-4`}>
                   {p.type === 'unlimited' ? (
-                    <><InfinityIcon className="w-4 h-4" style={{ color: accent.bg }} /><span><strong>Cortes ilimitados</strong> por mês</span></>
+                    <><InfinityIcon className="w-4 h-4" strokeWidth={1.75} style={{ color: accent.bg }} /><span><strong>Cortes ilimitados</strong> por mês</span></>
                   ) : (
-                    <><Check className="w-4 h-4" style={{ color: accent.bg }} /><span><strong>{p.usage_limit} cortes</strong> por mês</span></>
+                    <><Check className="w-4 h-4" strokeWidth={1.75} style={{ color: accent.bg }} /><span className="tabular-nums"><strong>{p.usage_limit} cortes</strong> por mês</span></>
                   )}
                 </div>
                 <button
                   type="button"
                   onClick={() => handleSubscribe(p)}
                   disabled={hasActiveOrPaused}
-                  className="w-full font-bold py-3 rounded-xl text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                  className="w-full font-bold py-3 rounded-xl text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                   style={{ backgroundColor: accent.bg, color: accent.fg }}
                 >
-                  <CreditCard className="w-4 h-4" style={{ color: accent.fg }} />
+                  <CreditCard className="w-4 h-4" strokeWidth={1.75} style={{ color: accent.fg }} />
                   <span style={{ color: accent.fg }}>
                     {hasActiveOrPaused ? 'Você já possui um plano' : 'Assinar este plano'}
                   </span>

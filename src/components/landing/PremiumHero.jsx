@@ -34,26 +34,29 @@ export default function PremiumHero() {
             recupera receita automaticamente. Tudo num só lugar.
           </p>
 
-          <div className="max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left">
+          <Link
+            to="/checkout?promo=lancamento"
+            className="block max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left hover:border-amber-400/70 hover:scale-[1.01] transition-all cursor-pointer group"
+          >
             <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 mb-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              OFERTA DE LANÇAMENTO ATIVA
+              <Sparkles className="w-3.5 h-3.5 text-amber-300 group-hover:rotate-12 transition-transform" />
+              OFERTA DE LANÇAMENTO ATIVA · Clique para aproveitar
             </div>
             <p className="text-xs sm:text-sm text-amber-100 font-medium leading-relaxed">
-              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold">R$ 79,00/mês nos primeiros 3 meses</strong>. Depois, R$ 119,00/mês. Experimente com 7 dias grátis.
+              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold tabular-nums">R$ 79,00/mês nos primeiros 3 meses</strong>. Depois, <span className="tabular-nums">R$ 119,00/mês</span>. Experimente com 7 dias grátis →
             </p>
-          </div>
+          </Link>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14">
-            <Link to="/checkout?promo=lancamento">
-              <GlowButton className="w-full sm:w-auto">Começar agora — 7 dias grátis</GlowButton>
-            </Link>
-            <Link to="/login">
-              <GlowButton variant="ghost" className="w-full sm:w-auto border border-white/20 bg-white/5 hover:bg-white/10">Entrar na minha conta</GlowButton>
-            </Link>
-            <Link to="/demo/dashboard">
-              <GlowButton variant="ghost" className="w-full sm:w-auto text-white/70 hover:text-white">Ver a plataforma</GlowButton>
-            </Link>
+            <GlowButton to="/checkout?promo=lancamento" className="w-full sm:w-auto">
+              Começar agora — 7 dias grátis
+            </GlowButton>
+            <GlowButton to="/login" variant="ghost" className="w-full sm:w-auto border border-white/20 bg-white/5 hover:bg-white/10">
+              Entrar na minha conta
+            </GlowButton>
+            <GlowButton to="/demo/dashboard" variant="ghost" className="w-full sm:w-auto text-white/70 hover:text-white">
+              Ver a plataforma
+            </GlowButton>
           </div>
 
           <div className="flex items-center justify-center gap-6 text-xs text-white/40">
@@ -111,7 +114,7 @@ export default function PremiumHero() {
                       <div className="relative">
                         <kpi.icon className={`w-4 h-4 ${kpi.text} mb-2`} />
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-white/50">{kpi.label}</div>
-                        <div className="text-lg md:text-xl font-black text-white mt-0.5">{kpi.value}</div>
+                        <div className="text-lg md:text-xl font-black text-white mt-0.5 tabular-nums">{kpi.value}</div>
                       </div>
                     </div>
                   ))}
@@ -121,7 +124,7 @@ export default function PremiumHero() {
                 <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-[11px] font-semibold uppercase tracking-wider text-white/50">Receita últimos 30 dias</div>
-                    <span className="text-emerald-300 text-xs font-bold">+34%</span>
+                    <span className="text-emerald-300 text-xs font-bold tabular-nums">+34%</span>
                   </div>
                   <svg viewBox="0 0 400 80" className="w-full h-16">
                     <defs>

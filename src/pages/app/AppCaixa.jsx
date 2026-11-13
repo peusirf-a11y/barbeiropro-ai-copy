@@ -376,17 +376,19 @@ export default function AppCaixa() {
             {can('view_audit') && (
               <Link
                 to="/app/caixa/auditoria"
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm font-semibold text-white/85 hover:border-[#60A5FA]/40 hover:text-[#93C5FD] hover:bg-white/[0.08] backdrop-blur-md transition-all"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] text-xs sm:text-sm font-semibold text-[#171827] dark:text-white hover:border-[#2563EB] shadow-sm transition-all"
               >
-                <Shield className="w-4 h-4" />Auditoria
+                <Shield className="w-4 h-4 text-[#59658F] dark:text-[#8F9BBF]" strokeWidth={1.75} />
+                <span>Auditoria</span>
               </Link>
             )}
             {can('view_reports') && (
               <Link
                 to="/app/caixa/relatorios"
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm font-semibold text-white/85 hover:border-[#60A5FA]/40 hover:text-[#93C5FD] hover:bg-white/[0.08] backdrop-blur-md transition-all"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] text-xs sm:text-sm font-semibold text-[#171827] dark:text-white hover:border-[#2563EB] shadow-sm transition-all"
               >
-                <BarChart2 className="w-4 h-4" />Relatórios
+                <BarChart2 className="w-4 h-4 text-[#59658F] dark:text-[#8F9BBF]" strokeWidth={1.75} />
+                <span>Relatórios</span>
               </Link>
             )}
           </div>
@@ -421,50 +423,50 @@ export default function AppCaixa() {
               return (
                 <div
                   data-testid="cash-register-reconciliation-summary"
-                  className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.06] backdrop-blur-md p-5 sm:p-6 space-y-4"
+                  className="rounded-2xl border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/20 shadow-sm p-5 sm:p-6 space-y-4"
                 >
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 mb-1.5">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 mb-1.5">
                         Caixa Fechado e Conciliado
                       </span>
-                      <h2 className="text-base sm:text-lg font-bold text-white">
+                      <h2 className="text-base sm:text-lg font-bold text-[#171827] dark:text-white">
                         Resumo de Fechamento e Conciliação Diária
                       </h2>
                     </div>
                     {rec.closed_at && (
-                      <span className="text-xs text-white/55">
+                      <span className="text-xs text-[#55596A] dark:text-[#8F9BBF] font-medium">
                         Fechado em {format(new Date(rec.closed_at), 'dd/MM/yyyy HH:mm')}
                       </span>
                     )}
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/55">Saldo inicial</div>
-                      <div className="text-sm font-bold text-white mt-0.5">{fmt(rec.initial)}</div>
+                    <div className="rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-[#FFFFFF] dark:bg-[#171827] p-3 shadow-xs">
+                      <div className="text-[11px] text-[#55596A] dark:text-[#8F9BBF] font-medium">Saldo inicial</div>
+                      <div className="text-sm font-black text-[#171827] dark:text-white mt-0.5 tabular-nums">{fmt(rec.initial)}</div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/55">Entradas</div>
-                      <div className="text-sm font-bold text-emerald-300 mt-0.5">{fmt(rec.totalIn)}</div>
+                    <div className="rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-[#FFFFFF] dark:bg-[#171827] p-3 shadow-xs">
+                      <div className="text-[11px] text-[#55596A] dark:text-[#8F9BBF] font-medium">Entradas</div>
+                      <div className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">{fmt(rec.totalIn)}</div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/55">Saídas / Sangrias</div>
-                      <div className="text-sm font-bold text-rose-300 mt-0.5">{fmt(rec.totalOut + rec.totalSangria)}</div>
+                    <div className="rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-[#FFFFFF] dark:bg-[#171827] p-3 shadow-xs">
+                      <div className="text-[11px] text-[#55596A] dark:text-[#8F9BBF] font-medium">Saídas / Sangrias</div>
+                      <div className="text-sm font-black text-rose-600 dark:text-rose-400 mt-0.5 tabular-nums">{fmt(rec.totalOut + rec.totalSangria)}</div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/55">Saldo esperado</div>
-                      <div className="text-sm font-bold text-[#93C5FD] mt-0.5">{fmt(rec.expected)}</div>
+                    <div className="rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-[#FFFFFF] dark:bg-[#171827] p-3 shadow-xs">
+                      <div className="text-[11px] text-[#55596A] dark:text-[#8F9BBF] font-medium">Saldo esperado</div>
+                      <div className="text-sm font-black text-[#2563EB] dark:text-blue-400 mt-0.5 tabular-nums">{fmt(rec.expected)}</div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/55">Saldo contado</div>
-                      <div className="text-sm font-bold text-white mt-0.5">{fmt(rec.final_amount)}</div>
+                    <div className="rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-[#FFFFFF] dark:bg-[#171827] p-3 shadow-xs">
+                      <div className="text-[11px] text-[#55596A] dark:text-[#8F9BBF] font-medium">Saldo contado</div>
+                      <div className="text-sm font-black text-[#171827] dark:text-white mt-0.5 tabular-nums">{fmt(rec.final_amount)}</div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/55">Diferença / Conciliação</div>
+                    <div className="rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-[#FFFFFF] dark:bg-[#171827] p-3 shadow-xs">
+                      <div className="text-[11px] text-[#55596A] dark:text-[#8F9BBF] font-medium">Diferença / Conciliação</div>
                       <div
-                        className={`text-sm font-bold mt-0.5 ${
-                          isExact ? 'text-emerald-300' : isPositive ? 'text-blue-300' : 'text-amber-300'
+                        className={`text-sm font-black mt-0.5 tabular-nums ${
+                          isExact ? 'text-emerald-600 dark:text-emerald-400' : isPositive ? 'text-[#2563EB] dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'
                         }`}
                       >
                         {isExact ? 'R$ 0,00 (Bateu ✓)' : `${isPositive ? '+' : ''}${fmt(rec.difference)}`}
@@ -475,7 +477,7 @@ export default function AppCaixa() {
               );
             })()}
 
-            <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md">
+            <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] shadow-sm">
               <EmptyState
                 icon={Wallet}
                 title="Caixa fechado"
@@ -483,8 +485,9 @@ export default function AppCaixa() {
                   ? 'Abra o caixa para começar a registrar entradas, saídas, sangrias e suprimentos do dia.'
                   : 'O caixa está fechado. Peça para um responsável (admin ou financeiro) abrir.'}
                 action={can('open_register') ? (
-                  <button onClick={() => setShowOpen(true)} className="bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:brightness-110 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all inline-flex items-center gap-2">
-                    <Unlock className="w-4 h-4" />Abrir caixa
+                  <button onClick={() => setShowOpen(true)} className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-xl shadow-sm transition-all inline-flex items-center gap-2 cursor-pointer">
+                    <Unlock className="w-4 h-4" strokeWidth={1.75} />
+                    <span>Abrir Caixa</span>
                   </button>
                 ) : null}
               />
@@ -524,10 +527,10 @@ export default function AppCaixa() {
               <CaixaProfessionalBreakdown rows={dre.by_professional} />
             )}
 
-            <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
-              <div className="px-5 py-3 border-b border-white/8 text-[11px] font-semibold uppercase tracking-wider text-white/55 bg-white/[0.02] flex items-center justify-between">
+            <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] shadow-sm overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#E5E7EF] dark:border-[#232538] text-[11px] font-bold uppercase tracking-wider text-[#59658F] dark:text-[#8F9BBF] bg-[#F8FAFC] dark:bg-[#1C1E30] flex items-center justify-between">
                 <span>Movimentações deste caixa</span>
-                <span className="text-[10px] font-medium normal-case tracking-normal">
+                <span className="text-xs font-semibold normal-case tracking-normal text-[#55596A] dark:text-[#8F9BBF] tabular-nums">
                   {filteredEntries.length} de {registerEntries.length}
                 </span>
               </div>
@@ -549,23 +552,25 @@ export default function AppCaixa() {
 
         {/* Histórico de fechamentos */}
         {registers.filter(r => r.status === 'fechado').length > 0 && (
-          <div className="mt-6 rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
-            <div className="px-5 py-3 border-b border-white/8 text-[11px] font-semibold uppercase tracking-wider text-white/55 bg-white/[0.02]">Histórico</div>
-            <div className="divide-y divide-white/5">
+          <div className="mt-6 rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[#E5E7EF] dark:border-[#232538] text-[11px] font-bold uppercase tracking-wider text-[#59658F] dark:text-[#8F9BBF] bg-[#F8FAFC] dark:bg-[#1C1E30]">
+              Histórico de Caixas Anteriores
+            </div>
+            <div className="divide-y divide-[#E5E7EF] dark:divide-[#232538]">
               {registers.filter(r => r.status === 'fechado').slice(0, 10).map(r => (
-                <div key={r.id} className="flex items-center justify-between p-4 gap-3 flex-wrap hover:bg-white/[0.04] transition-colors">
+                <div key={r.id} className="flex items-center justify-between p-4 gap-3 flex-wrap hover:bg-[#F8FAFC] dark:hover:bg-[#1C1E30] transition-colors">
                   <div>
-                    <div className="text-sm font-semibold text-white">
-                      {format(new Date(r.opened_at), "d MMM yyyy", { locale: ptBR })}
+                    <div className="text-sm font-bold text-[#171827] dark:text-white">
+                      {format(new Date(r.opened_at), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
                     </div>
-                    <div className="text-xs text-white/55">
-                      {format(new Date(r.opened_at), "HH:mm")} → {r.closed_at ? format(new Date(r.closed_at), "HH:mm") : '–'} · por {r.closed_by || '–'}
+                    <div className="text-xs text-[#55596A] dark:text-[#8F9BBF] font-medium mt-0.5">
+                      {format(new Date(r.opened_at), "HH:mm")} → {r.closed_at ? format(new Date(r.closed_at), "HH:mm") : '–'} · Operador: {r.closed_by || '–'}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold text-white">{fmt(r.final_amount)}</div>
+                    <div className="text-sm font-black text-[#171827] dark:text-white tabular-nums">{fmt(r.final_amount)}</div>
                     {typeof r.difference === 'number' && r.difference !== 0 && (
-                      <div className={`text-xs font-semibold ${r.difference > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                      <div className={`text-xs font-bold tabular-nums mt-0.5 ${r.difference > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                         {r.difference > 0 ? '+' : ''}{r.difference.toFixed(2)} vs esperado
                       </div>
                     )}

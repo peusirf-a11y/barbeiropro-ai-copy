@@ -191,16 +191,16 @@ export default function BarberLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] font-inter flex flex-col justify-between">
+    <div className="min-h-screen bg-[#F1F2F7] dark:bg-[#0F101A] font-inter flex flex-col justify-between">
       {/* Top Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <header className="bg-[#171827] text-white border-b border-[#232538] sticky top-0 z-20 shadow-xs">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
-            <Logo size={32} />
+            <Logo size={30} />
           </Link>
           <Link
             to="/checkout"
-            className="text-xs font-semibold text-[#2563EB] hover:text-[#1D4ED8] transition-colors"
+            className="text-xs font-bold text-[#B5D7E8] hover:text-white transition-colors"
           >
             Quero ser parceiro →
           </Link>
@@ -212,51 +212,51 @@ export default function BarberLogin() {
         <div className="max-w-md w-full animate-fade-in-up">
           {/* Headline */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/10 text-[#2563EB] mb-4 shadow-sm">
-              <Lock className="w-7 h-7" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#FFFFFF] dark:bg-[#171827] text-[#2563EB] dark:text-[#93C5FD] border border-[#E5E7EF] dark:border-[#232538] mb-4 shadow-sm">
+              <Lock className="w-6 h-6" strokeWidth={1.75} />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight mb-2">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#171827] dark:text-white tracking-tight mb-2">
               Acesse sua conta
             </h1>
-            <p className="text-sm text-slate-500">
-              Gerencie sua barbearia, agendamentos e clientes.
+            <p className="text-xs sm:text-sm text-[#55596A] dark:text-[#8F9BBF] font-medium">
+              Portal do profissional, agendamentos e comissões.
             </p>
           </div>
 
           {/* Login Card */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-200/40 p-6 sm:p-8">
+          <div className="bg-[#FFFFFF] dark:bg-[#171827] rounded-3xl border border-[#E5E7EF] dark:border-[#232538] shadow-sm p-6 sm:p-8">
             {blockedNotice && (
               <div
                 role="alert"
-                className="mb-6 rounded-2xl border-2 border-rose-500/40 bg-rose-50 p-4 sm:p-5 text-rose-950 shadow-sm"
+                className="mb-6 rounded-2xl border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-950/20 p-4 sm:p-5 text-rose-950 shadow-xs"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
-                      <ShieldAlert className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
+                      <ShieldAlert className="w-5 h-5" strokeWidth={1.75} />
                     </div>
                     <div className="space-y-2">
-                      <h2 className="text-sm font-extrabold text-rose-900 leading-snug">
+                      <h2 className="text-sm font-extrabold text-rose-900 dark:text-rose-200 leading-snug">
                         Acesso Temporariamente Suspenso
                       </h2>
-                      <p className="text-xs sm:text-[13px] font-medium text-rose-800 leading-relaxed">
+                      <p className="text-xs sm:text-[13px] font-medium text-rose-800 dark:text-rose-300 leading-relaxed">
                         Esta conta foi suspensa temporariamente pela administração da plataforma. Para regularizar seu acesso ou obter mais esclarecimentos, entre em contato com nosso suporte:
                       </p>
                       <div className="pt-1 flex flex-wrap items-center gap-2">
                         <a
                           href="mailto:suporte@ocorte.app?subject=Regulariza%C3%A7%C3%A3o%20de%20Conta%20-%20O%20CORTE"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors"
                         >
-                          <Mail className="w-3.5 h-3.5" />
+                          <Mail className="w-3.5 h-3.5" strokeWidth={1.75} />
                           suporte@ocorte.app
                         </a>
                         <a
                           href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20sobre%20o%20bloqueio%20da%20minha%20conta%20no%20O%20CORTE."
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors"
                         >
-                          <MessageCircle className="w-3.5 h-3.5" />
+                          <MessageCircle className="w-3.5 h-3.5" strokeWidth={1.75} />
                           Falar no WhatsApp
                         </a>
                       </div>
@@ -266,9 +266,9 @@ export default function BarberLogin() {
                     type="button"
                     onClick={dismissBlockedNotice}
                     aria-label="Fechar aviso de bloqueio"
-                    className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-100 hover:text-rose-900 transition-colors flex-shrink-0"
+                    className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-100 hover:text-rose-900 transition-colors flex-shrink-0 cursor-pointer"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" strokeWidth={1.75} />
                   </button>
                 </div>
               </div>
@@ -277,11 +277,11 @@ export default function BarberLogin() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#55596A] dark:text-[#8F9BBF] mb-1.5">
                   E-mail
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#59658F] dark:text-[#8F9BBF]" strokeWidth={1.75} />
                   <input
                     type="email"
                     autoComplete="email"
@@ -290,7 +290,7 @@ export default function BarberLogin() {
                     disabled={submitting}
                     placeholder="seu@email.com"
                     required
-                    className="w-full h-12 pl-10 pr-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                    className="w-full h-12 pl-10 pr-3 rounded-xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] text-sm text-[#171827] dark:text-white placeholder:text-[#55596A]/50 focus:outline-none focus:ring-1 focus:ring-[#2563EB]/30 focus:border-[#2563EB] font-medium transition-all"
                     autoFocus
                   />
                 </div>
@@ -299,18 +299,18 @@ export default function BarberLogin() {
               {/* Password */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#55596A] dark:text-[#8F9BBF]">
                     Senha
                   </label>
                   <Link
                     to="/esqueci-senha"
-                    className="text-xs font-semibold text-[#2563EB] hover:text-[#1D4ED8] hover:underline"
+                    className="text-xs font-bold text-[#2563EB] hover:text-[#1D4ED8] hover:underline"
                   >
                     Esqueci a senha
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#59658F] dark:text-[#8F9BBF]" strokeWidth={1.75} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
@@ -319,24 +319,24 @@ export default function BarberLogin() {
                     disabled={submitting}
                     placeholder="••••••••"
                     required
-                    className="w-full h-12 pl-10 pr-10 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                    className="w-full h-12 pl-10 pr-10 rounded-xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] text-sm text-[#171827] dark:text-white placeholder:text-[#55596A]/50 focus:outline-none focus:ring-1 focus:ring-[#2563EB]/30 focus:border-[#2563EB] font-medium transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#59658F] hover:text-[#171827] dark:hover:text-white p-1 cursor-pointer"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
                   </button>
                 </div>
               </div>
 
               {/* Error Alert */}
               {error && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 flex items-start gap-2.5 text-xs text-rose-800 animate-shake">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600" />
-                  <div className="font-medium leading-relaxed">{error}</div>
+                <div className="rounded-xl border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-950/20 p-3.5 flex items-start gap-2.5 text-xs text-rose-800 dark:text-rose-300 animate-shake">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600" strokeWidth={1.75} />
+                  <div className="font-semibold leading-relaxed">{error}</div>
                 </div>
               )}
 
@@ -344,25 +344,25 @@ export default function BarberLogin() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full h-12 mt-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-bold transition-all shadow-md shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 active:scale-[0.99]"
+                className="w-full h-12 mt-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-bold transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Entrando…</span>
+                    <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
+                    <span>Autenticando…</span>
                   </>
                 ) : (
                   <>
-                    <span>Entrar na plataforma</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>Entrar no Painel</span>
+                    <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
                   </>
                 )}
               </button>
             </form>
 
             {/* Bottom Register CTA */}
-            <div className="mt-6 pt-5 border-t border-slate-100 text-center">
-              <p className="text-xs text-slate-500">
+            <div className="mt-6 pt-5 border-t border-[#E5E7EF] dark:border-[#232538] text-center">
+              <p className="text-xs text-[#55596A] dark:text-[#8F9BBF] font-medium">
                 Ainda não tem uma assinatura?{' '}
                 <Link
                   to="/checkout"
@@ -377,8 +377,8 @@ export default function BarberLogin() {
       </main>
 
       {/* Footer */}
-      <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-100">
-        <p>© 2026 O CORTE. Todos os direitos reservados.</p>
+      <footer className="py-6 text-center text-xs text-[#55596A] dark:text-[#8F9BBF] border-t border-[#E5E7EF] dark:border-[#232538] font-medium">
+        <p>© 2026 O CORTE · Sistema de Gestão Empresarial</p>
       </footer>
     </div>
   );

@@ -2,7 +2,7 @@
 // Atende aos critérios de installability (WebAPK / Standalone) do Chromium/Android
 // com estratégia Network-First para navegação e páginas dinâmicas.
 
-const CACHE_NAME = 'ocorte-pwa-v1';
+const CACHE_NAME = 'ocorte-pwa-v2';
 const PRECACHE_URLS = [
   '/',
   '/manifest.json',
@@ -45,9 +45,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Ignora rotas de API, webhooks ou chamadas de autenticação para evitar cache indevido
+  // Ignora rotas de API, Vite dev modules, webhooks ou chamadas de autenticação
   const url = new URL(request.url);
-  if (url.pathname.startsWith('/api/') || url.pathname.includes('supabase')) {
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/@') ||
+    url.pathname.startsWith('/node_modules/') ||
+    url.pathname.includes('supabase')
+  ) {
     return;
   }
 

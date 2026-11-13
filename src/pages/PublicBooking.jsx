@@ -504,7 +504,7 @@ export default function PublicBooking() {
                   <span className={`${tw.text} font-semibold truncate`}>
                     {a.service_name || 'Corte'} · {a.professional_name || 'Profissional'}
                   </span>
-                  <span className="text-emerald-400 font-bold ml-2 flex-shrink-0">
+                  <span className="text-emerald-500 dark:text-emerald-400 font-bold ml-2 flex-shrink-0 tabular-nums">
                     {format(new Date(a.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                   </span>
                 </div>
@@ -519,7 +519,7 @@ export default function PublicBooking() {
         <div className="flex gap-0 overflow-x-auto">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
-              className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${activeTab === t.id ? `${tw.tabActive} border-current` : `${tw.tabInactive} border-transparent`}`}
+              className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${activeTab === t.id ? `${tw.tabActive} border-current` : `${tw.tabInactive} border-transparent`}`}
               style={{ borderColor: activeTab === t.id ? accent.bg : undefined }}
             >
               {t.label}
@@ -545,15 +545,15 @@ export default function PublicBooking() {
                   <div className="flex-1 min-w-0">
                     <div className={`${tw.text} font-semibold truncate`}>{s.name}</div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-emerald-500 font-bold text-sm">R$ {s.price.toFixed(2)}</span>
-                      <span className={`${tw.textMuted} text-xs flex items-center gap-1`}>
-                        <Clock className="w-3 h-3" />{s.duration_minutes} min
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm tabular-nums">R$ {s.price.toFixed(2)}</span>
+                      <span className={`${tw.textMuted} text-xs flex items-center gap-1 tabular-nums`}>
+                        <Clock className="w-3 h-3" strokeWidth={1.75} />{s.duration_minutes} min
                       </span>
                     </div>
                   </div>
                   <button
                     onClick={() => openBooking(s)}
-                    className="flex-shrink-0 text-xs font-bold px-3.5 py-2 rounded-xl transition-opacity hover:opacity-90 shadow-sm"
+                    className="flex-shrink-0 text-xs font-bold px-3.5 py-2 rounded-xl transition-opacity hover:opacity-90 shadow-sm cursor-pointer"
                     style={{ backgroundColor: accent.bg, color: accent.fg }}
                   >
                     <span style={{ color: accent.fg }}>Agendar</span>

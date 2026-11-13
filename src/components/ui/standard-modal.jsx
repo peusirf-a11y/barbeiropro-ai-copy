@@ -15,7 +15,7 @@
 //     ...form...
 //   </StandardModal>
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,7 @@ export default function StandardModal({
   isOpen,
   onClose,
   title,
+  subtitle,
   children,
   footer,
   size = 'lg',
@@ -41,13 +42,19 @@ export default function StandardModal({
 }) {
   const open = openProp ?? isOpen;
   // Altura disponível ajustada conforme o teclado (visualViewport).
-  // Quando o teclado abre no mobile, visualViewport.height encolhe — usamos isso
-  // para fixar a altura do modal de forma que footer + último campo continuem visíveis.
   const [viewportHeight, setViewportHeight] = useState(null);
+  // Trava de descarte por toque acidental / tap-through ao abrir no mobile
+  const openTimeRef = useRef(0);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    openTimeRef.current = Date.now();
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') onCloseRef.current?.();
+    };
     document.addEventListener('keydown', onKey);
 
     // Lock scroll do body
@@ -69,7 +76,7 @@ export default function StandardModal({
       vv?.removeEventListener('resize', updateVH);
       vv?.removeEventListener('scroll', updateVH);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -82,12 +89,15 @@ export default function StandardModal({
     : { maxHeight: '92dvh' };
 
   // CRÍTICO: renderizar via Portal no document.body para escapar do stacking context
-  // criado pelo `transform` do framer-motion (PageTransition). Sem isso, o overlay
-  // ficaria preso dentro do <main> e a bottom navigation apareceria por cima.
+  // criado pelo `transform` do framer-motion (PageTransition).
   const modal = (
     <div
-      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[3px] animate-fade-in"
-      onClick={onClose}
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[3px] animate-fade-in touch-manipulation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && Date.now() - openTimeRef.current > 350) {
+          onCloseRef.current?.();
+        }
+      }}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -95,7 +105,7 @@ export default function StandardModal({
       <div
         style={innerStyle}
         className={cn(
-          'bg-[#0A1124] border border-white/8 text-white w-full shadow-[0_30px_80px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden',
+          'bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] text-[#171827] dark:text-white w-full shadow-2xl flex flex-col overflow-hidden',
           'rounded-t-3xl sm:rounded-2xl',
           'sm:max-h-[88vh] sm:m-4',
           'animate-slide-up sm:animate-fade-in',
@@ -106,29 +116,34 @@ export default function StandardModal({
       >
         {/* Drag-handle visual (mobile) */}
         <div className="sm:hidden flex justify-center pt-2 pb-1 flex-shrink-0">
-          <div className="w-10 h-1 bg-white/20 rounded-full" />
+          <div className="w-10 h-1 bg-[#CBD5E1] dark:bg-white/20 rounded-full" />
         </div>
 
         {/* Header — fixo, compacto */}
         {(title || !hideCloseButton) && (
-          <div className="flex items-center justify-between px-5 sm:px-6 pt-2 sm:pt-5 pb-3 flex-shrink-0 border-b border-white/5">
-            <h3 className="font-bold text-white text-base sm:text-lg truncate pr-2">{title}</h3>
+          <div className="flex items-start justify-between gap-3 px-5 sm:px-6 pt-2 sm:pt-4 pb-3 flex-shrink-0 border-b border-[#E5E7EF] dark:border-[#232538]">
+            <div className="min-w-0 flex-1 pr-2">
+              <h3 className="font-bold text-[#171827] dark:text-white text-base sm:text-lg truncate">{title}</h3>
+              {subtitle && (
+                <p className="text-xs text-[#55596A] dark:text-[#8F9BBF] mt-0.5 leading-snug">{subtitle}</p>
+              )}
+            </div>
             {!hideCloseButton && (
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => onCloseRef.current?.()}
                 aria-label="Fechar"
-                className="p-2 -mr-2 hover:bg-white/10 active:bg-white/15 rounded-lg transition-colors flex-shrink-0"
+                className="p-1.5 -mr-2 hover:bg-[#F1F2F7] dark:hover:bg-white/10 active:bg-gray-200 dark:active:bg-white/15 rounded-lg transition-colors flex-shrink-0 text-[#59658F] dark:text-white/60 cursor-pointer touch-manipulation"
               >
-                <X className="w-5 h-5 text-white/60" />
+                <X className="w-5 h-5" strokeWidth={1.75} />
               </button>
             )}
           </div>
         )}
 
-        {/* Body — scroll interno; pb extra garante que último input nunca encoste no footer */}
+        {/* Body — scroll interno */}
         <div
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 py-4 modal-scroll"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 py-4 modal-scroll text-[#55596A] dark:text-[#CBD5E1]"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {children}
@@ -137,7 +152,7 @@ export default function StandardModal({
         {/* Footer — sticky, sempre visível, respeita safe-area */}
         {footer && (
           <div
-            className="flex-shrink-0 border-t border-white/8 bg-[#0A1124] px-5 sm:px-6 pt-3 flex gap-3"
+            className="flex-shrink-0 border-t border-[#E5E7EF] dark:border-[#232538] bg-[#F8FAFC] dark:bg-[#131520] px-5 sm:px-6 py-3 flex gap-3"
             style={{ paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0px))` }}
           >
             {footer}

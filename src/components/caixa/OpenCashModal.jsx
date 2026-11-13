@@ -22,7 +22,7 @@ export default function OpenCashModal({ open, onClose, form, setForm, onConfirm,
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 min-h-[48px] px-4 border border-white/10 rounded-xl text-sm font-medium text-white/80 bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+            className="flex-1 min-h-[44px] px-4 border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm font-semibold text-[#55596A] dark:text-[#CBD5E1] bg-[#FFFFFF] dark:bg-[#171827] hover:bg-[#F1F2F7] dark:hover:bg-[#232538] transition-colors cursor-pointer"
           >
             Cancelar
           </button>
@@ -31,16 +31,16 @@ export default function OpenCashModal({ open, onClose, form, setForm, onConfirm,
             data-testid="confirm-open-cash-btn"
             onClick={handleConfirm}
             disabled={loading}
-            className="flex-1 min-h-[48px] px-4 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white rounded-xl text-sm font-semibold hover:brightness-110 disabled:opacity-50 shadow-[0_8px_24px_rgba(37,99,235,0.4)] ring-1 ring-white/15 transition-all"
+            className="flex-1 min-h-[44px] px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl text-sm font-bold disabled:opacity-50 shadow-sm transition-all cursor-pointer"
           >
-            {loading ? 'Abrindo...' : 'Confirmar abertura'}
+            {loading ? 'Abrindo...' : 'Confirmar Abertura'}
           </button>
         </>
       }
     >
-      <form onSubmit={handleConfirm} className="space-y-3">
+      <form onSubmit={handleConfirm} className="space-y-4">
         <div>
-          <label htmlFor="open-cash-initial-amount" className="text-xs font-semibold text-white/60 block mb-1">Saldo inicial (R$) *</label>
+          <label htmlFor="open-cash-initial-amount" className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Saldo inicial (R$) *</label>
           <input
             id="open-cash-initial-amount"
             data-testid="open-cash-amount-input"
@@ -49,17 +49,18 @@ export default function OpenCashModal({ open, onClose, form, setForm, onConfirm,
             value={form.initial_amount}
             onChange={e => setForm(p => ({ ...p, initial_amount: e.target.value }))}
             placeholder="Ex: 100.00"
-            className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+            className="w-full px-3.5 py-2.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-[#55596A]/50 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]/25 font-semibold tabular-nums"
           />
         </div>
         <div>
-          <label htmlFor="open-cash-notes" className="text-xs font-semibold text-white/60 block mb-1">Observação</label>
+          <label htmlFor="open-cash-notes" className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Observação</label>
           <input
             id="open-cash-notes"
             type="text"
             value={form.notes}
             onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-            className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+            placeholder="Opcional: anotações sobre o turno..."
+            className="w-full px-3.5 py-2.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-[#55596A]/50 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]/25 font-medium"
           />
         </div>
       </form>

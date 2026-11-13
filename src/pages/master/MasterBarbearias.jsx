@@ -1,7 +1,7 @@
 // MasterBarbearias.jsx — Gestão de Barbearias + Fluxo de Onboarding Assistido / Venda Manual
 // Suporta provisionamento completo em public.companies e convite/vínculo via Supabase Auth Admin.
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
@@ -101,17 +101,24 @@ export default function MasterBarbearias() {
 
   const isFormValid = Boolean(form.name.trim().length >= 2 && isEmailValid);
 
-  const resetModalState = () => {
+  const resetModalState = useCallback(() => {
     setForm(INITIAL_FORM_STATE);
     setCustomSlug('');
     setErrorMsg('');
-  };
+  }, []);
 
-  const handleCloseModal = () => {
-    if (createMutation.isPending) return;
+  const isPendingRef = useRef(false);
+
+  const handleCloseModal = useCallback(() => {
+    if (isPendingRef.current) return;
     setShowForm(false);
     resetModalState();
-  };
+  }, [resetModalState]);
+
+  const handleOpenModal = useCallback(() => {
+    resetModalState();
+    setShowForm(true);
+  }, [resetModalState]);
 
   const createMutation = useMutation({
     mutationFn: async (formData) => {
@@ -152,20 +159,36 @@ export default function MasterBarbearias() {
       // Atualiza imediatamente o cache de barbearias para garantir exibição instantânea na tabela
       if (createdCompany && (createdCompany.id || resolvedName)) {
         queryClient.setQueriesData({ queryKey: ['master-companies'] }, (oldData) => {
-          if (!oldData?.data?.companies) return oldData;
-          const exists = oldData.data.companies.some(
-            (c) =>
-              (createdCompany.id && c.id === createdCompany.id) ||
-              (c.name === resolvedName && c.owner_email === resolvedOwnerEmail)
-          );
-          if (exists) return oldData;
-          return {
-            ...oldData,
-            data: {
-              ...oldData.data,
-              companies: [createdCompany, ...oldData.data.companies],
-            },
-          };
+          if (!oldData) return oldData;
+          if (Array.isArray(oldData.items)) {
+            const exists = oldData.items.some(
+              (c) =>
+                (createdCompany.id && c.id === createdCompany.id) ||
+                (c.name === resolvedName && c.owner_email === resolvedOwnerEmail)
+            );
+            if (exists) return oldData;
+            return {
+              ...oldData,
+              items: [createdCompany, ...oldData.items],
+              total: typeof oldData.total === 'number' ? oldData.total + 1 : oldData.total,
+            };
+          }
+          if (Array.isArray(oldData?.data?.companies)) {
+            const exists = oldData.data.companies.some(
+              (c) =>
+                (createdCompany.id && c.id === createdCompany.id) ||
+                (c.name === resolvedName && c.owner_email === resolvedOwnerEmail)
+            );
+            if (exists) return oldData;
+            return {
+              ...oldData,
+              data: {
+                ...oldData.data,
+                companies: [createdCompany, ...oldData.data.companies],
+              },
+            };
+          }
+          return oldData;
         });
       }
 
@@ -210,6 +233,8 @@ export default function MasterBarbearias() {
     },
   });
 
+  isPendingRef.current = createMutation.isPending;
+
   const handleSubmit = (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     if (!isFormValid || createMutation.isPending) return;
@@ -221,22 +246,26 @@ export default function MasterBarbearias() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+    <div className="space-y-6 min-w-0">
+      <div className="relative z-20 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-2xl font-black text-foreground tracking-tight">Barbearias</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gestão de tenants, status financeiro e onboarding assistido (venda manual).
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#59658F]/15 text-[#59658F] dark:text-[#B5D7E8] border border-[#59658F]/25 uppercase tracking-widest">
+              Gerenciamento de Tenants
+            </span>
+          </div>
+          <h2 className="text-2xl font-black text-[#171827] dark:text-white tracking-tight">Barbearias & Unidades</h2>
+          <p className="text-xs text-[#55596A] dark:text-[#8F9BBF] mt-0.5">
+            Gestão centralizada de tenants, status financeiro e provisionamento assistido.
           </p>
         </div>
         <button
-          onClick={() => {
-            resetModalState();
-            setShowForm(true);
-          }}
-          className="text-xs font-semibold bg-[#2563EB] text-white hover:bg-[#1d4ed8] px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all"
+          type="button"
+          onClick={handleOpenModal}
+          className="relative z-20 touch-manipulation text-xs font-bold bg-[#171827] hover:bg-[#232538] text-white dark:bg-[#2563EB] dark:hover:bg-[#1d4ed8] px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all border border-transparent hover:border-[#B5D7E8]/30 cursor-pointer active:scale-[0.98] select-none"
         >
-          <Plus className="w-4 h-4" /> Nova empresa (Onboarding Assistido)
+          <Plus className="w-4 h-4 text-[#B5D7E8] pointer-events-none" strokeWidth={1.75} />
+          <span className="pointer-events-none">Nova Empresa (Onboarding Assistido)</span>
         </button>
       </div>
 
@@ -292,7 +321,7 @@ export default function MasterBarbearias() {
               type="button"
               onClick={handleCloseModal}
               disabled={createMutation.isPending}
-              className="flex-1 px-4 py-2.5 border border-border rounded-xl text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+              className="flex-1 px-4 py-2.5 border border-border rounded-xl text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 transition-colors cursor-pointer touch-manipulation"
             >
               Cancelar
             </button>
@@ -300,17 +329,17 @@ export default function MasterBarbearias() {
               type="button"
               onClick={handleSubmit}
               disabled={!isFormValid || createMutation.isPending}
-              className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2 cursor-pointer touch-manipulation"
             >
               {createMutation.isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Provisionando barbearia…
+                  <Loader2 className="w-4 h-4 animate-spin pointer-events-none" />
+                  <span className="pointer-events-none">Provisionando barbearia…</span>
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4" />
-                  Criar e provisionar empresa
+                  <Plus className="w-4 h-4 pointer-events-none" />
+                  <span className="pointer-events-none">Criar e provisionar empresa</span>
                 </>
               )}
             </button>

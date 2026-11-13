@@ -199,46 +199,48 @@ export default function AppLayout({ children }) {
   }
 
   const SidebarContent = (
-    <>
-      <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-[#171827] text-white select-none">
+      <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
         <Link to="/app/dashboard" className="group min-w-0 transition-transform group-hover:scale-[1.02]">
-          <BrandMark size={42} tone="dark" subtitle="Painel de gestão" />
+          <BrandMark size={40} tone="dark" subtitle="Painel de Gestão" />
         </Link>
         <button
           onClick={() => setOpen(false)}
           className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-white/10 text-gray-300"
           aria-label="Fechar menu"
         >
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5" strokeWidth={1.75} />
         </button>
       </div>
 
-      <NavList items={navItems} />
+      <div className="flex-1 overflow-y-auto">
+        <NavList items={navItems} />
+      </div>
 
-      <div className="px-3 py-4 border-t border-white/5">
+      <div className="px-3 py-4 border-t border-white/10 bg-[#131422] flex-shrink-0">
         {user?.email && (
-          <div className="px-3 pb-2 text-xs text-gray-500 truncate">
+          <div className="px-3 pb-2 text-[11px] text-[#7E8BAF] truncate font-mono">
             {user.email}
           </div>
         )}
         <button
           onClick={() => logout()}
           aria-label="Sair da conta"
-          className="flex items-center gap-3 text-sm text-gray-300 hover:text-white transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-white/10 font-medium"
+          className="flex items-center gap-3 text-xs text-[#B4B9CE] hover:text-red-300 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 font-semibold border border-transparent hover:border-red-500/20"
         >
-          <LogOut className="w-[18px] h-[18px]" aria-hidden="true" />
+          <LogOut className="w-4 h-4 text-red-400" strokeWidth={1.75} aria-hidden="true" />
           Sair da conta
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className="min-h-screen font-inter text-white">
+    <div className="min-h-screen font-sans text-[#55596A] dark:text-[#E5E7F3] bg-[#F1F2F7] dark:bg-[#0F101A]">
       <AppBackgroundLayer />
-      {/* Mobile top bar — dark glass com blur */}
+      {/* Mobile top bar — #171827 executivo */}
       <header
-        className="lg:hidden sticky top-0 z-30 bg-[#050816]/85 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 gap-2"
+        className="lg:hidden sticky top-0 z-30 bg-[#171827] text-white border-b border-white/10 flex items-center justify-between px-4 gap-2 shadow-sm"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           height: 'calc(56px + env(safe-area-inset-top, 0px))',
@@ -251,8 +253,8 @@ export default function AppLayout({ children }) {
             className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-white/10 text-white min-w-0"
             aria-label="Voltar"
           >
-            <ChevronLeft className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-            <span className="text-[15px] font-semibold truncate">
+            <ChevronLeft className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            <span className="text-sm font-bold truncate">
               {subRouteTitle || 'Voltar'}
             </span>
           </button>
@@ -261,11 +263,14 @@ export default function AppLayout({ children }) {
             <BrandMark size={32} tone="dark" />
           </Link>
         )}
-        <div className="ml-auto flex items-center gap-2"><ThemeToggle /><UnitSwitcher /></div>
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
+          <UnitSwitcher />
+        </div>
       </header>
 
-      {/* Desktop sidebar — DARK */}
-      <aside className="hidden lg:flex w-64 min-h-screen bg-[#0B1020] border-r border-white/5 flex-col fixed h-screen overflow-hidden z-40">
+      {/* Desktop sidebar — #171827 */}
+      <aside className="hidden lg:flex w-64 min-h-screen bg-[#171827] border-r border-[#E5E7EF] dark:border-[#232538] flex-col fixed h-screen overflow-hidden z-40">
         {SidebarContent}
       </aside>
 
@@ -276,25 +281,26 @@ export default function AppLayout({ children }) {
           className={`absolute inset-0 bg-black/60 transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}
         />
         <aside
-          className={`absolute left-0 top-0 bottom-0 w-[82%] max-w-[300px] bg-[#0B1020] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
+          className={`absolute left-0 top-0 bottom-0 w-[82%] max-w-[300px] bg-[#171827] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
         >
           {SidebarContent}
         </aside>
       </div>
 
-      {/* Desktop top header — dark glass com blur premium */}
-      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-[#050816]/80 backdrop-blur-xl border-b border-white/5 h-16 items-center justify-end px-8 gap-3">
+      {/* Desktop top header — #171827 executivo com borda sutil */}
+      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-[#171827] text-white border-b border-white/10 h-16 items-center justify-end px-8 gap-4 shadow-sm">
         <ThemeToggle />
         <UnitSwitcher />
+        <div className="h-5 w-px bg-white/10 mx-1" />
         <div className="text-right">
-          <div className="text-[11px] text-white/40 leading-none">Olá,</div>
-          <div className="text-sm font-bold text-white mt-0.5">
+          <div className="text-[10px] uppercase font-bold text-[#7E8BAF] leading-none">Unidade Ativa</div>
+          <div className="text-xs font-bold text-white mt-1 truncate max-w-[140px]">
             {isBarbeiro
               ? (teamRole?.name?.split(' ')[0] || user?.user_metadata?.name?.split(' ')[0] || 'Barbeiro')
-              : (company?.owner_name?.split(' ')[0] || 'Bem-vindo')}
+              : (company?.owner_name?.split(' ')[0] || company?.name || 'Gestão')}
           </div>
         </div>
-        <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_16px_rgba(37,99,235,0.5)] ring-1 ring-white/20">
+        <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] flex items-center justify-center text-white font-bold text-xs shadow-sm ring-1 ring-white/20">
           {(isBarbeiro
             ? (teamRole?.name?.[0] || user?.user_metadata?.name?.[0] || 'B')
             : (company?.owner_name?.[0] || company?.name?.[0] || 'B')).toUpperCase()}

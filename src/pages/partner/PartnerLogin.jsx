@@ -311,7 +311,7 @@ export default function PartnerLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 text-white font-inter">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#F1F2F7] dark:bg-[#0F101A] text-[#171827] dark:text-[#E5E7F3] font-inter">
       <AppBackgroundLayer />
       <div className="relative w-full max-w-md">
         <div className="flex justify-center mb-6">
@@ -320,11 +320,11 @@ export default function PartnerLogin() {
           </Link>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-2xl p-6 sm:p-8 shadow-2xl">
-          <h1 className="text-xl sm:text-2xl font-black mb-1 text-center text-white tracking-tight">
+        <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-white dark:bg-[#171827] p-6 sm:p-8 shadow-sm">
+          <h1 className="text-xl sm:text-2xl font-black mb-1 text-center text-[#171827] dark:text-white tracking-tight">
             Painel de Parceiros
           </h1>
-          <p className="text-xs text-white/60 text-center mb-6">
+          <p className="text-xs text-[#55596A] dark:text-white/60 text-center mb-6">
             {mode === 'password'
               ? 'Entre com suas credenciais de parceiro afiliado.'
               : 'Receba um link rápido de acesso por e-mail.'}
@@ -332,22 +332,22 @@ export default function PartnerLogin() {
 
           {/* Banner de Aguardando Aprovação */}
           {pendingApproval && (
-            <div className="bg-amber-500/15 border border-amber-400/40 text-amber-200 text-xs p-4 rounded-2xl mb-5 animate-fade-in space-y-3">
+            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs p-4 rounded-xl mb-5 space-y-3">
               <div className="flex items-start gap-2.5">
-                <Clock className="w-4 h-4 text-amber-300 mt-0.5 flex-shrink-0" />
+                <Clock className="w-4 h-4 text-amber-600 dark:text-amber-300 mt-0.5 flex-shrink-0" strokeWidth={1.75} />
                 <div className="leading-relaxed">
-                  <strong className="block text-amber-100 font-bold mb-0.5">Cadastro recebido!</strong>
+                  <strong className="block text-amber-900 dark:text-amber-100 font-bold mb-0.5">Cadastro recebido!</strong>
                   Sua conta de parceiro está em análise manual e aguardando aprovação pela nossa equipe.
                 </div>
               </div>
-              <div className="pt-2 border-t border-amber-400/20 flex flex-col gap-2">
+              <div className="pt-2 border-t border-amber-500/20 flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => bypassPendingAndEnter(pendingApproval)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 bg-amber-400/20 hover:bg-amber-400/30 text-amber-100 font-bold py-2 px-3 rounded-xl text-xs transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-100 font-bold py-2 px-3 rounded-lg text-xs transition-colors"
                 >
                   <span>Acessar prévia do painel agora</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.75} />
                 </button>
               </div>
             </div>
@@ -355,26 +355,26 @@ export default function PartnerLogin() {
 
           {/* Mensagem de Erro Visual */}
           {error && (
-            <div className="bg-rose-500/15 border border-rose-400/40 text-rose-200 text-xs p-3.5 rounded-xl mb-4 font-medium flex items-start gap-2.5 animate-shake">
-              <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+            <div className="bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs p-3.5 rounded-xl mb-4 font-medium flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 mt-0.5 flex-shrink-0" strokeWidth={1.75} />
               <div className="leading-relaxed">{error}</div>
             </div>
           )}
 
           {sent ? (
-            <div className="text-center py-4 space-y-3 animate-fade-in">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-400/20 text-emerald-400 flex items-center justify-center mx-auto mb-2">
-                <CheckCircle className="w-7 h-7" />
+            <div className="text-center py-4 space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-2">
+                <CheckCircle className="w-6 h-6" strokeWidth={1.75} />
               </div>
-              <div className="font-bold text-white text-base">Link de acesso enviado!</div>
-              <p className="text-xs text-white/70 leading-relaxed">
+              <div className="font-bold text-[#171827] dark:text-white text-base">Link de acesso enviado!</div>
+              <p className="text-xs text-[#55596A] dark:text-white/70 leading-relaxed">
                 Verifique a caixa de entrada do seu e-mail. O link é de uso único e expira em 15 minutos.
               </p>
               <div className="pt-3">
                 <button
                   type="button"
                   onClick={() => { setSent(false); setMode('password'); }}
-                  className="text-xs font-semibold text-[#93C5FD] hover:underline"
+                  className="text-xs font-semibold text-[#2563EB] dark:text-[#93C5FD] hover:underline"
                 >
                   ← Voltar para login com senha
                 </button>
@@ -383,9 +383,9 @@ export default function PartnerLogin() {
           ) : mode === 'password' ? (
             <form onSubmit={submitPassword} noValidate>
               <div className="mb-3.5">
-                <label className="block text-[11px] font-semibold text-white/70 mb-1">E-mail</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#59658F] dark:text-white/70 mb-1">E-mail</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40" strokeWidth={1.75} />
                   <input
                     type="email"
                     value={email}
@@ -393,15 +393,15 @@ export default function PartnerLogin() {
                     placeholder="parceiro@exemplo.com"
                     autoComplete="email"
                     required
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
                   />
                 </div>
               </div>
 
               <div className="mb-2">
-                <label className="block text-[11px] font-semibold text-white/70 mb-1">Senha</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#59658F] dark:text-white/70 mb-1">Senha</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40" strokeWidth={1.75} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -409,21 +409,21 @@ export default function PartnerLogin() {
                     placeholder="••••••••"
                     autoComplete="current-password"
                     required
-                    className="w-full pl-10 pr-10 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-white/40 hover:text-white"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 dark:text-white/40 hover:text-[#171827] dark:hover:text-white"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
                   </button>
                 </div>
               </div>
 
               <div className="flex items-center justify-end mb-5">
-                <Link to="/parceiro/esqueci-senha" className="text-[11px] text-white/60 hover:text-[#93C5FD] transition-colors">
+                <Link to="/parceiro/esqueci-senha" className="text-[11px] text-[#55596A] dark:text-white/60 hover:text-[#2563EB] dark:hover:text-[#93C5FD] transition-colors">
                   Esqueci minha senha
                 </Link>
               </div>
@@ -432,7 +432,7 @@ export default function PartnerLogin() {
                 type="submit"
                 onClick={submitPassword}
                 disabled={loading}
-                className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl text-sm shadow-[0_8px_24px_rgba(37,99,235,0.4)] disabled:opacity-60 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold py-3 px-4 rounded-xl text-sm shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-[0.99]"
               >
                 {loading ? (
                   <>
@@ -441,7 +441,7 @@ export default function PartnerLogin() {
                   </>
                 ) : (
                   <>
-                    <KeyRound className="w-4 h-4" />
+                    <KeyRound className="w-4 h-4" strokeWidth={1.75} />
                     <span>Entrar</span>
                   </>
                 )}
@@ -450,7 +450,7 @@ export default function PartnerLogin() {
               <button
                 type="button"
                 onClick={() => { setMode('magic'); setError(''); setPendingApproval(null); }}
-                className="w-full mt-3 text-xs text-white/50 hover:text-white/80 transition-colors py-1"
+                className="w-full mt-3.5 text-xs text-[#55596A] dark:text-white/50 hover:text-[#2563EB] dark:hover:text-white/80 transition-colors py-1"
               >
                 Ou entrar via link por e-mail →
               </button>
@@ -458,9 +458,9 @@ export default function PartnerLogin() {
           ) : (
             <form onSubmit={submitMagic} noValidate>
               <div className="mb-4">
-                <label className="block text-[11px] font-semibold text-white/70 mb-1">Seu e-mail cadastrado</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#59658F] dark:text-white/70 mb-1">Seu e-mail cadastrado</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40" strokeWidth={1.75} />
                   <input
                     type="email"
                     value={email}
@@ -468,7 +468,7 @@ export default function PartnerLogin() {
                     placeholder="parceiro@exemplo.com"
                     autoComplete="email"
                     required
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-all"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
                   />
                 </div>
               </div>
@@ -477,7 +477,7 @@ export default function PartnerLogin() {
                 type="submit"
                 onClick={submitMagic}
                 disabled={loading}
-                className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl text-sm shadow-[0_8px_24px_rgba(37,99,235,0.4)] disabled:opacity-60 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold py-3 px-4 rounded-xl text-sm shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-[0.99]"
               >
                 {loading ? (
                   <>
@@ -486,7 +486,7 @@ export default function PartnerLogin() {
                   </>
                 ) : (
                   <>
-                    <Mail className="w-4 h-4" />
+                    <Mail className="w-4 h-4" strokeWidth={1.75} />
                     <span>Enviar link de acesso</span>
                   </>
                 )}
@@ -495,15 +495,15 @@ export default function PartnerLogin() {
               <button
                 type="button"
                 onClick={() => { setMode('password'); setError(''); setPendingApproval(null); }}
-                className="w-full mt-3 text-xs text-white/50 hover:text-white/80 transition-colors py-1"
+                className="w-full mt-3.5 text-xs text-[#55596A] dark:text-white/50 hover:text-[#2563EB] dark:hover:text-white/80 transition-colors py-1"
               >
                 ← Voltar para login com senha
               </button>
             </form>
           )}
 
-          <div className="mt-6 pt-4 border-t border-white/10 text-center">
-            <Link to="/parceiro" className="text-xs text-white/60 hover:text-[#93C5FD] transition-colors">
+          <div className="mt-6 pt-4 border-t border-[#E5E7EF] dark:border-[#232538] text-center">
+            <Link to="/parceiro" className="text-xs font-semibold text-[#2563EB] dark:text-[#93C5FD] hover:underline transition-colors">
               Ainda não é parceiro? Cadastre-se →
             </Link>
           </div>

@@ -114,8 +114,8 @@ export default function ReviewAppointment() {
     return (
       <Shell>
         <div className="py-12 text-center">
-          <Loader2 className="w-10 h-10 mx-auto animate-spin text-[#2563EB]" />
-          <p className="text-gray-500 mt-4 text-sm">Carregando...</p>
+          <Loader2 className="w-10 h-10 mx-auto animate-spin text-[#2563EB]" strokeWidth={1.75} />
+          <p className="text-[#55596A] dark:text-white/60 mt-4 text-sm">Carregando...</p>
         </div>
       </Shell>
     );
@@ -124,13 +124,13 @@ export default function ReviewAppointment() {
   if (error && !data) {
     return (
       <Shell>
-        <div className="w-16 h-16 mx-auto rounded-full bg-red-100 flex items-center justify-center mb-4">
-          <XCircle className="w-9 h-9 text-red-500" />
+        <div className="w-16 h-16 mx-auto rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-4">
+          <XCircle className="w-9 h-9 text-rose-600 dark:text-rose-400" strokeWidth={1.75} />
         </div>
-        <h1 className="text-xl font-black text-[#0F172A] mb-2 text-center">Link inválido</h1>
-        <p className="text-gray-500 text-sm mb-6 text-center">{error}</p>
+        <h1 className="text-xl font-black text-[#171827] dark:text-white mb-2 text-center">Link inválido</h1>
+        <p className="text-[#55596A] dark:text-white/60 text-sm mb-6 text-center">{error}</p>
         <div className="text-center">
-          <Link to="/" className="text-sm font-semibold text-[#2563EB]">Voltar ao site →</Link>
+          <Link to="/" className="text-sm font-semibold text-[#2563EB] hover:underline">Voltar ao site →</Link>
         </div>
       </Shell>
     );
@@ -140,11 +140,11 @@ export default function ReviewAppointment() {
     return (
       <Shell company={data?.company}>
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-4">
-            <CheckCircle2 className="w-9 h-9 text-green-600" />
+          <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
+            <CheckCircle2 className="w-9 h-9 text-emerald-600 dark:text-emerald-400" strokeWidth={1.75} />
           </div>
-          <h1 className="text-2xl font-black text-[#0F172A] mb-2">Obrigado pelo feedback 🙌</h1>
-          <p className="text-gray-500 text-sm mb-6">
+          <h1 className="text-2xl font-black text-[#171827] dark:text-white mb-2">Obrigado pelo feedback 🙌</h1>
+          <p className="text-[#55596A] dark:text-white/60 text-sm mb-6">
             Sua opinião ajuda a {data?.company?.name || 'nossa equipe'} a melhorar.
           </p>
           {googleReviewUrl && (
@@ -152,10 +152,10 @@ export default function ReviewAppointment() {
               href={googleReviewUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-2 text-white font-bold py-3.5 rounded-xl transition-all hover:opacity-95 active:scale-[0.98] mb-3"
+              className="w-full inline-flex items-center justify-center gap-2 text-white font-bold py-3.5 rounded-xl transition-all hover:opacity-95 active:scale-[0.98] shadow-sm mb-3"
               style={{ background: accent }}
             >
-              <ExternalLink className="w-4 h-4" /> Avaliar no Google
+              <ExternalLink className="w-4 h-4" strokeWidth={1.75} /> Avaliar no Google
             </a>
           )}
         </div>
@@ -167,11 +167,11 @@ export default function ReviewAppointment() {
   return (
     <Shell company={data?.company}>
       {/* Resumo do atendimento */}
-      <div className="bg-[#F7F8FB] rounded-2xl p-4 text-sm text-gray-600 mb-5 flex items-center gap-3">
+      <div className="bg-[#F1F2F7] dark:bg-[#0F101A] border border-[#E5E7EF] dark:border-[#232538] rounded-2xl p-4 text-sm text-[#55596A] dark:text-white/70 mb-5 flex items-center gap-3">
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-[#0F172A] truncate">{data?.appointment?.service_name}</div>
+          <div className="font-bold text-[#171827] dark:text-white truncate">{data?.appointment?.service_name}</div>
           {data?.appointment?.professional_name && (
-            <div className="text-xs text-gray-500 truncate">com {data.appointment.professional_name}</div>
+            <div className="text-xs text-[#55596A] dark:text-white/50 truncate">com {data.appointment.professional_name}</div>
           )}
         </div>
       </div>
@@ -216,8 +216,8 @@ export default function ReviewAppointment() {
 
 function Shell({ company, children }) {
   return (
-    <div className="min-h-screen bg-[#F7F8FB] flex items-center justify-center p-4 font-inter">
-      <div className="bg-white rounded-3xl shadow-xl border border-black/5 max-w-md w-full p-6 sm:p-8">
+    <div className="min-h-screen bg-[#F1F2F7] dark:bg-[#0F101A] flex items-center justify-center p-4 font-inter text-[#171827] dark:text-white">
+      <div className="bg-white dark:bg-[#171827] rounded-3xl shadow-sm border border-[#E5E7EF] dark:border-[#232538] max-w-md w-full p-6 sm:p-8">
         <div className="flex flex-col items-center mb-6">
           {company?.logo_url ? (
             <img
@@ -229,7 +229,7 @@ function Shell({ company, children }) {
             <Logo size={56} />
           )}
           {company?.name && (
-            <div className="text-sm font-bold text-[#0F172A] mt-2">{company.name}</div>
+            <div className="text-sm font-bold text-[#171827] dark:text-white mt-2">{company.name}</div>
           )}
         </div>
         {children}
@@ -243,10 +243,10 @@ function Shell({ company, children }) {
 function StepNps({ customerFirstName, companyName, value, onChange, onNext, accent }) {
   return (
     <>
-      <h1 className="text-xl sm:text-2xl font-black text-[#0F172A] mb-2 text-center">
+      <h1 className="text-xl sm:text-2xl font-black text-[#171827] dark:text-white mb-2 text-center">
         {customerFirstName ? `${customerFirstName}, ` : ''}como foi sua experiência?
       </h1>
-      <p className="text-gray-500 text-sm mb-6 text-center">
+      <p className="text-[#55596A] dark:text-white/60 text-sm mb-6 text-center">
         De 0 a 10, quanto você indicaria <strong>{companyName || 'a barbearia'}</strong> para um amigo?
       </p>
 
@@ -261,7 +261,7 @@ function StepNps({ customerFirstName, companyName, value, onChange, onNext, acce
               key={n}
               type="button"
               onClick={() => onChange(n)}
-              className={`aspect-square rounded-xl font-bold text-base sm:text-sm transition-all active:scale-95 ${
+              className={`aspect-square rounded-xl font-bold text-base sm:text-sm tabular-nums transition-all active:scale-95 cursor-pointer ${
                 isActive
                   ? colors.active
                   : `${colors.bg} ring-1 ${colors.ring} ${colors.text} hover:scale-105`
@@ -273,7 +273,7 @@ function StepNps({ customerFirstName, companyName, value, onChange, onNext, acce
           );
         })}
       </div>
-      <div className="flex justify-between text-[10px] text-gray-400 px-1 mb-6">
+      <div className="flex justify-between text-[10px] text-[#55596A] dark:text-white/40 px-1 mb-6">
         <span>Nada provável</span>
         <span>Muito provável</span>
       </div>
@@ -288,10 +288,10 @@ function StepNps({ customerFirstName, companyName, value, onChange, onNext, acce
         type="button"
         onClick={onNext}
         disabled={value == null}
-        className="w-full text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 transition-all active:scale-[0.98]"
+        className="w-full text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 transition-all active:scale-[0.98] shadow-sm cursor-pointer"
         style={{ background: accent }}
       >
-        Continuar <ChevronRight className="w-4 h-4" />
+        Continuar <ChevronRight className="w-4 h-4" strokeWidth={1.75} />
       </button>
     </>
   );
@@ -303,9 +303,9 @@ function StepRatings({ ratings, onChange, onBack, onNext, accent }) {
   const update = (key, val) => onChange({ ...ratings, [key]: val });
   return (
     <>
-      <h2 className="text-xl font-black text-[#0F172A] mb-1 text-center">Quase lá!</h2>
-      <p className="text-gray-500 text-sm mb-6 text-center">
-        Como você avalia cada ponto? <span className="text-gray-400">(opcional)</span>
+      <h2 className="text-xl font-black text-[#171827] dark:text-white mb-1 text-center">Quase lá!</h2>
+      <p className="text-[#55596A] dark:text-white/60 text-sm mb-6 text-center">
+        Como você avalia cada ponto? <span className="text-[#55596A]/60 dark:text-white/40">(opcional)</span>
       </p>
 
       <div className="space-y-5 mb-6">
@@ -313,7 +313,7 @@ function StepRatings({ ratings, onChange, onBack, onNext, accent }) {
           <div key={q.key}>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">{q.emoji}</span>
-              <span className="text-sm font-semibold text-[#0F172A]">{q.label}</span>
+              <span className="text-sm font-semibold text-[#171827] dark:text-white">{q.label}</span>
             </div>
             <div className="flex justify-between gap-2">
               {[1, 2, 3, 4, 5].map(n => (
@@ -321,12 +321,12 @@ function StepRatings({ ratings, onChange, onBack, onNext, accent }) {
                   key={n}
                   type="button"
                   onClick={() => update(q.key, n)}
-                  className="flex-1 p-2 transition-transform active:scale-90"
+                  className="flex-1 p-2 transition-transform active:scale-90 cursor-pointer"
                   aria-label={`${q.label}: ${n} estrelas`}
                 >
                   <Star className={`w-7 h-7 mx-auto transition-colors ${
-                    n <= ratings[q.key] ? 'fill-amber-400 text-amber-400' : 'text-gray-200'
-                  }`} />
+                    n <= ratings[q.key] ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-white/10'
+                  }`} strokeWidth={1.75} />
                 </button>
               ))}
             </div>
@@ -338,17 +338,17 @@ function StepRatings({ ratings, onChange, onBack, onNext, accent }) {
         <button
           type="button"
           onClick={onBack}
-          className="px-4 py-3.5 rounded-xl border border-black/10 text-gray-600 font-semibold flex items-center gap-1 active:scale-[0.98]"
+          className="px-4 py-3.5 rounded-xl border border-[#E5E7EF] dark:border-[#232538] bg-slate-50 dark:bg-white/[0.04] text-[#171827] dark:text-white font-semibold flex items-center gap-1 active:scale-[0.98] cursor-pointer"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" strokeWidth={1.75} />
         </button>
         <button
           type="button"
           onClick={onNext}
-          className="flex-1 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+          className="flex-1 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-sm cursor-pointer"
           style={{ background: accent }}
         >
-          Continuar <ChevronRight className="w-4 h-4" />
+          Continuar <ChevronRight className="w-4 h-4" strokeWidth={1.75} />
         </button>
       </div>
     </>
@@ -360,9 +360,9 @@ function StepRatings({ ratings, onChange, onBack, onNext, accent }) {
 function StepComment({ comment, onChange, onBack, onSubmit, submitting, error, accent }) {
   return (
     <>
-      <h2 className="text-xl font-black text-[#0F172A] mb-1 text-center">Quer deixar um comentário?</h2>
-      <p className="text-gray-500 text-sm mb-6 text-center">
-        Conta o que você achou. <span className="text-gray-400">(opcional)</span>
+      <h2 className="text-xl font-black text-[#171827] dark:text-white mb-1 text-center">Quer deixar um comentário?</h2>
+      <p className="text-[#55596A] dark:text-white/60 text-sm mb-6 text-center">
+        Conta o que você achou. <span className="text-[#55596A]/60 dark:text-white/40">(opcional)</span>
       </p>
 
       <textarea
@@ -370,30 +370,30 @@ function StepComment({ comment, onChange, onBack, onSubmit, submitting, error, a
         onChange={e => onChange(e.target.value.slice(0, 1000))}
         placeholder="Escreva aqui..."
         rows={5}
-        className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm resize-none mb-1"
+        className="w-full px-4 py-3 border border-[#E5E7EF] dark:border-[#232538] bg-slate-50 dark:bg-white/[0.04] text-[#171827] dark:text-white rounded-xl text-sm resize-none mb-1 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
         maxLength={1000}
       />
-      <div className="text-[10px] text-gray-400 text-right mb-4">{comment.length}/1000</div>
+      <div className="text-[10px] text-[#55596A] dark:text-white/40 text-right mb-4 tabular-nums">{comment.length}/1000</div>
 
-      {error && <div className="text-sm text-red-500 mb-3 text-center">{error}</div>}
+      {error && <div className="text-sm text-rose-500 mb-3 text-center">{error}</div>}
 
       <div className="flex gap-2">
         <button
           type="button"
           onClick={onBack}
           disabled={submitting}
-          className="px-4 py-3.5 rounded-xl border border-black/10 text-gray-600 font-semibold disabled:opacity-40 active:scale-[0.98]"
+          className="px-4 py-3.5 rounded-xl border border-[#E5E7EF] dark:border-[#232538] bg-slate-50 dark:bg-white/[0.04] text-[#171827] dark:text-white font-semibold disabled:opacity-40 active:scale-[0.98] cursor-pointer"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" strokeWidth={1.75} />
         </button>
         <button
           type="button"
           onClick={onSubmit}
           disabled={submitting}
-          className="flex-1 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 transition-all active:scale-[0.98]"
+          className="flex-1 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 transition-all active:scale-[0.98] shadow-sm cursor-pointer"
           style={{ background: accent }}
         >
-          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {submitting ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} /> : <Send className="w-4 h-4" strokeWidth={1.75} />}
           {submitting ? 'Enviando...' : 'Enviar avaliação'}
         </button>
       </div>
