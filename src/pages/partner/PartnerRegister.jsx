@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { getDeviceFingerprint } from '@/lib/referralTracking';
-import Logo from '@/components/Logo';
+import BrandMark from '@/components/BrandMark';
 import { Loader2, CheckCircle2, Gift } from 'lucide-react';
 
 export default function PartnerRegister() {
@@ -83,7 +83,7 @@ export default function PartnerRegister() {
   return (
     <div className="min-h-screen bg-[#050816] text-white flex flex-col justify-between">
       <header className="px-4 lg:px-8 py-5 border-b border-white/8 flex items-center justify-between">
-        <Link to="/parceiro"><Logo size={32} /></Link>
+        <Link to="/parceiro"><BrandMark size={32} tone="dark" /></Link>
         <Link to="/parceiro/login" className="text-sm text-white/65 hover:text-white">Já sou parceiro</Link>
       </header>
 

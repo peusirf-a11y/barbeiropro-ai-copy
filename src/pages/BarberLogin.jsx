@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
-import Logo from '@/components/Logo';
+import BrandMark from '@/components/BrandMark';
 import { AlertCircle, ShieldAlert, Loader2, Lock, Mail, Eye, EyeOff, ArrowRight, X, MessageCircle } from 'lucide-react';
 import { setRbacCookie } from '@/lib/rbacCookie';
 
@@ -196,7 +196,7 @@ export default function BarberLogin() {
       <header className="bg-[#171827] text-white border-b border-[#232538] sticky top-0 z-20 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
-            <Logo size={30} />
+            <BrandMark size={30} tone="dark" />
           </Link>
           <Link
             to="/checkout"

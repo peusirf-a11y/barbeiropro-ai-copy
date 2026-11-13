@@ -82,15 +82,15 @@ export default function MasterLayout() {
           onClick={() => isMobileDrawer && setOpen(false)}
           className="flex items-center gap-2.5 min-w-0 group"
         >
-          <Logo size={36} className="flex-shrink-0 transition-transform group-hover:scale-105" />
+          <Logo variant="icon-dark" size={34} className="flex-shrink-0 transition-transform group-hover:scale-105" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm tracking-tight text-white leading-none">O CORTE</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#59658F]/30 text-[#B5D7E8] border border-[#59658F]/40 leading-none">
+              <span className="font-bold text-sm tracking-tight text-white leading-none" style={{ color: '#FFFFFF' }}>O CORTE</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#59658F]/35 text-[#B5D7E8] border border-[#59658F]/45 leading-none">
                 ENTERPRISE
               </span>
             </div>
-            <p className="text-[11px] text-[#59658F] font-medium truncate mt-0.5 flex items-center gap-1">
+            <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5 flex items-center gap-1">
               <Shield className="w-3 h-3 text-[#B5D7E8]" strokeWidth={1.75} /> Gestão Corporativa
             </p>
           </div>
@@ -109,7 +109,7 @@ export default function MasterLayout() {
 
       {/* Navigation List */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
-        <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#59658F]">
+        <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
           Módulos Centrais
         </div>
         {navItems.map((item) => {
@@ -163,10 +163,10 @@ export default function MasterLayout() {
               <Shield className="w-4 h-4 text-[#B5D7E8]" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-bold text-white truncate leading-tight">
+              <div className="text-xs font-bold text-white truncate leading-tight" style={{ color: '#FFFFFF' }}>
                 {user?.name || user?.email?.split('@')[0] || 'Super Admin'}
               </div>
-              <div className="text-[10px] text-[#7E8BAF] font-mono truncate leading-none mt-0.5">
+              <div className="text-[10px] text-slate-300 font-mono truncate leading-none mt-0.5">
                 Nível Master 0
               </div>
             </div>
@@ -212,7 +212,7 @@ export default function MasterLayout() {
             <Menu className="w-5 h-5 pointer-events-none" strokeWidth={1.75} />
           </button>
           <Logo variant="icon-dark" size={26} className="flex-shrink-0" />
-          <span className="font-bold text-sm tracking-tight text-white truncate">{pageTitle}</span>
+          <span className="font-bold text-sm tracking-tight text-white truncate" style={{ color: '#FFFFFF' }}>{pageTitle}</span>
         </div>
 
         <div className="relative z-10 flex items-center gap-2 flex-shrink-0">
@@ -261,12 +261,12 @@ export default function MasterLayout() {
       >
         <div className="flex items-center gap-3">
           <div>
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-[#7E8BAF]">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-300">
               <span>Ecossistema Corporativo</span>
-              <ChevronRight className="w-3 h-3 text-[#59658F]" strokeWidth={1.75} />
+              <ChevronRight className="w-3 h-3 text-slate-400" strokeWidth={1.75} />
               <span className="text-[#B5D7E8]">Centro de Controle BI</span>
             </div>
-            <h1 className="text-base font-extrabold text-white tracking-tight mt-0.5 flex items-center gap-2">
+            <h1 className="text-base font-extrabold text-white tracking-tight mt-0.5 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
               <span>{pageTitle}</span>
               {activeNav?.badge && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#59658F]/40 text-[#B5D7E8] border border-[#59658F]/50">
@@ -294,8 +294,8 @@ export default function MasterLayout() {
               <Shield className="w-4 h-4 text-[#B5D7E8]" strokeWidth={1.75} />
             </div>
             <div className="hidden sm:block text-left leading-none">
-              <div className="text-xs font-bold text-white tracking-tight">Super Admin</div>
-              <div className="text-[10px] text-[#7E8BAF] mt-1 font-mono">auditoria ativa</div>
+              <div className="text-xs font-bold text-white tracking-tight" style={{ color: '#FFFFFF' }}>Super Admin</div>
+              <div className="text-[10px] text-slate-300 mt-1 font-mono">auditoria ativa</div>
             </div>
           </div>
         </div>

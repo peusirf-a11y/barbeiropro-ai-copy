@@ -69,26 +69,26 @@ export default function CompanyFeatureOverrides({ company, plan }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-4 sm:p-6 shadow-[var(--shadow-sm)]">
+    <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 shadow-[var(--shadow-sm)]">
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div>
-          <h3 className="font-bold text-[#111827] text-lg tracking-tight">Funcionalidades</h3>
-          <p className="text-xs text-[#6B7280] mt-0.5">
-            Plano <span className="font-semibold text-[#111827]">{plan?.name || company?.plan_name || '—'}</span> libera {inheritedKeys.length} features. Use os overrides para liberar ou bloquear individualmente.
+          <h3 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">Funcionalidades</h3>
+          <p className="text-xs text-slate-600 dark:text-slate-200 mt-0.5">
+            Plano <span className="font-semibold text-slate-900 dark:text-white">{plan?.name || company?.plan_name || '—'}</span> libera {inheritedKeys.length} features. Use os overrides para liberar ou bloquear individualmente.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={reset}
             disabled={enabled.length === 0 && disabled.length === 0}
-            className="text-xs font-semibold px-3 py-2 rounded-xl border border-black/10 text-[#6B7280] hover:bg-gray-50 disabled:opacity-40 inline-flex items-center gap-1.5 transition-colors"
+            className="text-xs font-semibold px-3 py-2 rounded-xl border border-border text-slate-700 dark:text-slate-200 hover:bg-muted disabled:opacity-40 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" /> Limpar overrides
           </button>
           <button
             onClick={() => save.mutate()}
             disabled={!dirty || save.isPending}
-            className="text-xs font-semibold px-3 py-2 bg-[#2563EB] text-white rounded-xl hover:bg-[#1d4ed8] disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all inline-flex items-center gap-1.5"
+            className="text-xs font-semibold px-3 py-2 bg-[#2563EB] text-white rounded-xl hover:bg-[#1d4ed8] disabled:opacity-50 shadow-[0_4px_12px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all inline-flex items-center gap-1.5 cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" /> {save.isPending ? 'Salvando…' : 'Salvar'}
           </button>

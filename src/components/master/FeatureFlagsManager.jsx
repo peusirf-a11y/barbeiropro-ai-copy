@@ -7,9 +7,9 @@ import { clearFeatureFlagCache } from '@/lib/featureFlags';
 import { useToast } from '@/components/ui/use-toast';
 
 const scopeMeta = {
-  global: { icon: Globe, label: 'Global', color: 'text-blue-500 bg-blue-500/15 border border-blue-500/30' },
-  plan: { icon: Briefcase, label: 'Plano', color: 'text-violet-500 bg-violet-500/15 border border-violet-500/30' },
-  company: { icon: Building2, label: 'Empresa', color: 'text-amber-500 bg-amber-500/15 border border-amber-500/30' },
+  global: { icon: Globe, label: 'Global', color: 'text-blue-700 dark:text-blue-300 bg-blue-500/15 border border-blue-500/35' },
+  plan: { icon: Briefcase, label: 'Plano', color: 'text-violet-700 dark:text-violet-300 bg-violet-500/15 border border-violet-500/35' },
+  company: { icon: Building2, label: 'Empresa', color: 'text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/35' },
 };
 
 const emptyForm = { key: '', description: '', enabled: true, scope: 'global', target_ids: [] };
@@ -168,22 +168,22 @@ export default function FeatureFlagsManager() {
             <div key={f.id || f.key} data-testid={`feature-flag-row-${f.key}`} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-sm text-foreground font-semibold">{f.key}</span>
+                  <span className="font-mono text-sm text-slate-900 dark:text-white font-semibold">{f.key}</span>
                   {isExperimental && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/35">
                       <Sparkles className="w-3 h-3" /> Experimental
                     </span>
                   )}
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${meta.color}`}>
                     <Icon className="w-3 h-3" /> {meta.label}
                   </span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isEnabled ? 'bg-emerald-500/15 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isEnabled ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
                     {isEnabled ? 'Ativo' : 'Inativo'}
                   </span>
                 </div>
-                {f.description && <div className="text-xs text-muted-foreground mt-0.5 truncate">{f.description}</div>}
+                {f.description && <div className="text-xs text-slate-600 dark:text-slate-200 mt-0.5 truncate">{f.description}</div>}
                 {scope !== 'global' && Array.isArray(f.target_ids) && f.target_ids.length > 0 && (
-                  <div className="text-[11px] text-muted-foreground mt-0.5 truncate font-mono">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-300 mt-0.5 truncate font-mono">
                     {f.target_ids.length} target(s): {f.target_ids.slice(0, 2).join(', ')}{f.target_ids.length > 2 ? '…' : ''}
                   </div>
                 )}

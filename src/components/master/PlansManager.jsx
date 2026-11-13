@@ -108,9 +108,9 @@ const emptyForm = {
 };
 
 const VISIBILITY_BADGE = {
-  public:      { icon: Globe, label: 'Público',     cls: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30' },
-  private:     { icon: Lock,  label: 'Privado',     cls: 'bg-amber-500/15 text-amber-500 border-amber-500/30' },
-  invite_only: { icon: Link2, label: 'Por convite', cls: 'bg-blue-500/15 text-blue-500 border-blue-500/30' },
+  public:      { icon: Globe, label: 'Público',     cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/35' },
+  private:     { icon: Lock,  label: 'Privado',     cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/35' },
+  invite_only: { icon: Link2, label: 'Por convite', cls: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/35' },
 };
 
 function VisibilityBadge({ v }) {
@@ -323,16 +323,16 @@ export default function PlansManager() {
                     <div
                       key={f}
                       data-testid={`plan-feature-card-${f}`}
-                      className="rounded-lg border border-border bg-muted/30 p-2"
+                      className="rounded-lg border border-slate-200 dark:border-[#2A3352] bg-slate-50 dark:bg-[#141A2E] p-2.5"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-foreground">{meta?.name || f}</span>
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white">{meta?.name || f}</span>
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${badge.className}`}>
                           {meta?.commercial_tag || badge.label}
                         </span>
                       </div>
                       {meta?.description && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{meta.description}</p>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-200 mt-1 leading-snug">{meta.description}</p>
                       )}
                     </div>
                   );
@@ -419,10 +419,10 @@ export default function PlansManager() {
                         <div
                           key={f}
                           data-testid={`plan-row-feature-card-${f}`}
-                          className="rounded-lg border border-border bg-muted/30 p-2"
+                          className="rounded-lg border border-slate-200 dark:border-[#2A3352] bg-slate-50 dark:bg-[#141A2E] p-2.5"
                         >
                           <div className="flex items-center justify-between gap-1.5">
-                            <span className="text-[11px] font-semibold text-foreground truncate">
+                            <span className="text-[11px] font-semibold text-slate-900 dark:text-white truncate">
                               {meta?.name || f}
                             </span>
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${badge.className}`}>
@@ -430,7 +430,7 @@ export default function PlansManager() {
                             </span>
                           </div>
                           {meta?.description && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
+                            <p className="text-[10px] text-slate-600 dark:text-slate-200 mt-1 line-clamp-2 leading-snug">
                               {meta.description}
                             </p>
                           )}
@@ -477,12 +477,12 @@ export default function PlansManager() {
       >
         <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-500" />
-            <h3 className="font-bold text-sm text-foreground">
+            <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-300" />
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white">
               Catálogo de Funcionalidades Comerciais — Plano Master
             </h3>
           </div>
-          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30">
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/35">
             Cards Comerciais com Descrição e Tag
           </span>
         </div>
@@ -493,15 +493,15 @@ export default function PlansManager() {
               <div
                 key={`pm-catalog-${f.key}`}
                 data-testid={`plans-catalog-card-${f.key}`}
-                className="rounded-xl border border-border bg-card p-3 shadow-2xs flex flex-col justify-between gap-1.5"
+                className="rounded-xl border border-slate-200 dark:border-[#2A3352] bg-slate-50 dark:bg-[#141A2E] p-3 shadow-2xs flex flex-col justify-between gap-1.5"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-xs font-bold text-foreground">{f.label}</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{f.label}</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${badge.className}`}>
                     {f.commercial_tag || badge.label}
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">{f.description}</p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-200 leading-relaxed">{f.description}</p>
               </div>
             );
           })}

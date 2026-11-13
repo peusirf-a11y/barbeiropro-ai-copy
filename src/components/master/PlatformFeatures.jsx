@@ -11,7 +11,7 @@ const groups = [
   {
     title: 'Agenda & Operação',
     icon: Calendar,
-    color: 'text-[#2563EB] bg-[#EFF6FF] ring-[#DBEAFE]',
+    color: 'text-[#2563EB] bg-[#EFF6FF] ring-[#DBEAFE] dark:text-blue-300 dark:bg-blue-500/15 dark:ring-blue-500/30',
     items: [
       {
         icon: Calendar,
@@ -54,7 +54,7 @@ const groups = [
   {
     title: 'Pagamentos & Recorrência',
     icon: CreditCard,
-    color: 'text-emerald-700 bg-emerald-50 ring-emerald-100',
+    color: 'text-emerald-700 bg-emerald-50 ring-emerald-100 dark:text-emerald-300 dark:bg-emerald-500/15 dark:ring-emerald-500/30',
     items: [
       {
         icon: CreditCard,
@@ -85,7 +85,7 @@ const groups = [
   {
     title: 'Analytics & BI Financeiro',
     icon: TrendingUp,
-    color: 'text-amber-700 bg-amber-50 ring-amber-100',
+    color: 'text-amber-700 bg-amber-50 ring-amber-100 dark:text-amber-300 dark:bg-amber-500/15 dark:ring-amber-500/30',
     items: [
       {
         icon: Clock4,
@@ -122,7 +122,7 @@ const groups = [
   {
     title: 'Crescimento & Governança',
     icon: Zap,
-    color: 'text-purple-700 bg-purple-50 ring-purple-100',
+    color: 'text-purple-700 bg-purple-50 ring-purple-100 dark:text-purple-300 dark:bg-purple-500/15 dark:ring-purple-500/30',
     items: [
       {
         icon: Zap,
@@ -145,14 +145,14 @@ export default function PlatformFeatures() {
     <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 shadow-[var(--shadow-sm)]">
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h2 className="font-bold text-foreground text-lg tracking-tight">
+          <h2 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">
             Catálogo Comercial de Funcionalidades — Plano Master & Plataforma
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+          <p className="text-xs text-slate-600 dark:text-slate-200 mt-0.5 font-medium">
             Recursos comerciais organizados em cards com descrição de valor e tag comercial por funcionalidade.
           </p>
         </div>
-        <span className="inline-flex items-center self-start sm:self-auto text-[11px] font-bold px-3 py-1 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30">
+        <span className="inline-flex items-center self-start sm:self-auto text-[11px] font-bold px-3 py-1 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/35">
           Plano Master · Catálogo Ativo
         </span>
       </div>
@@ -161,12 +161,12 @@ export default function PlatformFeatures() {
         {groups.map((g) => {
           const GIcon = g.icon;
           return (
-            <div key={g.title} className="rounded-xl border border-border bg-muted/25 p-4 space-y-3">
+            <div key={g.title} className="rounded-xl border border-slate-200 dark:border-[#232B45] bg-slate-50/70 dark:bg-[#0D1326] p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ring-1 ${g.color}`}>
                   <GIcon className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-sm text-foreground tracking-tight">{g.title}</h3>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white tracking-tight">{g.title}</h3>
               </div>
               <div className="grid grid-cols-1 gap-2.5">
                 {g.items.map((it) => {
@@ -175,18 +175,18 @@ export default function PlatformFeatures() {
                     <div
                       key={it.label}
                       data-testid="platform-feature-card"
-                      className="rounded-xl border border-border bg-card p-3 shadow-2xs hover:border-blue-500/40 transition-colors"
+                      className="rounded-xl border border-slate-200 dark:border-[#2A3352] bg-white dark:bg-[#141A2E] p-3 shadow-2xs hover:border-blue-500/45 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2 font-semibold text-xs sm:text-sm text-foreground">
-                          <Icon className="w-3.5 h-3.5 flex-shrink-0 text-blue-500" />
+                        <div className="flex items-center gap-2 font-semibold text-xs sm:text-sm text-slate-900 dark:text-white">
+                          <Icon className="w-3.5 h-3.5 flex-shrink-0 text-blue-600 dark:text-blue-300" />
                           <span>{it.label}</span>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30 whitespace-nowrap">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/35 whitespace-nowrap">
                           {it.tag}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed pl-5">
+                      <p className="text-xs text-slate-600 dark:text-slate-200 leading-relaxed pl-5">
                         {it.desc}
                       </p>
                     </div>

@@ -1,6 +1,7 @@
 // BrandMark — wrapper do logo "O CORTE" com subtítulo opcional.
-// A imagem `full` já contém o texto "O CORTE", então NÃO duplicamos texto ao lado.
-// Use apenas o subtítulo (ex: "Painel de gestão", "Modo demonstração").
+// Em fundos claros (tone="light"), usa a imagem `full` (que já inclui o wordmark escuro).
+// Em fundos escuros (tone="dark"), usa o ícone azul (`icon-dark`) + wordmark branco
+// explícito para garantir contraste máximo no modo escuro e em headers #171827/#050816.
 
 import Logo from '@/components/Logo';
 
@@ -10,7 +11,32 @@ export default function BrandMark({
   subtitle = null,
   className = '',
 }) {
-  const subtitleColor = tone === 'dark' ? 'text-gray-400' : 'text-gray-500';
+  const isDarkSurface = tone === 'dark';
+  const subtitleColor = isDarkSurface ? 'text-slate-300' : 'text-slate-600';
+
+  if (isDarkSurface) {
+    const iconSize = Math.max(24, Math.round(size * 0.85));
+    const textSizeClass = size >= 38 ? 'text-base' : 'text-sm';
+
+    return (
+      <div className={`inline-flex items-center gap-2.5 min-w-0 ${className}`}>
+        <Logo variant="icon-dark" size={iconSize} className="flex-shrink-0" />
+        <div className="min-w-0 leading-none">
+          <span
+            className={`block font-black tracking-tight ${textSizeClass} text-white whitespace-nowrap`}
+            style={{ color: '#FFFFFF' }}
+          >
+            O CORTE
+          </span>
+          {subtitle && (
+            <span className={`block text-[11px] font-medium ${subtitleColor} truncate hidden sm:block mt-0.5`}>
+              {subtitle}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (!subtitle) {
     return <Logo size={size} className={className} />;

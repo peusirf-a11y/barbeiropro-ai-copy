@@ -18,7 +18,7 @@
     --secondary: 222 30% 14%;
     --secondary-foreground: 210 40% 96%;
     --muted: 222 30% 14%;
-    --muted-foreground: 215 20% 65%;
+    --muted-foreground: 215 28% 82%;
     --accent: 213 94% 68%;
     --accent-foreground: 222 47% 6%;
     --destructive: 0 72% 51%;
@@ -66,7 +66,7 @@
     --secondary: 222 30% 14%;
     --secondary-foreground: 210 40% 96%;
     --muted: 222 30% 14%;
-    --muted-foreground: 215 20% 65%;
+    --muted-foreground: 215 28% 82%;
     --accent: 213 94% 68%;
     --accent-foreground: 222 47% 6%;
     --destructive: 0 72% 51%;
@@ -483,6 +483,25 @@
 .light .text-white\/20 { color: rgba(15, 23, 42, 0.20) !important; }
 .light .text-white\/15 { color: rgba(15, 23, 42, 0.16) !important; }
 .light .text-white\/10 { color: rgba(15, 23, 42, 0.12) !important; }
+
+/* Cabeçalhos/sidebars executivos que permanecem escuros (#171827 / #131422) no tema claro
+   devem preservar texto branco e cinza-claro legível. */
+.light .bg-\[\#171827\] .text-white,
+.light .bg-\[\#131422\] .text-white {
+  color: #FFFFFF !important;
+}
+.light .bg-\[\#171827\] .text-white\/90,
+.light .bg-\[\#131422\] .text-white\/90 { color: rgba(255, 255, 255, 0.92) !important; }
+.light .bg-\[\#171827\] .text-white\/80,
+.light .bg-\[\#131422\] .text-white\/80 { color: rgba(255, 255, 255, 0.85) !important; }
+.light .bg-\[\#171827\] .text-white\/70,
+.light .bg-\[\#131422\] .text-white\/70 { color: rgba(255, 255, 255, 0.78) !important; }
+.light .bg-\[\#171827\] .text-white\/60,
+.light .bg-\[\#131422\] .text-white\/60 { color: rgba(255, 255, 255, 0.70) !important; }
+.light .bg-\[\#171827\] .text-slate-300,
+.light .bg-\[\#131422\] .text-slate-300 { color: #CBD5E1 !important; }
+.light .bg-\[\#171827\] .text-slate-400,
+.light .bg-\[\#131422\] .text-slate-400 { color: #94A3B8 !important; }
 
 /* Bordas brancas translúcidas — viram slate translúcido */
 .light .border-white\/5,
