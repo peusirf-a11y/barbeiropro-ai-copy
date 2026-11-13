@@ -35,7 +35,8 @@ export default function ConfirmDestructiveDialog({
 
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = prevOverflow === 'hidden' ? '' : prevOverflow;
+      document.body.style.pointerEvents = '';
     };
   }, [open, isLoading]);
 

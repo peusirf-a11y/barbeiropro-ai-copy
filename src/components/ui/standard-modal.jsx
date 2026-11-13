@@ -72,7 +72,8 @@ export default function StandardModal({
 
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = prevOverflow === 'hidden' ? '' : prevOverflow;
+      document.body.style.pointerEvents = '';
       vv?.removeEventListener('resize', updateVH);
       vv?.removeEventListener('scroll', updateVH);
     };

@@ -1,7 +1,10 @@
+'use client';
+
 // MasterBarbearias.jsx — Gestão de Barbearias + Fluxo de Onboarding Assistido / Venda Manual
 // Suporta provisionamento completo em public.companies e convite/vínculo via Supabase Auth Admin.
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
@@ -80,6 +83,7 @@ const PLAN_OPTIONS = [
 ];
 
 export default function MasterBarbearias() {
+  const location = useLocation();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM_STATE);
   const [customSlug, setCustomSlug] = useState('');
@@ -235,6 +239,25 @@ export default function MasterBarbearias() {
 
   isPendingRef.current = createMutation.isPending;
 
+  const { reset: resetCreateMutation } = createMutation;
+
+  // Garante limpeza de estado pendente, modal e bloqueios de DOM a cada transição de rota ou desmontagem
+  useEffect(() => {
+    isPendingRef.current = false;
+    setShowForm(false);
+    setErrorMsg('');
+    setCreatedConfirmation(null);
+    resetCreateMutation();
+    document.body.style.overflow = '';
+    document.body.style.pointerEvents = '';
+
+    return () => {
+      isPendingRef.current = false;
+      document.body.style.overflow = '';
+      document.body.style.pointerEvents = '';
+    };
+  }, [location.pathname, resetCreateMutation]);
+
   const handleSubmit = (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     if (!isFormValid || createMutation.isPending) return;
@@ -307,7 +330,7 @@ export default function MasterBarbearias() {
         </div>
       )}
 
-      <CompaniesTable />
+      <CompaniesTable key={location.pathname} />
 
       <StandardModal
         open={showForm}

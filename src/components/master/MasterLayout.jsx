@@ -1,8 +1,9 @@
+'use client';
+
 // MasterLayout.jsx — Shell Executivo do Super Admin (Design System BI + Premium Business SaaS)
-// Header / Topbar: #171827 | Background: #F1F2F7 | Animações suaves via Framer Motion | Lucide Icons strokeWidth=1.75
+// Header / Topbar: #171827 | Background: #F1F2F7 | Lucide Icons strokeWidth=1.75
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   Building2,
@@ -51,27 +52,36 @@ export default function MasterLayout() {
   const [open, setOpen] = useState(false);
   const { isImpersonating } = useImpersonationContext();
 
-  // Fecha o drawer mobile ao navegar
+  // Fecha o drawer mobile e garante limpeza de estilos de bloqueio no DOM a cada transição de rota
   useEffect(() => {
     setOpen(false);
+    document.body.style.pointerEvents = '';
+    document.documentElement.style.pointerEvents = '';
+    document.body.style.overflow = '';
   }, [location.pathname]);
 
-  // Lock body scroll quando drawer estiver aberto no mobile
+  // Lock body scroll apenas enquanto o drawer mobile estiver aberto; sempre restaura no cleanup
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
+      document.body.style.pointerEvents = '';
+      document.documentElement.style.pointerEvents = '';
     };
   }, [open]);
 
   const activeNav = navItems.find((i) => location.pathname.startsWith(i.path));
   const pageTitle = activeNav?.label || 'Super Admin';
 
-  const SidebarBody = (
+  const renderSidebarBody = (isMobileDrawer = false) => (
     <div className="flex flex-col h-full bg-[#171827] text-white select-none">
       {/* Brand Header */}
       <div className="h-16 px-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
-        <Link to="/master/dashboard" className="flex items-center gap-2.5 min-w-0 group">
+        <Link
+          to="/master/dashboard"
+          onClick={() => isMobileDrawer && setOpen(false)}
+          className="flex items-center gap-2.5 min-w-0 group"
+        >
           <Logo size={36} className="flex-shrink-0 transition-transform group-hover:scale-105" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
@@ -85,14 +95,16 @@ export default function MasterLayout() {
             </p>
           </div>
         </Link>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="relative z-10 lg:hidden p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors touch-manipulation cursor-pointer"
-          aria-label="Fechar menu"
-        >
-          <X className="w-5 h-5 pointer-events-none" strokeWidth={1.75} />
-        </button>
+        {isMobileDrawer && (
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="relative z-10 lg:hidden p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors touch-manipulation cursor-pointer"
+            aria-label="Fechar menu"
+          >
+            <X className="w-5 h-5 pointer-events-none" strokeWidth={1.75} />
+          </button>
+        )}
       </div>
 
       {/* Navigation List */}
@@ -108,23 +120,24 @@ export default function MasterLayout() {
             <NavLink
               key={item.path}
               to={item.path}
-              className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
+              onClick={() => isMobileDrawer && setOpen(false)}
+              className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 touch-manipulation ${
                 isActive
                   ? 'bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] text-white shadow-sm shadow-[#2563EB]/30'
                   : 'text-[#B4B9CE] hover:text-white hover:bg-white/5'
               }`}
             >
               <Icon
-                className={`w-[18px] h-[18px] flex-shrink-0 transition-colors ${
+                className={`w-[18px] h-[18px] flex-shrink-0 transition-colors pointer-events-none ${
                   isActive ? 'text-white' : 'text-[#7E8BAF] group-hover:text-white'
                 }`}
                 strokeWidth={1.75}
               />
-              <span className="truncate flex-1 tracking-tight">{item.label}</span>
+              <span className="truncate flex-1 tracking-tight pointer-events-none">{item.label}</span>
 
               {item.badge && (
                 <span
-                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none tracking-wider ${
+                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none tracking-wider pointer-events-none ${
                     isActive
                       ? 'bg-white/20 text-white'
                       : 'bg-[#59658F]/25 text-[#B5D7E8] border border-[#59658F]/30'
@@ -135,11 +148,7 @@ export default function MasterLayout() {
               )}
 
               {isActive && (
-                <motion.div
-                  layoutId="active-indicator"
-                  className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white"
-                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                />
+                <span className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white pointer-events-none" />
               )}
             </NavLink>
           );
@@ -166,7 +175,10 @@ export default function MasterLayout() {
 
         <button
           type="button"
-          onClick={() => logout()}
+          onClick={() => {
+            if (isMobileDrawer) setOpen(false);
+            logout();
+          }}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-[#B4B9CE] hover:text-red-300 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/20 touch-manipulation cursor-pointer"
         >
           <LogOut className="w-4 h-4 text-red-400 pointer-events-none" strokeWidth={1.75} />
@@ -213,39 +225,33 @@ export default function MasterLayout() {
 
       {/* Desktop Fixed Sidebar */}
       <aside className="hidden lg:flex w-64 min-h-screen border-r border-[#E5E7EF] dark:border-[#232538] flex-col fixed h-screen overflow-hidden z-40">
-        {SidebarBody}
+        {renderSidebarBody(false)}
       </aside>
 
-      {/* Mobile Animated Drawer via Framer Motion */}
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            key="mobile-drawer"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="lg:hidden fixed inset-0 z-50 pointer-events-auto"
-          >
-            {/* Backdrop */}
-            <div
-              onClick={() => setOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
+      {/* Mobile Drawer com transição CSS pura (sem AnimatePresence/layoutId para nunca travar overlay após navegação) */}
+      <div
+        aria-hidden={!open}
+        className={`lg:hidden fixed inset-0 z-50 transition-[visibility] duration-200 ${
+          open ? 'visible pointer-events-auto' : 'invisible pointer-events-none'
+        }`}
+      >
+        {/* Backdrop */}
+        <div
+          onClick={() => setOpen(false)}
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 ${
+            open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        />
 
-            {/* Slide-in Drawer */}
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="absolute left-0 top-0 bottom-0 w-[84%] max-w-[320px] shadow-2xl z-10 overflow-hidden"
-            >
-              {SidebarBody}
-            </motion.aside>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Slide-in Drawer */}
+        <aside
+          className={`absolute left-0 top-0 bottom-0 w-[84%] max-w-[320px] shadow-2xl z-10 overflow-hidden transition-transform duration-300 ease-out ${
+            open ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'
+          }`}
+        >
+          {renderSidebarBody(true)}
+        </aside>
+      </div>
 
       {/* Desktop Executive Header (#171827) */}
       <header
@@ -295,17 +301,14 @@ export default function MasterLayout() {
         </div>
       </header>
 
-      {/* Main Content Container */}
+      {/* Main Content Container (sem wrapper transform para não isolar stacking contexts) */}
       <main className="relative z-10 lg:ml-64 min-h-[calc(100vh-4rem)] min-w-0">
-        <motion.div
+        <div
           key={location.pathname}
-          initial={false}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
           className="p-4 sm:p-6 lg:p-8 max-w-[1440px] mx-auto space-y-6 min-w-0"
         >
           <Outlet />
-        </motion.div>
+        </div>
       </main>
     </div>
   );

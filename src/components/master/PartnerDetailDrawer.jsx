@@ -150,7 +150,8 @@ export default function PartnerDetailDrawer({
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prev === 'hidden' ? '' : prev;
+      document.body.style.pointerEvents = '';
     };
   }, [onClose]);
 

@@ -1,7 +1,9 @@
+'use client';
+
 // CompaniesTable.jsx — Tabela Avançada de Tenants (Barbearias) com TanStack Table (@tanstack/react-table)
 // Design System: Premium Business SaaS + Business Intelligence
 // Superfície: #FFFFFF | Bordas: #E5E7EF | Acentos: #171827, #59658F, #B5D7E8
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   useReactTable,
@@ -26,7 +28,7 @@ import {
   Building,
 } from 'lucide-react';
 import { useImpersonationContext } from '@/contexts/ImpersonationContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ConfirmDestructiveDialog from '@/components/ConfirmDestructiveDialog';
 import { useToast } from '@/components/ui/use-toast';
 import { getTotpToken, clearTotpSession } from '@/lib/totpSession';
@@ -98,6 +100,7 @@ export default function CompaniesTable() {
   const pageSize = 15;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { startImpersonation } = useImpersonationContext();
   const [confirmTarget, setConfirmTarget] = useState(null); // company a bloquear
@@ -197,6 +200,26 @@ export default function CompaniesTable() {
   const impersonatePendingId = impersonate.isPending ? impersonate.variables?.id ?? '__any__' : null;
   const togglePendingId = toggleStatus.isPending ? toggleStatus.variables?.id ?? '__any__' : null;
   const deletePendingId = deleteCompany.isPending ? deleteCompany.variables?.id ?? '__any__' : null;
+
+  const { reset: resetImpersonate } = impersonate;
+  const { reset: resetToggleStatus } = toggleStatus;
+  const { reset: resetDeleteCompany } = deleteCompany;
+
+  // Limpa alvos de confirmação, estados pendentes de mutation e bloqueios de DOM em cada transição de rota
+  useEffect(() => {
+    setConfirmTarget(null);
+    setDeleteTarget(null);
+    resetImpersonate();
+    resetToggleStatus();
+    resetDeleteCompany();
+    document.body.style.overflow = '';
+    document.body.style.pointerEvents = '';
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.pointerEvents = '';
+    };
+  }, [location.pathname, resetImpersonate, resetToggleStatus, resetDeleteCompany]);
 
   const actionsRef = useRef({});
   actionsRef.current = {
