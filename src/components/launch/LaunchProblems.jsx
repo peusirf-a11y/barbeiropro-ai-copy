@@ -21,11 +21,11 @@ export default function LaunchProblems() {
             <SectionBadge icon={AlertTriangle}>Diagnóstico</SectionBadge>
           </div>
           <h2 className="text-4xl md:text-5xl font-black tracking-[-0.02em] mb-4">
-            <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/70 bg-clip-text text-transparent">
               Sua barbearia ainda perde tempo com isso?
             </span>
           </h2>
-          <p className="text-base text-white/60">
+          <p className="text-base text-slate-600 dark:text-white/60">
             Reconhece alguma dessas situações? Você não está sozinho — e tem como resolver.
           </p>
         </div>
@@ -38,15 +38,15 @@ export default function LaunchProblems() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="group relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 hover:border-rose-400/25 hover:bg-white/[0.04] transition-all duration-300"
+              className="group relative rounded-2xl border border-slate-200/90 dark:border-white/8 bg-white dark:bg-white/[0.025] backdrop-blur-md p-5 hover:border-rose-300 dark:hover:border-rose-400/25 hover:shadow-md dark:hover:bg-white/[0.04] transition-all duration-300 shadow-xs dark:shadow-none"
             >
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-rose-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-rose-500/[0.03] dark:from-rose-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-400/20 flex items-center justify-center mb-3">
-                  <p.icon className="w-4.5 h-4.5 text-rose-300" />
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-400/20 flex items-center justify-center mb-3">
+                  <p.icon className="w-4.5 h-4.5 text-rose-600 dark:text-rose-300" />
                 </div>
-                <h3 className="font-bold text-white text-[15px] mb-1.5">{p.title}</h3>
-                <p className="text-sm text-white/55 leading-relaxed">{p.desc}</p>
+                <h3 className="font-bold text-slate-900 dark:text-white text-[15px] mb-1.5">{p.title}</h3>
+                <p className="text-sm text-slate-600 dark:text-white/55 leading-relaxed">{p.desc}</p>
               </div>
             </motion.div>
           ))}

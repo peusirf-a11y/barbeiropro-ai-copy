@@ -26,7 +26,7 @@ export default function GlowButton({
     return (
       <Component
         {...elementProps}
-        className={`group relative inline-flex items-center justify-center gap-2 h-12 px-7 rounded-xl text-sm font-semibold text-white/90 border border-white/[0.14] bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.08] hover:border-white/30 active:scale-[0.98] transition-[transform,background-color,border-color,color] duration-[180ms] ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer select-none ${className}`}
+        className={`group relative inline-flex items-center justify-center gap-2 h-12 px-7 rounded-xl text-sm font-semibold text-slate-800 dark:text-white/90 border border-slate-300 dark:border-white/[0.16] bg-white/90 dark:bg-white/[0.04] backdrop-blur-md hover:bg-slate-100 dark:hover:bg-white/[0.09] hover:border-slate-400 dark:hover:border-white/30 active:scale-[0.98] transition-[transform,background-color,border-color,color] duration-[180ms] ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer select-none shadow-xs dark:shadow-none ${className}`}
       >
         <span>{children}</span>
         {icon && <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-0.5 group-hover:opacity-100 transition-transform duration-[180ms]" strokeWidth={1.75} />}

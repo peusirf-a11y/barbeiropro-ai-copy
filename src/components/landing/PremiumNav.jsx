@@ -5,6 +5,7 @@ import { Menu, X } from 'lucide-react';
 import GlowButton from './GlowButton';
 import BrandMark from '@/components/BrandMark';
 import PWAInstallButton from '@/components/PWAInstallButton';
+import { useTheme } from '@/theme/ThemeProvider';
 
 const NAV_ITEMS = [
   { label: 'Plataforma', id: 'beneficios', fallbacks: ['beneficios', 'problemas', 'solucao'] },
@@ -19,6 +20,7 @@ export default function PremiumNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -66,7 +68,7 @@ export default function PremiumNav() {
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           scrolled || mobileOpen
-            ? 'bg-[#050816]/85 backdrop-blur-2xl border-b border-white/[0.08] shadow-[0_12px_40px_-12px_rgba(2,6,23,0.75)]'
+            ? 'bg-white/90 dark:bg-[#050816]/85 backdrop-blur-2xl border-b border-slate-200/80 dark:border-white/[0.08] shadow-[0_8px_28px_-12px_rgba(15,23,42,0.12)] dark:shadow-[0_12px_40px_-12px_rgba(2,6,23,0.75)]'
             : 'bg-transparent border-b border-transparent'
         }`}
       >
@@ -78,17 +80,17 @@ export default function PremiumNav() {
             className="flex items-center cursor-pointer bg-transparent border-0 p-0 text-left outline-none shrink-0"
             aria-label="Ir para o topo da página inicial"
           >
-            <BrandMark size={36} tone="dark" />
+            <BrandMark size={36} tone={isDark ? 'dark' : 'light'} />
           </button>
 
           {/* Links desktop com sublinhado animado (Transitions.dev) */}
-          <div className="hidden lg:flex items-center gap-7 text-sm font-medium text-white/75">
+          <div className="hidden lg:flex items-center gap-7 text-sm font-medium text-slate-700 dark:text-white/75">
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
                 onClick={(e) => handleNavClick(e, item)}
-                className="nav-link-underline py-1 hover:text-white transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0"
+                className="nav-link-underline py-1 hover:text-slate-950 dark:hover:text-white transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0"
               >
                 {item.label}
               </a>
@@ -101,14 +103,14 @@ export default function PremiumNav() {
 
             <Link
               to="/demo/dashboard"
-              className="hidden md:inline-flex h-9 px-3.5 rounded-xl text-xs sm:text-sm font-medium text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 items-center cursor-pointer whitespace-nowrap shrink-0"
+              className="hidden md:inline-flex h-9 px-3.5 rounded-xl text-xs sm:text-sm font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-900/5 dark:text-white/80 dark:hover:text-white dark:hover:bg-white/[0.06] transition-colors duration-150 items-center cursor-pointer whitespace-nowrap shrink-0"
             >
               Demo
             </Link>
 
             <Link
               to="/login"
-              className="inline-flex h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold text-white/85 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 items-center cursor-pointer whitespace-nowrap shrink-0"
+              className="inline-flex h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 hover:text-slate-950 hover:bg-slate-900/5 dark:text-white/85 dark:hover:text-white dark:hover:bg-white/[0.06] transition-colors duration-150 items-center cursor-pointer whitespace-nowrap shrink-0"
             >
               Entrar
             </Link>
@@ -124,7 +126,7 @@ export default function PremiumNav() {
             <button
               type="button"
               onClick={() => setMobileOpen((prev) => !prev)}
-              className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer border border-white/10 ml-1"
+              className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center text-slate-700 hover:text-slate-950 hover:bg-slate-900/5 border border-slate-200 dark:text-white/80 dark:hover:text-white dark:hover:bg-white/10 dark:border-white/10 transition-colors cursor-pointer ml-1"
               aria-label={mobileOpen ? 'Fechar menu' : 'Abrir menu de navegação'}
             >
               {mobileOpen ? <X className="w-5 h-5" strokeWidth={1.75} /> : <Menu className="w-5 h-5" strokeWidth={1.75} />}
@@ -134,8 +136,8 @@ export default function PremiumNav() {
 
         {/* Dropdown mobile */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-white/10 bg-[#070B18]/95 backdrop-blur-2xl px-5 py-5 space-y-3 shadow-2xl animate-fade-in">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-white/45 mb-2">
+          <div className="lg:hidden border-t border-slate-200 dark:border-white/10 bg-white/95 dark:bg-[#070B18]/95 backdrop-blur-2xl px-5 py-5 space-y-3 shadow-2xl animate-fade-in">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-white/45 mb-2">
               Navegação
             </div>
             <div className="space-y-1">
@@ -144,25 +146,25 @@ export default function PremiumNav() {
                   key={item.id}
                   href={`#${item.id}`}
                   onClick={(e) => handleNavClick(e, item)}
-                  className="block py-2 text-sm font-semibold text-white/85 hover:text-white transition-colors"
+                  className="block py-2 text-sm font-semibold text-slate-800 hover:text-slate-950 dark:text-white/85 dark:hover:text-white transition-colors"
                 >
                   {item.label}
                 </a>
               ))}
             </div>
 
-            <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
+            <div className="pt-3 border-t border-slate-200 dark:border-white/10 flex flex-col gap-2">
               <Link
                 to="/demo/dashboard"
                 onClick={() => setMobileOpen(false)}
-                className="w-full py-2.5 px-3 rounded-xl text-center text-xs font-bold text-white/85 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                className="w-full py-2.5 px-3 rounded-xl text-center text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 dark:text-white/85 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 transition-colors"
               >
                 Ver demonstração ao vivo
               </Link>
               <Link
                 to="/login"
                 onClick={() => setMobileOpen(false)}
-                className="w-full py-2.5 px-3 rounded-xl text-center text-xs font-bold text-white bg-white/10 hover:bg-white/15 border border-white/15 transition-colors"
+                className="w-full py-2.5 px-3 rounded-xl text-center text-xs font-bold text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 dark:text-white dark:bg-white/10 dark:hover:bg-white/15 dark:border-white/15 transition-colors"
               >
                 Entrar na minha conta
               </Link>

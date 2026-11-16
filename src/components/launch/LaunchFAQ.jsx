@@ -33,18 +33,18 @@ const FAQ = [
 
 function FAQItem({ q, a, open, onToggle }) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
+    <div className="rounded-2xl border border-slate-200/90 dark:border-white/8 bg-white dark:bg-white/[0.025] backdrop-blur-md overflow-hidden shadow-xs dark:shadow-none">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-white/[0.04] transition-colors"
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
       >
-        <span className="text-[15px] font-semibold text-white">{q}</span>
+        <span className="text-[15px] font-semibold text-slate-900 dark:text-white">{q}</span>
         <span
-          className={`flex-shrink-0 w-7 h-7 rounded-full border border-white/15 bg-white/[0.04] flex items-center justify-center transition-transform duration-300 ${
-            open ? 'rotate-45 border-[#60A5FA]/40 bg-[#60A5FA]/10' : ''
+          className={`flex-shrink-0 w-7 h-7 rounded-full border border-slate-300 dark:border-white/15 bg-slate-100 dark:bg-white/[0.04] flex items-center justify-center transition-transform duration-300 ${
+            open ? 'rotate-45 border-[#2563EB]/50 bg-blue-50 dark:border-[#60A5FA]/40 dark:bg-[#60A5FA]/10' : ''
           }`}
         >
-          <Plus className="w-4 h-4 text-white/80" />
+          <Plus className="w-4 h-4 text-slate-700 dark:text-white/80" />
         </span>
       </button>
       <AnimatePresence initial={false}>
@@ -56,7 +56,7 @@ function FAQItem({ q, a, open, onToggle }) {
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5 text-sm text-white/65 leading-relaxed">{a}</div>
+            <div className="px-5 pb-5 text-sm text-slate-600 dark:text-white/65 leading-relaxed">{a}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -75,7 +75,7 @@ export default function LaunchFAQ() {
             <SectionBadge icon={HelpCircle}>Perguntas frequentes</SectionBadge>
           </div>
           <h2 className="text-4xl md:text-5xl font-black tracking-[-0.02em] mb-4">
-            <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/70 bg-clip-text text-transparent">
               Tira-dúvidas rápido
             </span>
           </h2>

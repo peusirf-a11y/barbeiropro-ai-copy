@@ -48,10 +48,10 @@ export default function HistoryFilters({ preset, setPreset, customFrom, setCusto
             key={p.key}
             type="button"
             onClick={() => setPreset(p.key)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border ${
               preset === p.key
-                ? 'bg-[#171827] text-white dark:bg-[#2563EB] shadow-xs'
-                : 'bg-[#F8FAFC] dark:bg-[#1C1E30] border border-[#E5E7EF] dark:border-[#232538] text-[#55596A] dark:text-[#8F9BBF] hover:border-[#2563EB]'
+                ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-sm shadow-blue-600/20'
+                : 'bg-[#F8FAFC] dark:bg-[#1C1E30] border-[#E5E7EF] dark:border-[#232538] text-[#55596A] dark:text-[#8F9BBF] hover:border-[#2563EB]'
             }`}
           >
             {p.label}

@@ -72,13 +72,13 @@ export default function LandingPage() {
   }, []);
 
   if (landingMode === null) {
-    return <div className="min-h-screen bg-[#070B14]" />;
+    return <div className="min-h-screen bg-[#F4F7FB] dark:bg-[#070B14]" />;
   }
 
   if (landingMode === 'launch') return <LaunchLandingPage />;
 
   return (
-    <div className="public-dark relative min-h-screen bg-[#070B14] text-white font-inter antialiased selection:bg-[#2563EB]/40 selection:text-white">
+    <div className="relative min-h-screen bg-[#F4F7FB] dark:bg-[#070B14] text-slate-900 dark:text-white font-inter antialiased selection:bg-[#2563EB]/25 dark:selection:bg-[#2563EB]/40 selection:text-slate-900 dark:selection:text-white">
       <PremiumBackground />
       <PremiumNav />
       <main className="relative">

@@ -67,7 +67,7 @@ export default function PremiumTestimonials() {
         <BlurReveal inView className="text-center mb-14 max-w-2xl mx-auto">
           <div className="flex justify-center mb-5"><SectionBadge>Quem usa</SectionBadge></div>
           <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.025em] mb-5">
-            <span className="bg-gradient-to-b from-white to-white/75 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/75 bg-clip-text text-transparent">
               Barbearias que decidiram crescer.
             </span>
           </h2>
@@ -81,11 +81,14 @@ export default function PremiumTestimonials() {
                   {/* Foto */}
                   <div className="relative h-56 overflow-hidden">
                     <TestimonialPortrait src={t.photo} alt={t.name} initials={t.initials} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#050816] via-[#050816]/40 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/35 to-transparent pointer-events-none" />
                     {/* Métrica destaque */}
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-2">
-                      <div className="text-xs font-semibold text-slate-200 truncate">{t.role}</div>
-                      <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/30 backdrop-blur tabular-nums whitespace-nowrap">
+                      <div className="text-xs font-semibold text-slate-100 truncate" style={{ color: '#F1F5F9' }}>{t.role}</div>
+                      <span
+                        className="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-emerald-950/80 ring-1 ring-emerald-400/40 backdrop-blur tabular-nums whitespace-nowrap"
+                        style={{ color: '#6EE7B7' }}
+                      >
                         {t.metric}
                       </span>
                     </div>
@@ -93,11 +96,11 @@ export default function PremiumTestimonials() {
 
                   <div className="p-6 flex-1 flex flex-col justify-between">
                     <div>
-                      <Quote className="w-6 h-6 text-[#60A5FA]/45 mb-3" strokeWidth={1.75} />
-                      <p className="text-slate-200 text-sm leading-relaxed mb-4">"{t.quote}"</p>
+                      <Quote className="w-6 h-6 text-[#2563EB]/45 dark:text-[#60A5FA]/45 mb-3" strokeWidth={1.75} />
+                      <p className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed mb-4">"{t.quote}"</p>
                     </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
-                      <div className="text-white font-bold text-sm">{t.name}</div>
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-white/[0.06]">
+                      <div className="text-slate-900 dark:text-white font-bold text-sm">{t.name}</div>
                       <div className="flex items-center gap-0.5">
                         {Array.from({ length: t.rating }).map((_, j) => (
                           <Star key={j} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />

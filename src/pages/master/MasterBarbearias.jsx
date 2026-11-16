@@ -285,9 +285,9 @@ export default function MasterBarbearias() {
         <button
           type="button"
           onClick={handleOpenModal}
-          className="relative z-20 touch-manipulation text-xs font-bold bg-[#171827] hover:bg-[#232538] text-white dark:bg-[#2563EB] dark:hover:bg-[#1d4ed8] px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all border border-transparent hover:border-[#B5D7E8]/30 cursor-pointer active:scale-[0.98] select-none"
+          className="relative z-20 touch-manipulation text-xs font-bold bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm shadow-blue-600/25 transition-all border border-transparent hover:border-[#B5D7E8]/30 cursor-pointer active:scale-[0.98] select-none"
         >
-          <Plus className="w-4 h-4 text-[#B5D7E8] pointer-events-none" strokeWidth={1.75} />
+          <Plus className="w-4 h-4 text-white pointer-events-none" strokeWidth={2} />
           <span className="pointer-events-none">Nova Empresa (Onboarding Assistido)</span>
         </button>
       </div>

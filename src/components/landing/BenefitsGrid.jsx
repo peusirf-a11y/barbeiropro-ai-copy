@@ -23,13 +23,13 @@ export default function BenefitsGrid() {
         <BlurReveal inView className="text-center mb-16 max-w-2xl mx-auto">
           <div className="flex justify-center mb-5"><SectionBadge>Plataforma completa</SectionBadge></div>
           <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.025em] mb-5">
-            <span className="bg-gradient-to-b from-white to-white/75 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/75 bg-clip-text text-transparent">
               Tudo que sua barbearia precisa.
             </span>
             <br />
-            <span className="text-slate-400">Num só sistema.</span>
+            <span className="text-[#2563EB] dark:text-slate-400">Num só sistema.</span>
           </h2>
-          <p className="text-slate-300/75 text-base md:text-lg">
+          <p className="text-slate-600 dark:text-slate-300/75 text-base md:text-lg">
             Operação, marketing, recorrência e IA — integrados nativamente.
           </p>
         </BlurReveal>
@@ -45,15 +45,15 @@ export default function BenefitsGrid() {
             >
               <SpotlightCard className="rounded-2xl p-6 h-full">
                 <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-[#1E3A8A] to-[#0F172A] border border-white/10 flex items-center justify-center shadow-lg shadow-[#2563EB]/20">
-                    <b.icon className="w-5 h-5 text-[#93C5FD]" strokeWidth={1.75} />
+                  <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] dark:from-[#1E3A8A] dark:to-[#0F172A] border border-blue-500/20 dark:border-white/10 flex items-center justify-center shadow-md shadow-blue-600/15 dark:shadow-lg dark:shadow-[#2563EB]/20">
+                    <b.icon className="w-5 h-5 text-white dark:text-[#93C5FD]" strokeWidth={1.75} />
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400/70 tabular-nums">
+                  <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400/70 tabular-nums">
                     {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
-                <h3 className="text-white font-bold text-base mb-1.5">{b.title}</h3>
-                <p className="text-slate-300/75 text-sm leading-relaxed">{b.desc}</p>
+                <h3 className="text-slate-900 dark:text-white font-bold text-base mb-1.5">{b.title}</h3>
+                <p className="text-slate-600 dark:text-slate-300/75 text-sm leading-relaxed">{b.desc}</p>
               </SpotlightCard>
             </BlurReveal>
           ))}

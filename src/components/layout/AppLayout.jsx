@@ -15,6 +15,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { isPastDueLimited } from '@/lib/billingMode';
 import UnitSwitcher from '@/components/units/UnitSwitcher';
 import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
+import { useTheme } from '@/theme/ThemeProvider';
 
 // Rotas "principais" do mobile — quando estamos numa subrota fora dessa lista,
 // o header mobile mostra um botão de Voltar em vez do logo.
@@ -82,6 +83,7 @@ import { useQuery } from '@tanstack/react-query';
 
 export default function AppLayout({ children }) {
   const { user, logout } = useAuth();
+  const { isDark } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -177,9 +179,9 @@ export default function AppLayout({ children }) {
   // Evita flash de menu completo antes do RBAC carregar.
   if (loadingRole) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#050816]">
+      <div className="fixed inset-0 flex items-center justify-center bg-[#F1F2F7] dark:bg-[#050816]">
         <AppBackgroundLayer />
-        <div className="relative w-8 h-8 border-4 border-[#60A5FA]/20 border-t-[#60A5FA] rounded-full animate-spin" />
+        <div className="relative w-8 h-8 border-4 border-[#60A5FA]/20 border-t-[#2563EB] dark:border-t-[#60A5FA] rounded-full animate-spin" />
       </div>
     );
   }
@@ -199,14 +201,14 @@ export default function AppLayout({ children }) {
   }
 
   const SidebarContent = (
-    <div className="flex flex-col h-full bg-[#171827] text-white select-none">
-      <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+    <div className="flex flex-col h-full bg-white dark:bg-[#171827] text-slate-900 dark:text-white select-none">
+      <div className="px-6 py-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between flex-shrink-0">
         <Link to="/app/dashboard" className="group min-w-0 transition-transform group-hover:scale-[1.02]">
-          <BrandMark size={40} tone="dark" subtitle="Painel de Gestão" />
+          <BrandMark size={40} tone={isDark ? 'dark' : 'light'} subtitle="Painel de Gestão" />
         </Link>
         <button
           onClick={() => setOpen(false)}
-          className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-white/10 text-gray-300"
+          className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-gray-300"
           aria-label="Fechar menu"
         >
           <X className="w-5 h-5" strokeWidth={1.75} />
@@ -217,18 +219,18 @@ export default function AppLayout({ children }) {
         <NavList items={navItems} />
       </div>
 
-      <div className="px-3 py-4 border-t border-white/10 bg-[#131422] flex-shrink-0">
+      <div className="px-3 py-4 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#131422] flex-shrink-0">
         {user?.email && (
-          <div className="px-3 pb-2 text-[11px] text-[#7E8BAF] truncate font-mono">
+          <div className="px-3 pb-2 text-[11px] text-slate-500 dark:text-[#7E8BAF] truncate font-mono">
             {user.email}
           </div>
         )}
         <button
           onClick={() => logout()}
           aria-label="Sair da conta"
-          className="flex items-center gap-3 text-xs text-[#B4B9CE] hover:text-red-300 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 font-semibold border border-transparent hover:border-red-500/20"
+          className="flex items-center gap-3 text-xs text-slate-700 dark:text-[#B4B9CE] hover:text-red-600 dark:hover:text-red-300 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 font-semibold border border-transparent hover:border-red-200 dark:hover:border-red-500/20"
         >
-          <LogOut className="w-4 h-4 text-red-400" strokeWidth={1.75} aria-hidden="true" />
+          <LogOut className="w-4 h-4 text-red-500 dark:text-red-400" strokeWidth={1.75} aria-hidden="true" />
           Sair da conta
         </button>
       </div>
@@ -269,8 +271,8 @@ export default function AppLayout({ children }) {
         </div>
       </header>
 
-      {/* Desktop sidebar — #171827 */}
-      <aside className="hidden lg:flex w-64 min-h-screen bg-[#171827] border-r border-[#E5E7EF] dark:border-[#232538] flex-col fixed h-screen overflow-hidden z-40">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-64 min-h-screen bg-white dark:bg-[#171827] border-r border-slate-200 dark:border-[#232538] flex-col fixed h-screen overflow-hidden z-40">
         {SidebarContent}
       </aside>
 
@@ -281,7 +283,7 @@ export default function AppLayout({ children }) {
           className={`absolute inset-0 bg-black/60 transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}
         />
         <aside
-          className={`absolute left-0 top-0 bottom-0 w-[82%] max-w-[300px] bg-[#171827] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
+          className={`absolute left-0 top-0 bottom-0 w-[82%] max-w-[300px] bg-white dark:bg-[#171827] border-r border-slate-200 dark:border-[#232538] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
         >
           {SidebarContent}
         </aside>

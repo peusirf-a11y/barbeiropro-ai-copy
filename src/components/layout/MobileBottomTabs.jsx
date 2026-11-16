@@ -48,7 +48,7 @@ export default function MobileBottomTabs({ allowedKeys, isBarbeiro, onOpenMore }
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#171827]/95 backdrop-blur-xl border-t border-[#232538] select-none shadow-lg"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#171827]/95 backdrop-blur-xl border-t border-slate-200 dark:border-[#232538] select-none shadow-[0_-4px_20px_rgba(15,23,42,0.06)] dark:shadow-lg"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex items-stretch h-[58px]">
@@ -61,15 +61,25 @@ export default function MobileBottomTabs({ allowedKeys, isBarbeiro, onOpenMore }
               to={tab.path}
               onClick={(e) => handleTabClick(e, tab)}
               className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
-                active ? 'text-[#B5D7E8]' : 'text-[#8F9BBF] hover:text-white'
+                active
+                  ? 'text-[#2563EB] dark:text-[#B5D7E8]'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-[#8F9BBF] dark:hover:text-white'
               }`}
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <Icon
-                className={`w-[20px] h-[20px] transition-transform ${active ? 'scale-105 text-[#B5D7E8]' : ''}`}
+                className={`w-[20px] h-[20px] transition-transform ${
+                  active ? 'scale-105 text-[#2563EB] dark:text-[#B5D7E8]' : ''
+                }`}
                 strokeWidth={1.75}
               />
-              <span className={`text-[10px] font-bold tracking-tight ${active ? 'text-[#B5D7E8]' : 'text-[#8F9BBF]'}`}>
+              <span
+                className={`text-[10px] font-bold tracking-tight ${
+                  active
+                    ? 'text-[#2563EB] dark:text-[#B5D7E8]'
+                    : 'text-slate-500 dark:text-[#8F9BBF]'
+                }`}
+              >
                 {tab.label}
               </span>
             </Link>
@@ -79,7 +89,7 @@ export default function MobileBottomTabs({ allowedKeys, isBarbeiro, onOpenMore }
         <button
           type="button"
           onClick={onOpenMore}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[#8F9BBF] hover:text-white active:bg-white/5 transition-colors cursor-pointer"
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-900 active:bg-slate-100 dark:text-[#8F9BBF] dark:hover:text-white dark:active:bg-white/5 transition-colors cursor-pointer"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <MoreHorizontal className="w-[20px] h-[20px]" strokeWidth={1.75} />

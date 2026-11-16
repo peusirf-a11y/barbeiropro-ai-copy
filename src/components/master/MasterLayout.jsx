@@ -31,6 +31,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { isSuperAdmin } from '@/lib/permissions';
 import ImpersonationCountdown from '@/components/security/ImpersonationCountdown';
 import { useImpersonationContext } from '@/contexts/ImpersonationContext';
+import { useTheme } from '@/theme/ThemeProvider';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/master/dashboard' },
@@ -50,6 +51,7 @@ const navItems = [
 
 export default function MasterLayout() {
   const { logout, user, isAuthenticated } = useAuth();
+  const { isDark } = useTheme();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const { isImpersonating } = useImpersonationContext();
@@ -78,24 +80,24 @@ export default function MasterLayout() {
   const pageTitle = activeNav?.label || 'Super Admin';
 
   const renderSidebarBody = (isMobileDrawer = false) => (
-    <div className="flex flex-col h-full bg-[#171827] text-white select-none">
+    <div className="flex flex-col h-full bg-white dark:bg-[#171827] text-slate-900 dark:text-white select-none">
       {/* Brand Header */}
-      <div className="h-16 px-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+      <div className="h-16 px-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between flex-shrink-0">
         <Link
           to="/master/dashboard"
           onClick={() => isMobileDrawer && setOpen(false)}
           className="flex items-center gap-2.5 min-w-0 group"
         >
-          <Logo variant="icon-dark" size={34} className="flex-shrink-0 transition-transform group-hover:scale-105" />
+          <Logo variant={isDark ? 'icon-dark' : 'icon'} size={34} className="flex-shrink-0 transition-transform group-hover:scale-105" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm tracking-tight text-white leading-none" style={{ color: '#FFFFFF' }}>O CORTE</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#59658F]/35 text-[#B5D7E8] border border-[#59658F]/45 leading-none">
+              <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white leading-none">O CORTE</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-[#59658F]/35 text-[#2563EB] dark:text-[#B5D7E8] border border-blue-200 dark:border-[#59658F]/45 leading-none">
                 ENTERPRISE
               </span>
             </div>
-            <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5 flex items-center gap-1">
-              <Shield className="w-3 h-3 text-[#B5D7E8]" strokeWidth={1.75} /> Gestão Corporativa
+            <p className="text-[11px] text-slate-500 dark:text-slate-300 font-medium truncate mt-0.5 flex items-center gap-1">
+              <Shield className="w-3 h-3 text-[#2563EB] dark:text-[#B5D7E8]" strokeWidth={1.75} /> Gestão Corporativa
             </p>
           </div>
         </Link>
@@ -103,7 +105,7 @@ export default function MasterLayout() {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="relative z-10 lg:hidden p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors touch-manipulation cursor-pointer"
+            className="relative z-10 lg:hidden p-1.5 rounded-lg text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors touch-manipulation cursor-pointer"
             aria-label="Fechar menu"
           >
             <X className="w-5 h-5 pointer-events-none" strokeWidth={1.75} />
@@ -113,7 +115,7 @@ export default function MasterLayout() {
 
       {/* Navigation List */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
-        <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
           Módulos Centrais
         </div>
         {visibleNavItems.map((item) => {
@@ -128,12 +130,12 @@ export default function MasterLayout() {
               className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 touch-manipulation ${
                 isActive
                   ? 'bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] text-white shadow-sm shadow-[#2563EB]/30'
-                  : 'text-[#B4B9CE] hover:text-white hover:bg-white/5'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-[#B4B9CE] dark:hover:text-white dark:hover:bg-white/5'
               }`}
             >
               <Icon
                 className={`w-[18px] h-[18px] flex-shrink-0 transition-colors pointer-events-none ${
-                  isActive ? 'text-white' : 'text-[#7E8BAF] group-hover:text-white'
+                  isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-900 dark:text-[#7E8BAF] dark:group-hover:text-white'
                 }`}
                 strokeWidth={1.75}
               />
@@ -144,7 +146,7 @@ export default function MasterLayout() {
                   className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none tracking-wider pointer-events-none ${
                     isActive
                       ? 'bg-white/20 text-white'
-                      : 'bg-[#59658F]/25 text-[#B5D7E8] border border-[#59658F]/30'
+                      : 'bg-slate-100 dark:bg-[#59658F]/25 text-slate-700 dark:text-[#B5D7E8] border border-slate-200 dark:border-[#59658F]/30'
                   }`}
                 >
                   {item.badge}
@@ -160,17 +162,17 @@ export default function MasterLayout() {
       </nav>
 
       {/* Footer / User Profile & Logout */}
-      <div className="p-3 border-t border-white/10 bg-[#131422] flex-shrink-0">
-        <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between gap-2 mb-2">
+      <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#131422] flex-shrink-0">
+        <div className="p-2.5 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] text-white flex items-center justify-center font-bold text-xs shadow-sm">
-              <Shield className="w-4 h-4 text-[#B5D7E8]" strokeWidth={1.75} />
+              <Shield className="w-4 h-4 text-white dark:text-[#B5D7E8]" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-bold text-white truncate leading-tight" style={{ color: '#FFFFFF' }}>
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate leading-tight">
                 {user?.name || user?.email?.split('@')[0] || 'Super Admin'}
               </div>
-              <div className="text-[10px] text-slate-300 font-mono truncate leading-none mt-0.5">
+              <div className="text-[10px] text-slate-500 dark:text-slate-300 font-mono truncate leading-none mt-0.5">
                 Nível Master 0
               </div>
             </div>
@@ -183,9 +185,9 @@ export default function MasterLayout() {
             if (isMobileDrawer) setOpen(false);
             logout();
           }}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-[#B4B9CE] hover:text-red-300 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/20 touch-manipulation cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-[#B4B9CE] hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-500/20 touch-manipulation cursor-pointer"
         >
-          <LogOut className="w-4 h-4 text-red-400 pointer-events-none" strokeWidth={1.75} />
+          <LogOut className="w-4 h-4 text-red-500 dark:text-red-400 pointer-events-none" strokeWidth={1.75} />
           <span className="pointer-events-none">Encerrar Sessão</span>
         </button>
       </div>

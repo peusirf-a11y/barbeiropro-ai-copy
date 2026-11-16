@@ -16,6 +16,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
 import { useAuth } from '@/lib/AuthContext';
 import { isSuperAdmin } from '@/lib/permissions';
+import { useTheme } from '@/theme/ThemeProvider';
 
 const navItems = [
   { key: 'dashboard',     label: 'Dashboard',       icon: LayoutDashboard, path: '/demo/dashboard' },
@@ -44,6 +45,7 @@ const MAIN_DEMO_ROUTES = new Set([
 
 export default function DemoLayout({ children }) {
   const { isAuthenticated, user } = useAuth();
+  const { isDark } = useTheme();
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
@@ -63,14 +65,14 @@ export default function DemoLayout({ children }) {
   const isSubRoute = !MAIN_DEMO_ROUTES.has(location.pathname);
 
   const SidebarContent = (
-    <>
-      <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-white dark:bg-[#0B1020] text-slate-900 dark:text-white select-none">
+      <div className="px-6 py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between flex-shrink-0">
         <Link to="/demo/dashboard" className="group min-w-0 transition-transform group-hover:scale-[1.02]">
-          <BrandMark size={42} tone="dark" subtitle="Modo demonstração" />
+          <BrandMark size={42} tone={isDark ? 'dark' : 'light'} subtitle="Modo demonstração" />
         </Link>
         <button
           onClick={() => setOpen(false)}
-          className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-white/10 text-gray-300"
+          className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-gray-300"
           aria-label="Fechar menu"
         >
           <X className="w-5 h-5" />
@@ -79,7 +81,7 @@ export default function DemoLayout({ children }) {
 
       <NavList items={visibleNavItems} />
 
-      <div className="px-3 py-4 border-t border-white/5 mt-auto">
+      <div className="px-3 py-4 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-transparent mt-auto flex-shrink-0">
         <Link
           to="/"
           className="flex items-center justify-center gap-2 text-sm text-white bg-[#2563EB] hover:bg-[#1d4ed8] transition-colors w-full px-3 py-2.5 rounded-xl font-semibold shadow-[0_4px_12px_rgba(37,99,235,0.35)]"
@@ -87,7 +89,7 @@ export default function DemoLayout({ children }) {
           Criar minha conta grátis →
         </Link>
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -124,8 +126,8 @@ export default function DemoLayout({ children }) {
         </div>
       </header>
 
-      {/* Desktop sidebar — DARK, idêntico ao AppLayout */}
-      <aside className="hidden lg:flex w-64 min-h-screen bg-[#0B1020] border-r border-white/5 flex-col fixed h-screen overflow-hidden z-40">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-64 min-h-screen bg-white dark:bg-[#0B1020] border-r border-slate-200 dark:border-white/5 flex-col fixed h-screen overflow-hidden z-40">
         {SidebarContent}
       </aside>
 
@@ -136,7 +138,7 @@ export default function DemoLayout({ children }) {
           className={`absolute inset-0 bg-black/60 transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}
         />
         <aside
-          className={`absolute left-0 top-0 bottom-0 w-[82%] max-w-[300px] bg-[#0B1020] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
+          className={`absolute left-0 top-0 bottom-0 w-[82%] max-w-[300px] bg-white dark:bg-[#0B1020] border-r border-slate-200 dark:border-white/5 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
         >
           {SidebarContent}
         </aside>
@@ -170,9 +172,9 @@ export default function DemoLayout({ children }) {
         {children}
       </main>
 
-      {/* Bottom tab bar mobile — dark glass igual MobileBottomTabs do AppLayout */}
+      {/* Bottom tab bar mobile */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#050816]/90 backdrop-blur-xl border-t border-white/5 select-none"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#050816]/90 backdrop-blur-xl border-t border-slate-200 dark:border-white/5 select-none shadow-[0_-4px_20px_rgba(15,23,42,0.06)] dark:shadow-none"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="flex items-stretch h-[58px]">
@@ -186,11 +188,13 @@ export default function DemoLayout({ children }) {
                 onClick={(e) => {
                   if (active) { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
                 }}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors active:bg-white/10 ${active ? 'text-[#60A5FA]' : 'text-white/55'}`}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors active:bg-slate-100 dark:active:bg-white/10 ${
+                  active ? 'text-[#2563EB] dark:text-[#60A5FA]' : 'text-slate-500 hover:text-slate-900 dark:text-white/55 dark:hover:text-white'
+                }`}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <Icon className={`w-[22px] h-[22px] transition-transform ${active ? 'scale-110' : ''}`} />
-                <span className={`text-[10px] font-semibold tracking-tight ${active ? 'text-[#60A5FA]' : 'text-white/55'}`}>
+                <span className={`text-[10px] font-semibold tracking-tight ${active ? 'text-[#2563EB] dark:text-[#60A5FA]' : 'text-slate-500 dark:text-white/55'}`}>
                   {tab.label}
                 </span>
               </Link>
@@ -200,7 +204,7 @@ export default function DemoLayout({ children }) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 text-white/55 active:bg-white/10 transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-slate-900 active:bg-slate-100 dark:text-white/55 dark:hover:text-white dark:active:bg-white/10 transition-colors"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <MoreHorizontal className="w-[22px] h-[22px]" />

@@ -16,23 +16,23 @@ export default function ResultsBand() {
         <BlurReveal inView className="text-center mb-14 max-w-2xl mx-auto">
           <div className="flex justify-center mb-5"><SectionBadge>Resultados reais</SectionBadge></div>
           <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.025em] mb-5">
-            <span className="bg-gradient-to-b from-white to-white/75 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/75 bg-clip-text text-transparent">
               Números que mudam o jogo.
             </span>
           </h2>
-          <p className="text-slate-300/75 text-base md:text-lg">Média dos clientes em 90 dias usando O CORTE.</p>
+          <p className="text-slate-600 dark:text-slate-300/75 text-base md:text-lg">Média dos clientes em 90 dias usando O CORTE.</p>
         </BlurReveal>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {RESULTS.map((r, i) => (
             <BlurReveal key={r.label} inView delay={i * 0.06} y={12}>
               <SpotlightCard spotlightColor={r.spot} className="rounded-2xl p-6 md:p-8 h-full">
-                <div className={`absolute inset-0 bg-gradient-to-br ${r.tone} to-transparent opacity-60 pointer-events-none`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${r.tone} to-transparent opacity-35 dark:opacity-60 pointer-events-none`} />
                 <div className="relative">
-                  <div className="text-3xl md:text-5xl font-extrabold bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">
+                  <div className="text-3xl md:text-5xl font-extrabold bg-gradient-to-b from-slate-900 to-[#1D4ED8] dark:from-white dark:to-[#93C5FD] bg-clip-text text-transparent">
                     <CountUpValue to={r.to} prefix={r.prefix} suffix={r.suffix} decimals={r.decimals} />
                   </div>
-                  <div className="text-xs md:text-sm text-slate-300/80 mt-2 leading-snug">{r.label}</div>
+                  <div className="text-xs md:text-sm text-slate-700 dark:text-slate-300/80 mt-2 leading-snug font-medium">{r.label}</div>
                 </div>
               </SpotlightCard>
             </BlurReveal>

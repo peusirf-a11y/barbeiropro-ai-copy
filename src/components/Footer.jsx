@@ -14,12 +14,17 @@ export default function Footer() {
       {/* Proteção de contraste caso a página pai tenha classe .light */}
       <style>{`
         .footer-dark { border-color: rgba(255,255,255,0.10) !important; }
-        .footer-dark .footer-body { color: rgba(255,255,255,0.65) !important; }
-        .footer-dark .footer-label { color: rgba(255,255,255,0.50) !important; }
-        .footer-dark .footer-link { color: rgba(255,255,255,0.82) !important; transition: color .15s ease; }
+        .footer-dark .text-white { color: #FFFFFF !important; }
+        .footer-dark .text-white\\/45 { color: rgba(255,255,255,0.55) !important; }
+        .footer-dark .text-white\\/35 { color: rgba(255,255,255,0.45) !important; }
+        .footer-dark .text-white\\/20 { color: rgba(255,255,255,0.28) !important; }
+        .footer-dark .text-\\[\\#93C5FD\\] { color: #93C5FD !important; }
+        .footer-dark .footer-body { color: rgba(255,255,255,0.72) !important; }
+        .footer-dark .footer-label { color: rgba(255,255,255,0.55) !important; }
+        .footer-dark .footer-link { color: rgba(255,255,255,0.85) !important; transition: color .15s ease; }
         .footer-dark .footer-link:hover { color: #ffffff !important; }
         .footer-dark .footer-divider { border-color: rgba(255,255,255,0.10) !important; }
-        .footer-dark .footer-meta { color: rgba(255,255,255,0.55) !important; }
+        .footer-dark .footer-meta { color: rgba(255,255,255,0.60) !important; }
       `}</style>
 
       {/* Linha luminosa superior */}

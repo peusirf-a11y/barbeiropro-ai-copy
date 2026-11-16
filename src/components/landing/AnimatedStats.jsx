@@ -13,8 +13,8 @@ export default function AnimatedStats() {
     <section className="relative py-14 px-6">
       <div className="max-w-6xl mx-auto">
         <HairlineDivider className="mb-10" />
-        <SpotlightCard hoverLift={false} className="rounded-3xl border-white/[0.09] bg-[#0B1121]/80">
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
+        <SpotlightCard hoverLift={false} className="rounded-3xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-white/[0.06]">
             {STATS.map((s, i) => (
               <BlurReveal
                 key={s.label}
@@ -23,7 +23,7 @@ export default function AnimatedStats() {
                 y={10}
                 className="text-center py-8 px-4"
               >
-                <div className="text-3xl md:text-4xl font-extrabold bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">
+                <div className="text-3xl md:text-4xl font-extrabold bg-gradient-to-b from-slate-900 to-[#1D4ED8] dark:from-white dark:to-[#93C5FD] bg-clip-text text-transparent">
                   <CountUpValue
                     to={s.to}
                     prefix={s.prefix}
@@ -31,7 +31,7 @@ export default function AnimatedStats() {
                     decimals={s.decimals}
                   />
                 </div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mt-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mt-2">
                   {s.label}
                 </div>
               </BlurReveal>

@@ -3,7 +3,9 @@ import { Link, useLocation, Navigate } from 'react-router-dom';
 import { LayoutDashboard, Users, DollarSign, Settings, LogOut, Gift, Menu, X } from 'lucide-react';
 import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
 import BrandMark from '@/components/BrandMark';
+import ThemeToggle from '@/components/ThemeToggle';
 import { useCurrentPartner } from '@/hooks/usePartnerAuth';
+import { useTheme } from '@/theme/ThemeProvider';
 
 const NAV = [
   { path: '/parceiro/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -14,6 +16,7 @@ const NAV = [
 
 export default function PartnerLayout({ children }) {
   const { partner, isLoading, logout } = useCurrentPartner();
+  const { isDark } = useTheme();
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
@@ -59,9 +62,10 @@ export default function PartnerLayout({ children }) {
             </Link>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {partner && (
               <div className="hidden sm:block text-right">
-                <div className="text-[11px] text-[#59658F] dark:text-white/50 leading-none">Olá,</div>
+                <div className="text-[11px] text-white/60 leading-none">Olá,</div>
                 <div className="text-sm font-bold text-white mt-0.5">{partner.name?.split(' ')[0]}</div>
               </div>
             )}
@@ -83,12 +87,12 @@ export default function PartnerLayout({ children }) {
             className="absolute inset-0 bg-black/60 backdrop-blur-[3px] animate-fade-in"
             onClick={() => setOpen(false)}
           />
-          <aside className="absolute left-0 top-0 h-full w-[82%] max-w-[300px] bg-[#171827] border-r border-[#232538] shadow-[0_30px_80px_rgba(0,0,0,0.7)] flex flex-col animate-slide-up sm:animate-fade-in text-white">
-            <div className="px-4 h-16 flex items-center justify-between border-b border-[#232538] flex-shrink-0">
-              <BrandMark size={32} tone="dark" />
+          <aside className="absolute left-0 top-0 h-full w-[82%] max-w-[300px] bg-white dark:bg-[#171827] border-r border-slate-200 dark:border-[#232538] shadow-[0_30px_80px_rgba(15,23,42,0.18)] dark:shadow-[0_30px_80px_rgba(0,0,0,0.7)] flex flex-col animate-slide-up sm:animate-fade-in text-slate-900 dark:text-white">
+            <div className="px-4 h-16 flex items-center justify-between border-b border-slate-200 dark:border-[#232538] flex-shrink-0">
+              <BrandMark size={32} tone={isDark ? 'dark' : 'light'} />
               <button
                 onClick={() => setOpen(false)}
-                className="p-2 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-colors"
                 aria-label="Fechar menu"
               >
                 <X className="w-5 h-5" strokeWidth={1.75} />
@@ -96,10 +100,10 @@ export default function PartnerLayout({ children }) {
             </div>
 
             {partner && (
-              <div className="px-4 py-3 border-b border-[#232538] bg-white/[0.02]">
-                <div className="text-[11px] text-[#59658F] dark:text-white/50">Conectado como</div>
-                <div className="text-sm font-bold text-white truncate">{partner.name}</div>
-                <div className="text-[11px] text-white/60 truncate">{partner.email}</div>
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-[#232538] bg-slate-50 dark:bg-white/[0.02]">
+                <div className="text-[11px] text-slate-500 dark:text-white/50">Conectado como</div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{partner.name}</div>
+                <div className="text-[11px] text-slate-500 dark:text-white/60 truncate">{partner.email}</div>
               </div>
             )}
 
@@ -114,7 +118,7 @@ export default function PartnerLayout({ children }) {
                     className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       active
                         ? 'bg-[#2563EB] text-white shadow-sm'
-                        : 'text-white/70 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.75} />
@@ -124,10 +128,10 @@ export default function PartnerLayout({ children }) {
               })}
             </nav>
 
-            <div className="p-3 border-t border-[#232538]">
+            <div className="p-3 border-t border-slate-200 dark:border-[#232538] bg-slate-50 dark:bg-transparent">
               <button
                 onClick={() => { setOpen(false); logout(); }}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-rose-300 hover:bg-rose-500/10 transition-colors"
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
               >
                 <LogOut className="w-4 h-4" strokeWidth={1.75} /> Sair
               </button>

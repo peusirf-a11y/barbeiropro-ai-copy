@@ -879,8 +879,13 @@
 .light .btn-primary .text-white,
 .light .btn-glow-primary,
 .light .btn-glow-primary .text-white,
+.light .bg-brand-gradient.text-white,
+.light .bg-brand-gradient .text-white,
+.light .bg-\[\#171827\].text-white,
 .light .bg-\[\#2563EB\].text-white,
 .light .bg-\[\#2563EB\] .text-white,
+.light .bg-\[\#2563EB\] .text-white\/90,
+.light .bg-\[\#2563EB\] .text-white\/80,
 .light .bg-\[\#1D4ED8\].text-white,
 .light .bg-\[\#1D4ED8\] .text-white,
 .light [class*="from-[#1D4ED8]"].text-white,
@@ -1078,10 +1083,16 @@ html { scroll-behavior: smooth; }
 .light .public-dark .bg-white\/\[0\.04\] { background-color: rgba(255, 255, 255, 0.04) !important; }
 .light .public-dark .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
 .light .public-dark .bg-white\/10 { background-color: rgba(255, 255, 255, 0.10) !important; }
+.light .public-dark.bg-\[\#0B1121\],
+.light .public-dark.bg-\[\#0B1121\]\/90,
 .light .public-dark .bg-\[\#0B1121\],
 .light .public-dark .bg-\[\#0B1121\]\/90 { background-color: rgba(11, 17, 33, 0.90) !important; }
+.light .public-dark.bg-\[\#050816\],
+.light .public-dark.bg-\[\#070B14\],
 .light .public-dark .bg-\[\#050816\],
 .light .public-dark .bg-\[\#070B14\] { background-color: #070B14 !important; }
+.light .public-dark.bg-\[\#0A1124\],
+.light .public-dark .bg-\[\#0A1124\] { background-color: #0A1124 !important; }
 .light .public-dark .obsidian-card {
   background: linear-gradient(180deg, rgba(16, 23, 44, 0.92) 0%, rgba(10, 15, 30, 0.96) 100%) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;

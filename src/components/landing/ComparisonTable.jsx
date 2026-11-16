@@ -21,7 +21,7 @@ export default function ComparisonTable() {
         <BlurReveal inView className="text-center mb-12 max-w-2xl mx-auto">
           <div className="flex justify-center mb-5"><SectionBadge>Antes vs depois</SectionBadge></div>
           <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.025em] mb-5">
-            <span className="bg-gradient-to-b from-white to-white/75 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/75 bg-clip-text text-transparent">
               Pare de operar como em 2010.
             </span>
           </h2>
@@ -31,14 +31,14 @@ export default function ComparisonTable() {
           <SpotlightCard hoverLift={false} className="rounded-3xl overflow-hidden">
             <div className="grid grid-cols-[1fr_auto_auto]">
               {/* Header */}
-              <div className="px-6 py-5 border-b border-white/[0.06]">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Recurso</span>
+              <div className="px-6 py-5 border-b border-slate-200 dark:border-white/[0.06]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Recurso</span>
               </div>
-              <div className="px-3 md:px-6 py-5 border-b border-l border-white/[0.06] text-center min-w-[90px] md:min-w-[120px]">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Método antigo</span>
+              <div className="px-3 md:px-6 py-5 border-b border-l border-slate-200 dark:border-white/[0.06] text-center min-w-[90px] md:min-w-[120px]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Método antigo</span>
               </div>
-              <div className="px-3 md:px-6 py-5 border-b border-l border-white/[0.06] text-center min-w-[90px] md:min-w-[120px] bg-[#2563EB]/10">
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] bg-clip-text text-transparent whitespace-nowrap">
+              <div className="px-3 md:px-6 py-5 border-b border-l border-slate-200 dark:border-white/[0.06] text-center min-w-[90px] md:min-w-[120px] bg-blue-50/75 dark:bg-[#2563EB]/10">
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] dark:from-[#60A5FA] dark:to-[#3B82F6] bg-clip-text text-transparent whitespace-nowrap">
                   O CORTE
                 </span>
               </div>
@@ -46,23 +46,23 @@ export default function ComparisonTable() {
               {/* Rows */}
               {ROWS.map((r, i) => (
                 <div key={r.feature} className="contents">
-                  <div className={`px-6 py-4 text-sm text-slate-200 ${i < ROWS.length - 1 ? 'border-b border-white/[0.05]' : ''}`}>
+                  <div className={`px-6 py-4 text-sm font-medium text-slate-800 dark:text-slate-200 ${i < ROWS.length - 1 ? 'border-b border-slate-100 dark:border-white/[0.05]' : ''}`}>
                     {r.feature}
                   </div>
-                  <div className={`px-3 md:px-6 py-4 border-l border-white/[0.05] flex items-center justify-center ${i < ROWS.length - 1 ? 'border-b' : ''}`}>
+                  <div className={`px-3 md:px-6 py-4 border-l border-slate-100 dark:border-white/[0.05] flex items-center justify-center ${i < ROWS.length - 1 ? 'border-b' : ''}`}>
                     {r.old ? (
-                      <Check className="w-4 h-4 text-slate-400" strokeWidth={1.75} />
+                      <Check className="w-4 h-4 text-slate-500 dark:text-slate-400" strokeWidth={1.75} />
                     ) : (
-                      <X className="w-4 h-4 text-rose-400/75" strokeWidth={1.75} />
+                      <X className="w-4 h-4 text-rose-500 dark:text-rose-400/75" strokeWidth={1.75} />
                     )}
                   </div>
-                  <div className={`px-3 md:px-6 py-4 border-l border-white/[0.05] flex items-center justify-center bg-[#2563EB]/10 ${i < ROWS.length - 1 ? 'border-b' : ''}`}>
+                  <div className={`px-3 md:px-6 py-4 border-l border-slate-100 dark:border-white/[0.05] flex items-center justify-center bg-blue-50/60 dark:bg-[#2563EB]/10 ${i < ROWS.length - 1 ? 'border-b' : ''}`}>
                     {r.oc ? (
-                      <span className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center">
-                        <Check className="w-3.5 h-3.5 text-emerald-300" strokeWidth={2.25} />
+                      <span className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/15 dark:border-emerald-400/30 flex items-center justify-center">
+                        <Check className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" strokeWidth={2.25} />
                       </span>
                     ) : (
-                      <X className="w-4 h-4 text-slate-400/50" strokeWidth={1.75} />
+                      <X className="w-4 h-4 text-slate-400 dark:text-slate-400/50" strokeWidth={1.75} />
                     )}
                   </div>
                 </div>

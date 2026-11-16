@@ -18,8 +18,8 @@ export const EXPO_EASE = [0.16, 1, 0.3, 1];
 export function SpotlightCard({
   children,
   className = '',
-  spotlightColor = 'rgba(96, 165, 250, 0.14)',
-  variant = 'dark', // 'dark' | 'adaptive'
+  spotlightColor = 'rgba(37, 99, 235, 0.12)',
+  variant = 'adaptive', // 'adaptive' | 'dark'
   as = 'div',
   hoverLift = true,
   ...props
@@ -35,13 +35,13 @@ export function SpotlightCard({
   };
 
   const baseSurface =
-    variant === 'adaptive'
-      ? 'bg-white dark:bg-[#0D1326]/95 border border-[#E5E7EF] dark:border-white/[0.08] shadow-sm dark:shadow-[0_16px_40px_-16px_rgba(2,6,23,0.75)]'
-      : 'bg-[#0B1121]/90 border border-white/[0.08] shadow-[0_20px_50px_-20px_rgba(2,6,23,0.8)] backdrop-blur-xl';
+    variant === 'dark'
+      ? 'bg-[#0B1121]/90 border border-white/[0.08] shadow-[0_20px_50px_-20px_rgba(2,6,23,0.8)] backdrop-blur-xl'
+      : 'bg-white dark:bg-[#0B1121]/90 border border-slate-200/90 dark:border-white/[0.08] shadow-[0_6px_24px_-8px_rgba(15,23,42,0.08)] dark:shadow-[0_20px_50px_-20px_rgba(2,6,23,0.8)] backdrop-blur-xl';
 
   const hoverClasses = hoverLift
-    ? 'hover:-translate-y-0.5 hover:border-[#B5D7E8] dark:hover:border-[#60A5FA]/35'
-    : 'hover:border-[#60A5FA]/30';
+    ? 'hover:-translate-y-0.5 hover:border-blue-300/80 dark:hover:border-[#60A5FA]/35 hover:shadow-[0_12px_32px_-8px_rgba(37,99,235,0.14)] dark:hover:shadow-[0_20px_50px_-20px_rgba(2,6,23,0.9)]'
+    : 'hover:border-blue-300/60 dark:hover:border-[#60A5FA]/30';
 
   const Component = as;
 

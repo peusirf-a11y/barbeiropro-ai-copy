@@ -19,7 +19,7 @@ export default function LaunchBenefits() {
             <SectionBadge icon={Sparkles}>O que muda no seu dia a dia</SectionBadge>
           </div>
           <h2 className="text-4xl md:text-5xl font-black tracking-[-0.02em] mb-4">
-            <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/70 bg-clip-text text-transparent">
               Resultados que aparecem na primeira semana
             </span>
           </h2>
@@ -33,16 +33,16 @@ export default function LaunchBenefits() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.45, delay: i * 0.08 }}
-              className="relative rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 sm:p-6 overflow-hidden"
+              className="relative rounded-2xl border border-slate-200/90 dark:border-white/8 bg-white dark:bg-white/[0.025] backdrop-blur-md p-5 sm:p-6 overflow-hidden shadow-xs dark:shadow-none"
             >
-              <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-[#60A5FA]/10 blur-3xl" />
+              <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-[#2563EB]/8 dark:bg-[#60A5FA]/10 blur-3xl" />
               <div className="relative">
-                <b.icon className="w-5 h-5 text-[#93C5FD] mb-3" />
-                <div className="text-4xl sm:text-5xl font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent leading-none">
+                <b.icon className="w-5 h-5 text-[#2563EB] dark:text-[#93C5FD] mb-3" />
+                <div className="text-4xl sm:text-5xl font-black bg-gradient-to-br from-slate-900 to-[#1D4ED8] dark:from-white dark:to-white/60 bg-clip-text text-transparent leading-none">
                   {b.value}
                 </div>
-                <div className="text-sm font-bold text-white mt-2">{b.label}</div>
-                <p className="text-[12px] text-white/55 leading-relaxed mt-1">{b.desc}</p>
+                <div className="text-sm font-bold text-slate-900 dark:text-white mt-2">{b.label}</div>
+                <p className="text-[12px] text-slate-600 dark:text-white/55 leading-relaxed mt-1">{b.desc}</p>
               </div>
             </motion.div>
           ))}

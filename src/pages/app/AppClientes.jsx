@@ -267,15 +267,23 @@ export default function AppClientes() {
               <button
                 key={f.v}
                 onClick={() => setFilter(f.v)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border ${
                   filter === f.v
-                    ? 'bg-[#171827] text-white dark:bg-[#2563EB] shadow-xs'
-                    : 'bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] text-[#55596A] dark:text-[#8F9BBF] hover:border-[#2563EB]'
+                    ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-sm shadow-blue-600/20'
+                    : 'bg-[#FFFFFF] dark:bg-[#171827] border-[#E5E7EF] dark:border-[#232538] text-[#55596A] dark:text-[#8F9BBF] hover:border-[#2563EB]'
                 }`}
               >
                 <span>{f.l}</span>
                 {f.count > 0 && (
-                  <span className={`text-[10px] font-bold tabular-nums ${filter === f.v ? 'text-white/90' : 'text-[#59658F]'}`}>{f.count}</span>
+                  <span
+                    className={`text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full leading-none ${
+                      filter === f.v
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-100 dark:bg-white/10 text-[#59658F] dark:text-[#CBD5E1]'
+                    }`}
+                  >
+                    {f.count}
+                  </span>
                 )}
               </button>
             ))}

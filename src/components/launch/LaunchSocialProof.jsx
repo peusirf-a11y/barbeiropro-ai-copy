@@ -15,11 +15,11 @@ export default function LaunchSocialProof() {
             <SectionBadge icon={Users}>Quem está chegando primeiro</SectionBadge>
           </div>
           <h2 className="text-4xl md:text-5xl font-black tracking-[-0.02em] mb-4">
-            <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/70 bg-clip-text text-transparent">
               Seja uma das primeiras barbearias a participar
             </span>
           </h2>
-          <p className="text-base text-white/60">
+          <p className="text-base text-slate-600 dark:text-white/60">
             O CORTE está em fase de lançamento. Os depoimentos das primeiras barbearias parceiras aparecem aqui em breve.
           </p>
         </div>
@@ -32,27 +32,27 @@ export default function LaunchSocialProof() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="relative rounded-2xl border border-dashed border-white/12 bg-white/[0.02] backdrop-blur-md p-6 overflow-hidden"
+              className="relative rounded-2xl border border-dashed border-slate-300 dark:border-white/12 bg-white/80 dark:bg-white/[0.02] backdrop-blur-md p-6 overflow-hidden shadow-xs dark:shadow-none"
             >
-              <Quote className="w-7 h-7 text-white/15 mb-4" />
+              <Quote className="w-7 h-7 text-slate-300 dark:text-white/15 mb-4" />
 
               {/* Skeleton de texto */}
               <div className="space-y-2 mb-5">
-                <div className="h-2.5 rounded-full bg-white/[0.06] w-full" />
-                <div className="h-2.5 rounded-full bg-white/[0.06] w-[92%]" />
-                <div className="h-2.5 rounded-full bg-white/[0.06] w-[78%]" />
+                <div className="h-2.5 rounded-full bg-slate-200/80 dark:bg-white/[0.06] w-full" />
+                <div className="h-2.5 rounded-full bg-slate-200/80 dark:bg-white/[0.06] w-[92%]" />
+                <div className="h-2.5 rounded-full bg-slate-200/80 dark:bg-white/[0.06] w-[78%]" />
               </div>
 
               {/* Skeleton de autor */}
-              <div className="flex items-center gap-3 pt-4 border-t border-white/8">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/10 to-white/[0.03] border border-white/8" />
+              <div className="flex items-center gap-3 pt-4 border-t border-slate-200 dark:border-white/8">
+                <div className="w-10 h-10 rounded-full bg-slate-200/90 dark:bg-gradient-to-br dark:from-white/10 dark:to-white/[0.03] border border-slate-300/70 dark:border-white/8" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-2.5 rounded-full bg-white/[0.08] w-24" />
-                  <div className="h-2 rounded-full bg-white/[0.05] w-32" />
+                  <div className="h-2.5 rounded-full bg-slate-200/90 dark:bg-white/[0.08] w-24" />
+                  <div className="h-2 rounded-full bg-slate-200/70 dark:bg-white/[0.05] w-32" />
                 </div>
               </div>
 
-              <div className="absolute top-4 right-4 text-[9px] font-bold uppercase tracking-wider text-white/30">
+              <div className="absolute top-4 right-4 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-white/30">
                 Em breve
               </div>
             </motion.div>
