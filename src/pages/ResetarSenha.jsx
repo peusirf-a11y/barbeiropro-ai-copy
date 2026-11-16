@@ -200,16 +200,16 @@ export default function ResetarSenha() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] font-inter flex flex-col justify-between">
+    <div className="min-h-screen bg-[#F8F9FC] dark:bg-[#050816] font-inter flex flex-col justify-between transition-colors">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-20">
+      <header className="bg-white/80 dark:bg-[#0B1121]/85 backdrop-blur-md border-b border-slate-200/60 dark:border-white/10 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
             <Logo size={32} />
           </Link>
           <Link
             to="/login"
-            className="text-xs font-semibold text-slate-500 hover:text-[#2563EB] inline-flex items-center gap-1.5 transition-colors"
+            className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#2563EB] dark:hover:text-blue-400 inline-flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Voltar ao login
@@ -222,27 +222,27 @@ export default function ResetarSenha() {
         <div className="max-w-md w-full animate-fade-in-up">
           {/* Headline */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/10 text-[#2563EB] mb-4 shadow-sm">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/10 dark:bg-blue-500/15 text-[#2563EB] dark:text-blue-400 mb-4 shadow-sm">
               <KeyRound className="w-7 h-7" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight mb-2">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] dark:text-white tracking-tight mb-2">
               Redefinir Senha
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {hasValidSession
                 ? 'Escolha sua nova senha de acesso ao painel.'
                 : 'Cole o código ou link/token recebido no e-mail e crie sua nova senha.'}
             </p>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-200/40 p-6 sm:p-8">
+          <div className="bg-white dark:bg-[#0B1121] rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-200/40 dark:shadow-black/40 p-6 sm:p-8">
             {success ? (
               <div className="text-center py-4 space-y-3 animate-fade-in">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-sm">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h2 className="text-xl font-black text-[#0F172A]">Senha alterada com sucesso!</h2>
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <h2 className="text-xl font-black text-[#0F172A] dark:text-white">Senha alterada com sucesso!</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   Sua nova senha foi gravada com sucesso no Supabase. Redirecionando para o login…
                 </p>
                 <div className="pt-2">
@@ -261,7 +261,7 @@ export default function ResetarSenha() {
                   <>
                     {/* E-mail */}
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
                         E-mail
                       </label>
                       <div className="relative">
@@ -274,7 +274,7 @@ export default function ResetarSenha() {
                           disabled={submitting}
                           placeholder="seu@email.com"
                           required
-                          className="w-full h-12 pl-10 pr-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                          className="w-full h-12 pl-10 pr-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-[#0D1326] text-sm text-[#0F172A] dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0D1326] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
                         />
                       </div>
                     </div>
@@ -282,12 +282,12 @@ export default function ResetarSenha() {
                     {/* Código ou Token do e-mail */}
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                           Código OTP ou Link/Token do e-mail
                         </label>
                         <Link
                           to="/esqueci-senha"
-                          className="text-[11px] font-bold text-[#2563EB] hover:underline"
+                          className="text-[11px] font-bold text-[#2563EB] dark:text-blue-400 hover:underline"
                         >
                           Solicitar novo código
                         </Link>
@@ -302,10 +302,10 @@ export default function ResetarSenha() {
                           disabled={submitting}
                           placeholder="Cole o código de 6 dígitos ou o link/token do e-mail"
                           required
-                          className="w-full h-12 pl-10 pr-3 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm font-mono text-[#0F172A] placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                          className="w-full h-12 pl-10 pr-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-[#0D1326] text-xs sm:text-sm font-mono text-[#0F172A] dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0D1326] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
                         />
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className="text-[11px] text-slate-400 dark:text-slate-400 mt-1">
                         Você pode digitar os 6 dígitos ou colar a URL completa com o parâmetro verify?token=...
                       </p>
                     </div>
@@ -314,7 +314,7 @@ export default function ResetarSenha() {
 
                 {/* Nova senha */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
                     Nova senha
                   </label>
                   <div className="relative">
@@ -328,7 +328,7 @@ export default function ResetarSenha() {
                       placeholder="Mínimo 8 caracteres"
                       required
                       autoFocus={hasValidSession}
-                      className="w-full h-12 pl-10 pr-10 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                      className="w-full h-12 pl-10 pr-10 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-[#0D1326] text-sm text-[#0F172A] dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0D1326] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
                     />
                     <button
                       type="button"
@@ -348,7 +348,7 @@ export default function ResetarSenha() {
 
                 {/* Confirmar nova senha */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
                     Confirmar nova senha
                   </label>
                   <div className="relative">
@@ -361,7 +361,7 @@ export default function ResetarSenha() {
                       disabled={submitting}
                       placeholder="Repita a nova senha"
                       required
-                      className="w-full h-12 pl-10 pr-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                      className="w-full h-12 pl-10 pr-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-[#0D1326] text-sm text-[#0F172A] dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0D1326] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
                     />
                   </div>
                   {confirm && password !== confirm && (
@@ -372,8 +372,8 @@ export default function ResetarSenha() {
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 flex items-start gap-2.5 text-xs text-rose-800 animate-shake">
-                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600" />
+                  <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 p-3.5 flex items-start gap-2.5 text-xs text-rose-800 dark:text-rose-200 animate-shake">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600 dark:text-rose-400" />
                     <div className="font-medium leading-relaxed">{error}</div>
                   </div>
                 )}
@@ -405,7 +405,7 @@ export default function ResetarSenha() {
       </main>
 
       {/* Footer */}
-      <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-100">
+      <footer className="py-6 text-center text-xs text-slate-400 dark:text-slate-400 border-t border-slate-100 dark:border-white/10">
         <p>© 2026 O CORTE. Todos os direitos reservados.</p>
       </footer>
     </div>

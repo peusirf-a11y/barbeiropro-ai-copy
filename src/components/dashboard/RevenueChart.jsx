@@ -4,6 +4,7 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianG
 import { format, subDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TrendingUp, DollarSign } from 'lucide-react';
+import { useTheme } from '@/theme/ThemeProvider';
 
 function buildSeries(financial, days = 7) {
   const today = startOfDay(new Date());
@@ -39,9 +40,12 @@ function CustomTooltip({ active, payload }) {
 }
 
 export default function RevenueChart({ financial = [] }) {
+  const { isDark } = useTheme();
   const data = buildSeries(financial, 7);
   const total = data.reduce((s, d) => s + d.total, 0);
   const hasData = data.some((d) => d.total > 0);
+  const gridStroke = isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EF';
+  const axisStroke = isDark ? '#8F9BBF' : '#55596A';
 
   return (
     <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] p-4 sm:p-6 shadow-sm">
@@ -82,17 +86,17 @@ export default function RevenueChart({ financial = [] }) {
                   <stop offset="100%" stopColor="#B5D7E8" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EF" vertical={false} opacity={0.7} />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} opacity={0.8} />
               <XAxis
                 dataKey="label"
-                stroke="#55596A"
+                stroke={axisStroke}
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
                 className="tabular-nums font-medium"
               />
               <YAxis
-                stroke="#55596A"
+                stroke={axisStroke}
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}

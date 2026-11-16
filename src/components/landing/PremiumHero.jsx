@@ -1,104 +1,120 @@
-// Hero cinematográfico — headline gigante + mockup glowing flutuante.
+// Hero cinematográfico — BlurReveal, tipografia display refinada e mockup com SpotlightCard.
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, Calendar, TrendingUp, Users, Zap } from 'lucide-react';
+import { Sparkles, Calendar, TrendingUp, Users, Zap, ShieldCheck, Clock } from 'lucide-react';
 import GlowButton from './GlowButton';
 import SectionBadge from './SectionBadge';
+import { BlurReveal, SpotlightCard, EXPO_EASE } from '@/components/motion/MotionPrimitives';
 
 export default function PremiumHero() {
   return (
-    <section className="relative pt-36 md:pt-40 pb-20 px-5 md:px-8 overflow-hidden">
+    <section className="relative pt-32 md:pt-40 pb-20 px-5 md:px-8 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         {/* Conteúdo central */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="text-center max-w-4xl mx-auto"
-        >
-          <div className="flex justify-center mb-7">
-            <SectionBadge icon={Sparkles}>Plataforma com IA · Live agora</SectionBadge>
-          </div>
+        <div className="text-center max-w-4xl mx-auto">
+          <BlurReveal delay={0} y={8} className="flex justify-center mb-7">
+            <SectionBadge icon={Sparkles}>Plataforma com IA · Gestão em Tempo Real</SectionBadge>
+          </BlurReveal>
 
-          <h1 className="text-[42px] sm:text-6xl md:text-7xl lg:text-[88px] font-black leading-[0.95] tracking-[-0.03em] mb-6">
-            <span className="block bg-gradient-to-b from-white via-white to-white/60 bg-clip-text text-transparent">
-              Transforme sua barbearia
-            </span>
-            <span className="block bg-gradient-to-r from-[#60A5FA] via-[#93C5FD] to-[#3B82F6] bg-clip-text text-transparent">
-              numa máquina de recorrência.
-            </span>
-          </h1>
+          <BlurReveal delay={0.06} y={14}>
+            <h1 className="text-[40px] sm:text-6xl md:text-7xl lg:text-[84px] font-extrabold leading-[0.96] tracking-[-0.03em] mb-6">
+              <span className="block bg-gradient-to-b from-white via-white to-white/70 bg-clip-text text-transparent">
+                Transforme sua barbearia
+              </span>
+              <span className="block bg-gradient-to-r from-[#60A5FA] via-[#93C5FD] to-[#3B82F6] bg-clip-text text-transparent">
+                numa máquina de recorrência.
+              </span>
+            </h1>
+          </BlurReveal>
 
-          <p className="text-base md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed mb-6">
-            Agenda, financeiro, planos mensais e uma <span className="text-white/90 font-semibold">IA que detecta clientes sumindo</span> e
-            recupera receita automaticamente. Tudo num só lugar.
-          </p>
-
-          <Link
-            to="/checkout?promo=lancamento"
-            className="block max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left hover:border-amber-400/70 hover:scale-[1.01] transition-all cursor-pointer group"
-          >
-            <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 mb-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 group-hover:rotate-12 transition-transform" />
-              OFERTA DE LANÇAMENTO ATIVA · Clique para aproveitar
-            </div>
-            <p className="text-xs sm:text-sm text-amber-100 font-medium leading-relaxed">
-              Plano <strong className="font-bold">Master</strong> com condição especial: <strong className="font-bold tabular-nums">R$ 79,00/mês nos primeiros 3 meses</strong>. Depois, <span className="tabular-nums">R$ 119,00/mês</span>. Experimente com 7 dias grátis →
+          <BlurReveal delay={0.12} y={12}>
+            <p className="text-base md:text-xl text-slate-300/80 max-w-2xl mx-auto leading-relaxed mb-7">
+              Agenda, financeiro, planos mensais e uma{' '}
+              <span className="text-white font-semibold">IA que detecta clientes sumindo</span> e
+              recupera receita automaticamente. Tudo num só lugar.
             </p>
-          </Link>
+          </BlurReveal>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14">
-            <GlowButton to="/checkout?promo=lancamento" className="w-full sm:w-auto">
-              Começar agora — 7 dias grátis
-            </GlowButton>
-            <GlowButton to="/login" variant="ghost" className="w-full sm:w-auto border border-white/20 bg-white/5 hover:bg-white/10">
-              Entrar na minha conta
-            </GlowButton>
-            <GlowButton to="/demo/dashboard" variant="ghost" className="w-full sm:w-auto text-white/70 hover:text-white">
-              Ver a plataforma
-            </GlowButton>
-          </div>
+          <BlurReveal delay={0.16} y={10}>
+            <Link
+              to="/checkout?promo=lancamento"
+              className="block max-w-2xl mx-auto mb-8 rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 backdrop-blur-md p-4 text-left hover:border-amber-400/65 hover:-translate-y-0.5 transition-[transform,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer group"
+            >
+              <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 mb-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 group-hover:rotate-12 transition-transform" />
+                OFERTA DE LANÇAMENTO ATIVA · Clique para aproveitar
+              </div>
+              <p className="text-xs sm:text-sm text-amber-100 font-medium leading-relaxed">
+                Plano <strong className="font-bold">Master</strong> com condição especial:{' '}
+                <strong className="font-bold tabular-nums">R$ 79,00/mês nos primeiros 3 meses</strong>. Depois,{' '}
+                <span className="tabular-nums">R$ 119,00/mês</span>. Experimente com 7 dias grátis →
+              </p>
+            </Link>
+          </BlurReveal>
 
-          <div className="flex items-center justify-center gap-6 text-xs text-white/40">
-            <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] animate-pulse" /> Setup em 5 minutos</span>
-            <span className="hidden sm:flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] animate-pulse" /> Suporte 24/7</span>
-          </div>
-        </motion.div>
+          <BlurReveal delay={0.2} y={10}>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
+              <GlowButton to="/checkout?promo=lancamento" className="w-full sm:w-auto">
+                Começar agora — 7 dias grátis
+              </GlowButton>
+              <GlowButton to="/login" variant="ghost" className="w-full sm:w-auto border border-white/20 bg-white/5 hover:bg-white/10">
+                Entrar na minha conta
+              </GlowButton>
+              <GlowButton to="/demo/dashboard" variant="ghost" className="w-full sm:w-auto text-white/75 hover:text-white">
+                Ver a plataforma
+              </GlowButton>
+            </div>
+          </BlurReveal>
+
+          <BlurReveal delay={0.24} y={6}>
+            <div className="flex items-center justify-center gap-6 text-xs text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#60A5FA]" strokeWidth={1.75} />
+                Setup em 5 minutos
+              </span>
+              <span className="hidden sm:flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#60A5FA]" strokeWidth={1.75} />
+                Suporte 24/7
+              </span>
+            </div>
+          </BlurReveal>
+        </div>
 
         {/* Mockup principal flutuante */}
         <motion.div
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.3 }}
+          initial={{ opacity: 0, y: 32, filter: 'blur(6px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.7, delay: 0.25, ease: EXPO_EASE }}
           className="relative mt-16 md:mt-20"
         >
           {/* Glow atrás do mockup */}
-          <div className="absolute -inset-x-20 -top-10 -bottom-20 bg-gradient-to-b from-[#2563EB]/30 via-[#60A5FA]/10 to-transparent blur-3xl" />
+          <div className="absolute -inset-x-16 -top-8 -bottom-16 bg-gradient-to-b from-[#2563EB]/25 via-[#60A5FA]/10 to-transparent blur-3xl pointer-events-none" />
 
           <div className="relative max-w-5xl mx-auto">
-            {/* Reflexo gradient na borda */}
-            <div className="absolute -inset-px rounded-2xl bg-gradient-to-b from-white/20 via-white/5 to-transparent" />
-
-            <div className="relative rounded-2xl border border-white/10 bg-[#0A1124] overflow-hidden shadow-[0_30px_120px_rgba(37,99,235,0.35)]">
+            <SpotlightCard
+              hoverLift={false}
+              spotlightColor="rgba(96, 165, 250, 0.12)"
+              className="rounded-2xl border-white/[0.10] bg-[#0A1124]/95 shadow-[0_30px_110px_rgba(37,99,235,0.28)]"
+            >
               {/* Topbar fake */}
-              <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/5 bg-white/[0.02]">
-                <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-                <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-                <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-                <span className="ml-3 text-[11px] text-white/40 font-mono">app.ocorte.com/dashboard</span>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.07] bg-white/[0.02]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+                  <span className="ml-3 text-[11px] text-slate-400 font-mono">app.ocorte.com/dashboard</span>
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-300/90 hidden sm:inline">
+                  Sessão Segura · Sync Ativo
+                </span>
               </div>
 
-              {/* Dashboard fake */}
+              {/* Dashboard preview */}
               <div className="p-5 md:p-7 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-white/95 font-bold text-base">Boa noite, João</div>
-                    <div className="text-white/40 text-xs mt-0.5">Domingo, 18 de maio · O CORTE</div>
-                  </div>
-                  <div className="hidden md:flex items-center gap-2">
-                    <span className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20">
-                      ● AO VIVO
-                    </span>
+                    <div className="text-white font-bold text-base">Boa noite, João</div>
+                    <div className="text-slate-400 text-xs mt-0.5">Domingo, 18 de maio · O CORTE</div>
                   </div>
                 </div>
 
@@ -109,21 +125,21 @@ export default function PremiumHero() {
                     { icon: Users, label: 'Clientes ativos', value: '892', tone: 'from-violet-500/20 to-violet-500/0', text: 'text-violet-300' },
                     { icon: Zap, label: 'MRR ativo', value: 'R$ 8.7k', tone: 'from-amber-500/20 to-amber-500/0', text: 'text-amber-300' },
                   ].map((kpi) => (
-                    <div key={kpi.label} className="relative rounded-xl border border-white/8 bg-white/[0.02] p-4 overflow-hidden">
+                    <div key={kpi.label} className="relative rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 overflow-hidden">
                       <div className={`absolute inset-0 bg-gradient-to-br ${kpi.tone} opacity-60`} />
                       <div className="relative">
-                        <kpi.icon className={`w-4 h-4 ${kpi.text} mb-2`} />
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-white/50">{kpi.label}</div>
-                        <div className="text-lg md:text-xl font-black text-white mt-0.5 tabular-nums">{kpi.value}</div>
+                        <kpi.icon className={`w-4 h-4 ${kpi.text} mb-2`} strokeWidth={1.75} />
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{kpi.label}</div>
+                        <div className="text-lg md:text-xl font-extrabold text-white mt-0.5 tabular-nums">{kpi.value}</div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Gráfico fake */}
-                <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
+                {/* Gráfico preview */}
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-white/50">Receita últimos 30 dias</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Receita últimos 30 dias</div>
                     <span className="text-emerald-300 text-xs font-bold tabular-nums">+34%</span>
                   </div>
                   <svg viewBox="0 0 400 80" className="w-full h-16">
@@ -146,7 +162,7 @@ export default function PremiumHero() {
                   </svg>
                 </div>
               </div>
-            </div>
+            </SpotlightCard>
           </div>
         </motion.div>
       </div>

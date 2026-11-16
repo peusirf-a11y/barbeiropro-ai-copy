@@ -95,13 +95,13 @@ export default function CustomerConsentPanel({ companyId, customerId, customerTo
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-1">
-        <Shield className="w-4 h-4 text-[#2563EB]" />
-        <h3 className="font-bold text-sm text-[#111827]">Privacidade & Consentimentos</h3>
+        <Shield className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
+        <h3 className="font-bold text-sm text-[#111827] dark:text-white">Privacidade & Consentimentos</h3>
       </div>
 
       {/* Operacional */}
       <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Operacional</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Operacional</div>
         <div className="space-y-1">
           {operationalTypes.map(([type, cfg]) => {
             const status = getConsentStatus(type);
@@ -124,7 +124,7 @@ export default function CustomerConsentPanel({ companyId, customerId, customerTo
 
       {/* Marketing */}
       <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Marketing — requer opt-in</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Marketing — requer opt-in</div>
         <div className="space-y-1">
           {marketingTypes.map(([type, cfg]) => {
             const status = getConsentStatus(type);
@@ -146,7 +146,7 @@ export default function CustomerConsentPanel({ companyId, customerId, customerTo
         </div>
       </div>
 
-      <p className="text-[10px] text-gray-400 leading-relaxed">
+      <p className="text-[10px] text-slate-400 leading-relaxed">
         Consentimentos registrados conforme Art. 18 da LGPD (Lei 13.709/2018).
         Você pode revogar qualquer consentimento a qualquer momento.
       </p>
@@ -156,18 +156,18 @@ export default function CustomerConsentPanel({ companyId, customerId, customerTo
 
 function ConsentRow({ label, desc, isActive, isPending, readOnly, onToggle, marketingBadge }) {
   return (
-    <div className="flex items-center gap-3 py-2.5 px-3 rounded-xl border border-transparent hover:bg-gray-50 transition-colors">
+    <div className="flex items-center gap-3 py-2.5 px-3 rounded-xl border border-transparent hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-semibold text-[#111827]">{label}</span>
+          <span className="text-sm font-semibold text-[#111827] dark:text-white">{label}</span>
           {marketingBadge && (
-            <span className="text-[9px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">OPCIONAL</span>
+            <span className="text-[9px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full">OPCIONAL</span>
           )}
         </div>
-        <div className="text-xs text-gray-500">{desc}</div>
+        <div className="text-xs text-slate-500 dark:text-slate-400">{desc}</div>
       </div>
       {readOnly ? (
-        <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+        <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400'}`}>
           {isActive ? <CheckCircle className="w-3 h-3" /> : <X className="w-3 h-3" />}
           {isActive ? 'Ativo' : 'Inativo'}
         </div>
@@ -175,7 +175,7 @@ function ConsentRow({ label, desc, isActive, isPending, readOnly, onToggle, mark
         <button
           onClick={onToggle}
           disabled={isPending}
-          className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 focus:outline-none ${isActive ? 'bg-[#2563EB]' : 'bg-gray-200'} disabled:opacity-50`}
+          className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 focus:outline-none ${isActive ? 'bg-[#2563EB]' : 'bg-slate-200 dark:bg-white/15'} disabled:opacity-50`}
         >
           {isPending
             ? <Loader2 className="w-3 h-3 text-white absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-spin" />

@@ -29,27 +29,27 @@ const brl = (n) => 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ',');
 const STATUS_PARTNER = {
   pending: {
     label: 'Pendente de Aprovação',
-    cls: 'bg-amber-500/20 text-amber-300 border border-amber-400/40',
+    cls: 'bg-amber-50 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-400/40',
   },
   active: {
     label: 'Aprovado / Ativo',
-    cls: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
+    cls: 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-400/40',
   },
   approved: {
     label: 'Aprovado / Ativo',
-    cls: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
+    cls: 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-400/40',
   },
   blocked: {
     label: 'Bloqueado',
-    cls: 'bg-rose-500/20 text-rose-300 border border-rose-400/40',
+    cls: 'bg-rose-50 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-400/40',
   },
   rejected: {
     label: 'Rejeitado',
-    cls: 'bg-rose-500/20 text-rose-300 border border-rose-400/40',
+    cls: 'bg-rose-50 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-400/40',
   },
   suspended: {
     label: 'Suspenso',
-    cls: 'bg-rose-500/20 text-rose-300 border border-rose-400/40',
+    cls: 'bg-rose-50 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-400/40',
   },
 };
 
@@ -187,13 +187,13 @@ export default function PartnerDetailDrawer({
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative h-full w-full sm:max-w-xl bg-[#070D1E] border-l border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-white font-inter animate-slide-up sm:animate-fade-in"
+        className="relative h-full w-full sm:max-w-xl bg-white dark:bg-[#070D1E] border-l border-slate-200 dark:border-white/10 shadow-[0_30px_90px_rgba(15,23,42,0.18)] dark:shadow-[0_30px_90px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-slate-900 dark:text-white font-inter animate-slide-up sm:animate-fade-in"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-white/[0.02] flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] flex-shrink-0">
           <div className="min-w-0 flex-1 pr-4">
             <div className="flex items-center gap-2.5 mb-1 flex-wrap">
-              <h3 className="text-lg font-black text-white truncate">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white truncate">
                 {p?.name || p?.full_name || (loading ? 'Carregando parceiro...' : 'Detalhes do Parceiro')}
               </h3>
               {statusObj && (
@@ -202,13 +202,13 @@ export default function PartnerDetailDrawer({
                 </span>
               )}
             </div>
-            {p?.email && <p className="text-xs text-white/55 truncate">{p.email}</p>}
+            {p?.email && <p className="text-xs text-slate-500 dark:text-white/55 truncate">{p.email}</p>}
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer flex-shrink-0"
+            className="p-2 rounded-xl hover:bg-slate-200/70 dark:hover:bg-white/10 text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer flex-shrink-0"
             aria-label="Fechar"
           >
             <X className="w-5 h-5" />
@@ -218,52 +218,52 @@ export default function PartnerDetailDrawer({
         {/* Body */}
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 space-y-6">
           {error && !p ? (
-            <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 p-6 text-center space-y-3">
-              <AlertCircle className="w-8 h-8 mx-auto text-rose-400" />
-              <h4 className="text-sm font-bold text-white">Não foi possível carregar os detalhes deste parceiro.</h4>
-              <p className="text-xs text-white/60 leading-relaxed">
+            <div className="rounded-2xl border border-rose-200 dark:border-rose-400/30 bg-rose-50 dark:bg-rose-500/10 p-6 text-center space-y-3">
+              <AlertCircle className="w-8 h-8 mx-auto text-rose-600 dark:text-rose-400" />
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white">Não foi possível carregar os detalhes deste parceiro.</h4>
+              <p className="text-xs text-slate-600 dark:text-white/60 leading-relaxed">
                 O registro selecionado pode não existir ou houve uma falha de conexão.
               </p>
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold text-white transition-colors"
+                className="mt-2 px-4 py-2 bg-slate-200/80 dark:bg-white/10 hover:bg-slate-300/80 dark:hover:bg-white/20 rounded-xl text-xs font-bold text-slate-900 dark:text-white transition-colors"
               >
                 Fechar janela
               </button>
             </div>
           ) : !p ? (
-            <div className="p-10 text-center text-white/50 space-y-3">
-              <div className="w-8 h-8 border-3 border-blue-400/30 border-t-blue-400 rounded-full animate-spin mx-auto" />
+            <div className="p-10 text-center text-slate-500 dark:text-white/50 space-y-3">
+              <div className="w-8 h-8 border-3 border-blue-500/30 dark:border-blue-400/30 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto" />
               <p className="text-sm">Buscando informações do parceiro...</p>
             </div>
           ) : (
             <>
               {/* Cards de Métricas Principais */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/8">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/8">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-white/50 mb-1 flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     Total Indicações
                   </div>
-                  <div className="text-2xl font-black text-white">{summary.referrals_total}</div>
-                  <div className="text-[11px] text-emerald-400 mt-0.5">{summary.referrals_active} barbearias ativas</div>
+                  <div className="text-2xl font-black text-slate-900 dark:text-white">{summary.referrals_total}</div>
+                  <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">{summary.referrals_active} barbearias ativas</div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/8">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/8">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-white/50 mb-1 flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     Saldo Disponível
                   </div>
-                  <div className="text-2xl font-black text-emerald-300">{brl(summary.commissions_to_pay_amount)}</div>
-                  <div className="text-[11px] text-white/50 mt-0.5">Total pago: {brl(summary.commissions_paid_amount)}</div>
+                  <div className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{brl(summary.commissions_to_pay_amount)}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-white/50 mt-0.5">Total pago: {brl(summary.commissions_paid_amount)}</div>
                 </div>
               </div>
 
               {/* Informações Pessoais */}
-              <div className="rounded-2xl bg-white/[0.03] border border-white/8 p-5 space-y-3.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-white/50 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#60A5FA]" />
+              <div className="rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/8 p-5 space-y-3.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-600 dark:text-[#60A5FA]" />
                   Informações Pessoais
                 </h4>
 
@@ -272,17 +272,17 @@ export default function PartnerDetailDrawer({
                   <InfoItem label="E-mail" value={p.email} onCopy={() => copyToClipboard(p.email, 'E-mail')} />
                   
                   {/* WhatsApp com link direto */}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/6 text-xs">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/6 text-xs">
                     <div>
-                      <div className="text-[10px] text-white/45 uppercase tracking-wider font-semibold">WhatsApp</div>
-                      <div className="font-semibold text-white mt-0.5">{p.phone || p.whatsapp || 'Não informado'}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-white/45 uppercase tracking-wider font-semibold">WhatsApp</div>
+                      <div className="font-semibold text-slate-900 dark:text-white mt-0.5">{p.phone || p.whatsapp || 'Não informado'}</div>
                     </div>
                     {waLink && (
                       <a
                         href={waLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-transparent text-xs font-bold transition-colors cursor-pointer"
                       >
                         <Phone className="w-3.5 h-3.5" />
                         <span>Abrir WhatsApp</span>
@@ -303,26 +303,26 @@ export default function PartnerDetailDrawer({
               </div>
 
               {/* Dados Financeiros e PIX */}
-              <div className="rounded-2xl bg-white/[0.03] border border-white/8 p-5 space-y-3.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-white/50 flex items-center gap-2">
-                  <Key className="w-4 h-4 text-emerald-400" />
+              <div className="rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/8 p-5 space-y-3.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50 flex items-center gap-2">
+                  <Key className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   Dados Financeiros & PIX
                 </h4>
 
                 <div className="space-y-2.5">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/6 text-xs">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/6 text-xs">
                     <div>
-                      <div className="text-[10px] text-white/45 uppercase tracking-wider font-semibold">Chave PIX Cadastrada</div>
-                      <div className="font-mono font-bold text-emerald-300 mt-0.5 break-all">
+                      <div className="text-[10px] text-slate-500 dark:text-white/45 uppercase tracking-wider font-semibold">Chave PIX Cadastrada</div>
+                      <div className="font-mono font-bold text-emerald-700 dark:text-emerald-300 mt-0.5 break-all">
                         {p.pix_key || 'Chave PIX não cadastrada'}
                       </div>
-                      <div className="text-[10px] text-white/40 mt-0.5">Tipo detectado: {detectPixType(p.pix_key)}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-white/40 mt-0.5">Tipo detectado: {detectPixType(p.pix_key)}</div>
                     </div>
                     {p.pix_key && (
                       <button
                         type="button"
                         onClick={() => copyToClipboard(p.pix_key, 'Chave PIX')}
-                        className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer flex-shrink-0"
+                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer flex-shrink-0"
                         title="Copiar PIX"
                       >
                         <Copy className="w-4 h-4" />
@@ -338,9 +338,9 @@ export default function PartnerDetailDrawer({
               </div>
 
               {/* Métricas de Indicação & Link */}
-              <div className="rounded-2xl bg-white/[0.03] border border-white/8 p-5 space-y-3.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-white/50 flex items-center gap-2">
-                  <Hash className="w-4 h-4 text-[#93C5FD]" />
+              <div className="rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/8 p-5 space-y-3.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50 flex items-center gap-2">
+                  <Hash className="w-4 h-4 text-blue-600 dark:text-[#93C5FD]" />
                   Métricas de Indicação & Link
                 </h4>
 
@@ -353,15 +353,15 @@ export default function PartnerDetailDrawer({
                   />
 
                   {referralLink && (
-                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/6 text-xs flex items-center justify-between gap-3">
+                    <div className="p-3 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/6 text-xs flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="text-[10px] text-white/45 uppercase tracking-wider font-semibold">Link de Afiliado</div>
-                        <div className="font-mono text-white/80 truncate mt-0.5">{referralLink}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-white/45 uppercase tracking-wider font-semibold">Link de Afiliado</div>
+                        <div className="font-mono text-slate-700 dark:text-white/80 truncate mt-0.5">{referralLink}</div>
                       </div>
                       <button
                         type="button"
                         onClick={() => copyToClipboard(referralLink, 'Link de Afiliado')}
-                        className="px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer flex-shrink-0"
+                        className="px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/20 hover:bg-blue-100 dark:hover:bg-blue-500/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-transparent font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer flex-shrink-0"
                       >
                         <Copy className="w-3.5 h-3.5" />
                         <span>Copiar</span>
@@ -376,7 +376,7 @@ export default function PartnerDetailDrawer({
 
         {/* Footer com Ações Rápidas de Gestão */}
         {p && (
-          <div className="flex-shrink-0 border-t border-white/10 bg-[#070D1E] px-6 py-4 flex flex-wrap gap-2.5">
+          <div className="flex-shrink-0 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#070D1E] px-6 py-4 flex flex-wrap gap-2.5">
             {/* Se Pendente: Aprovar ou Rejeitar */}
             {isPending && (
               <>
@@ -476,10 +476,10 @@ export default function PartnerDetailDrawer({
 
 function InfoItem({ label, value, mono, onCopy }) {
   return (
-    <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/6 text-xs">
+    <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/6 text-xs">
       <div className="min-w-0 flex-1 pr-2">
-        <div className="text-[10px] text-white/45 uppercase tracking-wider font-semibold">{label}</div>
-        <div className={`mt-0.5 truncate text-white ${mono ? 'font-mono text-emerald-300/90' : 'font-semibold'}`}>
+        <div className="text-[10px] text-slate-500 dark:text-white/45 uppercase tracking-wider font-semibold">{label}</div>
+        <div className={`mt-0.5 truncate ${mono ? 'font-mono text-emerald-700 dark:text-emerald-300/90' : 'font-semibold text-slate-900 dark:text-white'}`}>
           {value || '—'}
         </div>
       </div>
@@ -487,7 +487,7 @@ function InfoItem({ label, value, mono, onCopy }) {
         <button
           type="button"
           onClick={onCopy}
-          className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer flex-shrink-0"
+          className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer flex-shrink-0"
           title="Copiar"
         >
           <Copy className="w-3.5 h-3.5" />

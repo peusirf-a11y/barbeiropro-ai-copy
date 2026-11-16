@@ -383,7 +383,7 @@ export default function AppPagamentos() {
         </div>
 
         {/* Card 1: Chave de API do Asaas */}
-        <div className="bg-[#0B1020]/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
+        <div className="bg-white dark:bg-[#0B1020]/80 backdrop-blur-2xl border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
           <div className="flex items-center justify-between border-b border-white/5 pb-4">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-400">
@@ -480,7 +480,7 @@ export default function AppPagamentos() {
         </div>
 
         {/* Card 2: Métodos de Pagamento Aceitos */}
-        <div className="bg-[#0B1020]/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
+        <div className="bg-white dark:bg-[#0B1020]/80 backdrop-blur-2xl border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
           <div className="border-b border-white/5 pb-4">
             <h2 className="text-base font-bold text-white">Métodos de Pagamento no Agendamento</h2>
             <p className="text-xs text-white/50">Selecione quais formas de pagamento seus clientes podem utilizar online.</p>
@@ -544,7 +544,7 @@ export default function AppPagamentos() {
         </div>
 
         {/* Card 3: Política de Cobrança Online (Sinal Anti No-Show) */}
-        <div className="bg-[#0B1020]/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
+        <div className="bg-white dark:bg-[#0B1020]/80 backdrop-blur-2xl border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
           <div className="border-b border-white/5 pb-4">
             <h2 className="text-base font-bold text-white">Política de Cobrança no Agendamento</h2>
             <p className="text-xs text-white/50">Defina se o cliente paga sinal de reserva, valor integral ou apenas no balcão.</p>
@@ -732,7 +732,7 @@ export default function AppPagamentos() {
                     type="text"
                     readOnly
                     value={testChargeModal.payload || testChargeModal.copy_paste}
-                    className="flex-1 px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs font-mono text-emerald-300 select-all"
+                    className="flex-1 px-3 py-2 bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono text-emerald-700 dark:text-emerald-300 select-all"
                   />
                   <button
                     onClick={() => {

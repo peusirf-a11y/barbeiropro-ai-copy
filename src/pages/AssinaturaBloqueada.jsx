@@ -28,18 +28,18 @@ export default function AssinaturaBloqueada() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F7F3] font-inter flex flex-col">
-      <header className="bg-white border-b border-black/5">
+    <div className="min-h-screen bg-[#F8F7F3] dark:bg-[#050816] font-inter flex flex-col transition-colors">
+      <header className="bg-white dark:bg-[#0B1121] border-b border-black/5 dark:border-white/10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center overflow-hidden">
               <Logo size={32} className="rounded-none" />
             </div>
-            <span className="font-bold text-[15px] text-[#0F172A]">BarberTrimly</span>
+            <span className="font-bold text-[15px] text-[#0F172A] dark:text-white">BarberTrimly</span>
           </Link>
           <button
             onClick={() => base44.auth.logout()}
-            className="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1.5"
+            className="text-xs text-gray-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 flex items-center gap-1.5"
           >
             <LogOut className="w-3.5 h-3.5" /> Sair
           </button>
@@ -47,28 +47,28 @@ export default function AssinaturaBloqueada() {
       </header>
 
       <div className="flex-1 flex items-center justify-center px-4 py-10">
-        <div className="max-w-lg w-full bg-white rounded-3xl border border-black/8 p-8 sm:p-10 text-center shadow-card-lg">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
-            <AlertTriangle className="w-9 h-9 text-amber-600" />
+        <div className="max-w-lg w-full bg-white dark:bg-[#0B1121] rounded-3xl border border-black/8 dark:border-white/10 p-8 sm:p-10 text-center shadow-card-lg">
+          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-5">
+            <AlertTriangle className="w-9 h-9 text-amber-600 dark:text-amber-400" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] mb-3">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] dark:text-white mb-3">
             Acesso pausado
           </h1>
-          <p className="text-gray-500 mb-6 leading-relaxed">
+          <p className="text-gray-500 dark:text-slate-400 mb-6 leading-relaxed">
             Sua assinatura está com pendência de pagamento. Para continuar usando o BarberTrimly, regularize sua assinatura.
           </p>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">
-            <div className="text-xs font-bold text-amber-800 uppercase tracking-wide mb-1.5">
+          <div className="bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 rounded-xl p-4 mb-6 text-left">
+            <div className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wide mb-1.5">
               O que aconteceu?
             </div>
-            <p className="text-sm text-amber-900 leading-relaxed">
+            <p className="text-sm text-amber-900 dark:text-amber-100 leading-relaxed">
               Não conseguimos processar a cobrança do seu plano. Pode ser cartão expirado, sem saldo ou cancelado.
             </p>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg mb-4">
+            <div className="bg-red-50 dark:bg-red-500/15 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 text-xs p-3 rounded-lg mb-4">
               {error}
             </div>
           )}
@@ -83,7 +83,7 @@ export default function AssinaturaBloqueada() {
             {!loading && <ArrowRight className="w-4 h-4" />}
           </button>
 
-          <p className="text-xs text-gray-400 mt-4">
+          <p className="text-xs text-gray-400 dark:text-slate-400 mt-4">
             Você será redirecionado para o portal seguro do Asaas para atualizar seus dados de pagamento.
           </p>
         </div>

@@ -1,29 +1,27 @@
-// Seção recorrência — MRR/ARR/churn com gráfico animado.
+// Seção recorrência — MRR/ARR/churn com gráfico animado, SpotlightCard e BlurReveal.
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import { Repeat, TrendingUp, Users } from 'lucide-react';
 import SectionBadge from './SectionBadge';
 import GlowButton from './GlowButton';
+import { BlurReveal, SpotlightCard, EXPO_EASE } from '@/components/motion/MotionPrimitives';
 
 export default function RecurrenceSection() {
   return (
     <section id="recorrencia" className="relative py-24 md:py-32 px-5 md:px-8">
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-14 items-center">
         {/* Visual */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="order-2 lg:order-1 relative"
-        >
-          <div className="relative rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur-md p-6 shadow-[0_24px_80px_rgba(37,99,235,0.25)]">
+        <BlurReveal inView y={16} className="order-2 lg:order-1 relative">
+          <SpotlightCard hoverLift={false} className="rounded-3xl p-6 shadow-[0_24px_80px_rgba(37,99,235,0.22)]">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Receita recorrente mensal</div>
-                <div className="text-3xl font-black bg-gradient-to-r from-white to-[#93C5FD] bg-clip-text text-transparent mt-1">R$ 18.420</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  Receita recorrente mensal
+                </div>
+                <div className="text-3xl font-extrabold bg-gradient-to-r from-white to-[#93C5FD] bg-clip-text text-transparent mt-1 tabular-nums">
+                  R$ 18.420
+                </div>
               </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25 tabular-nums">
                 +42% / mês
               </span>
             </div>
@@ -40,9 +38,8 @@ export default function RecurrenceSection() {
                   <stop offset="100%" stopColor="#93C5FD" />
                 </linearGradient>
               </defs>
-              {/* Grid lines */}
               {[0, 35, 70, 105].map((y) => (
-                <line key={y} x1="0" x2="400" y1={y} y2={y} stroke="rgba(255,255,255,0.05)" />
+                <line key={y} x1="0" x2="400" y1={y} y2={y} stroke="rgba(255,255,255,0.06)" />
               ))}
               <motion.path
                 d="M0,110 L50,98 L100,90 L150,80 L200,65 L250,52 L300,38 L350,25 L400,15 L400,140 L0,140 Z"
@@ -50,7 +47,7 @@ export default function RecurrenceSection() {
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 1, delay: 0.3 }}
+                transition={{ duration: 0.9, delay: 0.2, ease: EXPO_EASE }}
               />
               <motion.path
                 d="M0,110 L50,98 L100,90 L150,80 L200,65 L250,52 L300,38 L350,25 L400,15"
@@ -60,9 +57,8 @@ export default function RecurrenceSection() {
                 initial={{ pathLength: 0 }}
                 whileInView={{ pathLength: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 1.4, ease: 'easeOut' }}
+                transition={{ duration: 1.2, ease: EXPO_EASE }}
               />
-              {/* Dots */}
               {[
                 [50, 98], [150, 80], [250, 52], [350, 25],
               ].map(([x, y], i) => (
@@ -75,40 +71,34 @@ export default function RecurrenceSection() {
                   initial={{ scale: 0 }}
                   whileInView={{ scale: 1 }}
                   viewport={{ once: true }}
-                  transition={{ delay: 0.8 + i * 0.15 }}
+                  transition={{ delay: 0.6 + i * 0.12, ease: EXPO_EASE }}
                 />
               ))}
             </svg>
 
             {/* Métricas inferiores */}
-            <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-white/5">
+            <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-white/[0.06]">
               {[
                 { label: 'MRR', value: 'R$ 18,4k', icon: Repeat },
                 { label: 'ARR', value: 'R$ 220k', icon: TrendingUp },
                 { label: 'Churn', value: '1.8%', icon: Users },
               ].map((m) => (
                 <div key={m.label}>
-                  <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 mb-1">
-                    <m.icon className="w-3 h-3" /> {m.label}
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                    <m.icon className="w-3 h-3" strokeWidth={1.75} /> {m.label}
                   </div>
-                  <div className="text-base font-black text-white">{m.value}</div>
+                  <div className="text-base font-extrabold text-white tabular-nums">{m.value}</div>
                 </div>
               ))}
             </div>
-          </div>
-        </motion.div>
+          </SpotlightCard>
+        </BlurReveal>
 
         {/* Texto */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="order-1 lg:order-2"
-        >
+        <BlurReveal inView delay={0.08} y={14} className="order-1 lg:order-2">
           <div className="mb-5"><SectionBadge icon={Repeat}>Recorrência</SectionBadge></div>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-[-0.025em] leading-[1.02] mb-6">
-            <span className="bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-[-0.025em] leading-[1.02] mb-6">
+            <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
               Receita previsível
             </span>
             <br />
@@ -116,7 +106,7 @@ export default function RecurrenceSection() {
               todo dia 1.
             </span>
           </h2>
-          <p className="text-white/55 text-base md:text-lg leading-relaxed mb-8">
+          <p className="text-slate-300/80 text-base md:text-lg leading-relaxed mb-8">
             Crie planos mensais (corte ilimitado, combos, premium) e cobre no automático via Asaas.
             Sua barbearia para de depender da movimentação do dia.
           </p>
@@ -127,17 +117,19 @@ export default function RecurrenceSection() {
               { value: '+ 47%', label: 'Ticket por cliente' },
               { value: '< 2%', label: 'Churn mensal' },
             ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-                <div className="text-2xl font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">{s.value}</div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-white/45 mt-1">{s.label}</div>
-              </div>
+              <SpotlightCard key={s.label} className="rounded-xl p-4">
+                <div className="text-2xl font-extrabold bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent tabular-nums">
+                  {s.value}
+                </div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-1">
+                  {s.label}
+                </div>
+              </SpotlightCard>
             ))}
           </div>
 
-          <Link to="/checkout">
-            <GlowButton>Quero faturar todo mês</GlowButton>
-          </Link>
-        </motion.div>
+          <GlowButton to="/checkout">Quero faturar todo mês</GlowButton>
+        </BlurReveal>
       </div>
     </section>
   );

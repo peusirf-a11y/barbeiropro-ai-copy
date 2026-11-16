@@ -229,7 +229,9 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
           </div>
 
           {errorMsg && (
-            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/25 p-3 rounded-xl">
+            <div className={`flex items-center gap-2 text-sm border p-3 rounded-xl ${
+              isDark ? 'text-red-300 bg-red-500/15 border-red-500/30' : 'text-red-700 bg-red-50 border-red-200'
+            }`}>
               <AlertCircle className="w-4 h-4 flex-shrink-0" />{errorMsg}
             </div>
           )}
@@ -281,8 +283,9 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
 
       {/* ─── CARTÃO ─── */}
       {stage === 'card' && (
-        <div className="bg-white rounded-2xl border border-black/8 p-5">
+        <div className={`${tw.card} rounded-2xl p-5`}>
           <CardPaymentFormAsaas
+            isDark={isDark}
             primaryColor={primaryColor}
             amountLabel={payload.price ? `Pagar R$ ${Number(payload.price).toFixed(2).replace('.', ',')}` : 'Pagar agora'}
             defaultCpf={cpfDigits || payload.customer_cpf || ''}
@@ -334,13 +337,19 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
 
       {/* ─── EXPIROU ─── */}
       {stage === 'expired' && (
-        <div className="bg-white rounded-2xl border border-amber-200 bg-amber-50 p-5 text-center">
+        <div className={`rounded-2xl border p-5 text-center ${
+          isDark ? 'bg-amber-500/15 border-amber-500/30' : 'bg-amber-50 border-amber-200'
+        }`}>
           <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-          <h3 className="font-bold text-amber-900 mb-1">Tempo esgotado</h3>
-          <p className="text-sm text-amber-800 mb-4">O pagamento não foi confirmado dentro do prazo. Você pode gerar um novo código Pix.</p>
+          <h3 className={`font-bold mb-1 ${isDark ? 'text-amber-200' : 'text-amber-900'}`}>Tempo esgotado</h3>
+          <p className={`text-sm mb-4 ${isDark ? 'text-amber-100/80' : 'text-amber-800'}`}>O pagamento não foi confirmado dentro do prazo. Você pode gerar um novo código Pix.</p>
           <button
             onClick={restart}
-            className="inline-flex items-center gap-2 bg-white text-amber-700 border border-amber-300 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-amber-100"
+            className={`inline-flex items-center gap-2 border px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${
+              isDark
+                ? 'bg-[#171827] text-amber-200 border-amber-500/30 hover:bg-[#1E2034]'
+                : 'bg-white text-amber-700 border-amber-300 hover:bg-amber-100'
+            }`}
           >
             <RefreshCw className="w-4 h-4" /> Tentar novamente
           </button>
@@ -349,13 +358,19 @@ export default function BookingPaymentStep({ payload, primaryColor = '#2563EB', 
 
       {/* ─── ERRO EM VERMELHO ─── */}
       {stage === 'error' && (
-        <div className="bg-red-50 rounded-2xl border border-red-300 p-5 text-center">
-          <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-          <h3 className="font-bold text-red-900 mb-1">Não foi possível gerar o Pix</h3>
-          <p className="text-sm font-medium text-red-700 mb-4">{errorMsg || ASAAS_PIX_ERROR_MSG}</p>
+        <div className={`rounded-2xl border p-5 text-center ${
+          isDark ? 'bg-red-500/15 border-red-500/30' : 'bg-red-50 border-red-300'
+        }`}>
+          <AlertCircle className={`w-8 h-8 mx-auto mb-2 ${isDark ? 'text-red-400' : 'text-red-600'}`} />
+          <h3 className={`font-bold mb-1 ${isDark ? 'text-red-200' : 'text-red-900'}`}>Não foi possível gerar o Pix</h3>
+          <p className={`text-sm font-medium mb-4 ${isDark ? 'text-red-200/90' : 'text-red-700'}`}>{errorMsg || ASAAS_PIX_ERROR_MSG}</p>
           <button
             onClick={restart}
-            className="inline-flex items-center gap-2 bg-white text-red-700 border border-red-300 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-red-100"
+            className={`inline-flex items-center gap-2 border px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${
+              isDark
+                ? 'bg-[#171827] text-red-200 border-red-500/30 hover:bg-[#1E2034]'
+                : 'bg-white text-red-700 border-red-300 hover:bg-red-100'
+            }`}
           >
             <RefreshCw className="w-4 h-4" /> Voltar e tentar novamente
           </button>

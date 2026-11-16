@@ -231,11 +231,11 @@ export default function AtivarAcesso() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FB] font-inter">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-black/5 sticky top-0 z-10">
+    <div className="min-h-screen bg-[#F4F7FB] dark:bg-[#050816] font-inter transition-colors">
+      <header className="bg-white/80 dark:bg-[#0B1121]/85 backdrop-blur-sm border-b border-black/5 dark:border-white/10 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Logo size={32} />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-400">
             Ativação de Acesso
           </span>
         </div>
@@ -244,27 +244,27 @@ export default function AtivarAcesso() {
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-8 sm:py-14 animate-fade-in-up">
         {/* Hero */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2563EB]/10 text-[#2563EB] mb-4 shadow-sm">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2563EB]/10 dark:bg-blue-500/15 text-[#2563EB] dark:text-blue-400 mb-4 shadow-sm">
             <KeyRound className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight mb-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] dark:text-white tracking-tight mb-2">
             Digite o código de acesso
           </h1>
-          <p className="text-sm sm:text-base text-gray-500 max-w-md mx-auto">
+          <p className="text-sm sm:text-base text-gray-500 dark:text-slate-400 max-w-md mx-auto">
             Enviamos um código de 6 dígitos para o seu e-mail. Digite abaixo para confirmar o acesso.
           </p>
         </div>
 
         {/* Resumo da conta com e-mail editável */}
-        <div className="bg-white rounded-2xl border border-black/8 shadow-sm p-5 mb-6">
+        <div className="bg-white dark:bg-[#0B1121] rounded-2xl border border-black/8 dark:border-white/10 shadow-sm p-5 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-3">
             <div className="sm:col-span-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1 flex items-center justify-between">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 mb-1 flex items-center justify-between">
                 <span>E-mail</span>
                 {!isEditingEmail && email && (
                   <button
                     onClick={() => setIsEditingEmail(true)}
-                    className="text-[#2563EB] hover:underline flex items-center gap-0.5 font-bold"
+                    className="text-[#2563EB] dark:text-blue-400 hover:underline flex items-center gap-0.5 font-bold"
                   >
                     <Edit3 className="w-2.5 h-2.5" /> Alterar
                   </button>
@@ -278,7 +278,7 @@ export default function AtivarAcesso() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value.toLowerCase())}
                     placeholder="seuemail@exemplo.com"
-                    className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-900 font-medium focus:outline-none focus:border-blue-500"
+                    className="w-full px-2.5 py-1.5 bg-gray-50 dark:bg-[#0D1326] border border-gray-300 dark:border-white/10 rounded-lg text-xs text-gray-900 dark:text-white font-medium focus:outline-none focus:border-blue-500"
                   />
                   <button
                     onClick={() => {
@@ -295,7 +295,7 @@ export default function AtivarAcesso() {
                   </button>
                 </div>
               ) : (
-                <div className="text-xs font-semibold text-[#0F172A] break-all">
+                <div className="text-xs font-semibold text-[#0F172A] dark:text-white break-all">
                   {email || 'Nenhum e-mail informado'}
                 </div>
               )}
@@ -311,14 +311,14 @@ export default function AtivarAcesso() {
               icon={Clock}
               label="Status"
               value="Ativação Pendente"
-              valueClass="text-amber-600 font-bold"
+              valueClass="text-amber-600 dark:text-amber-400 font-bold"
             />
           </div>
         </div>
 
         {/* Formulário de código OTP */}
-        <div className="bg-white rounded-2xl border border-black/8 shadow-sm p-6 mb-4">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3 text-center">
+        <div className="bg-white dark:bg-[#0B1121] rounded-2xl border border-black/8 dark:border-white/10 shadow-sm p-6 mb-4">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 mb-3 text-center">
             Código de 6 dígitos
           </div>
 
@@ -337,7 +337,7 @@ export default function AtivarAcesso() {
                   <InputOTPSlot
                     key={i}
                     index={i}
-                    className="h-14 w-12 sm:h-16 sm:w-14 text-2xl sm:text-3xl font-black text-[#0F172A] bg-white border-2 border-gray-200 rounded-xl first:rounded-l-xl last:rounded-r-xl"
+                    className="h-14 w-12 sm:h-16 sm:w-14 text-2xl sm:text-3xl font-black text-[#0F172A] dark:text-white bg-white dark:bg-[#0D1326] border-2 border-gray-200 dark:border-white/15 rounded-xl first:rounded-l-xl last:rounded-r-xl"
                   />
                 ))}
               </InputOTPGroup>
@@ -345,22 +345,22 @@ export default function AtivarAcesso() {
           </div>
 
           {verifying && (
-            <div className="flex items-center justify-center gap-2 text-sm text-[#2563EB] mb-3 font-semibold">
+            <div className="flex items-center justify-center gap-2 text-sm text-[#2563EB] dark:text-blue-400 mb-3 font-semibold">
               <Loader2 className="w-4 h-4 animate-spin" />
               Verificando código…
             </div>
           )}
 
           {error && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 flex items-start gap-2 text-xs text-rose-800 mb-3">
-              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600" />
+            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 p-3 flex items-start gap-2 text-xs text-rose-800 dark:text-rose-200 mb-3">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600 dark:text-rose-400" />
               <div>{error}</div>
             </div>
           )}
 
           {resent && !error && (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 flex items-start gap-2 text-xs text-emerald-800 mb-3">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-emerald-600" />
+            <div className="rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 p-3 flex items-start gap-2 text-xs text-emerald-800 dark:text-emerald-200 mb-3">
+              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
               <div>Código gerado para {email}! Verifique a caixa de entrada ou digite 123456 em ambiente de teste.</div>
             </div>
           )}
@@ -368,7 +368,7 @@ export default function AtivarAcesso() {
           <button
             onClick={handleResend}
             disabled={resending || cooldown > 0 || verifying}
-            className="w-full text-center text-xs font-semibold text-gray-600 hover:text-[#2563EB] transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2 cursor-pointer"
+            className="w-full text-center text-xs font-semibold text-gray-600 dark:text-slate-300 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2 cursor-pointer"
           >
             {resending ? (
               <span className="inline-flex items-center gap-2">
@@ -382,10 +382,10 @@ export default function AtivarAcesso() {
           </button>
 
           {/* Atalho de Voltar ao Login */}
-          <div className="pt-4 border-t border-gray-100 mt-4 text-center">
+          <div className="pt-4 border-t border-gray-100 dark:border-white/10 mt-4 text-center">
             <Link
               to="/login"
-              className="inline-flex items-center justify-center gap-2 text-xs font-bold text-[#2563EB] hover:text-blue-700 hover:underline transition-colors"
+              className="inline-flex items-center justify-center gap-2 text-xs font-bold text-[#2563EB] dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Já tem senha definida? Entrar no sistema (/login)
@@ -394,11 +394,11 @@ export default function AtivarAcesso() {
         </div>
 
         {/* Linha de confiança */}
-        <div className="flex items-center justify-center gap-2 mt-6 text-[11px] text-gray-400 text-center">
+        <div className="flex items-center justify-center gap-2 mt-6 text-[11px] text-gray-400 dark:text-slate-400 text-center">
           <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
           <span>
             Acesso seguro e criptografado · Dúvidas?{' '}
-            <Link to="/landing" className="underline hover:text-[#2563EB]">
+            <Link to="/landing" className="underline hover:text-[#2563EB] dark:hover:text-blue-400">
               central de ajuda
             </Link>
           </span>
@@ -411,12 +411,12 @@ export default function AtivarAcesso() {
 function SummaryItem({ icon: Icon, label, value, valueClass = '' }) {
   return (
     <div className="flex sm:flex-col items-start gap-3 sm:gap-1.5">
-      <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-[#2563EB]/8 text-[#2563EB] flex items-center justify-center flex-shrink-0">
+      <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-[#2563EB]/8 dark:bg-blue-500/15 text-[#2563EB] dark:text-blue-400 flex items-center justify-center flex-shrink-0">
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">{label}</div>
-        <div className={`text-xs font-semibold text-[#0F172A] ${valueClass}`}>{value}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 mb-0.5">{label}</div>
+        <div className={`text-xs font-semibold text-[#0F172A] dark:text-white ${valueClass}`}>{value}</div>
       </div>
     </div>
   );

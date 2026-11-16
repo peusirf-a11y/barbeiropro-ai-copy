@@ -221,16 +221,16 @@ export default function EsqueciSenha() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FB] font-inter flex flex-col justify-between">
+    <div className="min-h-screen bg-[#F4F7FB] dark:bg-[#050816] font-inter flex flex-col justify-between transition-colors">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-black/5 sticky top-0 z-20">
+      <header className="bg-white/80 dark:bg-[#0B1121]/85 backdrop-blur-sm border-b border-black/5 dark:border-white/10 sticky top-0 z-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
             <Logo size={32} />
           </Link>
           <Link
             to="/login"
-            className="text-xs font-semibold text-gray-500 hover:text-[#2563EB] inline-flex items-center gap-1.5 transition-colors"
+            className="text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-[#2563EB] dark:hover:text-blue-400 inline-flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Voltar ao login
@@ -243,13 +243,13 @@ export default function EsqueciSenha() {
         <div className="max-w-md w-full animate-fade-in-up">
           {/* Top Title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/10 text-[#2563EB] mb-4 shadow-sm">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2563EB]/10 dark:bg-blue-500/15 text-[#2563EB] dark:text-blue-400 mb-4 shadow-sm">
               {step === 1 ? <Mail className="w-7 h-7" /> : <ShieldCheck className="w-7 h-7" />}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight mb-2">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] dark:text-white tracking-tight mb-2">
               {step === 1 ? 'Recuperar senha' : 'Confirmar código e nova senha'}
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-slate-400">
               {step === 1
                 ? 'Informe seu e-mail para receber as instruções de recuperação.'
                 : 'Cole o código de 6 dígitos ou o link/token recebido por e-mail e crie sua nova senha.'}
@@ -257,14 +257,14 @@ export default function EsqueciSenha() {
           </div>
 
           {/* Card */}
-          <div className="bg-white rounded-3xl border border-black/8 shadow-xl shadow-slate-200/50 p-6 sm:p-8">
+          <div className="bg-white dark:bg-[#0B1121] rounded-3xl border border-black/8 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/40 p-6 sm:p-8">
             {success ? (
               <div className="text-center py-4 space-y-4 animate-fade-in">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-sm">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h2 className="text-xl font-black text-[#0F172A]">Senha alterada com sucesso!</h2>
-                <p className="text-xs text-gray-500 leading-relaxed">
+                <h2 className="text-xl font-black text-[#0F172A] dark:text-white">Senha alterada com sucesso!</h2>
+                <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
                   Sua nova credencial foi gravada no Supabase. Redirecionando para a tela de login...
                 </p>
                 <div className="pt-2">
@@ -280,11 +280,11 @@ export default function EsqueciSenha() {
               /* ETAPA 1: SOLICITAÇÃO DO E-MAIL */
               <form onSubmit={handleRequestOtp} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-1.5">
                     Seu e-mail cadastrado
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500" />
                     <input
                       type="email"
                       autoComplete="email"
@@ -294,14 +294,14 @@ export default function EsqueciSenha() {
                       placeholder="exemplo@barbearia.com"
                       required
                       autoFocus
-                      className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                      className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 dark:border-white/10 bg-slate-50/50 dark:bg-[#0D1326] text-sm text-[#0F172A] dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0D1326] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
                     />
                   </div>
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 flex items-start gap-2.5 text-xs text-rose-800 animate-shake">
-                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600" />
+                  <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 p-3.5 flex items-start gap-2.5 text-xs text-rose-800 dark:text-rose-200 animate-shake">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600 dark:text-rose-400" />
                     <div className="font-medium leading-relaxed">{error}</div>
                   </div>
                 )}
@@ -325,9 +325,9 @@ export default function EsqueciSenha() {
               /* ETAPA 2: DIGITAR CÓDIGO/TOKEN E NOVA SENHA */
               <form onSubmit={handleVerifyOtpAndReset} className="space-y-4">
                 {/* Badge do e-mail de destino */}
-                <div className="rounded-xl bg-blue-50/80 border border-blue-200/60 p-3 flex items-center justify-between text-xs text-blue-900">
+                <div className="rounded-xl bg-blue-50/80 dark:bg-blue-500/15 border border-blue-200/60 dark:border-blue-500/30 p-3 flex items-center justify-between text-xs text-blue-900 dark:text-blue-200">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <Mail className="w-3.5 h-3.5 text-[#2563EB] flex-shrink-0" />
+                    <Mail className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400 flex-shrink-0" />
                     <span className="truncate font-semibold">{email}</span>
                   </div>
                   <button
@@ -336,7 +336,7 @@ export default function EsqueciSenha() {
                       setStep(1);
                       setError('');
                     }}
-                    className="text-[11px] font-bold text-[#2563EB] hover:underline flex-shrink-0 ml-2"
+                    className="text-[11px] font-bold text-[#2563EB] dark:text-blue-400 hover:underline flex-shrink-0 ml-2"
                   >
                     Alterar
                   </button>
@@ -345,14 +345,14 @@ export default function EsqueciSenha() {
                 {/* Código OTP ou Token completo do e-mail */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">
                       Código ou Token do E-mail
                     </label>
                     <button
                       type="button"
                       disabled={resending || countdown > 0}
                       onClick={handleResendOtp}
-                      className="font-semibold text-[11px] text-[#2563EB] hover:underline disabled:opacity-50 disabled:no-underline inline-flex items-center gap-1"
+                      className="font-semibold text-[11px] text-[#2563EB] dark:text-blue-400 hover:underline disabled:opacity-50 disabled:no-underline inline-flex items-center gap-1"
                     >
                       {resending ? (
                         <>
@@ -370,7 +370,7 @@ export default function EsqueciSenha() {
                     </button>
                   </div>
                   <div className="relative">
-                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500" />
                     <input
                       type="text"
                       autoComplete="one-time-code"
@@ -380,21 +380,21 @@ export default function EsqueciSenha() {
                       placeholder="Cole o código de 6 dígitos ou o link/token do e-mail"
                       required
                       autoFocus
-                      className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-slate-50/50 text-xs sm:text-sm font-mono text-[#0F172A] placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                      className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 dark:border-white/10 bg-slate-50/50 dark:bg-[#0D1326] text-xs sm:text-sm font-mono text-[#0F172A] dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0D1326] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
                     />
                   </div>
-                  <p className="text-[11px] text-gray-500 mt-1">
+                  <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-1">
                     Você pode digitar o código numérico ou colar a URL inteira do link de recuperação recebido.
                   </p>
                 </div>
 
                 {/* Nova Senha */}
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-1.5">
                     Nova Senha
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="new-password"
@@ -403,19 +403,19 @@ export default function EsqueciSenha() {
                       disabled={submitting}
                       placeholder="Mínimo 8 caracteres"
                       required
-                      className="w-full h-12 pl-10 pr-10 rounded-xl border border-gray-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                      className="w-full h-12 pl-10 pr-10 rounded-xl border border-gray-200 dark:border-white/10 bg-slate-50/50 dark:bg-[#0D1326] text-sm text-[#0F172A] dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0D1326] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 p-1"
                       tabIndex={-1}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                   {newPassword && newPassword.length < 8 && (
-                    <p className="text-[11px] font-medium text-amber-600 mt-1">
+                    <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 mt-1">
                       A senha precisa ter no mínimo 8 caracteres.
                     </p>
                   )}
@@ -423,11 +423,11 @@ export default function EsqueciSenha() {
 
                 {/* Confirmar Nova Senha */}
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-1.5">
                     Confirmar Nova Senha
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="new-password"
@@ -436,19 +436,19 @@ export default function EsqueciSenha() {
                       disabled={submitting}
                       placeholder="Repita a nova senha"
                       required
-                      className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-slate-50/50 text-sm text-[#0F172A] placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
+                      className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 dark:border-white/10 bg-slate-50/50 dark:bg-[#0D1326] text-sm text-[#0F172A] dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#0D1326] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
                     />
                   </div>
                   {confirmPassword && newPassword !== confirmPassword && (
-                    <p className="text-[11px] font-medium text-amber-600 mt-1">
+                    <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 mt-1">
                       As senhas não coincidem.
                     </p>
                   )}
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 flex items-start gap-2.5 text-xs text-rose-800 animate-shake">
-                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600" />
+                  <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 p-3.5 flex items-start gap-2.5 text-xs text-rose-800 dark:text-rose-200 animate-shake">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-600 dark:text-rose-400" />
                     <div className="font-medium leading-relaxed">{error}</div>
                   </div>
                 )}
@@ -474,7 +474,7 @@ export default function EsqueciSenha() {
       </main>
 
       {/* Footer */}
-      <footer className="py-6 text-center text-xs text-gray-400 border-t border-black/5">
+      <footer className="py-6 text-center text-xs text-gray-400 dark:text-slate-400 border-t border-black/5 dark:border-white/10">
         <p>© 2026 O CORTE. Todos os direitos reservados.</p>
       </footer>
     </div>

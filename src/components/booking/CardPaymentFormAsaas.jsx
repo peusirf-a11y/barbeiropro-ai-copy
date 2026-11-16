@@ -61,8 +61,18 @@ export default function CardPaymentFormAsaas({
   defaultPhone = '',
   defaultPostalCode = '',
   defaultAddressNumber = '',
+  isDark,
 }) {
-  const accent = getThemeAccent(primaryColor, false);
+  const accent = getThemeAccent(primaryColor, Boolean(isDark));
+  const usePublicFlag = typeof isDark === 'boolean';
+  const labelCls = usePublicFlag
+    ? `block text-[11px] uppercase tracking-wide font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-gray-600'}`
+    : 'block text-[11px] uppercase tracking-wide font-bold text-gray-600 dark:text-slate-300 mb-1.5';
+  const inputBaseCls = usePublicFlag
+    ? (isDark
+        ? 'bg-[#0F101A] border-[#232538] text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+        : 'bg-white border-black/15 text-[#0F172A] placeholder:text-gray-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600')
+    : 'bg-white dark:bg-[#0D1326] border-black/15 dark:border-white/15 text-[#0F172A] dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:border-blue-600 focus:ring-1 focus:ring-blue-600';
   const [form, setForm] = useState({
     holderName: defaultName || '',
     number: '',
@@ -157,15 +167,19 @@ export default function CardPaymentFormAsaas({
     <form onSubmit={handleSubmit} className="space-y-4">
       {title && (
         <div className="flex items-center gap-2 mb-1">
-          <CreditCard className="w-4 h-4 text-gray-500" />
-          <span className="text-[11px] uppercase font-bold text-gray-700 tracking-wide">{title}</span>
+          <CreditCard className={`w-4 h-4 ${usePublicFlag ? (isDark ? 'text-slate-400' : 'text-gray-500') : 'text-gray-500 dark:text-slate-400'}`} />
+          <span className={`text-[11px] uppercase font-bold tracking-wide ${usePublicFlag ? (isDark ? 'text-slate-200' : 'text-gray-700') : 'text-gray-700 dark:text-slate-200'}`}>{title}</span>
         </div>
       )}
 
       {/* Alerta de Segurança */}
-      <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200/80 rounded-2xl p-3.5 shadow-sm">
-        <Shield className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-        <div className="text-[12px] text-blue-950 leading-relaxed">
+      <div className={`flex items-start gap-2.5 border rounded-2xl p-3.5 shadow-sm ${
+        usePublicFlag
+          ? (isDark ? 'bg-blue-500/10 border-blue-500/25' : 'bg-blue-50 border-blue-200/80')
+          : 'bg-blue-50 dark:bg-blue-500/10 border-blue-200/80 dark:border-blue-500/25'
+      }`}>
+        <Shield className={`w-4 h-4 flex-shrink-0 mt-0.5 ${usePublicFlag ? (isDark ? 'text-blue-400' : 'text-blue-600') : 'text-blue-600 dark:text-blue-400'}`} />
+        <div className={`text-[12px] leading-relaxed ${usePublicFlag ? (isDark ? 'text-blue-100' : 'text-blue-950') : 'text-blue-950 dark:text-blue-100'}`}>
           {String(amountLabel || '').toLowerCase().includes('grátis') ? (
             <>
               <strong>7 dias grátis.</strong> Cancele quando quiser. A primeira fatura só será debitada em 7 dias após a validação do cartão.
@@ -184,7 +198,7 @@ export default function CardPaymentFormAsaas({
 
       {/* Número do Cartão com Detecção de Bandeira */}
       <div>
-        <label className="block text-[11px] uppercase tracking-wide font-bold text-gray-600 mb-1.5">
+        <label className={labelCls}>
           Número do Cartão <span className="text-red-500">*</span>
         </label>
         <div className="relative">
@@ -195,8 +209,7 @@ export default function CardPaymentFormAsaas({
             onChange={e => set('number', maskCard(e.target.value))}
             autoComplete="cc-number"
             placeholder="0000 0000 0000 0000"
-            style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
-            className="w-full pl-4 pr-24 py-3 border border-black/15 rounded-xl text-sm font-mono tracking-wider placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            className={`w-full pl-4 pr-24 py-3 border rounded-xl text-sm font-mono tracking-wider focus:outline-none ${inputBaseCls}`}
           />
           {cardBrand && form.number.length >= 2 && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -210,7 +223,7 @@ export default function CardPaymentFormAsaas({
 
       {/* Nome Impresso */}
       <div>
-        <label className="block text-[11px] uppercase tracking-wide font-bold text-gray-600 mb-1.5">
+        <label className={labelCls}>
           Nome Impresso no Cartão <span className="text-red-500">*</span>
         </label>
         <input
@@ -219,15 +232,14 @@ export default function CardPaymentFormAsaas({
           onChange={e => set('holderName', e.target.value.toUpperCase())}
           autoComplete="cc-name"
           placeholder="EX: JOAO SOUZA SILVA"
-          style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
-          className="w-full px-4 py-3 border border-black/15 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+          className={`w-full px-4 py-3 border rounded-xl text-sm focus:outline-none ${inputBaseCls}`}
         />
       </div>
 
       {/* Validade e CVV */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[11px] uppercase tracking-wide font-bold text-gray-600 mb-1.5">
+          <label className={labelCls}>
             Validade (MM/AA) <span className="text-red-500">*</span>
           </label>
           <input
@@ -238,12 +250,11 @@ export default function CardPaymentFormAsaas({
             autoComplete="cc-exp"
             placeholder="MM/AA"
             maxLength={5}
-            style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
-            className="w-full px-4 py-3 border border-black/15 rounded-xl text-sm font-mono tracking-wider placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            className={`w-full px-4 py-3 border rounded-xl text-sm font-mono tracking-wider focus:outline-none ${inputBaseCls}`}
           />
         </div>
         <div>
-          <label className="block text-[11px] uppercase tracking-wide font-bold text-gray-600 mb-1.5">
+          <label className={labelCls}>
             CVV <span className="text-red-500">*</span>
           </label>
           <input
@@ -254,8 +265,7 @@ export default function CardPaymentFormAsaas({
             autoComplete="cc-csc"
             placeholder="3 ou 4 dígitos"
             maxLength={4}
-            style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
-            className="w-full px-4 py-3 border border-black/15 rounded-xl text-sm font-mono tracking-wider placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            className={`w-full px-4 py-3 border rounded-xl text-sm font-mono tracking-wider focus:outline-none ${inputBaseCls}`}
           />
         </div>
       </div>
@@ -264,7 +274,7 @@ export default function CardPaymentFormAsaas({
       {showCpf && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] uppercase tracking-wide font-bold text-gray-600 mb-1.5">
+            <label className={labelCls}>
               CPF ou CNPJ do Titular <span className="text-red-500">*</span>
             </label>
             <input
@@ -274,12 +284,11 @@ export default function CardPaymentFormAsaas({
               onChange={e => set('cpf', maskCpfCnpj(e.target.value))}
               placeholder="000.000.000-00"
               maxLength={18}
-              style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
-              className="w-full px-4 py-3 border border-black/15 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              className={`w-full px-4 py-3 border rounded-xl text-sm focus:outline-none ${inputBaseCls}`}
             />
           </div>
           <div>
-            <label className="block text-[11px] uppercase tracking-wide font-bold text-gray-600 mb-1.5">
+            <label className={labelCls}>
               Telefone do Titular
             </label>
             <input
@@ -289,8 +298,7 @@ export default function CardPaymentFormAsaas({
               onChange={e => set('phone', e.target.value)}
               placeholder="(11) 99999-9999"
               maxLength={16}
-              style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
-              className="w-full px-4 py-3 border border-black/15 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              className={`w-full px-4 py-3 border rounded-xl text-sm focus:outline-none ${inputBaseCls}`}
             />
           </div>
         </div>
@@ -298,8 +306,12 @@ export default function CardPaymentFormAsaas({
 
       {/* Mensagem de Erro de Cartão / Recusa */}
       {error && (
-        <div className="flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs animate-shake">
-          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
+        <div className={`flex items-start gap-2.5 p-3.5 border rounded-xl text-xs animate-shake ${
+          usePublicFlag
+            ? (isDark ? 'bg-red-500/15 border-red-500/30 text-red-200' : 'bg-red-50 border-red-200 text-red-700')
+            : 'bg-red-50 dark:bg-red-500/15 border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-200'
+        }`}>
+          <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${usePublicFlag ? (isDark ? 'text-red-400' : 'text-red-600') : 'text-red-600 dark:text-red-400'}`} />
           <div className="flex-1 font-medium leading-relaxed">{error}</div>
         </div>
       )}
@@ -324,8 +336,8 @@ export default function CardPaymentFormAsaas({
         )}
       </button>
 
-      <div className="flex items-center justify-center gap-2 text-[11px] text-gray-400 text-center pt-1">
-        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+      <div className={`flex items-center justify-center gap-2 text-[11px] text-center pt-1 ${usePublicFlag ? (isDark ? 'text-slate-400' : 'text-gray-400') : 'text-gray-400 dark:text-slate-400'}`}>
+        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
         <span>Ambiente criptografado seguro com conformidade PCI-DSS</span>
       </div>
     </form>

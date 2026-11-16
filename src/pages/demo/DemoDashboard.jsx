@@ -88,8 +88,8 @@ export default function DemoDashboard() {
     <DemoLayout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-black text-[#111827] tracking-tight">Dashboard</h1>
-          <p className="text-[#6B7280] text-sm mt-1 capitalize">
+          <h1 className="text-2xl lg:text-3xl font-black text-[#111827] dark:text-white tracking-tight">Dashboard</h1>
+          <p className="text-slate-500 dark:text-slate-300 text-sm mt-1 capitalize">
             {format(now, "EEEE, d 'de' MMMM", { locale: ptBR })} · {demoCompany.name}
           </p>
         </div>

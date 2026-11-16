@@ -302,14 +302,14 @@ export default function Checkout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F7F3] font-inter">
+    <div className="min-h-screen bg-[#F8F7F3] dark:bg-[#050816] font-inter transition-colors">
       {/* Top bar */}
-      <header className="bg-white border-b border-black/5 sticky top-0 z-30">
+      <header className="bg-white dark:bg-[#0B1121] border-b border-black/5 dark:border-white/10 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link to="/landing">
             <Logo size={32} />
           </Link>
-          <Link to="/landing" className="text-xs text-gray-500 hover:text-[#2563EB] flex items-center gap-1 cursor-pointer">
+          <Link to="/landing" className="text-xs text-gray-500 dark:text-slate-400 hover:text-[#2563EB] dark:hover:text-blue-400 flex items-center gap-1 cursor-pointer">
             <ArrowLeft className="w-3 h-3" /> Voltar
           </Link>
         </div>
@@ -321,66 +321,66 @@ export default function Checkout() {
           <div className="order-2 lg:order-1">
             <div className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 ${
               isLaunch
-                ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                : 'bg-[#2563EB]/10 text-[#2563EB]'
+                ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-500/30'
+                : 'bg-[#2563EB]/10 dark:bg-blue-500/15 text-[#2563EB] dark:text-blue-400'
             }`}>
               {isLaunch ? <Rocket className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
               {isLaunch
                 ? `OFERTA DE LANÇAMENTO ATIVA · R$ ${LAUNCH_PROMO.priceFormatted}/mês`
                 : '7 dias grátis · Cancele quando quiser'}
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-[#0F172A] leading-tight mb-3">
+            <h1 className="text-3xl sm:text-4xl font-black text-[#0F172A] dark:text-white leading-tight mb-3">
               {isLaunch ? 'Garanta sua condição de lançamento' : 'Comece a usar O CORTE hoje'}
             </h1>
-            <p className="text-gray-500 mb-8">
+            <p className="text-gray-500 dark:text-slate-400 mb-8">
               {isLaunch ? (
                 <>
-                  Plano <strong>Master</strong> com condição especial: <strong>R$ {LAUNCH_PROMO.priceFormatted}/mês nos primeiros {LAUNCH_PROMO.durationMonths} meses</strong>. Depois, R$ {LAUNCH_PROMO.regularPriceFormatted}/mês. Experimente com <strong>7 dias grátis</strong>.
+                  Plano <strong className="text-[#0F172A] dark:text-white">Master</strong> com condição especial: <strong className="text-[#0F172A] dark:text-white">R$ {LAUNCH_PROMO.priceFormatted}/mês nos primeiros {LAUNCH_PROMO.durationMonths} meses</strong>. Depois, R$ {LAUNCH_PROMO.regularPriceFormatted}/mês. Experimente com <strong className="text-[#0F172A] dark:text-white">7 dias grátis</strong>.
                 </>
               ) : (
-                <>Cadastre sua barbearia, escolha o plano e ganhe <strong>7 dias grátis</strong>. A primeira fatura só será debitada em 7 dias.</>
+                <>Cadastre sua barbearia, escolha o plano e ganhe <strong className="text-[#0F172A] dark:text-white">7 dias grátis</strong>. A primeira fatura só será debitada em 7 dias.</>
               )}
             </p>
 
             {/* Resumo do plano */}
-            <div className={`bg-white rounded-2xl border p-5 mb-5 shadow-card ${
-              isLaunch ? 'border-amber-300 ring-2 ring-amber-200' : 'border-black/8'
+            <div className={`bg-white dark:bg-[#0B1121] rounded-2xl border p-5 mb-5 shadow-card ${
+              isLaunch ? 'border-amber-300 dark:border-amber-500/40 ring-2 ring-amber-200 dark:ring-amber-500/20' : 'border-black/8 dark:border-white/10'
             }`}>
               {isLaunch && (
                 <div className="flex items-center gap-2 mb-3 -mt-1">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-500/30">
                     <Rocket className="w-3 h-3" /> Oferta de lançamento ativa
                   </span>
                 </div>
               )}
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Plano selecionado</div>
-                  <div className="text-xl font-black text-[#0F172A]">O CORTE · {isLaunch ? 'Master' : plan.name}</div>
+                  <div className="text-xs text-gray-400 dark:text-slate-400 font-semibold uppercase tracking-wide">Plano selecionado</div>
+                  <div className="text-xl font-black text-[#0F172A] dark:text-white">O CORTE · {isLaunch ? 'Master' : plan.name}</div>
                 </div>
                 <div className="text-right">
                   {isLaunch && (
-                    <div className="text-xs text-gray-400 line-through">R$ {LAUNCH_PROMO.regularPriceFormatted}/mês</div>
+                    <div className="text-xs text-gray-400 dark:text-slate-500 line-through">R$ {LAUNCH_PROMO.regularPriceFormatted}/mês</div>
                   )}
-                  <div className="text-2xl font-black text-[#0F172A]">
+                  <div className="text-2xl font-black text-[#0F172A] dark:text-white">
                     {loadingPlans && !isLaunch ? '—' : `R$ ${formatCurrencyBRL(effectivePrice)}`}
                   </div>
-                  <div className="text-xs text-gray-400">/mês</div>
+                  <div className="text-xs text-gray-400 dark:text-slate-400">/mês</div>
                 </div>
               </div>
-              <div className="border-t border-black/5 pt-3 space-y-2">
+              <div className="border-t border-black/5 dark:border-white/10 pt-3 space-y-2">
                 {plan.features.slice(0, 4).map(f => (
-                  <div key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-[#2563EB] flex-shrink-0" />
+                  <div key={f} className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
+                    <CheckCircle className="w-4 h-4 text-[#2563EB] dark:text-blue-400 flex-shrink-0" />
                     {f}
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-4 border-t border-black/5 flex items-center justify-between text-sm">
-                <span className="text-gray-500 font-medium">Cobrança hoje (Trial de 7 dias)</span>
-                <span className="font-bold text-emerald-600">R$ 0,00</span>
+              <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/10 flex items-center justify-between text-sm">
+                <span className="text-gray-500 dark:text-slate-400 font-medium">Cobrança hoje (Trial de 7 dias)</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">R$ 0,00</span>
               </div>
-              <div className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+              <div className="text-xs text-gray-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                 {isLaunch
                   ? `Você não será cobrado nos primeiros 7 dias. Após o período gratuito: R$ ${LAUNCH_PROMO.priceFormatted}/mês nos primeiros ${LAUNCH_PROMO.durationMonths} meses. Depois, R$ ${LAUNCH_PROMO.regularPriceFormatted}/mês.`
                   : `Você não será cobrado nos primeiros 7 dias. Após 7 dias grátis: R$ ${formatCurrencyBRL(plan.price)}/mês.`}
@@ -389,32 +389,32 @@ export default function Checkout() {
 
             {/* Garantias */}
             <div className="grid grid-cols-3 gap-3 mb-6">
-              <div className="bg-white rounded-xl border border-black/8 p-3 text-center">
-                <Shield className="w-5 h-5 text-[#2563EB] mx-auto mb-1" />
-                <div className="text-[11px] font-semibold text-gray-700">Validação segura</div>
+              <div className="bg-white dark:bg-[#0B1121] rounded-xl border border-black/8 dark:border-white/10 p-3 text-center">
+                <Shield className="w-5 h-5 text-[#2563EB] dark:text-blue-400 mx-auto mb-1" />
+                <div className="text-[11px] font-semibold text-gray-700 dark:text-slate-200">Validação segura</div>
               </div>
-              <div className="bg-white rounded-xl border border-black/8 p-3 text-center">
-                <Star className="w-5 h-5 text-[#2563EB] mx-auto mb-1" />
-                <div className="text-[11px] font-semibold text-gray-700">7 dias grátis</div>
+              <div className="bg-white dark:bg-[#0B1121] rounded-xl border border-black/8 dark:border-white/10 p-3 text-center">
+                <Star className="w-5 h-5 text-[#2563EB] dark:text-blue-400 mx-auto mb-1" />
+                <div className="text-[11px] font-semibold text-gray-700 dark:text-slate-200">7 dias grátis</div>
               </div>
-              <div className="bg-white rounded-xl border border-black/8 p-3 text-center">
-                <Lock className="w-5 h-5 text-[#2563EB] mx-auto mb-1" />
-                <div className="text-[11px] font-semibold text-gray-700">Cancele quando quiser</div>
+              <div className="bg-white dark:bg-[#0B1121] rounded-xl border border-black/8 dark:border-white/10 p-3 text-center">
+                <Lock className="w-5 h-5 text-[#2563EB] dark:text-blue-400 mx-auto mb-1" />
+                <div className="text-[11px] font-semibold text-gray-700 dark:text-slate-200">Cancele quando quiser</div>
               </div>
             </div>
 
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-400 dark:text-slate-400 leading-relaxed">
               Processamento seguro no cartão de crédito via Asaas. 7 dias grátis com cancelamento a qualquer momento direto no painel, sem multas e sem burocracia.
             </p>
           </div>
 
           {/* RIGHT — Form */}
           <div className="order-1 lg:order-2">
-            <div className="bg-white rounded-2xl border border-black/8 p-5 sm:p-7 shadow-card">
+            <div className="bg-white dark:bg-[#0B1121] rounded-2xl border border-black/8 dark:border-white/10 p-5 sm:p-7 shadow-card">
               {/* Plan picker */}
               {!isLaunch && (
                 <div className="mb-6">
-                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Escolha seu plano</div>
+                  <div className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Escolha seu plano</div>
                   <div className="grid grid-cols-3 gap-2">
                     {PLANS.map(p => (
                       <button
@@ -423,8 +423,8 @@ export default function Checkout() {
                         onClick={() => setSelectedPlan(p.key)}
                         className={`relative text-center px-2 py-3 rounded-xl border-2 transition-all cursor-pointer ${
                           selectedPlan === p.key
-                            ? 'border-[#2563EB] bg-[#2563EB]/5'
-                            : 'border-black/8 hover:border-black/20'
+                            ? 'border-[#2563EB] bg-[#2563EB]/5 dark:bg-blue-500/15'
+                            : 'border-black/8 dark:border-white/10 hover:border-black/20 dark:hover:border-white/25'
                         }`}
                       >
                         {p.highlight && (
@@ -432,11 +432,11 @@ export default function Checkout() {
                             RECOMENDADO
                           </span>
                         )}
-                        <div className="text-xs font-bold text-[#0F172A]">{p.name}</div>
-                        <div className="text-base font-black text-[#0F172A] mt-0.5">
+                        <div className="text-xs font-bold text-[#0F172A] dark:text-white">{p.name}</div>
+                        <div className="text-base font-black text-[#0F172A] dark:text-white mt-0.5">
                           {loadingPlans ? '—' : `R$ ${formatCurrencyBRL(p.price)}`}
                         </div>
-                        <div className="text-[10px] text-gray-400">/mês</div>
+                        <div className="text-[10px] text-gray-400 dark:text-slate-400">/mês</div>
                       </button>
                     ))}
                   </div>
@@ -445,17 +445,17 @@ export default function Checkout() {
 
               {/* Banner de promoção de lançamento */}
               {isLaunch && (
-                <div className="mb-6 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-300 p-4">
+                <div className="mb-6 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/15 dark:to-amber-500/5 border border-amber-300 dark:border-amber-500/30 p-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-200/70 border border-amber-300 flex items-center justify-center flex-shrink-0">
-                      <Rocket className="w-4 h-4 text-amber-700" />
+                    <div className="w-9 h-9 rounded-xl bg-amber-200/70 dark:bg-amber-500/25 border border-amber-300 dark:border-amber-500/40 flex items-center justify-center flex-shrink-0">
+                      <Rocket className="w-4 h-4 text-amber-700 dark:text-amber-300" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold uppercase tracking-wider text-amber-800">
+                      <div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
                         OFERTA DE LANÇAMENTO ATIVA
                       </div>
-                      <div className="text-sm text-amber-900 mt-0.5 leading-snug">
-                        Plano <strong>Master</strong> com condição especial: <strong>R$ {LAUNCH_PROMO.priceFormatted}/mês nos primeiros {LAUNCH_PROMO.durationMonths} meses</strong>. Depois, R$ {LAUNCH_PROMO.afterPriceFormatted}/mês. Experimente com 7 dias grátis.
+                      <div className="text-sm text-amber-900 dark:text-amber-100 mt-0.5 leading-snug">
+                        Plano <strong>Master</strong> com condição especial: <strong>R$ {LAUNCH_PROMO.priceFormatted}/mês nos primeiros {LAUNCH_PROMO.durationMonths} meses</strong>. Depois, R$ {LAUNCH_PROMO.regularPriceFormatted}/mês. Experimente com 7 dias grátis.
                       </div>
                     </div>
                   </div>
@@ -465,7 +465,7 @@ export default function Checkout() {
               {/* ETAPA 1: SEUS DADOS */}
               {stage === 'form' && (
                 <form onSubmit={handleContinue} className="space-y-3.5">
-                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Seus dados</div>
+                  <div className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Seus dados</div>
 
                   <Field
                     label="Nome da barbearia"
@@ -501,7 +501,7 @@ export default function Checkout() {
                   />
 
                   {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg font-medium">
+                    <div className="bg-red-50 dark:bg-red-500/15 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 text-xs p-3 rounded-lg font-medium">
                       {error}
                     </div>
                   )}
@@ -514,12 +514,12 @@ export default function Checkout() {
                     <span>Continuar para o pagamento</span>
                   </button>
 
-                  <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+                  <p className="text-[11px] text-gray-400 dark:text-slate-400 text-center leading-relaxed">
                     Você não será cobrado nos primeiros 7 dias. Cancele a qualquer momento.<br />
                     Ao continuar, você concorda com os{' '}
-                    <Link to="/termos-de-uso" className="underline hover:text-[#2563EB]">Termos de Uso</Link>
+                    <Link to="/termos-de-uso" className="underline hover:text-[#2563EB] dark:hover:text-blue-400">Termos de Uso</Link>
                     {' '}e a{' '}
-                    <Link to="/politica-de-privacidade" className="underline hover:text-[#2563EB]">Política de Privacidade</Link>.
+                    <Link to="/politica-de-privacidade" className="underline hover:text-[#2563EB] dark:hover:text-blue-400">Política de Privacidade</Link>.
                   </p>
                 </form>
               )}
@@ -530,43 +530,43 @@ export default function Checkout() {
                   <button
                     type="button"
                     onClick={() => { setStage('form'); setError(''); }}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#2563EB] cursor-pointer font-medium"
+                    className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 hover:text-[#2563EB] dark:hover:text-blue-400 cursor-pointer font-medium"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" /> Editar meus dados
                   </button>
 
                   <div
                     data-testid="checkout-signup-summary"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs"
+                    className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.04] p-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs"
                   >
                     <div>
-                      <span className="text-gray-500 block font-medium">Nome da barbearia</span>
-                      <span className="text-[#0F172A] font-bold">{form.business_name || '—'}</span>
+                      <span className="text-gray-500 dark:text-slate-400 block font-medium">Nome da barbearia</span>
+                      <span className="text-[#0F172A] dark:text-white font-bold">{form.business_name || '—'}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500 block font-medium">E-mail de acesso</span>
-                      <span className="text-[#0F172A] font-bold break-all">{form.email || '—'}</span>
+                      <span className="text-gray-500 dark:text-slate-400 block font-medium">E-mail de acesso</span>
+                      <span className="text-[#0F172A] dark:text-white font-bold break-all">{form.email || '—'}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500 block font-medium">Responsável</span>
-                      <span className="text-[#0F172A] font-semibold">{form.owner_name || '—'}</span>
+                      <span className="text-gray-500 dark:text-slate-400 block font-medium">Responsável</span>
+                      <span className="text-[#0F172A] dark:text-white font-semibold">{form.owner_name || '—'}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500 block font-medium">CPF/CNPJ · WhatsApp</span>
-                      <span className="text-[#0F172A] font-semibold">{form.cpf_cnpj || '—'} · {form.phone || '—'}</span>
+                      <span className="text-gray-500 dark:text-slate-400 block font-medium">CPF/CNPJ · WhatsApp</span>
+                      <span className="text-[#0F172A] dark:text-white font-semibold">{form.cpf_cnpj || '—'} · {form.phone || '—'}</span>
                     </div>
                   </div>
 
-                  <div className="border-b border-black/5 pb-2">
-                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Como deseja pagar?</div>
-                    <h2 className="text-base font-black text-[#0F172A]">Cartão de Crédito</h2>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                  <div className="border-b border-black/5 dark:border-white/10 pb-2">
+                    <div className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Como deseja pagar?</div>
+                    <h2 className="text-base font-black text-[#0F172A] dark:text-white">Cartão de Crédito</h2>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
                       Você não será cobrado nos primeiros 7 dias. Cancele quando quiser. A primeira fatura só será debitada após os 7 dias de avaliação gratuita.
                     </p>
                   </div>
 
                   {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3.5 rounded-xl font-medium">
+                    <div className="bg-red-50 dark:bg-red-500/15 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 text-xs p-3.5 rounded-xl font-medium">
                       {error}
                     </div>
                   )}
@@ -585,12 +585,12 @@ export default function Checkout() {
                     onSubmit={handleCardSubmit}
                   />
 
-                  <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+                  <p className="text-[11px] text-gray-400 dark:text-slate-400 text-center leading-relaxed">
                     Você não será cobrado nos primeiros 7 dias. Período de avaliação gratuita de 7 dias.<br />
                     Ao continuar, você concorda com os{' '}
-                    <Link to="/termos-de-uso" className="underline hover:text-[#2563EB]">Termos de Uso</Link>
+                    <Link to="/termos-de-uso" className="underline hover:text-[#2563EB] dark:hover:text-blue-400">Termos de Uso</Link>
                     {' '}e a{' '}
-                    <Link to="/politica-de-privacidade" className="underline hover:text-[#2563EB]">Política de Privacidade</Link>.
+                    <Link to="/politica-de-privacidade" className="underline hover:text-[#2563EB] dark:hover:text-blue-400">Política de Privacidade</Link>.
                   </p>
                 </div>
               )}
@@ -605,16 +605,15 @@ export default function Checkout() {
 function Field({ label, value, onChange, placeholder, type = 'text', helpText }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-700 mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">{label}</label>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        style={{ color: '#0F172A', backgroundColor: '#FFFFFF', WebkitTextFillColor: '#0F172A' }}
-        className="w-full px-3.5 py-2.5 text-sm border border-black/10 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+        className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#0D1326] text-[#0F172A] dark:text-white border border-black/10 dark:border-white/10 rounded-lg placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
       />
-      {helpText && <p className="text-[11px] text-gray-500 mt-1">{helpText}</p>}
+      {helpText && <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-1">{helpText}</p>}
     </div>
   );
 }

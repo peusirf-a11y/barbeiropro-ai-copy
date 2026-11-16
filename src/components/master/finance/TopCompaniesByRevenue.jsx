@@ -20,7 +20,7 @@ export default function TopCompaniesByRevenue({ companies = [] }) {
   return (
     <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-[var(--shadow-sm)]">
       <div className="p-4 sm:p-5 border-b border-border flex items-center gap-2">
-        <Trophy className="w-4 h-4 text-amber-600" />
+        <Trophy className="w-4 h-4 text-amber-600 dark:text-amber-400" />
         <div>
           <h3 className="font-bold text-foreground text-lg tracking-tight">Top empresas por MRR</h3>
           <p className="text-[11px] text-muted-foreground mt-0.5">Quem mais contribui para a receita recorrente</p>
@@ -34,9 +34,9 @@ export default function TopCompaniesByRevenue({ companies = [] }) {
             className="w-full flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors text-left"
           >
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${
-              idx === 0 ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' :
-              idx === 1 ? 'bg-gray-100 text-gray-700 ring-1 ring-gray-200' :
-              idx === 2 ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' :
+              idx === 0 ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30' :
+              idx === 1 ? 'bg-gray-100 text-gray-700 ring-1 ring-gray-200 dark:bg-white/10 dark:text-slate-200 dark:ring-white/15' :
+              idx === 2 ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:ring-orange-400/30' :
               'bg-muted text-muted-foreground'
             }`}>
               {idx + 1}

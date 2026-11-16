@@ -1,37 +1,43 @@
-// Banda de números premium — usado abaixo do hero. Brilho azul em cada métrica.
-import { motion } from 'framer-motion';
+// Banda de números premium com CountUpValue (React Bits) e SpotlightCard (TasteSkill).
+import { BlurReveal, CountUpValue, SpotlightCard, HairlineDivider } from '@/components/motion/MotionPrimitives';
 
 const STATS = [
-  { value: '+R$ 55k', label: 'Faturamento médio/mês' },
-  { value: '3.2x', label: 'Aumento de recorrência' },
-  { value: '98%', label: 'Retenção mensal' },
-  { value: '2.4k+', label: 'Barbearias ativas' },
+  { to: 55, prefix: '+R$ ', suffix: 'k', decimals: 0, label: 'Faturamento médio/mês' },
+  { to: 3.2, prefix: '', suffix: 'x', decimals: 1, label: 'Aumento de recorrência' },
+  { to: 98, prefix: '', suffix: '%', decimals: 0, label: 'Retenção mensal' },
+  { to: 2.4, prefix: '', suffix: 'k+', decimals: 1, label: 'Barbearias ativas' },
 ];
 
 export default function AnimatedStats() {
   return (
-    <section className="relative py-16 px-6">
+    <section className="relative py-14 px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="relative rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-md overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#2563EB]/10 via-transparent to-[#60A5FA]/10" />
-          <div className="relative grid grid-cols-2 md:grid-cols-4 divide-x divide-white/5">
+        <HairlineDivider className="mb-10" />
+        <SpotlightCard hoverLift={false} className="rounded-3xl border-white/[0.09] bg-[#0B1121]/80">
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
             {STATS.map((s, i) => (
-              <motion.div
+              <BlurReveal
                 key={s.label}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08, duration: 0.5 }}
+                inView
+                delay={i * 0.06}
+                y={10}
                 className="text-center py-8 px-4"
               >
-                <div className="text-3xl md:text-4xl font-black bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent tabular-nums">
-                  {s.value}
+                <div className="text-3xl md:text-4xl font-extrabold bg-gradient-to-b from-white to-[#93C5FD] bg-clip-text text-transparent">
+                  <CountUpValue
+                    to={s.to}
+                    prefix={s.prefix}
+                    suffix={s.suffix}
+                    decimals={s.decimals}
+                  />
                 </div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-white/50 mt-2">{s.label}</div>
-              </motion.div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mt-2">
+                  {s.label}
+                </div>
+              </BlurReveal>
             ))}
           </div>
-        </div>
+        </SpotlightCard>
       </div>
     </section>
   );

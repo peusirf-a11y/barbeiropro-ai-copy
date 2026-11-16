@@ -55,8 +55,8 @@ export default function WhatsAppButton({
         disabled={disabled}
         className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors active:scale-[0.97]
           ${hasPhone
-            ? 'text-gray-600 border-black/10 bg-white hover:bg-[#25D366] hover:text-white hover:border-[#25D366]'
-            : 'text-gray-300 border-black/5 bg-white cursor-not-allowed'}
+            ? 'text-gray-600 dark:text-slate-200 border-black/10 dark:border-white/15 bg-white dark:bg-white/[0.06] hover:bg-[#25D366] hover:text-white hover:border-[#25D366]'
+            : 'text-gray-300 dark:text-slate-600 border-black/5 dark:border-white/10 bg-white dark:bg-white/[0.03] cursor-not-allowed'}
           ${className}`}
         aria-label={title}
       >
@@ -75,8 +75,8 @@ export default function WhatsAppButton({
       disabled={disabled}
       className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors active:scale-[0.94]
         ${hasPhone
-          ? 'text-gray-400 hover:bg-[#25D366] hover:text-white'
-          : 'text-gray-200 cursor-not-allowed'}
+          ? 'text-gray-400 dark:text-slate-400 hover:bg-[#25D366] hover:text-white'
+          : 'text-gray-200 dark:text-slate-700 cursor-not-allowed'}
         ${className}`}
       aria-label={title}
     >

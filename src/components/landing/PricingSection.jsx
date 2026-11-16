@@ -2,10 +2,10 @@
 // Apresenta os 3 planos comerciais: Clássico (R$ 69/mês), Master (R$ 79/mês - Oferta de Lançamento) e Exclusivo (R$ 249/mês).
 
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Check, Zap, Sparkles, Shield, ArrowRight, Lock, Crown, Scissors } from 'lucide-react';
 import SectionBadge from './SectionBadge';
 import GlowButton from './GlowButton';
+import { BlurReveal, SpotlightCard } from '@/components/motion/MotionPrimitives';
 
 const PLANS = [
   {
@@ -178,237 +178,251 @@ export default function PricingSection() {
 
       <div className="relative max-w-7xl mx-auto">
         {/* Cabeçalho da Seção */}
-        <div className="text-center mb-16 md:mb-20 max-w-3xl mx-auto">
+        <BlurReveal inView className="text-center mb-16 md:mb-20 max-w-3xl mx-auto">
           <div className="flex justify-center mb-5">
             <SectionBadge icon={Sparkles}>Planos Transparentes</SectionBadge>
           </div>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-[-0.02em] mb-5 leading-tight">
-            <span className="bg-gradient-to-b from-white via-white to-white/70 bg-clip-text text-transparent">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-[-0.025em] mb-5 leading-tight">
+            <span className="bg-gradient-to-b from-white via-white to-white/75 bg-clip-text text-transparent">
               O investimento que se paga
             </span>{' '}
             <span className="bg-gradient-to-r from-[#60A5FA] via-[#3B82F6] to-[#93C5FD] bg-clip-text text-transparent">
               logo nos primeiros cortes.
             </span>
           </h2>
-          <p className="text-base md:text-lg text-white/60 leading-relaxed">
+          <p className="text-base md:text-lg text-slate-300/80 leading-relaxed">
             Sem contratos de fidelidade ou taxas escondidas. Escolha o plano perfeito para o momento do seu negócio e experimente com 7 dias grátis.
           </p>
-        </div>
+        </BlurReveal>
 
-        {/* Grade Responsiva de Cartões (1 coluna em mobile, 3 colunas em desktop) */}
+        {/* Grade Responsiva de Cartões */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-7 items-stretch">
           {PLANS.map((plan, index) => {
             const Icon = plan.icon;
             const isMaster = plan.highlight;
 
             return (
-              <motion.div
+              <BlurReveal
                 key={plan.id}
-                initial={{ opacity: 0, y: 25 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.12 }}
-                className={`relative rounded-3xl flex flex-col justify-between transition-all duration-300 ${
-                  isMaster
-                    ? 'border-2 border-[#60A5FA] bg-[#0A1124] shadow-[0_20px_80px_rgba(37,99,235,0.28)] lg:-translate-y-3 z-10'
-                    : 'border border-white/10 bg-white/[0.03] backdrop-blur-md hover:border-white/20 hover:bg-white/[0.04]'
-                }`}
+                inView
+                delay={index * 0.08}
+                y={18}
+                className={isMaster ? 'lg:-translate-y-3 z-10' : ''}
               >
-                {/* Badge Superior Destacado para o Plano Master */}
-                {isMaster && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-gradient-to-r from-[#2563EB] to-[#60A5FA] text-white text-[10px] md:text-[11px] font-black uppercase tracking-wider shadow-lg shadow-blue-500/30 whitespace-nowrap">
-                      <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
-                      {plan.badge}
-                    </span>
-                  </div>
-                )}
-
-                {/* Linha de brilho superior interna no Master */}
-                {isMaster && (
-                  <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#60A5FA] to-transparent" />
-                )}
-
-                {/* Conteúdo Superior do Card */}
-                <div className="p-7 md:p-8 flex-1 flex flex-col">
-                  {/* Topo: Ícone + Tag de Segmento */}
-                  <div className="flex items-center justify-between mb-5">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                      isMaster
-                        ? 'bg-[#2563EB]/20 text-[#60A5FA] ring-1 ring-[#60A5FA]/40 shadow-inner'
-                        : 'bg-white/[0.05] text-white/70 ring-1 ring-white/10'
-                    }`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${
-                      isMaster
-                        ? 'bg-[#2563EB]/25 text-[#93C5FD] border border-[#60A5FA]/30'
-                        : 'bg-white/[0.04] text-white/50 border border-white/5'
-                    }`}>
-                      {plan.tag}
-                    </span>
-                  </div>
-
-                  {/* Nome e Descrição */}
-                  <h3 className="text-2xl font-black text-white tracking-tight mb-2">
-                    {plan.name}
-                  </h3>
-                  <p className="text-xs md:text-sm text-white/60 leading-relaxed mb-6 min-h-[40px]">
-                    {plan.desc}
-                  </p>
-
-                  {/* Bloco de Preço */}
-                  <div className="pt-4 pb-6 border-y border-white/8 mb-6">
-                    {plan.originalPrice && (
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-white/40 line-through tabular-nums">
-                          De R$ {plan.originalPrice}
-                        </span>
-                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          -33% OFF
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-bold text-white/50">R$</span>
-                      <span className="text-5xl md:text-6xl font-black text-white tracking-tight leading-none tabular-nums">
-                        {plan.price}
-                      </span>
-                      <span className="text-lg font-bold text-white/60 tabular-nums">
-                        {plan.cents}
-                      </span>
-                      <span className="text-xs font-semibold text-white/40 ml-1">
-                        {plan.billing}
+                <div className="relative h-full">
+                  {/* Badge Superior Destacado para o Plano Master */}
+                  {isMaster && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
+                      <span className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-gradient-to-r from-[#2563EB] to-[#60A5FA] text-white text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider shadow-lg shadow-blue-500/30 whitespace-nowrap">
+                        <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
+                        {plan.badge}
                       </span>
                     </div>
-                    <p className={`text-[11px] font-medium mt-2 leading-tight ${
-                      isMaster ? 'text-blue-300' : 'text-white/45'
-                    }`}>
-                      {plan.periodNote}
-                    </p>
-                  </div>
-
-                  {/* Catálogo de Recursos em Cards Comerciais */}
-                  <div className="space-y-2.5 flex-1 mb-6">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-3">
-                      {isMaster ? 'Catálogo Comercial — Recursos do Plano Master:' : 'Recursos comerciais inclusos:'}
-                    </p>
-                    <div className="grid grid-cols-1 gap-2">
-                      {plan.features.map((feature) => {
-                        const fTitle = typeof feature === 'string' ? feature : feature.title;
-                        const fDesc = typeof feature === 'string' ? '' : feature.desc;
-                        const fTag = typeof feature === 'string' ? plan.name : feature.tag;
-                        return (
-                          <div
-                            key={fTitle}
-                            data-testid={`pricing-feature-card-${plan.key}`}
-                            className={`rounded-xl border p-2.5 transition-colors ${
-                              isMaster
-                                ? 'border-[#60A5FA]/25 bg-white/[0.04] hover:border-[#60A5FA]/50'
-                                : 'border-white/10 bg-white/[0.02] hover:border-white/20'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-2">
-                                <div
-                                  className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                                    isMaster ? 'bg-emerald-400/20 text-emerald-300' : 'bg-white/10 text-white/70'
-                                  }`}
-                                >
-                                  <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                </div>
-                                <span className="text-xs md:text-[13px] font-bold text-white leading-snug">
-                                  {fTitle}
-                                </span>
-                              </div>
-                              {fTag && (
-                                <span
-                                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
-                                    isMaster
-                                      ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
-                                      : 'bg-white/10 text-white/70 border-white/15'
-                                  }`}
-                                >
-                                  {fTag}
-                                </span>
-                              )}
-                            </div>
-                            {fDesc && (
-                              <p className="text-[11px] text-white/60 leading-snug mt-1 pl-6">
-                                {fDesc}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Rodapé do Card com CTA */}
-                <div className="p-7 md:p-8 pt-0">
-                  {isMaster ? (
-                    <GlowButton to={plan.ctaLink} className="w-full h-12 text-sm font-black justify-center shadow-lg shadow-blue-600/30">
-                      {plan.ctaText}
-                    </GlowButton>
-                  ) : (
-                    <Link to={plan.ctaLink} className="w-full h-12 rounded-xl text-sm font-bold text-white/90 bg-white/[0.05] hover:bg-white/[0.10] border border-white/15 hover:border-white/30 transition-all flex items-center justify-center gap-2 group cursor-pointer">
-                      <span>{plan.ctaText}</span>
-                      <ArrowRight className="w-4 h-4 text-white/50 group-hover:translate-x-1 group-hover:text-white transition-all" />
-                    </Link>
                   )}
 
-                  <div className="flex items-center justify-center gap-1.5 mt-3 text-[11px] text-white/40">
-                    <Shield className="w-3.5 h-3.5 text-emerald-400/70" />
-                    <span>7 dias grátis para testar</span>
-                  </div>
+                  <SpotlightCard
+                    hoverLift={!isMaster}
+                    spotlightColor={isMaster ? 'rgba(96, 165, 250, 0.2)' : 'rgba(96, 165, 250, 0.12)'}
+                    className={`rounded-3xl h-full flex flex-col justify-between ${
+                      isMaster
+                        ? 'border-2 border-[#60A5FA] bg-[#0A1124] shadow-[0_24px_80px_rgba(37,99,235,0.30)]'
+                        : 'bg-[#0B1121]/85'
+                    }`}
+                  >
+                    <div className="flex flex-col justify-between h-full">
+                      {/* Linha de brilho superior interna no Master */}
+                      {isMaster && (
+                        <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#93C5FD] to-transparent pointer-events-none" />
+                      )}
+
+                      {/* Conteúdo Superior do Card */}
+                      <div className="p-7 md:p-8 flex-1 flex flex-col">
+                        {/* Topo: Ícone + Tag de Segmento */}
+                        <div className="flex items-center justify-between mb-5">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                            isMaster
+                              ? 'bg-[#2563EB]/20 text-[#60A5FA] ring-1 ring-[#60A5FA]/40 shadow-inner'
+                              : 'bg-white/[0.05] text-white/80 ring-1 ring-white/10'
+                          }`}>
+                            <Icon className="w-5 h-5" strokeWidth={1.75} />
+                          </div>
+                          <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-lg ${
+                            isMaster
+                              ? 'bg-[#2563EB]/25 text-[#93C5FD] border border-[#60A5FA]/30'
+                              : 'bg-white/[0.04] text-slate-300/80 border border-white/[0.08]'
+                          }`}>
+                            {plan.tag}
+                          </span>
+                        </div>
+
+                        {/* Nome e Descrição */}
+                        <h3 className="text-2xl font-extrabold text-white tracking-tight mb-2">
+                          {plan.name}
+                        </h3>
+                        <p className="text-xs md:text-sm text-slate-300/80 leading-relaxed mb-6 min-h-[40px]">
+                          {plan.desc}
+                        </p>
+
+                        {/* Bloco de Preço */}
+                        <div className="pt-4 pb-6 border-y border-white/[0.08] mb-6">
+                          {plan.originalPrice && (
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs text-slate-400 line-through tabular-nums">
+                                De R$ {plan.originalPrice}
+                              </span>
+                              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 tabular-nums">
+                                -33% OFF
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-bold text-slate-400">R$</span>
+                            <span className="text-5xl md:text-6xl font-black text-white tracking-tight leading-none tabular-nums">
+                              {plan.price}
+                            </span>
+                            <span className="text-lg font-bold text-slate-300 tabular-nums">
+                              {plan.cents}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-400 ml-1">
+                              {plan.billing}
+                            </span>
+                          </div>
+                          <p className={`text-[11px] font-medium mt-2 leading-tight tabular-nums ${
+                            isMaster ? 'text-blue-300' : 'text-slate-400'
+                          }`}>
+                            {plan.periodNote}
+                          </p>
+                        </div>
+
+                        {/* Catálogo de Recursos em Cards Comerciais */}
+                        <div className="space-y-2.5 flex-1 mb-6">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+                            {isMaster ? 'Catálogo Comercial — Recursos do Plano Master:' : 'Recursos comerciais inclusos:'}
+                          </p>
+                          <div className="grid grid-cols-1 gap-2">
+                            {plan.features.map((feature) => {
+                              const fTitle = typeof feature === 'string' ? feature : feature.title;
+                              const fDesc = typeof feature === 'string' ? '' : feature.desc;
+                              const fTag = typeof feature === 'string' ? plan.name : feature.tag;
+                              return (
+                                <div
+                                  key={fTitle}
+                                  data-testid={`pricing-feature-card-${plan.key}`}
+                                  className={`rounded-xl border p-2.5 transition-colors duration-150 ${
+                                    isMaster
+                                      ? 'border-[#60A5FA]/25 bg-white/[0.04] hover:border-[#60A5FA]/50'
+                                      : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-start gap-2">
+                                      <div
+                                        className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                          isMaster ? 'bg-emerald-400/20 text-emerald-300' : 'bg-white/10 text-white/80'
+                                        }`}
+                                      >
+                                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                      </div>
+                                      <span className="text-xs md:text-[13px] font-bold text-white leading-snug">
+                                        {fTitle}
+                                      </span>
+                                    </div>
+                                    {fTag && (
+                                      <span
+                                        className={`text-[9px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap ${
+                                          isMaster
+                                            ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+                                            : 'bg-white/10 text-slate-200 border-white/15'
+                                        }`}
+                                      >
+                                        {fTag}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {fDesc && (
+                                    <p className="text-[11px] text-slate-300/80 leading-snug mt-1 pl-6">
+                                      {fDesc}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Rodapé do Card com CTA */}
+                      <div className="p-7 md:p-8 pt-0">
+                        {isMaster ? (
+                          <GlowButton to={plan.ctaLink} className="w-full h-12 text-sm font-extrabold justify-center shadow-lg shadow-blue-600/30">
+                            {plan.ctaText}
+                          </GlowButton>
+                        ) : (
+                          <Link
+                            to={plan.ctaLink}
+                            className="w-full h-12 rounded-xl text-sm font-bold text-white/95 bg-white/[0.05] hover:bg-white/[0.10] border border-white/15 hover:border-white/30 transition-all duration-[180ms] flex items-center justify-center gap-2 group cursor-pointer"
+                          >
+                            <span>{plan.ctaText}</span>
+                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 group-hover:text-white transition-all" />
+                          </Link>
+                        )}
+
+                        <div className="flex items-center justify-center gap-1.5 mt-3 text-[11px] text-slate-400">
+                          <Shield className="w-3.5 h-3.5 text-emerald-400/80" />
+                          <span>7 dias grátis para testar</span>
+                        </div>
+                      </div>
+                    </div>
+                  </SpotlightCard>
                 </div>
-              </motion.div>
+              </BlurReveal>
             );
           })}
         </div>
 
         {/* Barra de Confiança e Garantias Inferior */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-16 md:mt-20 p-6 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-around gap-5 text-center sm:text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-white">Garantia Incondicional</p>
-              <p className="text-[11px] text-white/50">Experimente 7 dias sem cobrança</p>
-            </div>
-          </div>
+        <BlurReveal inView delay={0.1} y={12}>
+          <SpotlightCard
+            hoverLift={false}
+            className="mt-16 md:mt-20 p-6 rounded-2xl max-w-4xl mx-auto"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-around gap-5 text-center sm:text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
+                  <Shield className="w-5 h-5" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">Garantia Incondicional</p>
+                  <p className="text-[11px] text-slate-300/80">Experimente 7 dias sem cobrança</p>
+                </div>
+              </div>
 
-          <div className="hidden sm:block w-px h-8 bg-white/10" />
+              <div className="hidden sm:block w-px h-8 bg-white/10" />
 
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-white">Sem Fidelidade ou Multas</p>
-              <p className="text-[11px] text-white/50">Cancele quando desejar em 1 clique</p>
-            </div>
-          </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-400">
+                  <Lock className="w-5 h-5" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">Sem Fidelidade ou Multas</p>
+                  <p className="text-[11px] text-slate-300/80">Cancele quando desejar em 1 clique</p>
+                </div>
+              </div>
 
-          <div className="hidden sm:block w-px h-8 bg-white/10" />
+              <div className="hidden sm:block w-px h-8 bg-white/10" />
 
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-              <Zap className="w-5 h-5" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400">
+                  <Zap className="w-5 h-5" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">Ativação Imediata</p>
+                  <p className="text-[11px] text-slate-300/80">Configure sua barbearia em 2 minutos</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold text-white">Ativação Imediata</p>
-              <p className="text-[11px] text-white/50">Configure sua barbearia em 2 minutos</p>
-            </div>
-          </div>
-        </motion.div>
+          </SpotlightCard>
+        </BlurReveal>
       </div>
     </section>
   );

@@ -4,6 +4,10 @@
  * faturamento histórico e métricas de retenção.
  */
 
+import marcosPortrait from '@/assets/images/barber_owner_marcos_1794740517857.jpg';
+import rafaelPortrait from '@/assets/images/barber_owner_rafael_1794740518793.jpg';
+import lucasPortrait from '@/assets/images/barber_owner_lucas_1794740519124.jpg';
+
 export const demoCompany = {
   id: 'demo-company',
   name: 'Barbearia Studio 47',
@@ -41,9 +45,9 @@ export const demoServices = [
 ];
 
 export const demoProfessionals = [
-  { id: 'p1', name: 'Carlos Henrique', specialty: 'Corte & Degradê', active: true, company_id: 'demo-company', commission_type: 'percent', commission_value: 40, photo_url: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=150&h=150&fit=crop&auto=format', service_ids: ['s1','s2','s3','s4'] },
-  { id: 'p2', name: 'Rafael Torres', specialty: 'Barba & Navalha', active: true, company_id: 'demo-company', commission_type: 'percent', commission_value: 40, photo_url: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&auto=format', service_ids: ['s1','s2','s3','s5'] },
-  { id: 'p3', name: 'Lucas Mendes', specialty: 'Coloração & Tratamento', active: true, company_id: 'demo-company', commission_type: 'percent', commission_value: 35, photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&auto=format', service_ids: ['s1','s3','s6'] },
+  { id: 'p1', name: 'Carlos Henrique', specialty: 'Corte & Degradê', active: true, company_id: 'demo-company', commission_type: 'percent', commission_value: 40, photo_url: marcosPortrait, service_ids: ['s1','s2','s3','s4'] },
+  { id: 'p2', name: 'Rafael Torres', specialty: 'Barba & Navalha', active: true, company_id: 'demo-company', commission_type: 'percent', commission_value: 40, photo_url: rafaelPortrait, service_ids: ['s1','s2','s3','s5'] },
+  { id: 'p3', name: 'Lucas Mendes', specialty: 'Coloração & Tratamento', active: true, company_id: 'demo-company', commission_type: 'percent', commission_value: 35, photo_url: lucasPortrait, service_ids: ['s1','s3','s6'] },
 ];
 
 export const demoCustomers = [

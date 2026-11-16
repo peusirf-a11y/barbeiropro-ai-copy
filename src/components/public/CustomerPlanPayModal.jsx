@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { X, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CardPaymentFormAsaas from '@/components/booking/CardPaymentFormAsaas';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
 
 export default function CustomerPlanPayModal({
   isOpen,
@@ -18,6 +19,8 @@ export default function CustomerPlanPayModal({
   primaryColor,
   customer,
 }) {
+  const { isDark, tw } = usePublicTheme();
+
   useEffect(() => {
     if (!isOpen) return;
     const prev = document.body.style.overflow;
@@ -69,29 +72,29 @@ export default function CustomerPlanPayModal({
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[92vh] flex flex-col shadow-2xl"
+          className={`${isDark ? 'bg-[#1a1a2e] border border-white/10' : 'bg-white'} w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[92vh] flex flex-col shadow-2xl`}
         >
           {/* Handle bar (mobile) */}
           <div className="flex justify-center pt-3 pb-1 sm:hidden">
-            <div className="w-10 h-1 rounded-full bg-black/15" />
+            <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-white/20' : 'bg-black/15'}`} />
           </div>
 
-          <div className="flex items-start justify-between px-5 py-3 border-b border-black/5">
+          <div className={`flex items-start justify-between px-5 py-3 border-b ${tw.divider}`}>
             <div>
-              <h3 className="font-black text-[#111827] text-base">Assinar plano no cartão</h3>
-              <p className="text-xs text-gray-500 mt-0.5 truncate">
+              <h3 className={`font-black ${tw.text} text-base`}>Assinar plano no cartão</h3>
+              <p className={`text-xs ${tw.textMuted} mt-0.5 truncate`}>
                 {resolvedPlanName} · R$ {resolvedPlanPrice.toFixed(2).replace('.', ',')}/mês
               </p>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition">
-              <X className="w-4 h-4 text-gray-600" />
+            <button onClick={onClose} className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isDark ? 'bg-white/10 hover:bg-white/20 text-white/70' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 py-4 modal-scroll">
-            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 mb-4 flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-              <p className="text-[12px] text-emerald-900 leading-relaxed">
+            <div className={`${isDark ? 'bg-emerald-500/15 border-emerald-500/30' : 'bg-emerald-50 border-emerald-100'} border rounded-xl p-3 mb-4 flex items-start gap-2`}>
+              <CheckCircle2 className={`w-4 h-4 ${isDark ? 'text-emerald-400' : 'text-emerald-600'} flex-shrink-0 mt-0.5`} />
+              <p className={`text-[12px] leading-relaxed ${isDark ? 'text-emerald-200' : 'text-emerald-900'}`}>
                 Assinatura recorrente no cartão de crédito. Seu plano é ativado <strong>na hora</strong> e renova automaticamente a cada 30 dias.
               </p>
             </div>
@@ -104,6 +107,7 @@ export default function CustomerPlanPayModal({
               defaultName={customer?.name || ''}
               defaultEmail={customer?.email || ''}
               defaultPhone={customer?.phone || ''}
+              isDark={isDark}
             />
           </div>
         </motion.div>

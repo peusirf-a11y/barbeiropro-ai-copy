@@ -4,7 +4,7 @@
  * MobileBottomTabs com drawer, banner demo discreto.
  */
 import { Link, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Calendar, Users, Briefcase, DollarSign, BarChart2, Zap,
   LayoutDashboard, X, Scissors, MoreHorizontal,
@@ -14,6 +14,8 @@ import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';
 import ThemeToggle from '@/components/ThemeToggle';
 import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
+import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdmin } from '@/lib/permissions';
 
 const navItems = [
   { key: 'dashboard',     label: 'Dashboard',       icon: LayoutDashboard, path: '/demo/dashboard' },
@@ -24,7 +26,7 @@ const navItems = [
   { key: 'financeiro',    label: 'Financeiro',      icon: DollarSign,      path: '/demo/financeiro' },
   { key: 'relatorios',    label: 'Relatórios',      icon: BarChart2,       path: '/demo/relatorios' },
   { key: 'ai-growth',     label: 'AI Growth',       icon: Zap,             path: '/demo/ai-growth', badge: 'AI' },
-  { key: 'observability', label: 'Observabilidade', icon: Activity,        path: '/demo/observability', badge: '24h' },
+  { key: 'observability', label: 'Observabilidade', icon: Activity,        path: '/demo/observability', badge: '24h', masterOnly: true },
 ];
 
 // Abas da bottom nav (mobile) — espelha MobileBottomTabs do AppLayout
@@ -41,8 +43,16 @@ const MAIN_DEMO_ROUTES = new Set([
 ]);
 
 export default function DemoLayout({ children }) {
+  const { isAuthenticated, user } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+
+  const canAccessMasterModules = Boolean(isAuthenticated && isSuperAdmin(user));
+
+  const visibleNavItems = useMemo(
+    () => navItems.filter((item) => !item.masterOnly || canAccessMasterModules),
+    [canAccessMasterModules]
+  );
 
   useEffect(() => { setOpen(false); }, [location.pathname]);
   useEffect(() => {
@@ -67,7 +77,7 @@ export default function DemoLayout({ children }) {
         </button>
       </div>
 
-      <NavList items={navItems} />
+      <NavList items={visibleNavItems} />
 
       <div className="px-3 py-4 border-t border-white/5 mt-auto">
         <Link
@@ -81,9 +91,9 @@ export default function DemoLayout({ children }) {
   );
 
   return (
-    <div className="min-h-screen font-inter text-white">
+    <div className="min-h-screen font-inter bg-[#F1F2F7] dark:bg-[#0F101A] text-[#171827] dark:text-[#E5E7F3] transition-colors">
       <AppBackgroundLayer />
-      {/* Mobile top bar — dark glass com blur (igual AppLayout) */}
+      {/* Mobile top bar — glass com blur (igual AppLayout) */}
       <header
         className="lg:hidden sticky top-0 z-30 bg-[#050816]/85 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 gap-2"
         style={{

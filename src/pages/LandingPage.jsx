@@ -78,7 +78,7 @@ export default function LandingPage() {
   if (landingMode === 'launch') return <LaunchLandingPage />;
 
   return (
-    <div className="relative min-h-screen text-white font-inter antialiased selection:bg-[#2563EB]/40 selection:text-white">
+    <div className="public-dark relative min-h-screen bg-[#070B14] text-white font-inter antialiased selection:bg-[#2563EB]/40 selection:text-white">
       <PremiumBackground />
       <PremiumNav />
       <main className="relative">

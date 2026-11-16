@@ -120,7 +120,9 @@ export default function PhotoUpload({ value, onChange, fallbackText = '', disabl
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
         className={`flex items-center gap-4 p-3 rounded-xl border-2 border-dashed transition-colors ${
-          dragOver ? 'border-[#2563EB] bg-[#2563EB]/5' : 'border-black/10 bg-white'
+          dragOver
+            ? 'border-[#2563EB] bg-[#2563EB]/5 dark:bg-[#2563EB]/15'
+            : 'border-black/10 dark:border-white/15 bg-white dark:bg-white/[0.03]'
         }`}
       >
         {/* Avatar / preview */}
@@ -129,7 +131,7 @@ export default function PhotoUpload({ value, onChange, fallbackText = '', disabl
             <img
               src={value}
               alt="Preview"
-              className="w-20 h-20 rounded-xl object-cover ring-2 ring-white shadow-sm"
+              className="w-20 h-20 rounded-xl object-cover ring-2 ring-white dark:ring-white/15 shadow-sm"
             />
           ) : (
             <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white text-xl font-bold shadow-sm">
@@ -150,7 +152,7 @@ export default function PhotoUpload({ value, onChange, fallbackText = '', disabl
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={disabled || uploading}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2563EB] text-white rounded-lg text-xs font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2563EB] text-white rounded-lg text-xs font-semibold hover:bg-[#2563EB]/90 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {value ? <Camera className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
               {value ? 'Trocar foto' : 'Enviar foto'}
@@ -160,17 +162,17 @@ export default function PhotoUpload({ value, onChange, fallbackText = '', disabl
                 type="button"
                 onClick={onRemove}
                 disabled={disabled || uploading}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-black/10 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-white/[0.06] border border-black/10 dark:border-white/15 text-gray-600 dark:text-slate-200 rounded-lg text-xs font-semibold hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-50 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
                 Remover
               </button>
             )}
           </div>
-          <p className="text-[11px] text-gray-400 mt-1.5 hidden sm:block">
+          <p className="text-[11px] text-gray-400 dark:text-slate-400 mt-1.5 hidden sm:block">
             Arraste aqui ou clique. JPG, PNG ou WEBP até {MAX_SIZE_MB}MB.
           </p>
-          <p className="text-[11px] text-gray-400 mt-1.5 sm:hidden">
+          <p className="text-[11px] text-gray-400 dark:text-slate-400 mt-1.5 sm:hidden">
             Toque para selecionar da galeria.
           </p>
         </div>
@@ -185,7 +187,7 @@ export default function PhotoUpload({ value, onChange, fallbackText = '', disabl
       </div>
 
       {error && (
-        <p className="text-xs text-red-600 mt-1.5">{error}</p>
+        <p className="text-xs text-red-600 dark:text-rose-400 mt-1.5">{error}</p>
       )}
     </div>
   );

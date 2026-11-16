@@ -14,7 +14,7 @@ export function SkeletonStats({ count = 4 }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-black/8 p-5">
+        <div key={i} className="bg-white dark:bg-[#0B1121]/90 rounded-2xl border border-[#E5E7EF] dark:border-white/[0.08] p-5">
           <div className="skeleton h-9 w-9 rounded-xl mb-3" />
           <div className="skeleton h-7 w-20 mb-2" />
           <div className="skeleton h-3 w-24" />
@@ -27,11 +27,11 @@ export function SkeletonStats({ count = 4 }) {
 // Skeleton para listas (clientes, agendamentos, lançamentos…)
 export function SkeletonList({ rows = 5, withAvatar = true }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-      <div className="p-5 border-b border-black/5">
+    <div className="bg-white dark:bg-[#0B1121]/90 rounded-2xl border border-[#E5E7EF] dark:border-white/[0.08] overflow-hidden">
+      <div className="p-5 border-b border-[#E5E7EF] dark:border-white/[0.06]">
         <div className="skeleton h-5 w-48" />
       </div>
-      <div className="divide-y divide-black/5">
+      <div className="divide-y divide-[#E5E7EF] dark:divide-white/[0.06]">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 p-4">
             {withAvatar && <div className="skeleton h-10 w-10 rounded-xl flex-shrink-0" />}
@@ -52,7 +52,7 @@ export function SkeletonCardGrid({ count = 6 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-black/8 p-5">
+        <div key={i} className="bg-white dark:bg-[#0B1121]/90 rounded-2xl border border-[#E5E7EF] dark:border-white/[0.08] p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="skeleton h-12 w-12 rounded-xl" />
             <div className="flex-1 space-y-2">

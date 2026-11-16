@@ -348,7 +348,7 @@ export default function CRMWhatsAppTab({ company: propCompany }) {
                     <div className="w-full p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 text-center space-y-2">
                       <p className="text-xs text-blue-200">Digite este código de 8 dígitos no seu celular:</p>
                       <div className="flex items-center justify-center gap-2">
-                        <span className="font-mono text-3xl font-extrabold tracking-widest text-[#93C5FD] py-1 px-4 bg-black/50 rounded-xl border border-white/15">
+                        <span className="font-mono text-3xl font-extrabold tracking-widest text-[#1D4ED8] dark:text-[#93C5FD] py-1 px-4 bg-slate-100 dark:bg-black/50 rounded-xl border border-slate-200 dark:border-white/15">
                           {pairingCode}
                         </span>
                         <button

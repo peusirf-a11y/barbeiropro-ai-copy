@@ -43,7 +43,7 @@ const STATUS = {
   },
   fraud: {
     label: 'Suspeita de Fraude',
-    badge: 'bg-rose-500/25 text-rose-200 border-rose-400/45',
+    badge: 'bg-rose-500/20 text-rose-700 dark:text-rose-200 border-rose-400/45',
     dot: 'bg-rose-500',
   },
 };
@@ -175,7 +175,7 @@ export default function MasterPartnersReferralsTab({
               onClick={() => setLocalStatus(f.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 localStatus === f.id
-                  ? 'bg-white text-[#050816] shadow-sm font-bold'
+                  ? 'bg-[#2563EB] text-white shadow-sm font-bold dark:bg-white dark:text-[#050816]'
                   : 'bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white border border-white/8'
               }`}
             >
@@ -192,9 +192,9 @@ export default function MasterPartnersReferralsTab({
               onChange={(e) => setPartnerFilter(e.target.value)}
               className="bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#60A5FA]"
             >
-              <option value="all" className="bg-[#0b1120] text-white">Todos os parceiros</option>
+              <option value="all">Todos os parceiros</option>
               {partners.map((p) => (
-                <option key={p.id} value={p.id} className="bg-[#0b1120] text-white">
+                <option key={p.id} value={p.id}>
                   {p.name} ({p.referral_code || p.id?.slice(0, 6)})
                 </option>
               ))}

@@ -41,7 +41,7 @@ export default function BusinessDetailsStep({ value, onChange }) {
     <div className="space-y-5">
       {/* Tipo de negócio */}
       <div>
-        <label className="text-xs font-semibold text-gray-500 block mb-2">Tipo de cadastro *</label>
+        <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-2">Tipo de cadastro *</label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {BUSINESS_TYPES.map(t => {
             const active = value.business_type === t.value;
@@ -51,11 +51,11 @@ export default function BusinessDetailsStep({ value, onChange }) {
                 type="button"
                 onClick={() => onChange({ ...value, business_type: t.value })}
                 className={`text-left p-3 rounded-xl border transition-all ${
-                  active ? 'border-2 border-[#2563EB] bg-[#2563EB]/5' : 'border-black/10 bg-white hover:border-gray-300'
+                  active ? 'border-2 border-[#2563EB] bg-[#2563EB]/5 dark:bg-blue-500/15' : 'border-black/10 dark:border-white/10 bg-white dark:bg-[#0B1121] hover:border-gray-300 dark:hover:border-white/25'
                 }`}
               >
-                <div className={`font-bold text-sm ${active ? 'text-[#2563EB]' : 'text-[#1B1C1E]'}`}>{t.label}</div>
-                <div className="text-[11px] text-gray-500 mt-0.5 leading-tight">{t.sub}</div>
+                <div className={`font-bold text-sm ${active ? 'text-[#2563EB] dark:text-blue-400' : 'text-[#1B1C1E] dark:text-white'}`}>{t.label}</div>
+                <div className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5 leading-tight">{t.sub}</div>
               </button>
             );
           })}
@@ -64,104 +64,104 @@ export default function BusinessDetailsStep({ value, onChange }) {
 
       {/* CPF ou CNPJ */}
       <div>
-        <label className="text-xs font-semibold text-gray-500 block mb-1">CPF ou CNPJ *</label>
+        <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">CPF ou CNPJ *</label>
         <input
           type="text"
           value={maskCpfOrCnpj(value.owner_cpf_cnpj || '')}
           onChange={e => onChange({ ...value, owner_cpf_cnpj: e.target.value })}
           placeholder="000.000.000-00 ou 00.000.000/0000-00"
-          className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 bg-white"
+          className="w-full px-4 py-3 border border-slate-300 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#0D1326] placeholder:text-gray-400 dark:placeholder:text-slate-500"
         />
         {!isValidDoc && (value.owner_cpf_cnpj || '').length > 0 && (
-          <p className="text-[11px] text-gray-500 mt-1">Digite os 11 dígitos do seu CPF ou os 14 dígitos do seu CNPJ.</p>
+          <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-1">Digite os 11 dígitos do seu CPF ou os 14 dígitos do seu CNPJ.</p>
         )}
       </div>
 
       {/* Telefone comercial */}
       <div>
-        <label className="text-xs font-semibold text-gray-500 block mb-1">Telefone comercial *</label>
+        <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">Telefone comercial *</label>
         <input
           type="tel"
           value={value.phone || ''}
           onChange={e => onChange({ ...value, phone: e.target.value })}
           placeholder="(11) 99999-9999"
-          className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 bg-white"
+          className="w-full px-4 py-3 border border-slate-300 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#0D1326] placeholder:text-gray-400 dark:placeholder:text-slate-500"
         />
       </div>
 
       {/* Endereço estruturado */}
-      <div className="bg-white rounded-xl border border-slate-300 p-4 space-y-3">
-        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Endereço *</div>
+      <div className="bg-white dark:bg-[#0B1121] rounded-xl border border-slate-300 dark:border-white/10 p-4 space-y-3">
+        <div className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Endereço *</div>
 
         <div>
-          <label className="text-xs text-gray-500 block mb-1">CEP</label>
+          <label className="text-xs text-gray-500 dark:text-slate-400 block mb-1">CEP</label>
           <input
             type="text"
             value={addr.postal_code || ''}
             onChange={e => setAddr('postal_code', maskCep(e.target.value))}
             placeholder="00000-000"
             maxLength={9}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
+            className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#0D1326] placeholder:text-gray-400 dark:placeholder:text-slate-500"
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-2">
-            <label className="text-xs text-gray-500 block mb-1">Rua e número</label>
+            <label className="text-xs text-gray-500 dark:text-slate-400 block mb-1">Rua e número</label>
             <input
               type="text"
               value={addr.line1 || ''}
               onChange={e => setAddr('line1', e.target.value)}
               placeholder="Rua das Flores, 123"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#0D1326] placeholder:text-gray-400 dark:placeholder:text-slate-500"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Complemento</label>
+            <label className="text-xs text-gray-500 dark:text-slate-400 block mb-1">Complemento</label>
             <input
               type="text"
               value={addr.line2 || ''}
               onChange={e => setAddr('line2', e.target.value)}
               placeholder="Sala 2 (opcional)"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#0D1326] placeholder:text-gray-400 dark:placeholder:text-slate-500"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Bairro</label>
+            <label className="text-xs text-gray-500 dark:text-slate-400 block mb-1">Bairro</label>
             <input
               type="text"
               value={addr.neighborhood || ''}
               onChange={e => setAddr('neighborhood', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#0D1326]"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Cidade</label>
+            <label className="text-xs text-gray-500 dark:text-slate-400 block mb-1">Cidade</label>
             <input
               type="text"
               value={addr.city || ''}
               onChange={e => setAddr('city', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#0D1326]"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Estado</label>
+            <label className="text-xs text-gray-500 dark:text-slate-400 block mb-1">Estado</label>
             <select
               value={addr.state || ''}
               onChange={e => setAddr('state', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 bg-white"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#0D1326]"
             >
-              <option value="">UF</option>
-              {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+              <option value="" className="bg-white dark:bg-[#0B1121] text-slate-900 dark:text-white">UF</option>
+              {UFS.map(uf => <option key={uf} value={uf} className="bg-white dark:bg-[#0B1121] text-slate-900 dark:text-white">{uf}</option>)}
             </select>
           </div>
         </div>
       </div>
 
-      <div className="flex items-start gap-2 text-[11px] text-gray-500">
+      <div className="flex items-start gap-2 text-[11px] text-gray-500 dark:text-slate-400">
         <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
         <span>Aceitamos contas pessoais (CPF) ou empresariais (MEI/CNPJ) para configurar sua integração com o Asaas.</span>
       </div>

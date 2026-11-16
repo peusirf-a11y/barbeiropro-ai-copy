@@ -75,7 +75,7 @@ export default function CustomerPlans() {
   if (loadingCo || loadingAuth) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${tw.bg}`}>
-        <div className="w-8 h-8 border-4 border-white/20 border-t-white/70 rounded-full animate-spin" />
+        <div className={`w-8 h-8 border-4 ${isDark ? 'border-white/20 border-t-white/70' : 'border-black/15 border-t-black/70'} rounded-full animate-spin`} />
       </div>
     );
   }
@@ -114,7 +114,7 @@ export default function CustomerPlans() {
         <p className={`text-sm ${tw.textMuted} mb-6`}>Cortes garantidos com assinatura mensal no cartão de crédito.</p>
 
         {hasActiveOrPaused && (
-          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+          <div className={`mb-4 border rounded-xl p-3 text-xs ${isDark ? 'bg-amber-500/15 border-amber-500/30 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
             Você já possui uma assinatura ativa. <Link to={`/cliente/${slug}`} className="font-bold underline">Ver minha conta</Link>.
           </div>
         )}

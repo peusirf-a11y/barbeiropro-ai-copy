@@ -42,7 +42,7 @@ export default function PaymentMethodChooser({ subscription, value, onChange, pr
       </div>
 
       {blocked && (
-        <div className="mt-3 flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+        <div className={`mt-3 flex items-start gap-2 rounded-lg p-2.5 border ${isDark ? 'text-amber-200 bg-amber-500/15 border-amber-500/30' : 'text-amber-700 bg-amber-50 border-amber-200'}`}>
           <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <p className="text-[12px] leading-relaxed">{blocker}</p>
         </div>
@@ -69,9 +69,9 @@ function Option({ active, disabled, accent, isDark, tw, onClick, title, subtitle
         {active ? (
           <Check className="w-4 h-4" style={{ color: accent.fg }} />
         ) : Icon ? (
-          <Icon className="w-4 h-4 text-gray-500" />
+          <Icon className={`w-4 h-4 ${isDark ? 'text-gray-300' : 'text-gray-500'}`} />
         ) : (
-          <span className="w-2 h-2 rounded-full bg-gray-300" />
+          <span className={`w-2 h-2 rounded-full ${isDark ? 'bg-white/40' : 'bg-gray-300'}`} />
         )}
       </div>
       <div className="flex-1 min-w-0">

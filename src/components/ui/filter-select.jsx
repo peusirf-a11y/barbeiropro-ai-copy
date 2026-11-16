@@ -29,7 +29,7 @@ export default function FilterSelect({
       disabled={disabled}
       aria-label={ariaLabel}
       className={cn(
-        'px-3 py-2.5 border border-white/10 rounded-xl text-sm bg-white/[0.04] text-white [color-scheme:dark] backdrop-blur-sm hover:bg-white/[0.06] focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20 transition-colors',
+        'px-3 py-2.5 border border-[#E5E7EF] dark:border-white/10 rounded-xl text-sm bg-white dark:bg-[#0D1326] text-[#171827] dark:text-white [color-scheme:light] dark:[color-scheme:dark] backdrop-blur-sm hover:bg-[#F8FAFC] dark:hover:bg-white/[0.06] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#60A5FA] focus:ring-2 focus:ring-[#2563EB]/20 dark:focus:ring-[#60A5FA]/20 transition-colors',
         className
       )}
     >

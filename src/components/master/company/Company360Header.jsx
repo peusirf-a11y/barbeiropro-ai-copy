@@ -5,19 +5,19 @@ import { ptBR } from 'date-fns/locale';
 import { calculateSubscriptionPrice } from '@/lib/planPricing';
 
 const statusConfig = {
-  active:   { label: 'Ativa',     color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  trial:    { label: 'Trial',     color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  inactive: { label: 'Inativa',   color: 'bg-gray-100 text-gray-600 border-gray-200' },
-  blocked:  { label: 'Bloqueada', color: 'bg-red-50 text-red-700 border-red-200' },
+  active:   { label: 'Ativa',     color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30' },
+  trial:    { label: 'Trial',     color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30' },
+  inactive: { label: 'Inativa',   color: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-white/10 dark:text-slate-300 dark:border-white/15' },
+  blocked:  { label: 'Bloqueada', color: 'bg-red-50 text-red-700 border-red-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-400/30' },
 };
 
 const subStatusConfig = {
-  active:     { label: 'Pagando',      color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  trialing:   { label: 'Em trial',     color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  past_due:   { label: 'Inadimplente', color: 'bg-red-50 text-red-700 border-red-200' },
-  canceled:   { label: 'Cancelada',    color: 'bg-gray-100 text-gray-600 border-gray-200' },
-  incomplete: { label: 'Incompleta',   color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  unpaid:     { label: 'Não paga',     color: 'bg-red-50 text-red-700 border-red-200' },
+  active:     { label: 'Pagando',      color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30' },
+  trialing:   { label: 'Em trial',     color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30' },
+  past_due:   { label: 'Inadimplente', color: 'bg-red-50 text-red-700 border-red-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-400/30' },
+  canceled:   { label: 'Cancelada',    color: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-white/10 dark:text-slate-300 dark:border-white/15' },
+  incomplete: { label: 'Incompleta',   color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30' },
+  unpaid:     { label: 'Não paga',     color: 'bg-red-50 text-red-700 border-red-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-400/30' },
 };
 
 const fmtMoney = (v) =>
@@ -67,8 +67,8 @@ export default function Company360Header({ company, plan, counters, financial, l
               return (
                 <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
                   pricing.isExclusivo
-                    ? 'bg-purple-50 text-purple-700 border-purple-200'
-                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-400/30'
+                    : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-400/30'
                 }`}>
                   {plan?.name || company.plan_name || 'Starter'}
                   {pricing.isExclusivo
@@ -83,7 +83,7 @@ export default function Company360Header({ company, plan, counters, financial, l
               </span>
             )}
             {company.slug && (
-              <a href={`/agendar/${company.slug}`} target="_blank" rel="noreferrer" className="text-xs text-[#2563EB] hover:underline inline-flex items-center gap-1">
+              <a href={`/agendar/${company.slug}`} target="_blank" rel="noreferrer" className="text-xs text-[#2563EB] dark:text-[#60A5FA] hover:underline inline-flex items-center gap-1">
                 <Globe className="w-3 h-3" /> /agendar/{company.slug}
               </a>
             )}

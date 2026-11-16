@@ -22,10 +22,10 @@ export default function SubscriptionHealthBar({ revenue, churn }) {
     gray:    'bg-gray-400',
   };
   const RING = {
-    emerald: 'bg-emerald-50 ring-emerald-100 text-emerald-700',
-    amber:   'bg-amber-50 ring-amber-100 text-amber-700',
-    rose:    'bg-red-50 ring-red-100 text-red-700',
-    gray:    'bg-gray-100 ring-gray-200 text-gray-700',
+    emerald: 'bg-emerald-50 ring-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:ring-emerald-400/30 dark:text-emerald-300',
+    amber:   'bg-amber-50 ring-amber-100 text-amber-700 dark:bg-amber-500/15 dark:ring-amber-400/30 dark:text-amber-300',
+    rose:    'bg-red-50 ring-red-100 text-red-700 dark:bg-rose-500/15 dark:ring-rose-400/30 dark:text-rose-300',
+    gray:    'bg-gray-100 ring-gray-200 text-gray-700 dark:bg-white/10 dark:ring-white/15 dark:text-slate-300',
   };
 
   return (
@@ -36,7 +36,7 @@ export default function SubscriptionHealthBar({ revenue, churn }) {
           <p className="text-[11px] text-muted-foreground mt-0.5">Distribuição de status financeiro</p>
         </div>
         <button onClick={() => navigate('/master/barbearias')}
-          className="text-xs font-semibold text-[#2563EB] hover:underline">
+          className="text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA] hover:underline">
           Ver todas →
         </button>
       </div>

@@ -3,10 +3,10 @@ import { Wallet, CheckCircle2, AlertTriangle, Clock, Hash, Link as LinkIcon, Rec
 import { format } from 'date-fns';
 
 const subAccountStatus = {
-  pending:           { label: 'Aguardando aprovação', icon: Clock, color: 'text-amber-700 bg-amber-50 ring-amber-100' },
-  active:            { label: 'Subconta ativa', icon: CheckCircle2, color: 'text-emerald-700 bg-emerald-50 ring-emerald-100' },
-  rejected:          { label: 'Subconta rejeitada', icon: AlertTriangle, color: 'text-red-700 bg-red-50 ring-red-100' },
-  not_available_pf:  { label: 'Modo manual (PF/CPF)', icon: AlertTriangle, color: 'text-gray-700 bg-gray-100 ring-gray-200' },
+  pending:           { label: 'Aguardando aprovação', icon: Clock, color: 'text-amber-700 bg-amber-50 ring-amber-100 dark:text-amber-300 dark:bg-amber-500/15 dark:ring-amber-400/30' },
+  active:            { label: 'Subconta ativa', icon: CheckCircle2, color: 'text-emerald-700 bg-emerald-50 ring-emerald-100 dark:text-emerald-300 dark:bg-emerald-500/15 dark:ring-emerald-400/30' },
+  rejected:          { label: 'Subconta rejeitada', icon: AlertTriangle, color: 'text-red-700 bg-red-50 ring-red-100 dark:text-rose-300 dark:bg-rose-500/15 dark:ring-rose-400/30' },
+  not_available_pf:  { label: 'Modo manual (PF/CPF)', icon: AlertTriangle, color: 'text-gray-700 bg-gray-100 ring-gray-200 dark:text-slate-300 dark:bg-white/10 dark:ring-white/15' },
 };
 
 const providerLabels = {
@@ -132,7 +132,7 @@ export default function Company360Payments({ company = {}, plan = null, paymentH
       {/* Subconta Asaas */}
       <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-[var(--shadow-sm)]">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center text-blue-700">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 ring-1 ring-blue-100 dark:bg-blue-500/15 dark:ring-blue-400/30 flex items-center justify-center text-blue-700 dark:text-blue-300">
             <Wallet className="w-5 h-5" />
           </div>
           <div>
@@ -154,7 +154,7 @@ export default function Company360Payments({ company = {}, plan = null, paymentH
         {company.asaas_subaccount_onboarding_url && (
           <div className="mt-3">
             <a href={company.asaas_subaccount_onboarding_url} target="_blank" rel="noreferrer"
-              className="text-xs font-semibold text-[#2563EB] hover:underline inline-flex items-center gap-1">
+              className="text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA] hover:underline inline-flex items-center gap-1">
               <LinkIcon className="w-3 h-3" /> Abrir onboarding Asaas
             </a>
           </div>
@@ -164,7 +164,7 @@ export default function Company360Payments({ company = {}, plan = null, paymentH
       {/* Cobrança SaaS */}
       <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-[var(--shadow-sm)]">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 ring-1 ring-emerald-100 flex items-center justify-center text-emerald-700">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 ring-1 ring-emerald-100 dark:bg-emerald-500/15 dark:ring-emerald-400/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
             <Wallet className="w-5 h-5" />
           </div>
           <div>
@@ -178,7 +178,7 @@ export default function Company360Payments({ company = {}, plan = null, paymentH
         {company.asaas_payment_link_url && (
           <div className="mt-3">
             <a href={company.asaas_payment_link_url} target="_blank" rel="noreferrer"
-              className="text-xs font-semibold text-[#2563EB] hover:underline inline-flex items-center gap-1">
+              className="text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA] hover:underline inline-flex items-center gap-1">
               <LinkIcon className="w-3 h-3" /> Link de pagamento
             </a>
           </div>

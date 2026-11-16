@@ -29,9 +29,9 @@ export default function OnboardingGuard({ children }) {
 
   if (isLoadingAuth || (isAuthenticated && loadingCompanies && companies.length === 0)) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#F8F7F3] p-6 text-center">
-        <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 border-t-[#1B3A4B] rounded-full animate-spin mb-4" />
-        <p className="text-sm text-gray-600">Carregando informações da barbearia...</p>
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#F8F7F3] dark:bg-[#050816] p-6 text-center">
+        <div className="w-8 h-8 border-4 border-[#1B3A4B]/20 dark:border-blue-400/20 border-t-[#1B3A4B] dark:border-t-[#60A5FA] rounded-full animate-spin mb-4" />
+        <p className="text-sm text-gray-600 dark:text-slate-300">Carregando informações da barbearia...</p>
       </div>
     );
   }

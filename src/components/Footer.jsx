@@ -1,7 +1,7 @@
 // Componente oficial de Rodapé (Footer.jsx) — O CORTE (https://ocorte.app)
 // Design mobile-first, semântico, acessível e harmonizado com a paleta dark moderna.
 import { Link } from 'react-router-dom';
-import { Mail, Globe, ShieldCheck, ExternalLink } from 'lucide-react';
+import { Mail, Globe, ShieldCheck, ExternalLink, CheckCircle2 } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 
 export default function Footer() {
@@ -150,11 +150,8 @@ export default function Footer() {
               suporte@ocorte.app
             </a>
             <span className="hidden sm:inline text-white/20" aria-hidden="true">•</span>
-            <div className="inline-flex items-center gap-2">
-              <span className="relative flex h-2 w-2" aria-hidden="true">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-              </span>
+            <div className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" aria-hidden="true" strokeWidth={2} />
               <span>Sistemas operacionais</span>
             </div>
           </div>

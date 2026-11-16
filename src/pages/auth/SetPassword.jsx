@@ -172,59 +172,59 @@ export default function SetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070D1E] text-white font-inter flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F1F2F7] dark:bg-[#070D1E] text-[#171827] dark:text-white font-inter flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden transition-colors">
       <AppBackgroundLayer />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center">
         <div className="flex justify-center mb-3">
           <Logo size={36} />
         </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs font-semibold mb-3">
-          <Scissors className="w-3.5 h-3.5 text-blue-400" />
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 dark:border-blue-400/20 text-blue-700 dark:text-blue-300 text-xs font-semibold mb-3">
+          <Scissors className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
           <span>Equipe O CORTE</span>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+        <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#171827] dark:text-white">
           Bem-vindo à equipe O CORTE!
         </h2>
-        <p className="mt-2 text-xs sm:text-sm text-white/60 max-w-sm mx-auto">
+        <p className="mt-2 text-xs sm:text-sm text-[#55596A] dark:text-white/60 max-w-sm mx-auto">
           Defina sua senha de acesso para gerenciar sua agenda e atendimentos.
         </p>
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
-        <div className="bg-[#0B1226]/80 backdrop-blur-2xl border border-white/10 py-8 px-6 shadow-2xl rounded-3xl sm:px-10">
+        <div className="bg-white dark:bg-[#0B1226]/80 backdrop-blur-2xl border border-[#E5E7EF] dark:border-white/10 py-8 px-6 shadow-sm dark:shadow-2xl rounded-3xl sm:px-10">
           {success ? (
             <div className="text-center py-6 space-y-4">
-              <div className="w-14 h-14 bg-emerald-500/20 border border-emerald-400/30 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto animate-bounce">
+              <div className="w-14 h-14 bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 dark:border-emerald-400/30 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto animate-bounce">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-black text-white">Senha criada com sucesso!</h3>
-              <p className="text-xs text-white/70">Redirecionando você para a sua agenda de cortes...</p>
+              <h3 className="text-xl font-black text-[#171827] dark:text-white">Senha criada com sucesso!</h3>
+              <p className="text-xs text-[#55596A] dark:text-white/70">Redirecionando você para a sua agenda de cortes...</p>
               <div className="flex justify-center pt-2">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                <Loader2 className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
-                <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-400/30 text-rose-200 text-xs flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-400/30 text-rose-800 dark:text-rose-200 text-xs flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
                   <div>{error}</div>
                 </div>
               )}
 
               {emailParam && (
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/8 text-xs text-white/60">
-                  Definindo senha para: <span className="font-bold text-white">{emailParam}</span>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-[#E5E7EF] dark:border-white/8 text-xs text-[#55596A] dark:text-white/60">
+                  Definindo senha para: <span className="font-bold text-[#171827] dark:text-white">{emailParam}</span>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-white/70 mb-1.5">
+                <label className="block text-xs font-bold text-[#55596A] dark:text-white/70 mb-1.5">
                   Nova Senha
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white/40">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-white/40">
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
@@ -234,12 +234,12 @@ export default function SetPassword() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 6 caracteres"
-                    className="w-full pl-9 pr-10 py-3 bg-white/[0.04] border border-white/12 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full pl-9 pr-10 py-3 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-white/12 rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/40 hover:text-white cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 dark:text-white/40 hover:text-[#171827] dark:hover:text-white cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -247,11 +247,11 @@ export default function SetPassword() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-white/70 mb-1.5">
+                <label className="block text-xs font-bold text-[#55596A] dark:text-white/70 mb-1.5">
                   Confirmar Senha
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white/40">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-white/40">
                     <KeyRound className="w-4 h-4" />
                   </div>
                   <input
@@ -261,7 +261,7 @@ export default function SetPassword() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repita a nova senha"
-                    className="w-full pl-9 pr-10 py-3 bg-white/[0.04] border border-white/12 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full pl-9 pr-10 py-3 bg-slate-50 dark:bg-white/[0.04] border border-[#E5E7EF] dark:border-white/12 rounded-xl text-sm text-[#171827] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
               </div>
@@ -287,7 +287,7 @@ export default function SetPassword() {
               <div className="pt-2 text-center">
                 <Link
                   to="/login"
-                  className="text-xs font-semibold text-white/50 hover:text-blue-400 transition-colors"
+                  className="text-xs font-semibold text-[#55596A] dark:text-white/50 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
                   Já tem uma conta? Voltar ao Login
                 </Link>

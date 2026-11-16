@@ -23,10 +23,12 @@ import {
   Gauge,
   Gift,
   ChevronRight,
+  CheckCircle2,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdmin } from '@/lib/permissions';
 import ImpersonationCountdown from '@/components/security/ImpersonationCountdown';
 import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 
@@ -42,15 +44,17 @@ const navItems = [
   { label: 'LGPD', icon: Lock, path: '/master/lgpd' },
   { label: 'Compliance', icon: ShieldCheck, path: '/master/compliance', badge: 'BI' },
   { label: 'Segurança', icon: ShieldAlert, path: '/master/security' },
-  { label: 'Observabilidade', icon: Gauge, path: '/master/observability', badge: 'LIVE' },
+  { label: 'Observabilidade', icon: Gauge, path: '/master/observability', badge: 'LIVE', masterOnly: true },
   { label: 'Configurações', icon: Settings, path: '/master/configuracoes' },
 ];
 
 export default function MasterLayout() {
-  const { logout, user } = useAuth();
+  const { logout, user, isAuthenticated } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const { isImpersonating } = useImpersonationContext();
+  const isMasterAdmin = Boolean(isAuthenticated && isSuperAdmin(user));
+  const visibleNavItems = navItems.filter((item) => !item.masterOnly || isMasterAdmin);
 
   // Fecha o drawer mobile e garante limpeza de estilos de bloqueio no DOM a cada transição de rota
   useEffect(() => {
@@ -112,7 +116,7 @@ export default function MasterLayout() {
         <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
           Módulos Centrais
         </div>
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname.startsWith(item.path);
 
@@ -200,7 +204,7 @@ export default function MasterLayout() {
       <header
         className={`lg:hidden sticky ${
           isImpersonating ? 'top-9' : 'top-0'
-        } z-40 bg-[#171827] text-white border-b border-white/10 h-14 flex items-center justify-between px-4 gap-3 shadow-md`}
+        } z-40 bg-[#171827]/95 backdrop-blur-xl text-white border-b border-white/10 h-14 flex items-center justify-between px-4 gap-3 shadow-md`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <button
@@ -257,7 +261,7 @@ export default function MasterLayout() {
       <header
         className={`hidden lg:flex lg:ml-64 sticky ${
           isImpersonating ? 'top-9' : 'top-0'
-        } z-40 bg-[#171827] text-white border-b border-white/10 h-16 items-center justify-between px-8 gap-4 shadow-sm`}
+        } z-40 bg-[#171827]/95 backdrop-blur-xl text-white border-b border-white/10 h-16 items-center justify-between px-8 gap-4 shadow-sm`}
       >
         <div className="flex items-center gap-3">
           <div>
@@ -279,9 +283,9 @@ export default function MasterLayout() {
 
         <div className="flex items-center gap-3">
           {/* Status Indicator */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-white/80 font-medium">Cluster Operacional Normal</span>
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" strokeWidth={2} />
+            <span className="text-white/85 font-medium">Cluster Operacional Normal</span>
           </div>
 
           <ThemeToggle />

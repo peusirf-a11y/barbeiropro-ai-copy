@@ -60,35 +60,35 @@ export default function CustomerPlanInviteRedeem() {
   }, [company, customer, customerToken, loadingCo, loadingAuth, navigate, slug, token]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[#050816]">
-      <div className="max-w-sm w-full bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#F1F2F7] dark:bg-[#050816] transition-colors">
+      <div className="max-w-sm w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center shadow-sm dark:shadow-none">
         {status === 'checking' && (
           <>
-            <Loader2 className="w-8 h-8 text-[#60A5FA] animate-spin mx-auto mb-4" />
-            <h1 className="font-bold text-white mb-1">Validando convite…</h1>
-            <p className="text-sm text-white/55">Aguarde um instante.</p>
+            <Loader2 className="w-8 h-8 text-[#2563EB] dark:text-[#60A5FA] animate-spin mx-auto mb-4" />
+            <h1 className="font-bold text-slate-900 dark:text-white mb-1">Validando convite…</h1>
+            <p className="text-sm text-slate-600 dark:text-white/55">Aguarde um instante.</p>
           </>
         )}
         {status === 'success' && (
           <>
-            <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-4" />
-            <h1 className="font-bold text-white mb-1">Convite validado!</h1>
-            <p className="text-sm text-white/55">
-              O plano <strong className="text-white">{result?.name}</strong> está disponível para você.
+            <CheckCircle2 className="w-10 h-10 text-emerald-600 dark:text-emerald-400 mx-auto mb-4" />
+            <h1 className="font-bold text-slate-900 dark:text-white mb-1">Convite validado!</h1>
+            <p className="text-sm text-slate-600 dark:text-white/55">
+              O plano <strong className="text-slate-900 dark:text-white">{result?.name}</strong> está disponível para você.
             </p>
           </>
         )}
         {status === 'error' && (
           <>
-            <AlertCircle className="w-10 h-10 text-rose-400 mx-auto mb-4" />
-            <h1 className="font-bold text-white mb-1">Convite inválido</h1>
-            <p className="text-sm text-white/55 mb-4">
+            <AlertCircle className="w-10 h-10 text-rose-600 dark:text-rose-400 mx-auto mb-4" />
+            <h1 className="font-bold text-slate-900 dark:text-white mb-1">Convite inválido</h1>
+            <p className="text-sm text-slate-600 dark:text-white/55 mb-4">
               {error === 'INVITE_EXPIRED' ? 'Este convite expirou.' :
                error === 'COMPANY_NOT_FOUND' ? 'Barbearia não encontrada.' :
                'O link não é válido ou já foi usado.'}
             </p>
             <button onClick={() => navigate(`/cliente/${slug}/planos`)}
-              className="text-xs font-semibold px-4 py-2 bg-[#2563EB] text-white rounded-xl">
+              className="text-xs font-semibold px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl transition-colors cursor-pointer">
               Ver planos disponíveis
             </button>
           </>

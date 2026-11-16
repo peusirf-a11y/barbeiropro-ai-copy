@@ -343,9 +343,9 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F7F3] flex flex-col lg:flex-row font-inter">
+    <div className="min-h-screen bg-[#F8F7F3] dark:bg-[#050816] flex flex-col lg:flex-row font-inter transition-colors">
       {/* Sidebar */}
-      <div className="w-full lg:w-72 bg-gradient-to-b from-[#2563EB] to-[#60A5FA] lg:min-h-screen p-6 lg:p-8 flex flex-col">
+      <div className="w-full lg:w-72 bg-gradient-to-b from-[#2563EB] to-[#60A5FA] dark:from-[#0B1121] dark:to-[#131C3A] dark:border-r dark:border-white/10 lg:min-h-screen p-6 lg:p-8 flex flex-col">
         <div className="mb-6 lg:mb-12">
           <Logo size={48} />
         </div>
@@ -368,9 +368,9 @@ export default function Onboarding() {
       <div className="flex-1 p-6 sm:p-8 lg:p-12 flex flex-col">
         <div className="max-w-lg flex-1 w-full">
           <div className="mb-8">
-            <div className="text-xs font-semibold text-[#2563EB] uppercase tracking-widest mb-2">Etapa {step} de {STEPS.length}</div>
-            <h1 className="text-3xl font-black text-[#1B1C1E]">{STEPS[step - 1].title}</h1>
-            <p className="text-gray-500 mt-1">{STEPS[step - 1].sub}</p>
+            <div className="text-xs font-semibold text-[#2563EB] dark:text-blue-400 uppercase tracking-widest mb-2">Etapa {step} de {STEPS.length}</div>
+            <h1 className="text-3xl font-black text-[#1B1C1E] dark:text-white">{STEPS[step - 1].title}</h1>
+            <p className="text-gray-500 dark:text-slate-400 mt-1">{STEPS[step - 1].sub}</p>
           </div>
 
           {step === 1 && (
@@ -382,10 +382,10 @@ export default function Onboarding() {
                 { label: 'Endereço', key: 'address', placeholder: 'Rua, número, bairro, cidade' },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="text-xs font-semibold text-gray-500 block mb-1">{f.label}</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">{f.label}</label>
                   <input type="text" value={company[f.key]} onChange={e => setCompany(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 bg-white" />
+                    className="w-full px-4 py-3 border border-slate-300 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 bg-white dark:bg-[#0D1326]" />
                 </div>
               ))}
             </div>
@@ -394,40 +394,40 @@ export default function Onboarding() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Slug (URL pública) *</label>
-                <div className="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden">
-                  <span className="px-4 py-3 text-gray-400 text-sm border-r border-slate-300 bg-gray-50">/agendar/</span>
+                <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">Slug (URL pública) *</label>
+                <div className="flex items-center bg-white dark:bg-[#0D1326] border border-slate-300 dark:border-white/10 rounded-xl overflow-hidden">
+                  <span className="px-4 py-3 text-gray-400 dark:text-slate-400 text-sm border-r border-slate-300 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04]">/agendar/</span>
                   <input type="text" value={company.slug}
                     onChange={e => { setCompany(p => ({ ...p, slug: sanitizeSlug(e.target.value) })); setSlugError(''); }}
                     onBlur={e => validateSlug(e.target.value)}
                     placeholder="studio47"
-                    className="flex-1 px-4 py-3 text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
+                    className="flex-1 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 bg-white dark:bg-[#0D1326] focus:outline-none" />
                 </div>
                 {company.slug && !slugError && (
                   <div className="mt-2 space-y-1">
-                    <p className="text-xs text-slate-500">
-                      Link em produção: <strong className="text-slate-700">ocorte.com.br/agendar/{company.slug}</strong>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Link em produção: <strong className="text-slate-700 dark:text-slate-200">ocorte.com.br/agendar/{company.slug}</strong>
                     </p>
                     <a
                       href={`${window.location.origin}/agendar/${company.slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#2563EB] hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#2563EB] dark:text-blue-400 hover:underline"
                     >
                       Testar página de agendamento agora (preview) ↗
                     </a>
                   </div>
                 )}
-                {slugError && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{slugError}</p>}
+                {slugError && <p className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{slugError}</p>}
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Cor principal</label>
+                <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">Cor principal</label>
                 <div className="flex items-center gap-3">
                   <input type="color" value={sanitizeHexColor(company.primary_color, '#2563EB').toLowerCase()} onChange={e => setCompany(p => ({ ...p, primary_color: e.target.value.toUpperCase() }))}
-                    className="w-12 h-12 rounded-xl border border-slate-300 cursor-pointer" />
+                    className="w-12 h-12 rounded-xl border border-slate-300 dark:border-white/10 cursor-pointer bg-transparent" />
                   <div>
-                    <div className="text-sm font-semibold text-[#1B1C1E]">{sanitizeHexColor(company.primary_color, '#2563EB')}</div>
-                    <div className="text-xs text-gray-400">Cor dos botões e destaques no link público</div>
+                    <div className="text-sm font-semibold text-[#1B1C1E] dark:text-white">{sanitizeHexColor(company.primary_color, '#2563EB')}</div>
+                    <div className="text-xs text-gray-400 dark:text-slate-400">Cor dos botões e destaques no link público</div>
                   </div>
                 </div>
               </div>
@@ -441,28 +441,28 @@ export default function Onboarding() {
           {step === 4 && (
             <div className="space-y-3">
               {services.map((s, i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-300 p-4">
+                <div key={i} className="bg-white dark:bg-[#0B1121] rounded-xl border border-slate-300 dark:border-white/10 p-4">
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 block mb-1">Nome</label>
+                      <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">Nome</label>
                       <input type="text" value={s.name} onChange={e => setServices(arr => arr.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 bg-white dark:bg-[#0D1326] focus:outline-none" />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 block mb-1">Preço (R$)</label>
+                      <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">Preço (R$)</label>
                       <input type="number" value={s.price} onChange={e => setServices(arr => arr.map((x, j) => j === i ? { ...x, price: +e.target.value } : x))}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 bg-white dark:bg-[#0D1326] focus:outline-none" />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Duração (min)</label>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">Duração (min)</label>
                     <input type="number" value={s.duration_minutes} onChange={e => setServices(arr => arr.map((x, j) => j === i ? { ...x, duration_minutes: +e.target.value } : x))}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 bg-white dark:bg-[#0D1326] focus:outline-none" />
                   </div>
                 </div>
               ))}
               <button onClick={() => setServices(p => [...p, { name: '', duration_minutes: 30, price: 0 }])}
-                className="w-full py-2.5 border-2 border-dashed border-slate-300 rounded-xl text-sm font-semibold text-gray-500 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors">
+                className="w-full py-2.5 border-2 border-dashed border-slate-300 dark:border-white/15 rounded-xl text-sm font-semibold text-gray-500 dark:text-slate-400 hover:border-[#2563EB] hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors">
                 + Adicionar serviço
               </button>
             </div>
@@ -471,49 +471,49 @@ export default function Onboarding() {
           {step === 5 && (
             <div className="space-y-3">
               {professionals.map((p, i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-300 p-4 grid grid-cols-2 gap-3">
+                <div key={i} className="bg-white dark:bg-[#0B1121] rounded-xl border border-slate-300 dark:border-white/10 p-4 grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Nome</label>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">Nome</label>
                     <input type="text" value={p.name} onChange={e => setProfessionals(arr => arr.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 bg-white dark:bg-[#0D1326] focus:outline-none" />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-gray-500 block mb-1">Especialidade</label>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-slate-400 block mb-1">Especialidade</label>
                     <input type="text" value={p.specialty} onChange={e => setProfessionals(arr => arr.map((x, j) => j === i ? { ...x, specialty: e.target.value } : x))}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 placeholder-gray-400 bg-white focus:outline-none" />
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-semibold text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 bg-white dark:bg-[#0D1326] focus:outline-none" />
                   </div>
                 </div>
               ))}
               <button onClick={() => setProfessionals(p => [...p, { name: '', specialty: '' }])}
-                className="w-full py-2.5 border-2 border-dashed border-black/15 rounded-xl text-sm text-gray-400 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors">
+                className="w-full py-2.5 border-2 border-dashed border-black/15 dark:border-white/15 rounded-xl text-sm text-gray-400 dark:text-slate-400 hover:border-[#2563EB] hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors">
                 + Adicionar profissional
               </button>
             </div>
           )}
 
           {step === 6 && (
-            <div className="bg-white rounded-2xl border border-black/8 p-6 text-center">
-              <p className="text-gray-500 text-sm">Você pode convidar membros da equipe mais tarde em <strong>Equipe</strong> no painel.</p>
+            <div className="bg-white dark:bg-[#0B1121] rounded-2xl border border-black/8 dark:border-white/10 p-6 text-center">
+              <p className="text-gray-500 dark:text-slate-400 text-sm">Você pode convidar membros da equipe mais tarde em <strong className="text-[#1B1C1E] dark:text-white">Equipe</strong> no painel.</p>
             </div>
           )}
 
           {step === 7 && (
             <div className="text-center py-8">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Check className="w-10 h-10 text-green-600" />
+              <div className="w-20 h-20 bg-green-100 dark:bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Check className="w-10 h-10 text-green-600 dark:text-emerald-400" />
               </div>
-              <h2 className="text-2xl font-black text-[#1B1C1E] mb-3">Tudo pronto!</h2>
-              <p className="text-gray-500 mb-6">Sua barbearia está configurada e o link público de agendamento está ativo.</p>
+              <h2 className="text-2xl font-black text-[#1B1C1E] dark:text-white mb-3">Tudo pronto!</h2>
+              <p className="text-gray-500 dark:text-slate-400 mb-6">Sua barbearia está configurada e o link público de agendamento está ativo.</p>
               {company.slug && (
                 <div className="space-y-3 mb-6">
-                  <div className="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-xl p-4 text-sm text-[#2563EB] font-medium">
+                  <div className="bg-[#2563EB]/5 dark:bg-blue-500/15 border border-[#2563EB]/20 dark:border-blue-500/30 rounded-xl p-4 text-sm text-[#2563EB] dark:text-blue-400 font-medium">
                     ocorte.com.br/agendar/{company.slug}
                   </div>
                   <a
                     href={`${window.location.origin}/agendar/${company.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block text-xs font-semibold text-[#2563EB] hover:underline"
+                    className="inline-block text-xs font-semibold text-[#2563EB] dark:text-blue-400 hover:underline"
                   >
                     Testar página de agendamento no preview ↗
                   </a>
@@ -525,7 +525,7 @@ export default function Onboarding() {
 
         <div className="flex items-center justify-between mt-8 max-w-lg w-full">
           {step > 1 ? (
-            <button onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#1B1C1E]">
+            <button onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-slate-400 hover:text-[#1B1C1E] dark:hover:text-white">
               <ArrowLeft className="w-4 h-4" />Voltar
             </button>
           ) : <div />}

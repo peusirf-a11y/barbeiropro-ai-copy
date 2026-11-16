@@ -51,7 +51,7 @@ export default function OfferPlanModal({ companyId, customer, onClose, onSubscri
   return (
     <div className="fixed inset-0 bg-black/50 z-[60] overflow-y-auto" onClick={onClose}>
       <div className="flex min-h-full items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-[#0B1121] border border-[#E5E7EF] dark:border-white/[0.10] rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="relative bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-t-2xl p-5 text-white">
           <button onClick={onClose} className="absolute top-3 right-3 p-1.5 hover:bg-white/10 rounded-lg">
@@ -68,17 +68,17 @@ export default function OfferPlanModal({ companyId, customer, onClose, onSubscri
           {isLoading && (
             <div className="text-center py-8">
               <Loader2 className="w-6 h-6 text-violet-500 animate-spin mx-auto mb-2" />
-              <p className="text-sm text-gray-500">Calculando recomendação...</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Calculando recomendação...</p>
             </div>
           )}
 
           {!isLoading && activated && (
             <div className="text-center py-6">
-              <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Check className="w-7 h-7 text-emerald-600" />
+              <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Check className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h4 className="font-black text-lg text-[#111827] mb-1">Assinatura ativada!</h4>
-              <p className="text-sm text-gray-500 mb-5">
+              <h4 className="font-black text-lg text-[#111827] dark:text-white mb-1">Assinatura ativada!</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-300 mb-5">
                 {customer.name} agora é assinante do <strong>{plan?.name}</strong>.
               </p>
               <button onClick={onClose} className="px-6 py-2.5 bg-[#2563EB] text-white rounded-lg text-sm font-semibold hover:bg-[#1d4ed8]">
@@ -103,43 +103,43 @@ export default function OfferPlanModal({ companyId, customer, onClose, onSubscri
           {!isLoading && !activated && plan && (
             <>
               {/* Cliente vem X vezes */}
-              <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 mb-4 text-center">
-                <div className="text-[11px] text-violet-700 uppercase tracking-wide font-bold mb-0.5">Histórico do cliente</div>
-                <div className="text-sm text-violet-900">
+              <div className="bg-violet-50 dark:bg-violet-500/15 border border-violet-200 dark:border-violet-400/25 rounded-xl p-3 mb-4 text-center">
+                <div className="text-[11px] text-violet-700 dark:text-violet-300 uppercase tracking-wide font-bold mb-0.5">Histórico do cliente</div>
+                <div className="text-sm text-violet-900 dark:text-violet-100">
                   <strong>{r.visits_per_month}x/mês</strong> em média · Gasta hoje <strong>R${r.monthly_avulso}/mês</strong>
                 </div>
               </div>
 
               {/* Card do plano */}
-              <div className="border-2 border-violet-300 rounded-2xl p-5 mb-4 bg-gradient-to-br from-white to-violet-50/30">
+              <div className="border-2 border-violet-300 dark:border-violet-400/40 rounded-2xl p-5 mb-4 bg-gradient-to-br from-white to-violet-50/30 dark:from-[#0D1326] dark:to-violet-950/30">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <div className="text-xs font-bold uppercase tracking-wide text-violet-600 mb-0.5">Plano recomendado</div>
-                    <div className="text-xl font-black text-[#111827]">{plan.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
+                    <div className="text-xs font-bold uppercase tracking-wide text-violet-600 dark:text-violet-300 mb-0.5">Plano recomendado</div>
+                    <div className="text-xl font-black text-[#111827] dark:text-white">{plan.name}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {plan.type === 'unlimited' ? 'Cortes ilimitados' : `${plan.usage_limit} usos por mês`}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-black text-violet-700">R${plan.price_monthly}</div>
-                    <div className="text-[10px] uppercase text-gray-400">por mês</div>
+                    <div className="text-2xl font-black text-violet-700 dark:text-violet-300">R${plan.price_monthly}</div>
+                    <div className="text-[10px] uppercase text-slate-400">por mês</div>
                   </div>
                 </div>
 
                 {/* Economia */}
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-3">
-                  <TrendingDown className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <div className="bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-400/25 rounded-xl p-3 flex items-center gap-3">
+                  <TrendingDown className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                   <div>
-                    <div className="text-sm font-bold text-emerald-900">Economiza R${r.monthly_savings}/mês</div>
-                    <div className="text-xs text-emerald-700">R${r.annual_savings} por ano</div>
+                    <div className="text-sm font-bold text-emerald-900 dark:text-emerald-200">Economiza R${r.monthly_savings}/mês</div>
+                    <div className="text-xs text-emerald-700 dark:text-emerald-300">R${r.annual_savings} por ano</div>
                   </div>
                 </div>
               </div>
 
               {/* Benefícios */}
               <div className="mb-5">
-                <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Benefícios para o cliente</div>
-                <ul className="space-y-1.5 text-sm text-gray-700">
+                <div className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Benefícios para o cliente</div>
+                <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
                   <Benefit text={`Economiza R$${r.monthly_savings} todo mês`} />
                   <Benefit text="Prioridade no agendamento" />
                   <Benefit text="Nunca paga avulso enquanto for assinante" />
@@ -151,7 +151,7 @@ export default function OfferPlanModal({ companyId, customer, onClose, onSubscri
               <div className="flex gap-2">
                 <button
                   onClick={onClose}
-                  className="flex-1 px-4 py-3 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50"
+                  className="flex-1 px-4 py-3 border border-[#E5E7EF] dark:border-white/15 rounded-xl text-sm font-medium text-[#111827] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.06]"
                 >
                   Cancelar
                 </button>
@@ -163,7 +163,7 @@ export default function OfferPlanModal({ companyId, customer, onClose, onSubscri
                   {subscribeMutation.isPending ? 'Ativando…' : 'Ativar assinatura'}
                 </button>
               </div>
-              <p className="text-[11px] text-gray-400 text-center mt-2">
+              <p className="text-[11px] text-slate-400 text-center mt-2">
                 A cobrança recorrente é manual por enquanto. O sistema controla os usos automaticamente.
               </p>
             </>
@@ -178,7 +178,7 @@ export default function OfferPlanModal({ companyId, customer, onClose, onSubscri
 function Benefit({ text }) {
   return (
     <li className="flex items-start gap-2">
-      <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
       <span>{text}</span>
     </li>
   );
@@ -187,9 +187,9 @@ function Benefit({ text }) {
 function EmptyState({ message, onClose }) {
   return (
     <div className="text-center py-6">
-      <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-      <p className="text-sm text-gray-600 mb-4">{message}</p>
-      <button onClick={onClose} className="px-5 py-2 border border-black/10 rounded-lg text-sm font-medium hover:bg-gray-50">
+      <Calendar className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+      <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{message}</p>
+      <button onClick={onClose} className="px-5 py-2 border border-[#E5E7EF] dark:border-white/15 rounded-lg text-sm font-medium text-[#111827] dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.06]">
         Fechar
       </button>
     </div>

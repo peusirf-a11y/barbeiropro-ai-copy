@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -27,7 +27,9 @@
     --input: 222 30% 14%;
     --ring: 217 91% 60%;
     --radius: 0.75rem;
-    --font-inter: 'Inter', sans-serif;
+    --font-inter: 'DM Sans', 'Plus Jakarta Sans', sans-serif;
+    --font-display: 'Plus Jakarta Sans', sans-serif;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
     --brand: 217 91% 60%;
     --brand-light: 213 94% 68%;
@@ -161,21 +163,22 @@
     width: 100%;
   }
   body {
-    @apply bg-background text-foreground font-inter;
+    @apply bg-background text-foreground font-sans;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    line-height: 1.5;
+    line-height: 1.55;
     -webkit-tap-highlight-color: transparent;
     /* Transição global suave entre temas */
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.25s var(--ease-out-expo, ease), color 0.25s var(--ease-out-expo, ease);
   }
   /* Smooth theme transition em superfícies comuns (evita flash) */
-  .theme-transition, .ds-card, .card-premium, .glass-surface, .btn-primary, .btn-ghost, input, textarea, select, button {
-    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, backdrop-filter 0.25s ease;
+  .theme-transition, .ds-card, .card-premium, .obsidian-card, .glass-surface, .btn-primary, .btn-ghost, input, textarea, select, button {
+    transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
   /* Respeita prefers-reduced-motion */
   @media (prefers-reduced-motion: reduce) {
-    body, .theme-transition, .ds-card, .card-premium, .glass-surface, .btn-primary, .btn-ghost, input, textarea, select, button {
+    body, .theme-transition, .ds-card, .card-premium, .obsidian-card, .glass-surface, .btn-primary, .btn-ghost, input, textarea, select, button {
       transition: none !important;
+      animation: none !important;
     }
   }
   /* Elementos interativos não devem permitir seleção de texto acidental no mobile */
@@ -192,26 +195,50 @@
   /* Tabelas com scroll horizontal controlado no mobile */
   table { min-width: 100%; }
   h1, h2, h3, h4 {
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    text-wrap: balance;
   }
 
-  /* Inputs / textareas / selects — premium focus ring (dark) */
+  /* Inputs / textareas / selects — theme-aware */
   input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
   textarea,
   select {
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
-    color: #0F172A !important;
-    background-color: #FFFFFF !important;
-    font-weight: 600 !important;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+    font-weight: 500;
   }
-  input::placeholder,
-  textarea::placeholder {
-    color: #94A3B8 !important;
+  .light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+  .light textarea,
+  .light select {
+    color: #0F172A;
+    background-color: #FFFFFF;
+    color-scheme: light;
+  }
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+  .dark textarea,
+  .dark select {
+    color: #F8FAFC;
+    background-color: #0D1326;
+    border-color: rgba(255, 255, 255, 0.14);
+    color-scheme: dark;
+  }
+  .light input::placeholder,
+  .light textarea::placeholder {
+    color: #94A3B8;
     opacity: 1;
   }
-  /* Botão sem variante explícita herda cor do body (#111827) — evita texto invisível
-     em botões custom (Cancelar, filtros mobile) que esquecerem text-* class. */
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: rgba(203, 213, 225, 0.50);
+    opacity: 1;
+  }
+  .dark option {
+    background-color: #0D1326;
+    color: #F8FAFC;
+  }
+  /* Botão sem variante explícita herda cor do body — evita texto invisível
+     em botões custom que esquecerem text-* class. */
   button {
     color: inherit;
   }
@@ -219,8 +246,8 @@
   textarea:focus,
   select:focus {
     outline: none;
-    border-color: #60A5FA !important;
-    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22), 0 0 24px rgba(37, 99, 235, 0.15) !important;
+    border-color: #60A5FA;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22), 0 0 24px rgba(37, 99, 235, 0.15);
   }
 
   /* Modern scrollbar (theme-aware) */
@@ -275,7 +302,8 @@
 
   /* Premium button base — used optionally via .btn-primary (dark) */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold text-white;
+    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold;
+    color: #FFFFFF;
     background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 60%, #3B82F6 100%);
     transition: transform 0.12s ease, box-shadow 0.18s ease, filter 0.18s ease;
     box-shadow: var(--shadow-brand);
@@ -285,7 +313,8 @@
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-medium text-white/90;
+    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-medium;
+    color: rgba(255, 255, 255, 0.9);
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(8px);
@@ -301,12 +330,61 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: var(--shadow-md);
-    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    transition: box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .card-premium-hover:hover {
     box-shadow: var(--shadow-lg);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
     border-color: var(--surface-glass-hover-border);
+  }
+
+  /* Obsidian Spotlight Card (TasteSkill + React Bits dark surface) */
+  .obsidian-card {
+    position: relative;
+    background: linear-gradient(180deg, rgba(16, 23, 44, 0.92) 0%, rgba(10, 15, 30, 0.96) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .obsidian-card:hover {
+    border-color: rgba(96, 165, 250, 0.28);
+    box-shadow: 0 20px 50px -12px rgba(2, 6, 23, 0.7), 0 0 0 1px rgba(96, 165, 250, 0.12);
+  }
+
+  /* Hairline top specular light */
+  .specular-top {
+    position: relative;
+  }
+  .specular-top::before {
+    content: "";
+    position: absolute;
+    inset-inline: 12%;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+    pointer-events: none;
+  }
+
+  /* Subtle link underline animation */
+  .nav-link-underline {
+    position: relative;
+  }
+  .nav-link-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, #60A5FA, #93C5FD);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .nav-link-underline:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
   }
 
   /* Skeleton shimmer (theme-aware) */
@@ -427,7 +505,11 @@
 }
 
 /* Sidebar/topbar dark — viram superfície clara premium */
-.light .bg-\[\#0B1020\] {
+.light .bg-\[\#0B1020\],
+.light .bg-\[\#0B1020\]\/80,
+.light .bg-\[\#0B1020\]\/85,
+.light .bg-\[\#0B1020\]\/90,
+.light .bg-\[\#0B1020\]\/95 {
   background-color: #FFFFFF !important;
   border-color: hsl(var(--border)) !important;
 }
@@ -435,16 +517,42 @@
 .light .bg-\[\#050816\]\/80 {
   background-color: rgba(255, 255, 255, 0.85) !important;
 }
-.light .bg-\[\#050816\] {
-  background-color: #F4F7FB !important;
+.light .bg-\[\#050816\],
+.light .bg-\[\#070B16\],
+.light .bg-\[\#070B14\],
+.light .bg-\[\#0F101A\],
+.light .bg-\[\#030612\] {
+  background-color: #F1F2F7 !important;
 }
-.light .bg-\[\#0A1124\] {
+.light .bg-\[\#0A1124\],
+.light .bg-\[\#0A1124\]\/90,
+.light .bg-\[\#0A1124\]\/95,
+.light .bg-\[\#0B1121\],
+.light .bg-\[\#0B1121\]\/85,
+.light .bg-\[\#0B1121\]\/90,
+.light .bg-\[\#0B1121\]\/95,
+.light .bg-\[\#0D1326\],
+.light .bg-\[\#0D1326\]\/90,
+.light .bg-\[\#0D1326\]\/95,
+.light .bg-\[\#0F101A\]\/95 {
   background-color: #FFFFFF !important;
 }
-/* Modal IA Comercial — fundos secundários do header/footer/body */
-.light .bg-\[\#0B1226\] {
+/* Fundos secundários dentro de cards e modais */
+.light .bg-\[\#0B1226\],
+.light .bg-\[\#070D1E\],
+.light .bg-\[\#0B152B\],
+.light .bg-\[\#0E1730\] {
   background-color: #F8FAFC !important;
   border-color: hsl(var(--border)) !important;
+}
+.light .obsidian-card {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+  border-color: #E5E7EF !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.light .obsidian-card:hover {
+  border-color: #B5D7E8 !important;
+  box-shadow: var(--shadow-md) !important;
 }
 /* Card "Plano Recomendado" com gradient escuro (from-[#0B1E3D] via-[#0A1124] to-[#0B1E3D])
    precisa de override completo para aparecer claro premium */
@@ -494,10 +602,18 @@
 .light .bg-\[\#131422\] .text-white\/90 { color: rgba(255, 255, 255, 0.92) !important; }
 .light .bg-\[\#171827\] .text-white\/80,
 .light .bg-\[\#131422\] .text-white\/80 { color: rgba(255, 255, 255, 0.85) !important; }
+.light .bg-\[\#171827\] .text-white\/75,
+.light .bg-\[\#131422\] .text-white\/75 { color: rgba(255, 255, 255, 0.80) !important; }
 .light .bg-\[\#171827\] .text-white\/70,
 .light .bg-\[\#131422\] .text-white\/70 { color: rgba(255, 255, 255, 0.78) !important; }
 .light .bg-\[\#171827\] .text-white\/60,
 .light .bg-\[\#131422\] .text-white\/60 { color: rgba(255, 255, 255, 0.70) !important; }
+.light .bg-\[\#171827\] .text-white\/50,
+.light .bg-\[\#131422\] .text-white\/50 { color: rgba(255, 255, 255, 0.60) !important; }
+.light .bg-\[\#171827\] .text-white\/40,
+.light .bg-\[\#131422\] .text-white\/40 { color: rgba(255, 255, 255, 0.48) !important; }
+.light .bg-\[\#171827\] .hover\:text-white:hover,
+.light .bg-\[\#131422\] .hover\:text-white:hover { color: #FFFFFF !important; }
 .light .bg-\[\#171827\] .text-slate-300,
 .light .bg-\[\#131422\] .text-slate-300 { color: #CBD5E1 !important; }
 .light .bg-\[\#171827\] .text-slate-400,
@@ -505,12 +621,22 @@
 
 /* Bordas brancas translúcidas — viram slate translúcido */
 .light .border-white\/5,
-.light .border-white\/6 { border-color: rgba(15, 23, 42, 0.06) !important; }
-.light .border-white\/8 { border-color: rgba(15, 23, 42, 0.08) !important; }
-.light .border-white\/10 { border-color: rgba(15, 23, 42, 0.10) !important; }
-.light .border-white\/12 { border-color: rgba(15, 23, 42, 0.12) !important; }
-.light .border-white\/15 { border-color: rgba(15, 23, 42, 0.14) !important; }
-.light .border-white\/20 { border-color: rgba(15, 23, 42, 0.18) !important; }
+.light .border-white\/6,
+.light .border-white\/\[0\.05\],
+.light .border-white\/\[0\.06\] { border-color: rgba(15, 23, 42, 0.06) !important; }
+.light .border-white\/8,
+.light .border-white\/\[0\.07\],
+.light .border-white\/\[0\.08\],
+.light .border-white\/\[0\.09\] { border-color: rgba(15, 23, 42, 0.08) !important; }
+.light .border-white\/10,
+.light .border-white\/\[0\.10\] { border-color: rgba(15, 23, 42, 0.10) !important; }
+.light .border-white\/12,
+.light .border-white\/\[0\.12\] { border-color: rgba(15, 23, 42, 0.12) !important; }
+.light .border-white\/15,
+.light .border-white\/\[0\.14\],
+.light .border-white\/\[0\.15\] { border-color: rgba(15, 23, 42, 0.14) !important; }
+.light .border-white\/20,
+.light .border-white\/\[0\.20\] { border-color: rgba(15, 23, 42, 0.18) !important; }
 
 /* Ring branco translúcido */
 .light .ring-white\/5,
@@ -518,16 +644,21 @@
 .light .ring-white\/15 { --tw-ring-color: rgba(15, 23, 42, 0.10) !important; }
 .light .ring-white\/20 { --tw-ring-color: rgba(15, 23, 42, 0.14) !important; }
 
-/* Fundos brancos translúcidos (glass dark) — viram glass branco premium */
-.light .bg-white\/\[0\.025\] { background-color: rgba(255, 255, 255, 0.72) !important; }
-.light .bg-white\/\[0\.03\] { background-color: rgba(255, 255, 255, 0.85) !important; }
-.light .bg-white\/\[0\.04\] { background-color: rgba(255, 255, 255, 0.90) !important; }
-.light .bg-white\/\[0\.06\] { background-color: rgba(255, 255, 255, 0.95) !important; }
-.light .bg-white\/\[0\.08\] { background-color: rgba(15, 23, 42, 0.04) !important; }
+/* Fundos brancos translúcidos (glass dark) — viram glass branco/slate claro premium */
+.light .bg-white\/\[0\.015\],
+.light .bg-white\/\[0\.02\] { background-color: rgba(248, 250, 252, 0.90) !important; }
+.light .bg-white\/\[0\.025\] { background-color: rgba(255, 255, 255, 0.85) !important; }
+.light .bg-white\/\[0\.03\] { background-color: rgba(255, 255, 255, 0.92) !important; }
+.light .bg-white\/\[0\.04\] { background-color: rgba(248, 250, 252, 0.95) !important; }
+.light .bg-white\/\[0\.05\] { background-color: rgba(15, 23, 42, 0.03) !important; }
+.light .bg-white\/\[0\.06\] { background-color: rgba(15, 23, 42, 0.04) !important; }
+.light .bg-white\/\[0\.07\],
+.light .bg-white\/\[0\.08\],
+.light .bg-white\/\[0\.09\] { background-color: rgba(15, 23, 42, 0.045) !important; }
 .light .bg-white\/\[0\.10\],
 .light .bg-white\/10 { background-color: rgba(15, 23, 42, 0.06) !important; }
-.light .bg-white\/5 { background-color: rgba(255, 255, 255, 0.85) !important; }
-.light .bg-white\/8 { background-color: rgba(255, 255, 255, 0.90) !important; }
+.light .bg-white\/5 { background-color: rgba(248, 250, 252, 0.90) !important; }
+.light .bg-white\/8 { background-color: rgba(241, 245, 249, 0.92) !important; }
 .light .bg-white\/15,
 .light .bg-white\/20 { background-color: rgba(15, 23, 42, 0.08) !important; }
 
@@ -545,7 +676,9 @@
 .light .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
 .light .divide-white\/6 > :not([hidden]) ~ :not([hidden]),
 .light .divide-white\/8 > :not([hidden]) ~ :not([hidden]),
-.light .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+.light .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+.light .divide-white\/\[0\.06\] > :not([hidden]) ~ :not([hidden]),
+.light .divide-white\/\[0\.08\] > :not([hidden]) ~ :not([hidden]) {
   border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
@@ -734,17 +867,50 @@
 .light .bg-slate-500\/10,
 .light .bg-slate-500\/15,
 .light .bg-slate-500\/20 { background-color: rgba(15, 23, 42, 0.05) !important; }
+.light .text-slate-100 { color: #0F172A !important; }
 .light .text-slate-300,
 .light .text-slate-200,
-.light .text-slate-400 { color: rgba(15, 23, 42, 0.65) !important; }
+.light .text-slate-400,
+.light [class*="text-slate-300/"],
+.light [class*="text-slate-400/"] { color: rgba(15, 23, 42, 0.68) !important; }
 
-/* Botões primários com fundo azul sólido mantêm texto branco no tema claro */
+/* Botões e avatares com fundo sólido/gradiente colorido mantêm texto branco no tema claro */
 .light .btn-primary,
+.light .btn-primary .text-white,
 .light .btn-glow-primary,
 .light .btn-glow-primary .text-white,
 .light .bg-\[\#2563EB\].text-white,
+.light .bg-\[\#2563EB\] .text-white,
+.light .bg-\[\#1D4ED8\].text-white,
+.light .bg-\[\#1D4ED8\] .text-white,
+.light [class*="from-[#1D4ED8]"].text-white,
+.light [class*="from-[#1D4ED8]"] .text-white,
+.light [class*="from-[#2563EB]"].text-white,
+.light [class*="from-[#2563EB]"] .text-white,
+.light [class*="from-blue-"].text-white,
+.light [class*="from-blue-"] .text-white,
+.light [class*="from-emerald-"].text-white,
+.light [class*="from-emerald-"] .text-white,
+.light [class*="from-violet-"].text-white,
+.light [class*="from-violet-"] .text-white,
 .light .bg-blue-600.text-white,
-.light .bg-emerald-600.text-white {
+.light .bg-blue-600 .text-white,
+.light .bg-blue-500.text-white,
+.light .bg-emerald-600.text-white,
+.light .bg-emerald-600 .text-white,
+.light .bg-emerald-500.text-white,
+.light .bg-green-600.text-white,
+.light .bg-green-500.text-white,
+.light .bg-rose-600.text-white,
+.light .bg-rose-500.text-white,
+.light .bg-red-600.text-white,
+.light .bg-red-500.text-white,
+.light .bg-amber-600.text-white,
+.light .bg-amber-500.text-white,
+.light .bg-indigo-600.text-white,
+.light .bg-violet-600.text-white,
+.light .bg-purple-600.text-white,
+.light .bg-slate-900.text-white {
   color: #FFFFFF !important;
 }
 
@@ -809,6 +975,9 @@
 .light .to-white\/90 {
   --tw-gradient-to: #1E293B var(--tw-gradient-to-position) !important;
 }
+.light .bg-clip-text.from-white.to-\[\#93C5FD\] {
+  --tw-gradient-to: #1D4ED8 var(--tw-gradient-to-position) !important;
+}
 
 /* Classe utilitária usada em headlines premium — fix idem */
 .light .text-premium-gradient {
@@ -849,15 +1018,106 @@ html { scroll-behavior: smooth; }
 }
 
 .light .public-dark .text-white { color: #FFFFFF !important; }
+.light .public-dark .text-white\/95 { color: rgba(255, 255, 255, 0.95) !important; }
 .light .public-dark .text-white\/90 { color: rgba(255, 255, 255, 0.90) !important; }
+.light .public-dark .text-white\/85 { color: rgba(255, 255, 255, 0.85) !important; }
 .light .public-dark .text-white\/80 { color: rgba(255, 255, 255, 0.80) !important; }
+.light .public-dark .text-white\/75 { color: rgba(255, 255, 255, 0.75) !important; }
 .light .public-dark .text-white\/70 { color: rgba(255, 255, 255, 0.70) !important; }
+.light .public-dark .text-white\/65 { color: rgba(255, 255, 255, 0.65) !important; }
 .light .public-dark .text-white\/60 { color: rgba(255, 255, 255, 0.60) !important; }
+.light .public-dark .text-white\/55 { color: rgba(255, 255, 255, 0.55) !important; }
 .light .public-dark .text-white\/50 { color: rgba(255, 255, 255, 0.50) !important; }
+.light .public-dark .text-white\/45 { color: rgba(255, 255, 255, 0.45) !important; }
 .light .public-dark .text-white\/40 { color: rgba(255, 255, 255, 0.40) !important; }
 .light .public-dark .text-white\/30 { color: rgba(255, 255, 255, 0.30) !important; }
-.light .public-dark .border-white\/10 { border-color: rgba(255, 255, 255, 0.10) !important; }
+.light .public-dark .hover\:text-white:hover { color: #FFFFFF !important; }
+.light .public-dark .text-slate-100 { color: #F1F5F9 !important; }
+.light .public-dark .text-slate-200 { color: #E2E8F0 !important; }
+.light .public-dark .text-slate-300 { color: #CBD5E1 !important; }
+.light .public-dark .text-slate-400 { color: #94A3B8 !important; }
+.light .public-dark .text-gray-300 { color: #D1D5DB !important; }
+.light .public-dark .text-gray-400 { color: #9CA3AF !important; }
+.light .public-dark .text-blue-300,
+.light .public-dark .text-blue-200,
+.light .public-dark .text-blue-100,
+.light .public-dark .text-\[\#93C5FD\] { color: #93C5FD !important; }
+.light .public-dark .text-emerald-300,
+.light .public-dark .text-green-300 { color: #6EE7B7 !important; }
+.light .public-dark .text-emerald-200,
+.light .public-dark .text-emerald-100 { color: #A7F3D0 !important; }
+.light .public-dark .text-amber-300,
+.light .public-dark .text-yellow-300 { color: #FCD34D !important; }
+.light .public-dark .text-amber-200,
+.light .public-dark .text-amber-100,
+.light .public-dark .text-yellow-200,
+.light .public-dark .text-yellow-100 { color: #FDE68A !important; }
+.light .public-dark .text-rose-300,
+.light .public-dark .text-red-300 { color: #FDA4AF !important; }
+.light .public-dark .text-rose-200,
+.light .public-dark .text-rose-100 { color: #FECDD3 !important; }
+.light .public-dark .text-violet-300,
+.light .public-dark .text-purple-300 { color: #C4B5FD !important; }
+.light .public-dark .text-violet-200,
+.light .public-dark .text-violet-100 { color: #DDD6FE !important; }
+.light .public-dark .text-cyan-300,
+.light .public-dark .text-cyan-200 { color: #67E8F9 !important; }
+.light .public-dark .text-pink-300,
+.light .public-dark .text-pink-200 { color: #F9A8D4 !important; }
+.light .public-dark .border-white\/5,
+.light .public-dark .border-white\/\[0\.06\] { border-color: rgba(255, 255, 255, 0.06) !important; }
+.light .public-dark .border-white\/8,
+.light .public-dark .border-white\/\[0\.08\] { border-color: rgba(255, 255, 255, 0.08) !important; }
+.light .public-dark .border-white\/10,
+.light .public-dark .border-white\/\[0\.10\] { border-color: rgba(255, 255, 255, 0.10) !important; }
 .light .public-dark .border-white\/15 { border-color: rgba(255, 255, 255, 0.15) !important; }
 .light .public-dark .border-white\/20 { border-color: rgba(255, 255, 255, 0.20) !important; }
+.light .public-dark .bg-white\/\[0\.02\],
+.light .public-dark .bg-white\/\[0\.025\] { background-color: rgba(255, 255, 255, 0.025) !important; }
+.light .public-dark .bg-white\/\[0\.03\] { background-color: rgba(255, 255, 255, 0.03) !important; }
+.light .public-dark .bg-white\/\[0\.04\] { background-color: rgba(255, 255, 255, 0.04) !important; }
 .light .public-dark .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
 .light .public-dark .bg-white\/10 { background-color: rgba(255, 255, 255, 0.10) !important; }
+.light .public-dark .bg-\[\#0B1121\],
+.light .public-dark .bg-\[\#0B1121\]\/90 { background-color: rgba(11, 17, 33, 0.90) !important; }
+.light .public-dark .bg-\[\#050816\],
+.light .public-dark .bg-\[\#070B14\] { background-color: #070B14 !important; }
+.light .public-dark .obsidian-card {
+  background: linear-gradient(180deg, rgba(16, 23, 44, 0.92) 0%, rgba(10, 15, 30, 0.96) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.light .public-dark .text-premium-gradient {
+  background: linear-gradient(180deg, #FFFFFF 0%, rgba(255,255,255,0.7) 100%) !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.light .public-dark .from-white {
+  --tw-gradient-from: #FFFFFF var(--tw-gradient-from-position) !important;
+}
+
+/* ----------------------------------------------------------------------
+   PUBLIC LIGHT SCOPE (.public-light)
+   Garante que páginas públicas em modo claro não sofram override
+   de `.dark` global no <html> (ex.: inputs forçados em escuro).
+   ---------------------------------------------------------------------- */
+.public-light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+.public-light textarea,
+.public-light select {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color-scheme: light !important;
+}
+
+.public-light input::placeholder,
+.public-light textarea::placeholder {
+  color: #94A3B8 !important;
+  opacity: 1 !important;
+}
+
+.public-light option {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}

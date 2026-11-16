@@ -46,21 +46,21 @@ export default function CpfRestrictionCard({ formData, origin = 'checkout' }) {
   const handleEmail = () => fireEvent('cpf_contact_click_email', { origin });
 
   return (
-    <div className="bg-white rounded-2xl border border-[#2563EB]/15 p-5 sm:p-6 shadow-card animate-fade-in">
+    <div className="bg-white dark:bg-[#0B1121] rounded-2xl border border-[#2563EB]/15 dark:border-white/10 p-5 sm:p-6 shadow-card animate-fade-in">
       {/* Header */}
       <div className="flex items-start gap-3 mb-4">
         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-500/20">
           <Building2 className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-black text-[#0F172A] leading-tight">CNPJ obrigatório</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Análise especial pela nossa equipe comercial</p>
+          <h3 className="text-lg font-black text-[#0F172A] dark:text-white leading-tight">CNPJ obrigatório</h3>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Análise especial pela nossa equipe comercial</p>
         </div>
       </div>
 
       {/* Texto oficial */}
-      <p className="text-sm text-gray-700 leading-relaxed mb-5">
-        Para utilizar os recebimentos automáticos do <strong>O CORTE</strong> é necessário possuir um <strong>CNPJ ativo</strong> (MEI também é aceito). Caso precise de uma análise especial, entre em contato pelo WhatsApp.
+      <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed mb-5">
+        Para utilizar os recebimentos automáticos do <strong className="text-[#0F172A] dark:text-white">O CORTE</strong> é necessário possuir um <strong className="text-[#0F172A] dark:text-white">CNPJ ativo</strong> (MEI também é aceito). Caso precise de uma análise especial, entre em contato pelo WhatsApp.
       </p>
 
       {/* CTAs */}
@@ -78,16 +78,16 @@ export default function CpfRestrictionCard({ formData, origin = 'checkout' }) {
         <a
           href={emailUrl}
           onClick={handleEmail}
-          className="w-full flex items-center justify-center gap-2 bg-white border border-black/10 hover:border-[#2563EB] text-[#0F172A] font-semibold py-3 rounded-xl text-sm transition-all"
+          className="w-full flex items-center justify-center gap-2 bg-white dark:bg-white/[0.04] border border-black/10 dark:border-white/10 hover:border-[#2563EB] dark:hover:border-blue-500/50 text-[#0F172A] dark:text-white font-semibold py-3 rounded-xl text-sm transition-all"
         >
-          <Mail className="w-4 h-4 text-[#2563EB]" />
+          <Mail className="w-4 h-4 text-[#2563EB] dark:text-blue-400" />
           Enviar e-mail
         </a>
       </div>
 
       {/* Reassurance */}
-      <div className="mt-5 pt-4 border-t border-black/5 flex items-start gap-2 text-[11px] text-gray-500 leading-relaxed">
-        <ShieldCheck className="w-3.5 h-3.5 text-[#2563EB] flex-shrink-0 mt-0.5" />
+      <div className="mt-5 pt-4 border-t border-black/5 dark:border-white/10 flex items-start gap-2 text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed">
+        <ShieldCheck className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400 flex-shrink-0 mt-0.5" />
         <span>
           Nossa equipe responde em horário comercial e avalia caso a caso.
         </span>

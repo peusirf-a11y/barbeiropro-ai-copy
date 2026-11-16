@@ -492,7 +492,7 @@ export default function SaasPaymentModal({
                     <select
                       value={installments}
                       onChange={(e) => setInstallments(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F172A] border border-white/15 text-white text-xs font-semibold focus:border-blue-400 focus:outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/15 text-slate-900 dark:text-white text-xs font-semibold focus:border-blue-400 focus:outline-none"
                     >
                       {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => {
                         const val = (totalAmount / n).toFixed(2).replace('.', ',');

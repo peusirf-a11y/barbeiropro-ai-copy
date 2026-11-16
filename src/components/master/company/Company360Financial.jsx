@@ -7,12 +7,12 @@ const fmtMoney = (v) =>
 const fmtNumber = (v) => Number(v || 0).toLocaleString('pt-BR');
 
 const subStatusInfo = {
-  active:     { label: 'Pagando em dia', icon: CheckCircle2, color: 'text-emerald-700 bg-emerald-50 ring-emerald-100' },
-  trialing:   { label: 'Em período de trial', icon: Clock, color: 'text-amber-700 bg-amber-50 ring-amber-100' },
-  past_due:   { label: 'Inadimplente', icon: AlertTriangle, color: 'text-red-700 bg-red-50 ring-red-100' },
-  canceled:   { label: 'Assinatura cancelada', icon: AlertTriangle, color: 'text-gray-700 bg-gray-100 ring-gray-200' },
-  incomplete: { label: 'Pagamento incompleto', icon: AlertTriangle, color: 'text-amber-700 bg-amber-50 ring-amber-100' },
-  unpaid:     { label: 'Não paga', icon: AlertTriangle, color: 'text-red-700 bg-red-50 ring-red-100' },
+  active:     { label: 'Pagando em dia', icon: CheckCircle2, color: 'text-emerald-700 bg-emerald-50 ring-emerald-100 dark:text-emerald-300 dark:bg-emerald-500/15 dark:ring-emerald-400/30' },
+  trialing:   { label: 'Em período de trial', icon: Clock, color: 'text-amber-700 bg-amber-50 ring-amber-100 dark:text-amber-300 dark:bg-amber-500/15 dark:ring-amber-400/30' },
+  past_due:   { label: 'Inadimplente', icon: AlertTriangle, color: 'text-red-700 bg-red-50 ring-red-100 dark:text-rose-300 dark:bg-rose-500/15 dark:ring-rose-400/30' },
+  canceled:   { label: 'Assinatura cancelada', icon: AlertTriangle, color: 'text-gray-700 bg-gray-100 ring-gray-200 dark:text-slate-300 dark:bg-white/10 dark:ring-white/15' },
+  incomplete: { label: 'Pagamento incompleto', icon: AlertTriangle, color: 'text-amber-700 bg-amber-50 ring-amber-100 dark:text-amber-300 dark:bg-amber-500/15 dark:ring-amber-400/30' },
+  unpaid:     { label: 'Não paga', icon: AlertTriangle, color: 'text-red-700 bg-red-50 ring-red-100 dark:text-rose-300 dark:bg-rose-500/15 dark:ring-rose-400/30' },
 };
 
 export default function Company360Financial({ company, plan, counters, financial }) {
@@ -68,9 +68,9 @@ export default function Company360Financial({ company, plan, counters, financial
 }
 
 const COLORS = {
-  emerald: 'text-emerald-700 bg-emerald-50 ring-emerald-100',
-  blue: 'text-[#2563EB] bg-[#EFF6FF] ring-[#DBEAFE]',
-  violet: 'text-violet-700 bg-violet-50 ring-violet-100',
+  emerald: 'text-emerald-700 bg-emerald-50 ring-emerald-100 dark:text-emerald-300 dark:bg-emerald-500/15 dark:ring-emerald-400/30',
+  blue: 'text-[#2563EB] bg-[#EFF6FF] ring-[#DBEAFE] dark:text-[#60A5FA] dark:bg-blue-500/15 dark:ring-blue-400/30',
+  violet: 'text-violet-700 bg-violet-50 ring-violet-100 dark:text-violet-300 dark:bg-violet-500/15 dark:ring-violet-400/30',
 };
 
 function StatCard({ label, value, icon: Icon, color }) {

@@ -47,19 +47,19 @@ const safeFmt = (dStr) => {
 };
 
 const REF_STATUS = {
-  pending: { label: 'Em avaliação', cls: 'bg-white/8 text-white/70 border-white/15' },
-  converted: { label: 'Trial (7 dias)', cls: 'bg-amber-500/15 text-amber-200 border-amber-400/30' },
-  active: { label: 'Ativa (30%)', cls: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' },
-  completed: { label: 'Ciclo 12/12', cls: 'bg-blue-500/15 text-blue-200 border-blue-400/30' },
-  cancelled: { label: 'Cancelada', cls: 'bg-rose-500/10 text-rose-200 border-rose-400/25' },
-  fraud: { label: 'Irregular', cls: 'bg-rose-500/25 text-rose-200 border-rose-400/45' },
+  pending: { label: 'Em avaliação', cls: 'bg-slate-100 dark:bg-white/8 text-slate-700 dark:text-white/70 border-slate-200 dark:border-white/15' },
+  converted: { label: 'Trial (7 dias)', cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-200 border-amber-500/25 dark:border-amber-400/30' },
+  active: { label: 'Ativa (30%)', cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 border-emerald-500/25 dark:border-emerald-400/30' },
+  completed: { label: 'Ciclo 12/12', cls: 'bg-blue-500/10 text-blue-700 dark:text-blue-200 border-blue-500/25 dark:border-blue-400/30' },
+  cancelled: { label: 'Cancelada', cls: 'bg-rose-500/10 text-rose-700 dark:text-rose-200 border-rose-500/25 dark:border-rose-400/25' },
+  fraud: { label: 'Irregular', cls: 'bg-rose-500/15 text-rose-800 dark:text-rose-200 border-rose-500/30 dark:border-rose-400/45' },
 };
 
 const COMM_STATUS = {
-  pending: { label: 'Em Retenção (Hold)', cls: 'bg-amber-500/15 text-amber-200 border-amber-400/30' },
-  approved: { label: 'A Receber (Aprovada)', cls: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' },
-  paid: { label: 'Pago via Pix', cls: 'bg-blue-500/15 text-blue-200 border-blue-400/30' },
-  cancelled: { label: 'Cancelada', cls: 'bg-rose-500/10 text-rose-200 border-rose-400/25' },
+  pending: { label: 'Em Retenção (Hold)', cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-200 border-amber-500/25 dark:border-amber-400/30' },
+  approved: { label: 'A Receber (Aprovada)', cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 border-emerald-500/25 dark:border-emerald-400/30' },
+  paid: { label: 'Pago via Pix', cls: 'bg-blue-500/10 text-blue-700 dark:text-blue-200 border-blue-500/25 dark:border-blue-400/30' },
+  cancelled: { label: 'Cancelada', cls: 'bg-rose-500/10 text-rose-700 dark:text-rose-200 border-rose-500/25 dark:border-rose-400/25' },
 };
 
 export default function PartnerDashboard() {

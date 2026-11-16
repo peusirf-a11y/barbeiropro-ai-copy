@@ -16,10 +16,12 @@ import { filterByUnit } from '@/lib/unitFilter';
 import { useUnits } from '@/hooks/useUnits';
 import UnitBreakdownTable from '@/components/relatorios/UnitBreakdownTable';
 import { csvCell } from '@/lib/csvSafe';
+import { useTheme } from '@/theme/ThemeProvider';
 
 const COLORS = ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'];
 
 export default function AppRelatorios() {
+  const { isDark } = useTheme();
   const { companyId, isLoading: loadingCompany } = useCompany();
   const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
   const { units } = useUnits();
@@ -28,6 +30,15 @@ export default function AppRelatorios() {
   const [exportConfirmed, setExportConfirmed] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const impPatch = useImpersonationPatch();
+  const chartTick = isDark ? 'rgba(255,255,255,0.60)' : '#55596A';
+  const chartAxis = isDark ? 'rgba(255,255,255,0.12)' : '#CBD5E1';
+  const chartTooltip = {
+    background: isDark ? '#0A1124' : '#FFFFFF',
+    border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#E5E7EF'}`,
+    borderRadius: 12,
+    color: isDark ? '#FFFFFF' : '#0F172A',
+    boxShadow: 'var(--shadow-md)',
+  };
 
   // BFF Fase 4: appointments via listAppointments (tenant + unit + role scope)
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
@@ -297,9 +308,9 @@ export default function AppRelatorios() {
             {serviceData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={serviceData} margin={{ left: -10 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.55)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                  <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.55)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                  <Tooltip contentStyle={{ background: '#0A1124', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#fff' }} cursor={{ fill: 'rgba(96,165,250,0.08)' }} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: chartTick }} axisLine={{ stroke: chartAxis }} tickLine={{ stroke: chartAxis }} />
+                  <YAxis tick={{ fontSize: 11, fill: chartTick }} axisLine={{ stroke: chartAxis }} tickLine={{ stroke: chartAxis }} />
+                  <Tooltip contentStyle={chartTooltip} cursor={{ fill: 'rgba(96,165,250,0.08)' }} />
                   <Bar dataKey="total" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Vendas" />
                 </BarChart>
               </ResponsiveContainer>
@@ -317,9 +328,9 @@ export default function AppRelatorios() {
               <div className="space-y-4">
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={proData} margin={{ left: -10 }}>
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.55)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                    <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.55)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                    <Tooltip contentStyle={{ background: '#0A1124', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#fff' }} cursor={{ fill: 'rgba(96,165,250,0.08)' }} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: chartTick }} axisLine={{ stroke: chartAxis }} tickLine={{ stroke: chartAxis }} />
+                    <YAxis tick={{ fontSize: 11, fill: chartTick }} axisLine={{ stroke: chartAxis }} tickLine={{ stroke: chartAxis }} />
+                    <Tooltip contentStyle={chartTooltip} cursor={{ fill: 'rgba(96,165,250,0.08)' }} />
                     <Bar dataKey="atendimentos" fill="#60A5FA" radius={[4, 4, 0, 0]} name="Atendimentos" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -355,7 +366,7 @@ export default function AppRelatorios() {
               <h2 className="font-bold text-white mb-4">Distribuição de serviços</h2>
               <div className="flex items-center gap-6">
                 <PieChart width={140} height={140}>
-                  <Pie data={serviceData} dataKey="total" cx={65} cy={65} outerRadius={60} innerRadius={30} stroke="#0A1124" strokeWidth={2}>
+                  <Pie data={serviceData} dataKey="total" cx={65} cy={65} outerRadius={60} innerRadius={30} stroke={isDark ? '#0A1124' : '#FFFFFF'} strokeWidth={2}>
                     {serviceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                 </PieChart>

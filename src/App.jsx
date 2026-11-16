@@ -1,3 +1,4 @@
+import { MotionConfig } from 'framer-motion';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/react';
@@ -122,6 +123,7 @@ import { Navigate } from 'react-router-dom';
 function App() {
   return (
     <ErrorBoundary>
+    <MotionConfig reducedMotion="user">
     <ThemeProvider>
     <CookieConsentProvider>
     <AuthProvider>
@@ -178,8 +180,8 @@ function App() {
             <Route path="/demo/financeiro" element={<DemoFinanceiro />} />
             <Route path="/demo/relatorios" element={<DemoRelatorios />} />
             <Route path="/demo/ai-growth" element={<DemoAIGrowth />} />
-            <Route path="/demo/observability" element={<DemoLayout><div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto"><MasterObservability /></div></DemoLayout>} />
-            <Route path="/demo/observabilidade" element={<DemoLayout><div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto"><MasterObservability /></div></DemoLayout>} />
+            <Route path="/demo/observability" element={<SuperAdminRoute><DemoLayout><div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto"><MasterObservability /></div></DemoLayout></SuperAdminRoute>} />
+            <Route path="/demo/observabilidade" element={<SuperAdminRoute><DemoLayout><div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto"><MasterObservability /></div></DemoLayout></SuperAdminRoute>} />
 
             {/* ── ONBOARDING (authenticated, not yet completed) ── */}
             <Route path="/onboarding" element={
@@ -271,6 +273,7 @@ function App() {
     </AuthProvider>
     </CookieConsentProvider>
     </ThemeProvider>
+    </MotionConfig>
     </ErrorBoundary>
   );
 }

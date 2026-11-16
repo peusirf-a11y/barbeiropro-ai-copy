@@ -16,9 +16,9 @@ import { sanitizeHexColor } from '@/lib/colorUtils';
 
 // Escala NPS visual: 0-6 detrator (vermelho), 7-8 passivo (âmbar), 9-10 promotor (verde).
 const NPS_COLORS = {
-  detractor: { bg: 'bg-red-50', ring: 'ring-red-200', text: 'text-red-700', active: 'bg-red-500 text-white shadow-lg' },
-  passive:   { bg: 'bg-amber-50', ring: 'ring-amber-200', text: 'text-amber-700', active: 'bg-amber-500 text-white shadow-lg' },
-  promoter:  { bg: 'bg-emerald-50', ring: 'ring-emerald-200', text: 'text-emerald-700', active: 'bg-emerald-500 text-white shadow-lg' },
+  detractor: { bg: 'bg-red-50 dark:bg-red-500/15', ring: 'ring-red-200 dark:ring-red-500/30', text: 'text-red-700 dark:text-red-300', active: 'bg-red-500 text-white shadow-lg' },
+  passive:   { bg: 'bg-amber-50 dark:bg-amber-500/15', ring: 'ring-amber-200 dark:ring-amber-500/30', text: 'text-amber-700 dark:text-amber-300', active: 'bg-amber-500 text-white shadow-lg' },
+  promoter:  { bg: 'bg-emerald-50 dark:bg-emerald-500/15', ring: 'ring-emerald-200 dark:ring-emerald-500/30', text: 'text-emerald-700 dark:text-emerald-300', active: 'bg-emerald-500 text-white shadow-lg' },
 };
 const npsBucket = (n) => (n <= 6 ? 'detractor' : n <= 8 ? 'passive' : 'promoter');
 const NPS_LABEL = {

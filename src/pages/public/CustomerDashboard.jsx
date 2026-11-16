@@ -151,7 +151,7 @@ export default function CustomerDashboard() {
   if (!isReady) {
     return (
       <div className={`min-h-screen ${tw.bg} flex items-center justify-center`}>
-        <div className="w-8 h-8 border-4 border-white/10 border-t-white/50 rounded-full animate-spin" />
+        <div className={`w-8 h-8 border-4 ${isDark ? 'border-white/10 border-t-white/50' : 'border-black/10 border-t-black/50'} rounded-full animate-spin`} />
       </div>
     );
   }
@@ -226,7 +226,7 @@ export default function CustomerDashboard() {
         <section>
           <h2 className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-3`}>Meu Plano</h2>
           {activeSub ? (
-            <SubscriptionCard sub={activeSub} primaryColor={accent.bg} tw={tw}
+            <SubscriptionCard sub={activeSub} primaryColor={accent.bg} tw={tw} isDark={isDark}
               onPause={() => subActionMutation.mutate({ action: 'pause', subscription_id: activeSub.id })}
               onCancel={() => { if (confirm('Tem certeza que deseja cancelar sua assinatura?')) subActionMutation.mutate({ action: 'cancel', subscription_id: activeSub.id }); }}
               isPending={subActionMutation.isPending}
@@ -263,7 +263,7 @@ export default function CustomerDashboard() {
             </div>
           ) : (
             <div className="space-y-2">
-              {upcomingAppts.map(a => <AppointmentCard key={a.id} appt={a} primaryColor={primaryColor} tw={tw} />)}
+              {upcomingAppts.map(a => <AppointmentCard key={a.id} appt={a} primaryColor={primaryColor} tw={tw} isDark={isDark} />)}
             </div>
           )}
         </section>
@@ -273,7 +273,7 @@ export default function CustomerDashboard() {
           <section>
             <h2 className={`text-[11px] font-bold uppercase tracking-widest ${tw.sectionLabel} mb-3`}>Histórico</h2>
             <div className="space-y-2">
-              {pastAppts.map(a => <AppointmentCard key={a.id} appt={a} primaryColor={primaryColor} tw={tw} muted />)}
+              {pastAppts.map(a => <AppointmentCard key={a.id} appt={a} primaryColor={primaryColor} tw={tw} isDark={isDark} muted />)}
             </div>
           </section>
         )}
@@ -308,7 +308,7 @@ export default function CustomerDashboard() {
   );
 }
 
-function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending }) {
+function SubscriptionCard({ sub, primaryColor, tw, isDark, onPause, onCancel, isPending }) {
   const periodEndRaw = sub.current_period_end || sub.current_cycle_end;
   const cycleEnd = periodEndRaw ? new Date(periodEndRaw) : null;
   const isUnlimited = !sub.plan_type_snapshot || sub.plan_type_snapshot === 'unlimited';
@@ -331,7 +331,7 @@ function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending 
             </div>
           )}
           {allowedDays && allowedDays.length > 0 && allowedDays.length < 7 && (
-            <div className="text-[11px] text-amber-500 dark:text-amber-400 font-medium mt-1.5">
+            <div className={`text-[11px] ${isDark ? 'text-amber-400' : 'text-amber-600'} font-medium mt-1.5`}>
               {formatAllowedWeekdaysError(allowedDays)}
             </div>
           )}
@@ -358,7 +358,7 @@ function SubscriptionCard({ sub, primaryColor, tw, onPause, onCancel, isPending 
           <Pause className="w-3.5 h-3.5" strokeWidth={1.75} /> Pausar
         </button>
         <button onClick={onCancel} disabled={isPending}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-rose-500 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all cursor-pointer">
+          className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all cursor-pointer border ${isDark ? 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20' : 'text-rose-600 bg-rose-50 hover:bg-rose-100 border-rose-200'}`}>
           <X className="w-3.5 h-3.5" strokeWidth={1.75} /> Cancelar
         </button>
       </div>
@@ -380,7 +380,7 @@ function PausedCard({ sub, onResume, isPending, accent, tw }) {
   );
 }
 
-function AppointmentCard({ appt, primaryColor, tw, muted }) {
+function AppointmentCard({ appt, primaryColor, tw, isDark, muted }) {
   const date = new Date(appt.scheduled_at);
   const statusLabel = {
     agendado: 'Agendado', confirmado: 'Confirmado', confirmed: 'Confirmado', em_atendimento: 'Em atendimento',
@@ -389,9 +389,14 @@ function AppointmentCard({ appt, primaryColor, tw, muted }) {
   }[appt.status] || appt.status;
 
   const statusColor = {
-    agendado: 'text-blue-400', confirmado: 'text-emerald-400', confirmed: 'text-emerald-400', concluido: tw.textFaint,
-    cancelado: 'text-red-400', faltou: 'text-red-400', em_atendimento: 'text-amber-400',
-    aguardando_pagamento: 'text-amber-400',
+    agendado: isDark ? 'text-blue-400' : 'text-blue-600',
+    confirmado: isDark ? 'text-emerald-400' : 'text-emerald-600',
+    confirmed: isDark ? 'text-emerald-400' : 'text-emerald-600',
+    concluido: tw.textFaint,
+    cancelado: isDark ? 'text-red-400' : 'text-red-600',
+    faltou: isDark ? 'text-red-400' : 'text-red-600',
+    em_atendimento: isDark ? 'text-amber-400' : 'text-amber-600',
+    aguardando_pagamento: isDark ? 'text-amber-400' : 'text-amber-600',
   }[appt.status] || tw.textFaint;
 
   const isPaidOnline =
@@ -423,7 +428,7 @@ function AppointmentCard({ appt, primaryColor, tw, muted }) {
       <div className="flex-shrink-0 text-right">
         <div className={`text-[10px] uppercase tracking-wide font-semibold ${statusColor}`}>{statusLabel}</div>
         {isPaidOnline && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 mt-1 inline-block">
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border mt-1 inline-block ${isDark ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
             {isCardPayment ? 'PAGO CARTÃO' : 'PAGO PIX'}
           </span>
         )}

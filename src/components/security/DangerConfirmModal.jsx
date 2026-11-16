@@ -11,21 +11,21 @@ import { AlertTriangle, X, ShieldAlert } from 'lucide-react';
 const SEVERITY_CONFIG = {
   high: {
     icon: AlertTriangle,
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    iconColor: 'text-amber-500',
-    badgeBg: 'bg-amber-100',
-    badgeText: 'text-amber-700',
+    bg: 'bg-amber-50 dark:bg-[#1A1510]',
+    border: 'border-amber-200 dark:border-amber-500/30',
+    iconColor: 'text-amber-500 dark:text-amber-400',
+    badgeBg: 'bg-amber-100 dark:bg-amber-500/20',
+    badgeText: 'text-amber-700 dark:text-amber-300',
     badgeLabel: 'Ação de Alto Risco',
     buttonBg: 'bg-amber-500 hover:bg-amber-600',
   },
   critical: {
     icon: ShieldAlert,
-    bg: 'bg-red-50',
-    border: 'border-red-200',
-    iconColor: 'text-red-500',
-    badgeBg: 'bg-red-100',
-    badgeText: 'text-red-700',
+    bg: 'bg-red-50 dark:bg-[#1B1016]',
+    border: 'border-red-200 dark:border-rose-500/30',
+    iconColor: 'text-red-500 dark:text-rose-400',
+    badgeBg: 'bg-red-100 dark:bg-rose-500/20',
+    badgeText: 'text-red-700 dark:text-rose-300',
     badgeLabel: 'Ação Irreversível',
     buttonBg: 'bg-red-600 hover:bg-red-700',
   },
@@ -88,20 +88,20 @@ export default function DangerConfirmModal({
       {/* Modal */}
       <div className={`relative w-full max-w-md rounded-2xl border shadow-xl ${config.bg} ${config.border}`}>
         {/* Header */}
-        <div className="flex items-start gap-3 p-5 border-b border-black/10">
-          <div className="w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center flex-shrink-0">
+        <div className="flex items-start gap-3 p-5 border-b border-black/10 dark:border-white/10">
+          <div className="w-10 h-10 rounded-xl bg-white/70 dark:bg-white/10 flex items-center justify-center flex-shrink-0">
             <Icon className={`w-5 h-5 ${config.iconColor}`} />
           </div>
           <div className="flex-1 min-w-0">
             <div className={`inline-block text-[10px] font-black px-2 py-0.5 rounded-full mb-1 ${config.badgeBg} ${config.badgeText}`}>
               {config.badgeLabel}
             </div>
-            <h2 className="text-base font-black text-[#111827] leading-tight">{title}</h2>
+            <h2 className="text-base font-black text-[#111827] dark:text-white leading-tight">{title}</h2>
           </div>
           <button
             onClick={handleClose}
             disabled={loading}
-            className="p-1.5 rounded-lg hover:bg-black/10 text-gray-400 flex-shrink-0"
+            className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
@@ -110,15 +110,15 @@ export default function DangerConfirmModal({
         {/* Body */}
         <div className="p-5 space-y-4">
           {description && (
-            <p className="text-sm text-gray-700 leading-relaxed">{description}</p>
+            <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">{description}</p>
           )}
 
           {impacts.length > 0 && (
             <div className="space-y-1.5">
-              <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Impactos:</div>
+              <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Impactos:</div>
               <ul className="space-y-1">
                 {impacts.map((impact, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
                     <span className={`mt-0.5 flex-shrink-0 ${config.iconColor}`}>•</span>
                     {impact}
                   </li>
@@ -129,8 +129,8 @@ export default function DangerConfirmModal({
 
           {/* Confirmação digitada */}
           <div>
-            <label className="block text-[11px] font-bold text-gray-500 mb-1.5">
-              Digite <code className="font-mono text-xs font-black text-gray-800 bg-white/70 px-1.5 py-0.5 rounded">{confirmWord}</code> para confirmar:
+            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
+              Digite <code className="font-mono text-xs font-black text-slate-800 dark:text-white bg-white/70 dark:bg-white/10 px-1.5 py-0.5 rounded">{confirmWord}</code> para confirmar:
             </label>
             <input
               type="text"
@@ -140,10 +140,10 @@ export default function DangerConfirmModal({
               disabled={loading}
               className={`w-full px-3 py-2.5 border rounded-lg text-sm font-mono transition-all focus:outline-none ${
                 typed && typed !== confirmWord
-                  ? 'border-red-300 bg-red-50'
+                  ? 'border-red-300 dark:border-rose-400/50 bg-red-50 dark:bg-rose-500/15'
                   : typed === confirmWord
-                  ? 'border-emerald-400 bg-emerald-50'
-                  : 'border-black/15 bg-white'
+                  ? 'border-emerald-400 dark:border-emerald-400/50 bg-emerald-50 dark:bg-emerald-500/15'
+                  : 'border-black/15 dark:border-white/15 bg-white dark:bg-[#0D1326]'
               }`}
             />
           </div>
@@ -151,7 +151,7 @@ export default function DangerConfirmModal({
           {/* Motivo opcional/obrigatório */}
           {requireReason && (
             <div>
-              <label className="block text-[11px] font-bold text-gray-500 mb-1.5">
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
                 Motivo <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -160,18 +160,18 @@ export default function DangerConfirmModal({
                 rows={2}
                 placeholder="Descreva o motivo desta ação…"
                 disabled={loading}
-                className="w-full px-3 py-2.5 border border-black/15 bg-white rounded-lg text-sm resize-none focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-3 py-2.5 border border-black/15 dark:border-white/15 bg-white dark:bg-[#0D1326] rounded-lg text-sm resize-none focus:outline-none focus:border-[#2563EB]"
               />
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 p-5 border-t border-black/10">
+        <div className="flex gap-3 p-5 border-t border-black/10 dark:border-white/10">
           <button
             onClick={handleClose}
             disabled={loading}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-black/15 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-black/15 dark:border-white/15 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-white/[0.06] hover:bg-slate-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
           >
             Cancelar
           </button>

@@ -1,6 +1,4 @@
-// Navbar fixa dark premium com blur. Aparece com mais opacidade ao rolar.
-// Suporte a navegação suave para âncoras tanto no modo padrão quanto lançamento,
-// menu mobile integrado e sem elementos <button> aninhados dentro de <a>.
+// Navbar fixa dark premium com blur, sublinhado fluido e responsividade limpa.
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
@@ -28,7 +26,6 @@ export default function PremiumNav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Fecha menu mobile ao trocar rota
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
@@ -67,10 +64,10 @@ export default function PremiumNav() {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           scrolled || mobileOpen
-            ? 'bg-[#050816]/95 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/40'
-            : 'bg-transparent'
+            ? 'bg-[#050816]/85 backdrop-blur-2xl border-b border-white/[0.08] shadow-[0_12px_40px_-12px_rgba(2,6,23,0.75)]'
+            : 'bg-transparent border-b border-transparent'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between gap-2">
@@ -78,20 +75,20 @@ export default function PremiumNav() {
           <button
             type="button"
             onClick={handleLogoClick}
-            className="flex items-center cursor-pointer bg-transparent border-0 p-0 text-left outline-none"
+            className="flex items-center cursor-pointer bg-transparent border-0 p-0 text-left outline-none shrink-0"
             aria-label="Ir para o topo da página inicial"
           >
             <BrandMark size={36} tone="dark" />
           </button>
 
-          {/* Links desktop */}
-          <div className="hidden lg:flex items-center gap-7 text-sm font-medium text-white/70">
+          {/* Links desktop com sublinhado animado (Transitions.dev) */}
+          <div className="hidden lg:flex items-center gap-7 text-sm font-medium text-white/75">
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
                 onClick={(e) => handleNavClick(e, item)}
-                className="hover:text-white transition-colors cursor-pointer"
+                className="nav-link-underline py-1 hover:text-white transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0"
               >
                 {item.label}
               </a>
@@ -99,26 +96,26 @@ export default function PremiumNav() {
           </div>
 
           {/* Ações da direita */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <PWAInstallButton className="hidden sm:inline-flex" />
 
             <Link
               to="/demo/dashboard"
-              className="hidden md:inline-flex h-9 px-3.5 rounded-xl text-xs sm:text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors items-center cursor-pointer"
+              className="hidden md:inline-flex h-9 px-3.5 rounded-xl text-xs sm:text-sm font-medium text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 items-center cursor-pointer whitespace-nowrap shrink-0"
             >
               Demo
             </Link>
 
             <Link
               to="/login"
-              className="inline-flex h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 transition-colors items-center cursor-pointer"
+              className="inline-flex h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold text-white/85 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 items-center cursor-pointer whitespace-nowrap shrink-0"
             >
               Entrar
             </Link>
 
             <GlowButton
               to="/checkout"
-              className="h-9 px-3.5 sm:px-4 text-[12px] sm:text-xs font-bold whitespace-nowrap"
+              className="h-9 px-3.5 sm:px-4 text-[12px] sm:text-xs font-bold whitespace-nowrap shrink-0"
             >
               Começar agora
             </GlowButton>
@@ -137,8 +134,8 @@ export default function PremiumNav() {
 
         {/* Dropdown mobile */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-white/10 bg-[#070B18]/95 backdrop-blur-2xl px-5 py-5 space-y-3 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2">
+          <div className="lg:hidden border-t border-white/10 bg-[#070B18]/95 backdrop-blur-2xl px-5 py-5 space-y-3 shadow-2xl animate-fade-in">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-white/45 mb-2">
               Navegação
             </div>
             <div className="space-y-1">
@@ -158,7 +155,7 @@ export default function PremiumNav() {
               <Link
                 to="/demo/dashboard"
                 onClick={() => setMobileOpen(false)}
-                className="w-full py-2.5 px-3 rounded-xl text-center text-xs font-bold text-white/80 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                className="w-full py-2.5 px-3 rounded-xl text-center text-xs font-bold text-white/85 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
               >
                 Ver demonstração ao vivo
               </Link>

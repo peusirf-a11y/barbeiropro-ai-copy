@@ -100,40 +100,40 @@ function AsaasSplitFlow({ company }) {
   const isRejected = connected && status?.status === 'rejected';
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-[var(--shadow-sm)] mb-4">
+    <div className="bg-white dark:bg-[#0B1121]/90 rounded-2xl border border-[#E5E7EF] dark:border-white/[0.08] p-6 shadow-[var(--shadow-sm)] mb-4">
       <div className="flex items-start gap-4 mb-4">
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
-          isActive ? 'bg-emerald-50' : isRejected ? 'bg-red-50' : 'bg-blue-50'
+          isActive ? 'bg-emerald-50 dark:bg-emerald-500/15' : isRejected ? 'bg-red-50 dark:bg-rose-500/15' : 'bg-blue-50 dark:bg-blue-500/15'
         }`}>
-          <Banknote className={`w-5 h-5 ${isActive ? 'text-emerald-600' : isRejected ? 'text-red-600' : 'text-[#2563EB]'}`} />
+          <Banknote className={`w-5 h-5 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : isRejected ? 'text-red-600 dark:text-rose-400' : 'text-[#2563EB] dark:text-[#60A5FA]'}`} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="font-bold text-[#111827]">Pagamentos online via Asaas</h2>
+            <h2 className="font-bold text-[#111827] dark:text-white">Pagamentos online via Asaas</h2>
             {isActive && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-400/25">
                 <CheckCircle2 className="w-3 h-3" /> Ativo
               </span>
             )}
             {isPending && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-400/25">
                 <AlertCircle className="w-3 h-3" /> Aguardando aprovação
               </span>
             )}
             {isRejected && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-50 dark:bg-rose-500/15 text-red-700 dark:text-rose-300 border border-red-200 dark:border-rose-400/25">
                 <AlertCircle className="w-3 h-3" /> Reprovado
               </span>
             )}
           </div>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Receba PIX e cartão dos seus agendamentos e mensalidades <strong className="text-[#111827]">direto na sua conta</strong> via split automático do Asaas.
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+            Receba PIX e cartão dos seus agendamentos e mensalidades <strong className="text-[#111827] dark:text-white">direto na sua conta</strong> via split automático do Asaas.
           </p>
         </div>
       </div>
 
       {isLoading && (
-        <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 py-2">
           <Loader2 className="w-4 h-4 animate-spin" /> Verificando status…
         </div>
       )}
@@ -141,11 +141,11 @@ function AsaasSplitFlow({ company }) {
       {/* ─── Estado: NÃO conectado → form ─── */}
       {!isLoading && !connected && (
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
-            <Building2 className="w-4 h-4 text-blue-700 flex-shrink-0 mt-0.5" />
+          <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-400/25 rounded-xl p-4 flex items-start gap-3">
+            <Building2 className="w-4 h-4 text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5" />
             <div>
-              <div className="text-sm font-bold text-blue-900 mb-1">É necessário possuir CNPJ (inclusive MEI)</div>
-              <p className="text-xs text-blue-900 leading-relaxed">
+              <div className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-1">É necessário possuir CNPJ (inclusive MEI)</div>
+              <p className="text-xs text-blue-900 dark:text-blue-200/80 leading-relaxed">
                 O CORTE opera exclusivamente com empresas com CNPJ ativo. Cada PIX/cartão cai direto na sua conta bancária via split automático — sem intermediário e sem repasse manual.
               </p>
             </div>
@@ -157,10 +157,10 @@ function AsaasSplitFlow({ company }) {
                 value={maskCNPJ(form.cpf_cnpj)}
                 onChange={e => setForm({ ...form, cpf_cnpj: e.target.value })}
                 placeholder="00.000.000/0000-00"
-                className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
+                className="w-full bg-white dark:bg-[#0D1326] border border-[#E5E7EF] dark:border-white/10 text-[#111827] dark:text-white rounded-lg px-3 py-2 text-sm"
               />
               {isCpf && (
-                <p className="mt-1 text-[11px] text-red-700">
+                <p className="mt-1 text-[11px] text-red-700 dark:text-rose-300">
                   Para utilizar os recebimentos automáticos do O CORTE é necessário possuir um CNPJ ativo (MEI também é aceito). Caso precise de uma análise especial, entre em contato pelo WhatsApp.
                 </p>
               )}
@@ -170,7 +170,7 @@ function AsaasSplitFlow({ company }) {
                 value={maskCEP(form.postal_code)}
                 onChange={e => setForm({ ...form, postal_code: e.target.value })}
                 placeholder="00000-000"
-                className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
+                className="w-full bg-white dark:bg-[#0D1326] border border-[#E5E7EF] dark:border-white/10 text-[#111827] dark:text-white rounded-lg px-3 py-2 text-sm"
               />
             </Field>
             <Field label="Endereço" required className="sm:col-span-2">
@@ -178,7 +178,7 @@ function AsaasSplitFlow({ company }) {
                 value={form.line1}
                 onChange={e => setForm({ ...form, line1: e.target.value })}
                 placeholder="Rua das Flores"
-                className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
+                className="w-full bg-white dark:bg-[#0D1326] border border-[#E5E7EF] dark:border-white/10 text-[#111827] dark:text-white rounded-lg px-3 py-2 text-sm"
               />
             </Field>
             <Field label="Número" required>
@@ -186,7 +186,7 @@ function AsaasSplitFlow({ company }) {
                 value={form.address_number}
                 onChange={e => setForm({ ...form, address_number: e.target.value })}
                 placeholder="123"
-                className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
+                className="w-full bg-white dark:bg-[#0D1326] border border-[#E5E7EF] dark:border-white/10 text-[#111827] dark:text-white rounded-lg px-3 py-2 text-sm"
               />
             </Field>
             <Field label="Bairro" required>
@@ -194,7 +194,7 @@ function AsaasSplitFlow({ company }) {
                 value={form.neighborhood}
                 onChange={e => setForm({ ...form, neighborhood: e.target.value })}
                 placeholder="Centro"
-                className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
+                className="w-full bg-white dark:bg-[#0D1326] border border-[#E5E7EF] dark:border-white/10 text-[#111827] dark:text-white rounded-lg px-3 py-2 text-sm"
               />
             </Field>
             <Field label="Cidade" required>
@@ -202,7 +202,7 @@ function AsaasSplitFlow({ company }) {
                 value={form.city}
                 onChange={e => setForm({ ...form, city: e.target.value })}
                 placeholder="São Paulo"
-                className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm"
+                className="w-full bg-white dark:bg-[#0D1326] border border-[#E5E7EF] dark:border-white/10 text-[#111827] dark:text-white rounded-lg px-3 py-2 text-sm"
               />
             </Field>
             <Field label="UF" required>
@@ -211,13 +211,13 @@ function AsaasSplitFlow({ company }) {
                 onChange={e => setForm({ ...form, state: e.target.value.toUpperCase().slice(0, 2) })}
                 placeholder="SP"
                 maxLength={2}
-                className="w-full bg-white border border-black/10 rounded-lg px-3 py-2 text-sm uppercase"
+                className="w-full bg-white dark:bg-[#0D1326] border border-[#E5E7EF] dark:border-white/10 text-[#111827] dark:text-white rounded-lg px-3 py-2 text-sm uppercase"
               />
             </Field>
           </div>
 
           {createMutation.isError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800">
+            <div className="bg-red-50 dark:bg-rose-500/15 border border-red-200 dark:border-rose-400/25 rounded-xl p-3 text-xs text-red-800 dark:text-rose-200">
               {String(createMutation.error?.message || 'Não foi possível criar sua conta. Verifique os dados e tente novamente.')}
             </div>
           )}
@@ -236,9 +236,9 @@ function AsaasSplitFlow({ company }) {
       {/* ─── PENDING ─── */}
       {!isLoading && isPending && (
         <div className="space-y-3">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <div className="text-sm font-bold text-amber-900 mb-1">Conta criada — aguardando aprovação do Asaas</div>
-            <p className="text-xs text-amber-800 leading-relaxed">
+          <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-400/25 rounded-xl p-4">
+            <div className="text-sm font-bold text-amber-900 dark:text-amber-200 mb-1">Conta criada — aguardando aprovação do Asaas</div>
+            <p className="text-xs text-amber-800 dark:text-amber-200/80 leading-relaxed">
               Geralmente leva até 24h úteis. Você receberá um email do Asaas quando aprovado.
             </p>
           </div>
@@ -257,7 +257,7 @@ function AsaasSplitFlow({ company }) {
             <button
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending}
-              className="inline-flex items-center gap-2 bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-100 border border-black/10"
+              className="inline-flex items-center gap-2 bg-slate-50 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-100 dark:hover:bg-white/10 border border-[#E5E7EF] dark:border-white/10"
             >
               {syncMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Atualizar status
@@ -269,9 +269,9 @@ function AsaasSplitFlow({ company }) {
       {/* ─── ACTIVE ─── */}
       {!isLoading && isActive && (
         <div className="space-y-3">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-            <div className="text-sm font-bold text-emerald-900 mb-1">Tudo pronto ✓</div>
-            <p className="text-xs text-emerald-800 leading-relaxed">
+          <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-400/25 rounded-xl p-4">
+            <div className="text-sm font-bold text-emerald-900 dark:text-emerald-200 mb-1">Tudo pronto ✓</div>
+            <p className="text-xs text-emerald-800 dark:text-emerald-200/80 leading-relaxed">
               Sua barbearia está recebendo PIX direto na conta Asaas, com {status?.split_percentage ?? 100}% de repasse automático em cada transação.
             </p>
           </div>
@@ -283,7 +283,7 @@ function AsaasSplitFlow({ company }) {
           <button
             onClick={() => syncMutation.mutate()}
             disabled={syncMutation.isPending}
-            className="inline-flex items-center gap-2 bg-gray-50 text-gray-700 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-gray-100 border border-black/10"
+            className="inline-flex items-center gap-2 bg-slate-50 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 border border-[#E5E7EF] dark:border-white/10"
           >
             {syncMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
             Atualizar status
@@ -293,9 +293,9 @@ function AsaasSplitFlow({ company }) {
 
       {/* ─── REJECTED ─── */}
       {!isLoading && isRejected && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="text-sm font-bold text-red-900 mb-1">Cadastro reprovado pelo Asaas</div>
-          <p className="text-xs text-red-800 leading-relaxed">
+        <div className="bg-red-50 dark:bg-rose-500/10 border border-red-200 dark:border-rose-400/25 rounded-xl p-4">
+          <div className="text-sm font-bold text-red-900 dark:text-rose-200 mb-1">Cadastro reprovado pelo Asaas</div>
+          <p className="text-xs text-red-800 dark:text-rose-200/80 leading-relaxed">
             Os dados informados não foram aprovados. Entre em contato com nosso suporte para revisar e reabrir o cadastro.
           </p>
         </div>
@@ -307,7 +307,7 @@ function AsaasSplitFlow({ company }) {
 function Field({ label, required, children, className = '' }) {
   return (
     <label className={`block ${className}`}>
-      <span className="block text-[11px] uppercase tracking-wide font-semibold text-gray-600 mb-1">
+      <span className="block text-[11px] uppercase tracking-wide font-semibold text-slate-600 dark:text-slate-300 mb-1">
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </span>
       {children}
@@ -317,11 +317,11 @@ function Field({ label, required, children, className = '' }) {
 
 function MiniStat({ icon: Icon, label, value, ok }) {
   return (
-    <div className={`rounded-xl border p-3 ${ok ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'}`}>
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide font-bold text-gray-600">
+    <div className={`rounded-xl border p-3 ${ok ? 'bg-emerald-50 dark:bg-emerald-500/15 border-emerald-200 dark:border-emerald-400/25' : 'bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10'}`}>
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide font-bold text-slate-600 dark:text-slate-300">
         <Icon className="w-3 h-3" /> {label}
       </div>
-      <div className={`text-sm font-black mt-0.5 ${ok ? 'text-emerald-700' : 'text-gray-700'}`}>{value}</div>
+      <div className={`text-sm font-black mt-0.5 ${ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'}`}>{value}</div>
     </div>
   );
 }

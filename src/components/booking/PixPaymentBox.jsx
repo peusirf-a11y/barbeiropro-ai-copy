@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Copy, Check, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { getThemeAccent } from '@/lib/colorUtils';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
 
 export default function PixPaymentBox({
   appointmentId,
@@ -15,7 +16,8 @@ export default function PixPaymentBox({
   companyId,
   onPaid,
 }) {
-  const accent = getThemeAccent(primaryColor, false);
+  const { isDark, tw } = usePublicTheme();
+  const accent = getThemeAccent(primaryColor, isDark);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(() =>
     Math.max(0, Math.floor((new Date(expiresAt || Date.now() + 15 * 60 * 1000) - Date.now()) / 1000))
@@ -184,11 +186,13 @@ export default function PixPaymentBox({
   const lowTime = timeLeft < 120;
 
   return (
-    <div className="bg-white rounded-2xl border border-black/8 p-5">
+    <div className={`${tw.card} rounded-2xl p-5`}>
       {/* Timer */}
       <div
         className={`flex items-center justify-center gap-2 mb-4 px-4 py-2.5 rounded-xl ${
-          lowTime ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+          lowTime
+            ? (isDark ? 'bg-red-500/15 text-red-300 border border-red-500/25' : 'bg-red-50 text-red-700')
+            : (isDark ? 'bg-amber-500/15 text-amber-300 border border-amber-500/25' : 'bg-amber-50 text-amber-700')
         }`}
       >
         <Clock className="w-4 h-4" />
@@ -199,28 +203,32 @@ export default function PixPaymentBox({
       {bookingPayload?.notes && (
         <div
           data-testid="pix-box-booking-notes"
-          className="mb-4 px-3.5 py-2.5 rounded-xl bg-gray-50 border border-black/8 flex items-start justify-between gap-2 text-xs"
+          className={`mb-4 px-3.5 py-2.5 rounded-xl border flex items-start justify-between gap-2 text-xs ${
+            isDark ? 'bg-white/[0.04] border-[#232538]' : 'bg-gray-50 border-black/8'
+          }`}
         >
-          <span className="font-semibold text-gray-500">Observações:</span>
-          <span className="font-bold text-gray-800 text-right">{bookingPayload.notes}</span>
+          <span className={`font-semibold ${tw.textMuted}`}>Observações:</span>
+          <span className={`font-bold ${tw.text} text-right`}>{bookingPayload.notes}</span>
         </div>
       )}
 
       {/* Renderização da Imagem do QR Code */}
       {encodedImage && (
         <div className="flex justify-center mb-4">
-          <img
-            src={`data:image/png;base64,${encodedImage}`}
-            alt="QR Code Pix"
-            className="w-56 h-56 mx-auto object-contain"
-          />
+          <div className="bg-white p-2 rounded-xl shadow-sm">
+            <img
+              src={`data:image/png;base64,${encodedImage}`}
+              alt="QR Code Pix"
+              className="w-56 h-56 mx-auto object-contain"
+            />
+          </div>
         </div>
       )}
 
       {/* Renderização do Copia e Cola */}
       {payload && (
         <div className="mb-3">
-          <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+          <label className={`text-[11px] font-semibold ${tw.textMuted} uppercase tracking-wide block mb-1`}>
             Pix copia e cola
           </label>
           <div className="flex gap-2">
@@ -228,7 +236,7 @@ export default function PixPaymentBox({
               type="text"
               readOnly
               value={payload}
-              className="flex-1 px-3 py-2 border border-black/10 rounded-lg text-xs bg-gray-50 font-mono text-gray-600 truncate select-all"
+              className={`flex-1 px-3 py-2 border rounded-lg text-xs font-mono truncate select-all ${tw.input}`}
               onClick={(e) => e.target.select()}
             />
             <button
@@ -246,7 +254,7 @@ export default function PixPaymentBox({
       )}
 
       {/* Instruções */}
-      <ol className="text-xs text-gray-600 space-y-1 mb-4 pl-4 list-decimal">
+      <ol className={`text-xs ${tw.textMuted} space-y-1 mb-4 pl-4 list-decimal`}>
         <li>Abra o aplicativo do seu banco</li>
         <li>Escolha pagar com Pix → escaneie o QR Code ou cole o código</li>
         <li>Confira o valor e confirme a transferência</li>
@@ -273,8 +281,8 @@ export default function PixPaymentBox({
         <div
           className={`mt-3 flex items-start gap-2 text-xs p-3.5 rounded-xl border ${
             feedbackType === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : 'bg-red-50 border-red-300 text-red-700'
+              ? (isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+              : (isDark ? 'bg-red-500/15 border-red-500/30 text-red-200' : 'bg-red-50 border-red-300 text-red-700')
           }`}
         >
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -282,7 +290,7 @@ export default function PixPaymentBox({
         </div>
       )}
 
-      <p className="text-[11px] text-gray-400 text-center mt-3">
+      <p className={`text-[11px] ${tw.textFaint} text-center mt-3`}>
         Esta página permanece ativa aguardando a confirmação bancária do Pix.
       </p>
     </div>

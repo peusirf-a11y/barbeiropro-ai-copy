@@ -81,7 +81,7 @@ export default function MobileSelect({
         name={name}
         aria-label={ariaLabel}
         className={cn(
-          'w-full px-3 py-2 border border-white/10 rounded-xl text-sm bg-white/[0.04] text-white [color-scheme:dark]',
+          'w-full px-3 py-2 border border-[#E5E7EF] dark:border-white/10 rounded-xl text-sm bg-white dark:bg-[#0D1326] text-[#171827] dark:text-white [color-scheme:light] dark:[color-scheme:dark]',
           className
         )}
       >
@@ -100,21 +100,21 @@ export default function MobileSelect({
         aria-haspopup="dialog"
         aria-expanded={open}
         className={cn(
-          'w-full flex items-center justify-between gap-2 px-3 py-2 border border-white/10 rounded-xl text-sm bg-white/[0.04] text-left text-white backdrop-blur-sm',
+          'w-full flex items-center justify-between gap-2 px-3 py-2 border border-[#E5E7EF] dark:border-white/10 rounded-xl text-sm bg-white dark:bg-[#0D1326] text-left text-[#171827] dark:text-white backdrop-blur-sm',
           disabled && 'opacity-50 cursor-not-allowed',
           className
         )}
       >
-        <span className={cn('truncate', current ? 'text-white' : 'text-white/40')}>
+        <span className={cn('truncate', current ? 'text-[#171827] dark:text-white' : 'text-slate-400 dark:text-white/40')}>
           {current?.label || placeholder}
         </span>
-        <ChevronDown className="w-4 h-4 text-white/50 flex-shrink-0" />
+        <ChevronDown className="w-4 h-4 text-slate-400 dark:text-white/50 flex-shrink-0" />
       </button>
 
       <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent className="max-h-[80vh] bg-[#0A1124] border-white/8 text-white">
+        <DrawerContent className="max-h-[80vh] bg-white dark:bg-[#0A1124] border-[#E5E7EF] dark:border-white/8 text-[#171827] dark:text-white">
           <DrawerHeader>
-            <DrawerTitle className="text-white">{title || placeholder}</DrawerTitle>
+            <DrawerTitle className="text-[#171827] dark:text-white">{title || placeholder}</DrawerTitle>
           </DrawerHeader>
           <div
             className="overflow-y-auto pb-[env(safe-area-inset-bottom,16px)] px-2"
@@ -133,8 +133,8 @@ export default function MobileSelect({
                   }}
                   className={cn(
                     'w-full flex items-center justify-between gap-3 px-4 py-4 rounded-xl text-left text-[15px] transition-colors',
-                    'active:bg-white/10',
-                    selected ? 'bg-blue-500/15 text-[#93C5FD] font-semibold ring-1 ring-blue-400/25' : 'text-white/85 hover:bg-white/5',
+                    'active:bg-slate-100 dark:active:bg-white/10',
+                    selected ? 'bg-blue-500/10 dark:bg-blue-500/15 text-[#1D4ED8] dark:text-[#93C5FD] font-semibold ring-1 ring-blue-500/25 dark:ring-blue-400/25' : 'text-[#171827] dark:text-white/85 hover:bg-slate-50 dark:hover:bg-white/5',
                     opt.disabled && 'opacity-40 pointer-events-none'
                   )}
                 >

@@ -50,8 +50,8 @@ export default function CustomerScopeToggle({ company }) {
         disabled={updateM.isPending}
         className={`relative text-left p-4 rounded-xl border-2 transition-all ${
           selected
-            ? 'border-[#2563EB] bg-blue-500/15 shadow-[0_8px_20px_rgba(37,99,235,0.2)]'
-            : 'border-white/10 bg-white/[0.02] hover:border-blue-400/40 hover:bg-white/[0.04]'
+            ? 'border-[#2563EB] bg-blue-50 dark:bg-blue-500/15 shadow-[0_8px_20px_rgba(37,99,235,0.12)] dark:shadow-[0_8px_20px_rgba(37,99,235,0.2)]'
+            : 'border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] hover:border-blue-400/60 dark:hover:border-blue-400/40 hover:bg-slate-100/70 dark:hover:bg-white/[0.04]'
         } disabled:opacity-50`}
       >
         {selected && (
@@ -60,27 +60,27 @@ export default function CustomerScopeToggle({ company }) {
           </div>
         )}
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${
-          selected ? 'bg-[#2563EB] text-white' : 'bg-white/10 text-white/50'
+          selected ? 'bg-[#2563EB] text-white' : 'bg-slate-200/80 dark:bg-white/10 text-slate-600 dark:text-white/50'
         }`}>
           <Icon className="w-4 h-4" />
         </div>
-        <div className="font-bold text-sm text-white mb-1">{title}</div>
-        <div className="text-xs text-white/60 leading-relaxed">{description}</div>
+        <div className="font-bold text-sm text-slate-900 dark:text-white mb-1">{title}</div>
+        <div className="text-xs text-slate-600 dark:text-white/60 leading-relaxed">{description}</div>
       </button>
     );
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.025] backdrop-blur-xl p-6 shadow-sm dark:shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
       <div className="flex items-start justify-between mb-1 flex-wrap gap-2">
-        <h2 className="font-bold text-white">Modo de clientes</h2>
+        <h2 className="font-bold text-slate-900 dark:text-white">Modo de clientes</h2>
         {updateM.isPending && (
-          <span className="inline-flex items-center gap-1 text-xs text-[#60A5FA] font-semibold">
+          <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-[#60A5FA] font-semibold">
             <Loader2 className="w-3 h-3 animate-spin" /> Salvando...
           </span>
         )}
       </div>
-      <p className="text-sm text-white/60 mb-4">
+      <p className="text-sm text-slate-600 dark:text-white/60 mb-4">
         Defina como os clientes são organizados entre as unidades.
       </p>
 
@@ -102,9 +102,9 @@ export default function CustomerScopeToggle({ company }) {
       {/* Modal de confirmação para mudança destrutiva */}
       {confirmingValue === false && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setConfirmingValue(null)}>
-          <div className="bg-[#0B1020] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6 text-white" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-white mb-2">Separar clientes por unidade?</h3>
-            <p className="text-sm text-white/60 mb-4 leading-relaxed">
+          <div className="bg-white dark:bg-[#0B1020] border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6 text-slate-900 dark:text-white" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Separar clientes por unidade?</h3>
+            <p className="text-sm text-slate-600 dark:text-white/60 mb-4 leading-relaxed">
               A partir de agora, novos clientes ficarão vinculados à unidade onde forem cadastrados. Os clientes existentes (sem unidade definida) continuarão visíveis em todas as unidades como "compartilhados".
               <br /><br />
               Você pode voltar a unificar os clientes a qualquer momento.
@@ -112,7 +112,7 @@ export default function CustomerScopeToggle({ company }) {
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmingValue(null)}
-                className="flex-1 px-4 py-2.5 border border-white/10 rounded-lg text-sm font-medium hover:bg-white/10 text-white/80"
+                className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-white/80"
               >
                 Cancelar
               </button>

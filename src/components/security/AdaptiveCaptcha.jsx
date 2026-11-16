@@ -31,19 +31,19 @@ function MathChallenge({ onVerify }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2">
-      <span className="text-sm font-semibold text-[#111827]">{a} + {b} = ?</span>
+      <span className="text-sm font-semibold text-[#111827] dark:text-white">{a} + {b} = ?</span>
       <input
         type="number"
         value={answer}
         onChange={e => { setAnswer(e.target.value); setError(''); }}
-        className="w-16 px-2 py-1.5 border border-black/15 rounded-lg text-sm text-center focus:outline-none focus:border-[#2563EB]"
+        className="w-16 px-2 py-1.5 border border-black/15 dark:border-white/15 bg-white dark:bg-[#0D1326] text-slate-900 dark:text-white rounded-lg text-sm text-center focus:outline-none focus:border-[#2563EB]"
         placeholder="?"
         autoFocus
       />
       <button type="submit" className="px-3 py-1.5 bg-[#2563EB] text-white text-xs font-semibold rounded-lg hover:bg-[#1d4ed8] transition-colors">
         OK
       </button>
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-red-500 dark:text-rose-400">{error}</span>}
     </form>
   );
 }
@@ -86,8 +86,8 @@ export default function AdaptiveCaptcha({ mode = 'none', onVerified, loading = f
 
   if (verified) {
     return (
-      <div className="flex items-center gap-2 text-sm text-emerald-700 py-1">
-        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+      <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300 py-1">
+        <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
         <span className="font-semibold">Verificado</span>
       </div>
     );
@@ -95,10 +95,10 @@ export default function AdaptiveCaptcha({ mode = 'none', onVerified, loading = f
 
   if (mode === 'challenge') {
     return (
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+      <div className="bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-400/30 rounded-xl p-3">
         <div className="flex items-center gap-2 mb-2">
-          <Shield className="w-3.5 h-3.5 text-amber-600" />
-          <span className="text-xs font-semibold text-amber-700">Verificação de segurança</span>
+          <Shield className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
+          <span className="text-xs font-semibold text-amber-700 dark:text-amber-200">Verificação de segurança</span>
         </div>
         <MathChallenge onVerify={handleMathVerify} />
       </div>
@@ -107,19 +107,19 @@ export default function AdaptiveCaptcha({ mode = 'none', onVerified, loading = f
 
   // Modo checkbox
   return (
-    <div className="bg-gray-50 border border-black/10 rounded-xl p-3 flex items-center gap-3">
+    <div className="bg-gray-50 dark:bg-white/[0.04] border border-black/10 dark:border-white/15 rounded-xl p-3 flex items-center gap-3">
       <button
         type="button"
         onClick={handleCheckbox}
         disabled={checking || loading}
-        className="w-6 h-6 border-2 border-gray-400 rounded flex items-center justify-center hover:border-[#2563EB] transition-colors disabled:opacity-50"
+        className="w-6 h-6 border-2 border-gray-400 dark:border-white/30 rounded flex items-center justify-center hover:border-[#2563EB] transition-colors disabled:opacity-50"
       >
-        {checking && <RefreshCw className="w-3.5 h-3.5 text-gray-400 animate-spin" />}
+        {checking && <RefreshCw className="w-3.5 h-3.5 text-gray-400 dark:text-slate-300 animate-spin" />}
       </button>
-      <span className="text-sm text-gray-700">Não sou um robô</span>
+      <span className="text-sm text-gray-700 dark:text-slate-200">Não sou um robô</span>
       <div className="ml-auto flex flex-col items-end">
-        <Shield className="w-5 h-5 text-gray-300" />
-        <span className="text-[9px] text-gray-300">Segurança</span>
+        <Shield className="w-5 h-5 text-gray-300 dark:text-slate-500" />
+        <span className="text-[9px] text-gray-300 dark:text-slate-500">Segurança</span>
       </div>
     </div>
   );

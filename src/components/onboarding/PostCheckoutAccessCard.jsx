@@ -47,33 +47,33 @@ export default function PostCheckoutAccessCard({ email, planName }) {
   };
 
   return (
-    <div className="max-w-lg w-full bg-white rounded-3xl border border-black/8 p-7 sm:p-9 shadow-card-lg">
+    <div className="max-w-lg w-full bg-white dark:bg-[#0B1121] rounded-3xl border border-black/8 dark:border-white/10 p-7 sm:p-9 shadow-card-lg">
       {/* Topo: check + headline */}
       <div className="text-center mb-7">
         <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
           <CheckCircle2 className="w-9 h-9 text-white" strokeWidth={2.5} />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] mb-2 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] dark:text-white mb-2 tracking-tight">
           Seu acesso já está pronto
         </h1>
-        <p className="text-gray-500 text-sm leading-relaxed">
+        <p className="text-gray-500 dark:text-slate-400 text-sm leading-relaxed">
           Pagamento confirmado. Crie a senha do seu painel pra começar a usar.
         </p>
       </div>
 
       {/* Email da compra */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 p-4 mb-5">
-        <div className="flex items-center gap-2 text-[11px] font-bold text-blue-900/70 uppercase tracking-wider mb-1.5">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-500/15 dark:to-indigo-500/10 rounded-2xl border border-blue-100 dark:border-blue-500/25 p-4 mb-5">
+        <div className="flex items-center gap-2 text-[11px] font-bold text-blue-900/70 dark:text-blue-300 uppercase tracking-wider mb-1.5">
           <Mail className="w-3.5 h-3.5" /> Seu email de acesso
         </div>
-        <div className="text-[#0F172A] font-bold text-base break-all">
+        <div className="text-[#0F172A] dark:text-white font-bold text-base break-all">
           {email || '—'}
         </div>
         {planName && (
-          <div className="mt-3 pt-3 border-t border-blue-100/70 flex items-center justify-between text-xs">
-            <span className="text-blue-900/60 font-semibold uppercase tracking-wider">Plano contratado</span>
-            <span className="text-[#0F172A] font-bold flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-blue-500" />
+          <div className="mt-3 pt-3 border-t border-blue-100/70 dark:border-blue-500/20 flex items-center justify-between text-xs">
+            <span className="text-blue-900/60 dark:text-blue-300/80 font-semibold uppercase tracking-wider">Plano contratado</span>
+            <span className="text-[#0F172A] dark:text-white font-bold flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-blue-500 dark:text-blue-400" />
               {planName}
             </span>
           </div>
@@ -105,12 +105,12 @@ export default function PostCheckoutAccessCard({ email, planName }) {
       {/* CTA secundário */}
       <Link
         to="/checkout"
-        className="block text-center mt-3 text-xs font-semibold text-gray-500 hover:text-[#2563EB] transition-colors"
+        className="block text-center mt-3 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors"
       >
         Usar outro email
       </Link>
 
-      <p className="text-[11px] text-gray-400 text-center mt-6 leading-relaxed">
+      <p className="text-[11px] text-gray-400 dark:text-slate-400 text-center mt-6 leading-relaxed">
         Você vai escolher sua senha na próxima tela e entrar direto no painel.
       </p>
     </div>
@@ -125,15 +125,15 @@ function Step({ done, current, label }) {
           done
             ? 'bg-green-500 text-white shadow-md shadow-green-500/30'
             : current
-            ? 'bg-[#2563EB] text-white ring-4 ring-blue-200 animate-pulse'
-            : 'bg-gray-200 text-gray-500'
+            ? 'bg-[#2563EB] text-white ring-4 ring-blue-200 dark:ring-blue-500/30 animate-pulse'
+            : 'bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-slate-400'
         }`}
       >
         {done ? <CheckCircle2 className="w-4 h-4" strokeWidth={3} /> : '→'}
       </div>
       <span
         className={`text-[10px] font-bold uppercase tracking-wider ${
-          done ? 'text-green-600' : current ? 'text-[#2563EB]' : 'text-gray-400'
+          done ? 'text-green-600 dark:text-emerald-400' : current ? 'text-[#2563EB] dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'
         }`}
       >
         {label}
@@ -144,14 +144,14 @@ function Step({ done, current, label }) {
 
 function StepConnector({ done }) {
   return (
-    <div className={`h-0.5 flex-1 rounded-full -mt-5 ${done ? 'bg-green-400' : 'bg-gray-200'}`} />
+    <div className={`h-0.5 flex-1 rounded-full -mt-5 ${done ? 'bg-green-400 dark:bg-emerald-500/60' : 'bg-gray-200 dark:bg-white/10'}`} />
   );
 }
 
 export function PostCheckoutPageShell({ children }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F8F7F3] via-white to-blue-50/40 font-inter flex flex-col">
-      <header className="bg-white/80 backdrop-blur-md border-b border-black/5 sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-[#F8F7F3] via-white to-blue-50/40 dark:from-[#050816] dark:via-[#070B19] dark:to-[#0B1121] font-inter flex flex-col transition-colors">
+      <header className="bg-white/80 dark:bg-[#0B1121]/85 backdrop-blur-md border-b border-black/5 dark:border-white/10 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center">
           <Link to="/landing">
             <Logo size={32} />

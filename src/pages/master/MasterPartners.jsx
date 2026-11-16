@@ -87,7 +87,7 @@ const STATUS_COMM = {
   approved: { label: 'A Pagar (Aprovadas)', cls: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' },
   paid: { label: 'Pago via Pix', cls: 'bg-blue-500/15 text-blue-200 border-blue-400/30' },
   cancelled: { label: 'Cancelado', cls: 'bg-rose-500/15 text-rose-200 border-rose-400/30' },
-  chargeback: { label: 'Chargeback', cls: 'bg-rose-500/25 text-rose-200 border-rose-400/45' },
+  chargeback: { label: 'Chargeback', cls: 'bg-rose-500/20 text-rose-700 dark:text-rose-200 border-rose-400/45' },
 };
 
 export default function MasterPartners() {
@@ -614,7 +614,7 @@ export default function MasterPartners() {
                 }}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   statusFilter === f.id
-                    ? 'bg-white text-[#050816] shadow-sm'
+                    ? 'bg-[#2563EB] text-white shadow-sm dark:bg-white dark:text-[#050816]'
                     : 'bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white border border-white/8'
                 }`}
               >
@@ -1046,15 +1046,15 @@ export default function MasterPartners() {
               <p className="text-sm text-white font-semibold">
                 Deseja realmente excluir este parceiro?
               </p>
-              <div className="mt-1.5 p-2 rounded-lg bg-black/30 border border-white/5">
-                <p className="text-xs font-bold text-white truncate">
+              <div className="mt-1.5 p-2 rounded-lg bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/5">
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
                   {partnerToDelete?.name || partnerToDelete?.full_name || 'Sem nome'}
                 </p>
-                <p className="text-[11px] text-white/50 truncate font-mono">
+                <p className="text-[11px] text-slate-600 dark:text-white/50 truncate font-mono">
                   {partnerToDelete?.email}
                 </p>
               </div>
-              <p className="text-xs text-rose-300/80 mt-2 font-medium">
+              <p className="text-xs text-rose-600 dark:text-rose-300/80 mt-2 font-medium">
                 Esta ação removerá o registro permanentemente e não poderá ser desfeita.
               </p>
             </div>

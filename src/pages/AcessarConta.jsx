@@ -104,30 +104,30 @@ export default function AcessarConta() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FB] font-inter">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-black/5">
+    <div className="min-h-screen bg-[#F4F7FB] dark:bg-[#050816] font-inter transition-colors">
+      <header className="bg-white/80 dark:bg-[#0B1121]/85 backdrop-blur-sm border-b border-black/5 dark:border-white/10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Logo size={32} />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Acesso seguro</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-400">Acesso seguro</span>
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-14 animate-fade-in-up">
         {/* Hero */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 mb-4 shadow-sm">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 mb-4 shadow-sm">
             <CheckCircle2 className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight mb-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] dark:text-white tracking-tight mb-2">
             Seu acesso já está pronto
           </h1>
-          <p className="text-sm sm:text-base text-gray-500 max-w-md mx-auto">
+          <p className="text-sm sm:text-base text-gray-500 dark:text-slate-400 max-w-md mx-auto">
             Enviamos um email para você criar sua senha. Em segundos você acessa o painel da sua barbearia.
           </p>
         </div>
 
         {/* Account summary */}
-        <div className="bg-white rounded-2xl border border-black/8 shadow-sm p-5 mb-6">
+        <div className="bg-white dark:bg-[#0B1121] rounded-2xl border border-black/8 dark:border-white/10 shadow-sm p-5 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2">
             <SummaryItem
               icon={Mail}
@@ -150,24 +150,24 @@ export default function AcessarConta() {
 
         {/* Sucesso do reset — prioridade no topo */}
         {resetSent && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-4 animate-fade-in">
+          <div className="bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-5 mb-4 animate-fade-in">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div className="flex-1">
-                <div className="font-bold text-[#0F172A] text-sm">Link enviado!</div>
-                <p className="text-[13px] text-emerald-900/80 mt-1 leading-relaxed">
+                <div className="font-bold text-[#0F172A] dark:text-white text-sm">Link enviado!</div>
+                <p className="text-[13px] text-emerald-900/80 dark:text-emerald-200 mt-1 leading-relaxed">
                   Enviamos um email para <strong className="break-all">{email}</strong> com o link para criar sua senha. Abra o email e clique no botão "Criar minha senha".
                 </p>
-                <p className="text-[11px] text-emerald-900/60 mt-2">Não chegou em 1 minuto? Verifique a caixa de spam ou clique abaixo para reenviar.</p>
+                <p className="text-[11px] text-emerald-900/60 dark:text-emerald-300/80 mt-2">Não chegou em 1 minuto? Verifique a caixa de spam ou clique abaixo para reenviar.</p>
               </div>
             </div>
           </div>
         )}
 
         {resetError && (
-          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-4 text-sm text-rose-700">
+          <div className="bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-500/30 rounded-2xl p-4 mb-4 text-sm text-rose-700 dark:text-rose-200">
             {resetError}
           </div>
         )}
@@ -195,9 +195,9 @@ export default function AcessarConta() {
         </div>
 
         {/* Trust line */}
-        <div className="flex items-center justify-center gap-2 mt-8 text-[11px] text-gray-400">
+        <div className="flex items-center justify-center gap-2 mt-8 text-[11px] text-gray-400 dark:text-slate-400">
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Acesso seguro e criptografado · Suporte: <Link to="/landing" className="underline hover:text-[#2563EB]">central de ajuda</Link></span>
+          <span>Acesso seguro e criptografado · Suporte: <Link to="/landing" className="underline hover:text-[#2563EB] dark:hover:text-blue-400">central de ajuda</Link></span>
         </div>
       </div>
     </div>
@@ -207,12 +207,12 @@ export default function AcessarConta() {
 function SummaryItem({ icon: Icon, label, value, valueClass = '' }) {
   return (
     <div className="flex sm:flex-col items-start gap-3 sm:gap-1 sm:items-start">
-      <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-[#2563EB]/8 text-[#2563EB] flex items-center justify-center flex-shrink-0">
+      <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-[#2563EB]/8 dark:bg-blue-500/15 text-[#2563EB] dark:text-blue-400 flex items-center justify-center flex-shrink-0">
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">{label}</div>
-        <div className={`text-sm font-semibold text-[#0F172A] ${valueClass}`}>{value}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 mb-0.5">{label}</div>
+        <div className={`text-sm font-semibold text-[#0F172A] dark:text-white ${valueClass}`}>{value}</div>
       </div>
     </div>
   );
@@ -222,23 +222,23 @@ function PrimaryAction({ onClick, busy, disabled, highlight, icon, label, sublab
   const base = 'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all text-left active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed';
   const isHighlight = highlight && variant !== 'ghost';
   const styles = variant === 'ghost'
-    ? 'bg-white border-black/8 hover:border-black/20 hover:bg-gray-50'
+    ? 'bg-white dark:bg-[#0B1121] border-black/8 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 hover:bg-gray-50 dark:hover:bg-white/[0.04]'
     : isHighlight
-      ? 'bg-[#0F172A] border-[#0F172A] text-white hover:bg-[#1E293B] shadow-md'
-      : 'bg-white border-black/10 hover:border-[#2563EB]/40 hover:bg-[#2563EB]/[0.02]';
+      ? 'bg-[#0F172A] dark:bg-[#2563EB] border-[#0F172A] dark:border-[#2563EB] text-white hover:bg-[#1E293B] dark:hover:bg-[#1D4ED8] shadow-md'
+      : 'bg-white dark:bg-[#0B1121] border-black/10 dark:border-white/10 hover:border-[#2563EB]/40 hover:bg-[#2563EB]/[0.02]';
 
   return (
     <button onClick={onClick} disabled={disabled} className={`${base} ${styles}`}>
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        isHighlight ? 'bg-white/10 text-white' : 'bg-gray-50 text-[#0F172A]'
+        isHighlight ? 'bg-white/10 text-white' : 'bg-gray-50 dark:bg-white/[0.06] text-[#0F172A] dark:text-white'
       }`}>
         {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className={`text-sm font-bold ${isHighlight ? 'text-white' : 'text-[#0F172A]'}`}>{label}</div>
-        <div className={`text-[12px] mt-0.5 truncate ${isHighlight ? 'text-white/70' : 'text-gray-500'}`}>{sublabel}</div>
+        <div className={`text-sm font-bold ${isHighlight ? 'text-white' : 'text-[#0F172A] dark:text-white'}`}>{label}</div>
+        <div className={`text-[12px] mt-0.5 truncate ${isHighlight ? 'text-white/70' : 'text-gray-500 dark:text-slate-400'}`}>{sublabel}</div>
       </div>
-      <ArrowRight className={`w-4 h-4 flex-shrink-0 ${isHighlight ? 'text-white/70' : 'text-gray-400'}`} />
+      <ArrowRight className={`w-4 h-4 flex-shrink-0 ${isHighlight ? 'text-white/70' : 'text-gray-400 dark:text-slate-400'}`} />
     </button>
   );
 }

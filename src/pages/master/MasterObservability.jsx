@@ -2,8 +2,11 @@
 // Fontes: getObservabilityMetrics + runSystemCheck.
 // Agrega security events, audit log, e-mail, rate limit, sessões.
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdmin } from '@/lib/permissions';
 import { Activity, Shield, Lock, Users, AlertTriangle, Ban, Globe, FileSearch, RefreshCw, Gauge, CheckCircle2 } from 'lucide-react';
 import HealthBadge from '@/components/master/observability/HealthBadge';
 import MetricCard from '@/components/master/observability/MetricCard';
@@ -15,8 +18,10 @@ function formatTime(iso) {
 }
 
 export default function MasterObservability() {
+  const { isAuthenticated, isLoadingAuth, user } = useAuth();
   const [refreshCount, setRefreshCount] = useState(0);
   const [lastRefreshNotice, setLastRefreshNotice] = useState('');
+  const canAccessObservability = Boolean(!isLoadingAuth && isAuthenticated && isSuperAdmin(user));
 
   const obs = useQuery({
     queryKey: ['master', 'observability', refreshCount],
@@ -24,6 +29,7 @@ export default function MasterObservability() {
       const res = await base44.functions.invoke('getObservabilityMetrics', {});
       return res.data;
     },
+    enabled: canAccessObservability,
     refetchInterval: 60_000, // refresh a cada 1min
   });
 
@@ -33,6 +39,7 @@ export default function MasterObservability() {
       const res = await base44.functions.invoke('runSystemCheck', {});
       return res.data;
     },
+    enabled: canAccessObservability,
     refetchInterval: 5 * 60_000, // 5min — chamada mais pesada
   });
 
@@ -40,10 +47,27 @@ export default function MasterObservability() {
   const sysData = sys.data;
 
   const handleManualRefresh = async () => {
+    if (!canAccessObservability) return;
     setRefreshCount((c) => c + 1);
     await Promise.all([obs.refetch(), sys.refetch()]);
     setLastRefreshNotice(`Integridade do sistema e métricas de latência atualizadas às ${new Date().toLocaleTimeString('pt-BR')}`);
   };
+
+  if (isLoadingAuth) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-4 border-[#60A5FA]/20 border-t-[#60A5FA] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isSuperAdmin(user)) {
+    return <Navigate to="/app/dashboard?forbidden=403" replace />;
+  }
 
   if (obs.isLoading) {
     return (

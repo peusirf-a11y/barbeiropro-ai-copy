@@ -294,7 +294,7 @@ export default function PublicBooking() {
   if (loadingCompany) {
     return (
       <div className={`min-h-screen ${tw.bg} flex items-center justify-center`}>
-        <div className="w-8 h-8 border-4 border-white/10 border-t-white/70 rounded-full animate-spin" />
+        <div className={`w-8 h-8 border-4 ${isDark ? 'border-white/10 border-t-white/70' : 'border-black/10 border-t-black/70'} rounded-full animate-spin`} />
       </div>
     );
   }
@@ -318,7 +318,7 @@ export default function PublicBooking() {
         <div className="flex-1 flex items-center justify-center p-6">
           <div className={`${tw.card} rounded-3xl p-8 text-center max-w-sm w-full`}>
             <div className="w-14 h-14 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-7 h-7 text-amber-400" />
+              <AlertCircle className={`w-7 h-7 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
             </div>
             <h2 className={`text-lg font-black ${tw.text} mb-2`}>Agendamento online indisponível</h2>
             <p className={`text-sm ${tw.textMuted} mb-5`}>{company.name} ainda não está aceitando pagamentos online.</p>
@@ -343,7 +343,7 @@ export default function PublicBooking() {
         <div className="flex-1 flex items-center justify-center p-6">
           <div className={`${tw.card} rounded-3xl p-10 text-center max-w-sm w-full`}>
             <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Check className="w-8 h-8 text-emerald-400" />
+              <Check className={`w-8 h-8 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
             </div>
             <h2 className={`text-2xl font-black ${tw.text} mb-2`}>Agendado!</h2>
             <p className={`${tw.textMuted} text-sm mb-6`}>Seu horário foi confirmado com sucesso no sistema.</p>
@@ -358,7 +358,7 @@ export default function PublicBooking() {
               )}
               <div className={`flex justify-between items-center pt-2 border-t ${tw.divider}`}>
                 <span className={`${tw.textMuted} text-sm`}>Valor</span>
-                <span className="text-emerald-400 font-black text-lg">R$ {selected?.service?.price?.toFixed(2)}</span>
+                <span className={`${isDark ? 'text-emerald-400' : 'text-emerald-600'} font-black text-lg`}>R$ {selected?.service?.price?.toFixed(2)}</span>
               </div>
             </div>
             <Link
@@ -489,12 +489,12 @@ export default function PublicBooking() {
 
         {/* Banner de agendamentos confirmados do cliente */}
         {myConfirmedAppointments.length > 0 && (
-          <div className="mt-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5">
+          <div className={`mt-3 rounded-2xl border p-3.5 ${isDark ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-emerald-200 bg-emerald-50'}`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+              <span className={`text-xs font-bold flex items-center gap-1.5 ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
                 <Calendar className="w-3.5 h-3.5" /> Seu horário agendado
               </span>
-              <Link to={`/cliente/${slug}`} className="text-[11px] font-bold text-emerald-300 underline">
+              <Link to={`/cliente/${slug}`} className={`text-[11px] font-bold underline ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
                 Ver detalhes
               </Link>
             </div>
@@ -504,7 +504,7 @@ export default function PublicBooking() {
                   <span className={`${tw.text} font-semibold truncate`}>
                     {a.service_name || 'Corte'} · {a.professional_name || 'Profissional'}
                   </span>
-                  <span className="text-emerald-500 dark:text-emerald-400 font-bold ml-2 flex-shrink-0 tabular-nums">
+                  <span className={`${isDark ? 'text-emerald-400' : 'text-emerald-700'} font-bold ml-2 flex-shrink-0 tabular-nums`}>
                     {format(new Date(a.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                   </span>
                 </div>
@@ -545,7 +545,7 @@ export default function PublicBooking() {
                   <div className="flex-1 min-w-0">
                     <div className={`${tw.text} font-semibold truncate`}>{s.name}</div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm tabular-nums">R$ {s.price.toFixed(2)}</span>
+                      <span className={`${isDark ? 'text-emerald-400' : 'text-emerald-600'} font-bold text-sm tabular-nums`}>R$ {s.price.toFixed(2)}</span>
                       <span className={`${tw.textMuted} text-xs flex items-center gap-1 tabular-nums`}>
                         <Clock className="w-3 h-3" strokeWidth={1.75} />{s.duration_minutes} min
                       </span>

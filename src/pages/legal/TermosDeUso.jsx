@@ -5,8 +5,8 @@ import Footer from '@/components/Footer';
 
 export default function TermosDeUso() {
   return (
-    <div className="min-h-screen bg-[#050816] text-white font-inter flex flex-col justify-between">
-      <header className="bg-[#050816]/85 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30">
+    <div className="min-h-screen bg-[#F4F7FB] dark:bg-[#050816] text-[#171827] dark:text-white font-inter flex flex-col justify-between transition-colors">
+      <header className="bg-[#171827] dark:bg-[#050816]/85 backdrop-blur-xl border-b border-[#232538] dark:border-white/10 sticky top-0 z-30 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/landing" aria-label="Ir para a página inicial do O CORTE">
             <BrandMark size={32} tone="dark" />
@@ -23,24 +23,24 @@ export default function TermosDeUso() {
 
       <article className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-10 sm:py-14 flex-1">
         <div className="mb-8">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-[#2563EB]/15 border border-[#60A5FA]/30 text-[#93C5FD] mb-3">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-[#2563EB]/10 dark:bg-[#2563EB]/15 border border-[#2563EB]/25 dark:border-[#60A5FA]/30 text-[#2563EB] dark:text-[#93C5FD] mb-3">
             Documento Institucional · ocorte.app
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2">
+          <h1 className="text-3xl sm:text-4xl font-black text-[#171827] dark:text-white tracking-tight mb-2">
             Termos de Uso
           </h1>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-[#55596A] dark:text-white/50">
             Última atualização: 28 de outubro de 2026 · Plataforma O CORTE (https://ocorte.app)
           </p>
         </div>
 
         <Section title="1. Aceitação dos Termos">
           Ao criar uma conta ou utilizar a plataforma <strong>O CORTE</strong> (acessível em{' '}
-          <a href="https://ocorte.app" className="text-[#93C5FD] hover:underline">
+          <a href="https://ocorte.app" className="text-[#2563EB] dark:text-[#93C5FD] hover:underline">
             https://ocorte.app
           </a>
           ), você concorda integralmente com estes Termos de Uso e com nossa{' '}
-          <Link to="/privacidade" className="text-[#93C5FD] hover:underline">
+          <Link to="/privacidade" className="text-[#2563EB] dark:text-[#93C5FD] hover:underline">
             Política de Privacidade
           </Link>
           . Caso não concorde com qualquer disposição aqui prevista, recomendamos que não utilize o serviço.
@@ -60,7 +60,7 @@ export default function TermosDeUso() {
 
         <Section title="5. Cancelamento e Reembolso">
           O cancelamento pode ser efetuado a qualquer momento pelo painel de assinatura, sem multa ou fidelidade contratual, interrompendo cobranças futuras. Dúvidas ou solicitações financeiras específicas devem ser encaminhadas para{' '}
-          <a href="mailto:suporte@ocorte.app" className="text-[#93C5FD] hover:underline font-medium">
+          <a href="mailto:suporte@ocorte.app" className="text-[#2563EB] dark:text-[#93C5FD] hover:underline font-medium">
             suporte@ocorte.app
           </a>
           .
@@ -89,26 +89,26 @@ export default function TermosDeUso() {
         {/* Seção de Encerramento Solicitada: Atendimento, Dúvidas e Legislação Aplicável */}
         <section
           aria-labelledby="termos-atendimento-heading"
-          className="mt-10 rounded-3xl border border-[#60A5FA]/25 bg-gradient-to-br from-[#2563EB]/10 via-white/[0.03] to-white/[0.02] p-6 sm:p-8 shadow-xl"
+          className="mt-10 rounded-3xl border border-[#2563EB]/25 dark:border-[#60A5FA]/25 bg-gradient-to-br from-[#2563EB]/10 via-white to-slate-50 dark:via-white/[0.03] dark:to-white/[0.02] p-6 sm:p-8 shadow-sm dark:shadow-xl"
         >
           <div className="flex items-start gap-3.5 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-[#2563EB]/20 border border-[#60A5FA]/35 flex items-center justify-center text-[#93C5FD] flex-shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#2563EB]/15 dark:bg-[#2563EB]/20 border border-[#2563EB]/30 dark:border-[#60A5FA]/35 flex items-center justify-center text-[#2563EB] dark:text-[#93C5FD] flex-shrink-0">
               <Scale className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <h2
                 id="termos-atendimento-heading"
-                className="text-lg sm:text-xl font-black text-white tracking-tight"
+                className="text-lg sm:text-xl font-black text-[#171827] dark:text-white tracking-tight"
               >
                 11. Atendimento, Dúvidas e Legislação Aplicável
               </h2>
-              <p className="text-xs text-white/55 mt-0.5">
+              <p className="text-xs text-[#55596A] dark:text-white/55 mt-0.5">
                 Canal oficial de suporte, notificações contratuais e foro competente
               </p>
             </div>
           </div>
 
-          <div className="space-y-3 text-sm text-white/75 leading-relaxed">
+          <div className="space-y-3 text-sm text-[#55596A] dark:text-white/75 leading-relaxed">
             <p>
               Estes Termos de Uso são regidos e interpretados exclusivamente de acordo com as leis da República Federativa do Brasil, incluindo o Marco Civil da Internet (Lei nº 12.965/2014) e a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018).
             </p>
@@ -118,7 +118,7 @@ export default function TermosDeUso() {
                 href="https://ocorte.app"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#93C5FD] hover:underline font-medium"
+                className="text-[#2563EB] dark:text-[#93C5FD] hover:underline font-medium"
               >
                 https://ocorte.app
               </a>
@@ -126,18 +126,18 @@ export default function TermosDeUso() {
             </p>
           </div>
 
-          <div className="mt-5 pt-5 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="mt-5 pt-5 border-t border-[#E5E7EF] dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-[#93C5FD]">
+              <div className="w-9 h-9 rounded-xl bg-[#2563EB]/10 dark:bg-white/[0.05] border border-[#2563EB]/20 dark:border-white/10 flex items-center justify-center text-[#2563EB] dark:text-[#93C5FD]">
                 <Mail className="w-4 h-4" aria-hidden="true" />
               </div>
               <div>
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-white/45">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-[#55596A] dark:text-white/45">
                   Central de Suporte e Atendimento
                 </span>
                 <a
                   href="mailto:suporte@ocorte.app"
-                  className="text-sm sm:text-base font-bold text-white hover:text-[#93C5FD] transition-colors"
+                  className="text-sm sm:text-base font-bold text-[#171827] dark:text-white hover:text-[#2563EB] dark:hover:text-[#93C5FD] transition-colors"
                 >
                   suporte@ocorte.app
                 </a>
@@ -162,9 +162,9 @@ export default function TermosDeUso() {
 
 function Section({ title, children }) {
   return (
-    <section className="mb-6 rounded-2xl border border-white/8 bg-white/[0.025] p-5 sm:p-6">
-      <h2 className="text-base sm:text-lg font-bold text-white mb-2">{title}</h2>
-      <div className="text-sm text-white/70 leading-relaxed">{children}</div>
+    <section className="mb-6 rounded-2xl border border-[#E5E7EF] dark:border-white/8 bg-white dark:bg-white/[0.025] p-5 sm:p-6 shadow-xs dark:shadow-none">
+      <h2 className="text-base sm:text-lg font-bold text-[#171827] dark:text-white mb-2">{title}</h2>
+      <div className="text-sm text-[#55596A] dark:text-white/70 leading-relaxed">{children}</div>
     </section>
   );
 }

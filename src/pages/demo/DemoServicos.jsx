@@ -63,35 +63,35 @@ export default function DemoServicos() {
         </AppPageHeader>
 
         {services.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/5 p-16 text-center text-[#6B7280] shadow-[var(--shadow-sm)]">
+          <div className="bg-white dark:bg-[#0B1121]/90 rounded-2xl border border-[#E5E7EF] dark:border-white/[0.08] p-16 text-center text-slate-500 dark:text-slate-400 shadow-[var(--shadow-sm)]">
             <Briefcase className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm mb-3">Nenhum serviço cadastrado</p>
-            <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] hover:underline">Adicionar primeiro serviço</button>
+            <button onClick={() => setShowForm(true)} className="text-sm font-semibold text-[#2563EB] dark:text-[#60A5FA] hover:underline">Adicionar primeiro serviço</button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {services.map(s => (
-              <div key={s.id} className={`bg-white rounded-2xl border p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200 ${s.active ? 'border-black/5' : 'border-black/5 opacity-60'}`}>
+              <div key={s.id} className={`bg-white dark:bg-[#0B1121]/90 rounded-2xl border p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all duration-200 ${s.active ? 'border-[#E5E7EF] dark:border-white/[0.08]' : 'border-[#E5E7EF] dark:border-white/[0.08] opacity-60'}`}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-[#111827]">{s.name}</h3>
+                    <h3 className="font-bold text-[#111827] dark:text-white">{s.name}</h3>
                     {s.featured && <Star className="w-4 h-4 text-amber-500 fill-amber-400" />}
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => openEdit(s)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
-                    <button onClick={() => handleDelete(s.id)} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+                    <button onClick={() => openEdit(s)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"><Pencil className="w-3.5 h-3.5 text-slate-400" /></button>
+                    <button onClick={() => handleDelete(s.id)} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
                   </div>
                 </div>
-                {s.description && <p className="text-xs text-[#6B7280] mb-3 line-clamp-2">{s.description}</p>}
+                {s.description && <p className="text-xs text-slate-500 dark:text-slate-300 mb-3 line-clamp-2">{s.description}</p>}
                 <div className="flex items-center justify-between mb-3">
-                  <span className="flex items-center gap-1 text-xs text-[#6B7280]"><Clock className="w-3.5 h-3.5" />{s.duration_minutes} min</span>
-                  <span className="text-xl font-black text-[#2563EB]">R${s.price}</span>
+                  <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><Clock className="w-3.5 h-3.5" />{s.duration_minutes} min</span>
+                  <span className="text-xl font-black text-[#2563EB] dark:text-[#60A5FA]">R${s.price}</span>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-black/5">
-                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${s.active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EF] dark:border-white/[0.06]">
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${s.active ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400'}`}>
                     {s.active ? 'Ativo' : 'Inativo'}
                   </span>
-                  <button onClick={() => toggleActive(s.id, !s.active)} className="text-xs text-gray-400 hover:text-[#2563EB] font-medium">
+                  <button onClick={() => toggleActive(s.id, !s.active)} className="text-xs text-slate-500 dark:text-slate-400 hover:text-[#2563EB] dark:hover:text-[#60A5FA] font-medium">
                     {s.active ? 'Inativar' : 'Ativar'}
                   </button>
                 </div>
@@ -106,7 +106,7 @@ export default function DemoServicos() {
           title={editing ? 'Editar Serviço' : 'Novo Serviço'}
           footer={
             <>
-              <button onClick={closeForm} className="flex-1 min-h-[48px] px-4 border border-black/10 rounded-xl text-sm font-medium hover:bg-gray-50 active:bg-gray-100">Cancelar</button>
+              <button onClick={closeForm} className="flex-1 min-h-[48px] px-4 border border-[#E5E7EF] dark:border-white/10 rounded-xl text-sm font-medium text-[#111827] dark:text-white hover:bg-slate-50 dark:hover:bg-white/5">Cancelar</button>
               <button onClick={handleSave} disabled={!form.name}
                 className="flex-1 min-h-[48px] px-4 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1d4ed8] active:scale-[0.98] disabled:opacity-50 transition-all">
                 Salvar
@@ -116,29 +116,29 @@ export default function DemoServicos() {
         >
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Nome *</label>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">Nome *</label>
               <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                 placeholder="Ex: Corte Clássico"
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                className="w-full px-3 py-2.5 border border-[#E5E7EF] dark:border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Descrição</label>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">Descrição</label>
               <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2}
-                className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none" />
+                className="w-full px-3 py-2.5 border border-[#E5E7EF] dark:border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Duração (min) *</label>
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">Duração (min) *</label>
                 <input type="number" min="5" step="5" value={form.duration_minutes} onChange={e => setForm(p => ({ ...p, duration_minutes: +e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                  className="w-full px-3 py-2.5 border border-[#E5E7EF] dark:border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Preço (R$) *</label>
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">Preço (R$) *</label>
                 <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(p => ({ ...p, price: +e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-black/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
+                  className="w-full px-3 py-2.5 border border-[#E5E7EF] dark:border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20" />
               </div>
             </div>
-            <div className="flex gap-5">
+            <div className="flex gap-5 text-[#111827] dark:text-slate-200">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
                 Ativo
