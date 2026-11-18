@@ -1,12 +1,15 @@
 import { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { resolveCompanyId } from '@/api/functions';
 import { supabase } from '@/lib/supabaseClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
+import { useFeatures } from '@/hooks/useFeatures';
+import { getPlanLimits } from '@/lib/featureGate';
 import { useToast } from '@/components/ui/use-toast';
-import { Pencil, Scissors, Trash2, AlertCircle } from 'lucide-react';
+import { Pencil, Scissors, Trash2, AlertCircle, Crown } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import PrimaryButton from '@/components/app/PrimaryButton';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
@@ -155,6 +158,12 @@ function normalizeProfessional(p) {
 
 export default function AppProfissionais() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const { has, plan } = useFeatures();
+  const hasAiGrowth = has('ai_growth');
+  const hasCommissions = has('commissions');
+  const hasMultiUnitsFeature = has('multi_units');
+  const planLimits = getPlanLimits(plan, company);
+  const maxBarbers = Number(planLimits?.barbers ?? 0);
   const { units, isMultiUnit, activeUnitId } = useActiveUnit();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -283,11 +292,21 @@ export default function AppProfissionais() {
     setTab('info');
   };
 
+  const isAtBarberLimit = maxBarbers > 0 && professionals.length >= maxBarbers;
+
   const openNew = () => {
+    if (isAtBarberLimit) {
+      toast({
+        title: 'Limite de barbeiros atingido',
+        description: `Seu plano atual permite ${maxBarbers} ${maxBarbers === 1 ? 'barbeiro cadastrado' : 'barbeiros cadastrados'}. Faça upgrade para cadastrar mais profissionais.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     setEditing(null);
     setForm({
       ...emptyForm,
-      ...(isMultiUnit && activeUnitId ? { unit_ids: [activeUnitId] } : {}),
+      ...(hasMultiUnitsFeature && isMultiUnit && activeUnitId ? { unit_ids: [activeUnitId] } : {}),
     });
     setFormError('');
     setTab('info');
@@ -357,6 +376,17 @@ export default function AppProfissionais() {
   // Salvar formulário com persistência em Supabase e tratamento de erros rigoroso
   const handleSave = async () => {
     setFormError('');
+
+    if (!editing?.id && isAtBarberLimit) {
+      const msg = `Seu plano permite apenas ${maxBarbers} ${maxBarbers === 1 ? 'barbeiro cadastrado' : 'barbeiros cadastrados'}. Faça upgrade para adicionar mais profissionais.`;
+      setFormError(msg);
+      toast({
+        title: 'Limite do plano atingido',
+        description: msg,
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (!form.name || !form.name.trim()) {
       const msg = 'Informe o nome do profissional.';
@@ -592,19 +622,53 @@ export default function AppProfissionais() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
         <AppPageHeader
           title="Profissionais"
-          subtitle={`${visiblePros.length} ${visiblePros.length === 1 ? 'profissional' : 'profissionais'}${isMultiUnit ? ' nesta unidade' : ' cadastrados'}`}
+          subtitle={`${visiblePros.length}${maxBarbers > 0 ? ` de ${maxBarbers}` : ''} ${visiblePros.length === 1 ? 'barbeiro' : 'profissionais'}${hasMultiUnitsFeature && isMultiUnit ? ' nesta unidade' : ' cadastrados'}`}
           icon={Scissors}
         >
-          <PrimaryButton onClick={openNew}>Novo profissional</PrimaryButton>
+          {isAtBarberLimit ? (
+            <Link
+              to="/app/configuracoes/assinatura?upgrade=1"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-400/40 text-xs sm:text-sm font-bold transition-all"
+            >
+              <Crown className="w-4 h-4" />
+              <span>Limite ({maxBarbers}/{maxBarbers}) · Fazer upgrade</span>
+            </Link>
+          ) : (
+            <PrimaryButton onClick={openNew}>Novo profissional</PrimaryButton>
+          )}
         </AppPageHeader>
+
+        {isAtBarberLimit && (
+          <div className="mb-5 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/90 dark:bg-amber-500/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <Crown className="w-5 h-5 text-amber-600 dark:text-amber-300 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                  Limite do plano atingido ({professionals.length}/{maxBarbers} {maxBarbers === 1 ? 'barbeiro' : 'profissionais'})
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-200/75 mt-0.5">
+                  O seu plano atual inclui apenas {maxBarbers} {maxBarbers === 1 ? 'barbeiro cadastrado com agenda dedicada' : 'profissionais cadastrados'}. Para adicionar sua equipe completa, faça upgrade para o Plano Master.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/app/configuracoes/assinatura?upgrade=1"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold flex-shrink-0 transition-colors"
+            >
+              Ver planos
+            </Link>
+          </div>
+        )}
 
         {visiblePros.length === 0 ? (
           <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-16 text-center text-white/55">
             <Scissors className="w-10 h-10 mx-auto mb-3 text-white/25" />
             <p className="text-sm mb-3">Nenhum profissional cadastrado</p>
-            <button onClick={openNew} className="text-sm font-semibold text-[#93C5FD] hover:text-[#BFDBFE] hover:underline transition-colors">
-              Adicionar primeiro profissional
-            </button>
+            {!isAtBarberLimit && (
+              <button onClick={openNew} className="text-sm font-semibold text-[#93C5FD] hover:text-[#BFDBFE] hover:underline transition-colors">
+                Adicionar primeiro profissional
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -658,7 +722,7 @@ export default function AppProfissionais() {
                     {(pro.services || pro.service_ids).length} serviços vinculados
                   </div>
                 )}
-                {(pro.commission_rate > 0 || pro.commission_value > 0) && (
+                {hasCommissions && (pro.commission_rate > 0 || pro.commission_value > 0) && (
                   <div className="relative text-xs text-white/55 mt-1">
                     Comissão: <span className="text-white/75 font-semibold">
                       {pro.commission_rate || pro.commission_value}
@@ -706,11 +770,11 @@ export default function AppProfissionais() {
             <div className="flex border-b border-white/8 -mx-6 mb-4">
               {[
                 { id: 'info', label: 'Dados' },
-                { id: 'bio', label: 'Biografia' },
-                { id: 'specialties', label: 'Especialidades' },
+                ...(hasAiGrowth ? [{ id: 'bio', label: 'Biografia' }] : []),
+                ...(hasAiGrowth ? [{ id: 'specialties', label: 'Especialidades' }] : []),
                 { id: 'schedule', label: 'Horários' },
                 { id: 'services', label: 'Serviços' },
-                ...(isMultiUnit ? [{ id: 'units', label: 'Unidades' }] : []),
+                ...(hasMultiUnitsFeature && isMultiUnit ? [{ id: 'units', label: 'Unidades' }] : []),
               ].map(t => (
                 <button
                   key={t.id}
@@ -786,35 +850,37 @@ export default function AppProfissionais() {
                       fallbackText={form.name}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-white/60 block mb-1">Tipo comissão</label>
-                      <MobileSelect
-                        value={form.commission_type}
-                        onChange={v => setForm(p => ({ ...p, commission_type: v }))}
-                        className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none"
-                      >
-                        <option value="percent">Porcentagem (%)</option>
-                        <option value="fixed">Valor fixo (R$)</option>
-                      </MobileSelect>
+                  {hasCommissions && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-white/60 block mb-1">Tipo comissão</label>
+                        <MobileSelect
+                          value={form.commission_type}
+                          onChange={v => setForm(p => ({ ...p, commission_type: v }))}
+                          className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none"
+                        >
+                          <option value="percent">Porcentagem (%)</option>
+                          <option value="fixed">Valor fixo (R$)</option>
+                        </MobileSelect>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-white/60 block mb-1">
+                          Comissão ({form.commission_type === 'percent' ? '%' : 'R$'})
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.commission_rate ?? form.commission_value ?? ''}
+                          onChange={e => {
+                            const val = e.target.value === '' ? '' : Number(e.target.value);
+                            setForm(p => ({ ...p, commission_rate: val, commission_value: val }));
+                          }}
+                          placeholder="Ex: 50"
+                          className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-semibold text-white/60 block mb-1">
-                        Comissão ({form.commission_type === 'percent' ? '%' : 'R$'})
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={form.commission_rate ?? form.commission_value ?? ''}
-                        onChange={e => {
-                          const val = e.target.value === '' ? '' : Number(e.target.value);
-                          setForm(p => ({ ...p, commission_rate: val, commission_value: val }));
-                        }}
-                        placeholder="Ex: 50"
-                        className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#60A5FA] focus:ring-2 focus:ring-[#60A5FA]/20"
-                      />
-                    </div>
-                  </div>
+                  )}
                   <label className="flex items-center gap-2 text-sm cursor-pointer text-white/85 pt-1">
                     <input
                       type="checkbox"
@@ -827,7 +893,7 @@ export default function AppProfissionais() {
                 </div>
               )}
 
-              {tab === 'bio' && (
+              {tab === 'bio' && hasAiGrowth && (
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs font-semibold text-white/60 block mb-1">Biografia Completa</label>
@@ -857,7 +923,7 @@ export default function AppProfissionais() {
                 </div>
               )}
 
-              {tab === 'specialties' && (
+              {tab === 'specialties' && hasAiGrowth && (
                 <BarberSpecialtiesAnalyzer
                   professionalId={editing?.id}
                   suggested={form.suggested_specialties || []}
@@ -923,7 +989,7 @@ export default function AppProfissionais() {
                 </div>
               )}
 
-              {tab === 'units' && isMultiUnit && (
+              {tab === 'units' && hasMultiUnitsFeature && isMultiUnit && (
                 <div>
                   <p className="text-xs text-white/55 mb-3">
                     Selecione em quais unidades este profissional atende. Se nenhuma for marcada, aparece em todas.

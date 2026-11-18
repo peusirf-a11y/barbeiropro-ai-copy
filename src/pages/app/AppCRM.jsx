@@ -1,61 +1,65 @@
-// Central única de CRM & Retenção.
-// Substitui /app/retencao + as seções "CRM ciclo de vida" e "Automações de retenção"
-// que ficavam em /app/configuracoes.
-//
-// 7 abas:
-//   1. Visão geral   → KPIs + RetentionCampaignsCard + atalhos críticos
-//   2. Lifecycle     → distribuição + janelas (CrmSettingsSection)
-//   3. VIP           → sugestões automáticas + VIPs ativos
-//   4. Automações    → 6 campanhas lifecycle (LifecycleCampaignsSection)
-//   5. Campanhas     → mensagens transacionais (whatsapp_settings)
-//   6. Segmentos     → atalhos para /app/clientes?filter=
-//   7. Histórico     → tabela de WhatsAppMessage
+// Central de CRM & Retenção (/app/crm).
+// Estrutura limpa com exatamente 2 abas:
+//   1. Visão geral → KPIs de retenção + resumo dos últimos 7 dias + segmentos críticos
+//   2. Lifecycle   → Distribuição atual + prazos de risco, inatividade e perda (CrmSettingsSection)
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import AppLayout from '@/components/layout/AppLayout';
 import AppPageHeader from '@/components/app/AppPageHeader';
 import { useCompany } from '@/hooks/useCompany';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import {
-  Sparkles, Zap, AlertCircle, Loader2,
-  LayoutDashboard, Activity, Crown, Send, Layers, History, Smartphone,
+  Sparkles,
+  AlertCircle,
+  Loader2,
+  LayoutDashboard,
+  Activity,
 } from 'lucide-react';
-
 import CRMOverviewTab from '@/components/crm/CRMOverviewTab';
 import CRMLifecycleTab from '@/components/crm/CRMLifecycleTab';
-import CRMVipTab from '@/components/crm/CRMVipTab';
-import CRMSegmentsTab from '@/components/crm/CRMSegmentsTab';
-import CRMHistoryTab from '@/components/crm/CRMHistoryTab';
-import CRMTransactionalTab from '@/components/crm/CRMTransactionalTab';
-import CRMWhatsAppTab from '@/components/crm/CRMWhatsAppTab';
-import LifecycleCampaignsSection from '@/components/configuracoes/LifecycleCampaignsSection';
 import { safeArray } from '@/lib/safeArray';
 import { useImpersonationPatch } from '@/hooks/useImpersonationToken';
 
 const TABS = [
-  { id: 'overview',     label: 'Visão geral', icon: LayoutDashboard },
-  { id: 'lifecycle',    label: 'Lifecycle',   icon: Activity },
-  { id: 'vip',          label: 'VIP',         icon: Crown },
-  { id: 'automations',  label: 'Automações',  icon: Zap },
-  { id: 'campaigns',    label: 'Campanhas',   icon: Send },
-  { id: 'segments',     label: 'Segmentos',   icon: Layers },
-  { id: 'history',      label: 'Histórico',   icon: History },
-  { id: 'whatsapp',    label: 'WhatsApp',    icon: Smartphone },
+  { id: 'overview',  label: 'Visão geral', icon: LayoutDashboard },
+  { id: 'lifecycle', label: 'Lifecycle',   icon: Activity },
 ];
+
+// Redirecionamentos de compatibilidade para links antigos de ?tab=
+const LEGACY_AUTOMATION_TABS = {
+  automations: '/app/automacoes',
+  campaigns:   '/app/automacoes',
+  whatsapp:    '/app/automacoes?tab=whatsapp',
+  history:     '/app/automacoes?tab=historico',
+};
 
 export default function AppCRM() {
   const { company, isLoading: loadingCompany } = useCompany();
   const { activeUnitId } = useActiveUnit();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const impPatch = useImpersonationPatch();
-  const initialTab = searchParams.get('tab') || 'overview';
-  const [tab, setTab] = useState(TABS.some(t => t.id === initialTab) ? initialTab : 'overview');
 
-  // BFF Fase 4: WhatsAppMessage via listWhatsAppMessages (tenant + unit scope server-side).
-  // O unit scope é aplicado no servidor — não precisamos mais do filtro manual abaixo.
+  const rawTabParam = searchParams.get('tab') || 'overview';
+
+  useEffect(() => {
+    if (LEGACY_AUTOMATION_TABS[rawTabParam]) {
+      navigate(LEGACY_AUTOMATION_TABS[rawTabParam], { replace: true });
+    }
+  }, [rawTabParam, navigate]);
+
+  const initialTab = TABS.some((t) => t.id === rawTabParam) ? rawTabParam : 'overview';
+  const [tab, setTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (TABS.some((t) => t.id === rawTabParam) && rawTabParam !== tab) {
+      setTab(rawTabParam);
+    }
+  }, [rawTabParam, tab]);
+
   const { data: messagesRaw } = useQuery({
     queryKey: ['whatsapp-messages', company?.id, activeUnitId],
     queryFn: async () => {
@@ -95,7 +99,7 @@ export default function AppCRM() {
     return (
       <AppLayout>
         <div className="p-8 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-6 h-6 animate-spin text-[#60A5FA]" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#2563EB] dark:text-[#60A5FA]" />
         </div>
       </AppLayout>
     );
@@ -105,10 +109,10 @@ export default function AppCRM() {
     return (
       <AppLayout>
         <div className="p-8 max-w-xl mx-auto text-center">
-          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-8">
-            <AlertCircle className="w-10 h-10 text-amber-300 mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-white mb-2">Nenhuma empresa configurada</h2>
-            <p className="text-sm text-white/60">Complete o onboarding para acessar o CRM.</p>
+          <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.025] backdrop-blur-md p-8 shadow-sm">
+            <AlertCircle className="w-10 h-10 text-amber-500 dark:text-amber-300 mx-auto mb-3" />
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Nenhuma empresa configurada</h2>
+            <p className="text-sm text-slate-600 dark:text-white/60">Complete o onboarding para acessar o CRM.</p>
           </div>
         </div>
       </AppLayout>
@@ -117,24 +121,27 @@ export default function AppCRM() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1200px] mx-auto animate-fade-in">
         <AppPageHeader
           title="CRM & Retenção"
-          subtitle="Lifecycle, VIP, automações e campanhas — tudo em um só lugar"
+          subtitle="Visão geral dos retornos e configuração de prazos do ciclo de vida dos clientes"
           icon={Sparkles}
         />
 
-        {/* Tabs — scroll horizontal no mobile, sem quebrar */}
-        <div className="flex gap-1 mb-6 border-b border-white/8 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-          {TABS.map(t => {
+        {/* Apenas 2 abas: Visão geral e Lifecycle */}
+        <div className="flex gap-1 mb-6 border-b border-slate-200 dark:border-white/10 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+          {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.id;
             return (
               <button
                 key={t.id}
+                type="button"
                 onClick={() => handleTabChange(t.id)}
-                className={`px-3 sm:px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 flex-shrink-0 ${
-                  active ? 'border-[#60A5FA] text-[#93C5FD]' : 'border-transparent text-white/55 hover:text-white'
+                className={`px-3.5 sm:px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 flex-shrink-0 cursor-pointer ${
+                  active
+                    ? 'border-[#2563EB] dark:border-[#60A5FA] text-[#2563EB] dark:text-[#93C5FD]'
+                    : 'border-transparent text-slate-500 dark:text-white/55 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -149,39 +156,6 @@ export default function AppCRM() {
         )}
         {tab === 'lifecycle' && (
           <CRMLifecycleTab company={company} customers={customers} />
-        )}
-        {tab === 'vip' && (
-          <CRMVipTab companyId={company.id} customers={customers} />
-        )}
-        {tab === 'automations' && (
-          <LifecycleCampaignsSection
-            company={company}
-            title="Automações de Retenção"
-            subtitle="Mensagens automáticas baseadas no ciclo de vida de cada cliente."
-          />
-        )}
-        {tab === 'campaigns' && (
-          <div className="space-y-6">
-            <LifecycleCampaignsSection
-              company={company}
-              title="Campanhas de CRM por Categoria"
-              subtitle="Filtre, ative e edite campanhas de boas-vindas, fidelização, recuperação, reativação e VIP."
-            />
-            <CRMTransactionalTab company={company} />
-          </div>
-        )}
-        {tab === 'segments' && (
-          <CRMSegmentsTab
-            customers={customers}
-            company={company}
-            onOpenTemplates={() => handleTabChange('campaigns')}
-          />
-        )}
-        {tab === 'history' && (
-          <CRMHistoryTab messages={messages} />
-        )}
-        {tab === 'whatsapp' && (
-          <CRMWhatsAppTab company={company} />
         )}
       </div>
     </AppLayout>

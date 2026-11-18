@@ -202,27 +202,27 @@ export default function MasterLayout() {
     >
       <ImpersonationCountdown />
 
-      {/* Mobile Topbar — Executive #171827 */}
+      {/* Mobile Topbar — adaptável ao tema claro/escuro */}
       <header
         className={`lg:hidden sticky ${
           isImpersonating ? 'top-9' : 'top-0'
-        } z-40 bg-[#171827]/95 backdrop-blur-xl text-white border-b border-white/10 h-14 flex items-center justify-between px-4 gap-3 shadow-md`}
+        } z-40 bg-white/95 dark:bg-[#171827]/95 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-white/10 h-14 flex items-center justify-between px-4 gap-3 shadow-sm`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="relative z-10 p-1.5 -ml-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 active:bg-white/15 transition-colors touch-manipulation cursor-pointer"
+            className="relative z-10 p-1.5 -ml-1 rounded-lg text-slate-700 dark:text-white/80 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:bg-slate-200 dark:active:bg-white/15 transition-colors touch-manipulation cursor-pointer"
             aria-label="Abrir menu"
           >
             <Menu className="w-5 h-5 pointer-events-none" strokeWidth={1.75} />
           </button>
-          <Logo variant="icon-dark" size={26} className="flex-shrink-0" />
-          <span className="font-bold text-sm tracking-tight text-white truncate" style={{ color: '#FFFFFF' }}>{pageTitle}</span>
+          <Logo variant={isDark ? 'icon-dark' : 'icon'} size={26} className="flex-shrink-0" />
+          <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white truncate">{pageTitle}</span>
         </div>
 
         <div className="relative z-10 flex items-center gap-2 flex-shrink-0">
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#59658F]/30 text-[#B5D7E8] border border-[#59658F]/40">
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-[#59658F]/30 text-[#2563EB] dark:text-[#B5D7E8] border border-blue-200 dark:border-[#59658F]/40">
             BI
           </span>
           <ThemeToggle />
@@ -259,23 +259,23 @@ export default function MasterLayout() {
         </aside>
       </div>
 
-      {/* Desktop Executive Header (#171827) */}
+      {/* Desktop Executive Header — adaptável ao tema claro/escuro */}
       <header
         className={`hidden lg:flex lg:ml-64 sticky ${
           isImpersonating ? 'top-9' : 'top-0'
-        } z-40 bg-[#171827]/95 backdrop-blur-xl text-white border-b border-white/10 h-16 items-center justify-between px-8 gap-4 shadow-sm`}
+        } z-40 bg-white/95 dark:bg-[#171827]/95 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-white/10 h-16 items-center justify-between px-8 gap-4 shadow-sm`}
       >
         <div className="flex items-center gap-3">
           <div>
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-300">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-300">
               <span>Ecossistema Corporativo</span>
               <ChevronRight className="w-3 h-3 text-slate-400" strokeWidth={1.75} />
-              <span className="text-[#B5D7E8]">Centro de Controle BI</span>
+              <span className="text-[#2563EB] dark:text-[#B5D7E8]">Centro de Controle BI</span>
             </div>
-            <h1 className="text-base font-extrabold text-white tracking-tight mt-0.5 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
+            <h1 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight mt-0.5 flex items-center gap-2">
               <span>{pageTitle}</span>
               {activeNav?.badge && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#59658F]/40 text-[#B5D7E8] border border-[#59658F]/50">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-[#59658F]/40 text-[#2563EB] dark:text-[#B5D7E8] border border-blue-200 dark:border-[#59658F]/50">
                   {activeNav.badge}
                 </span>
               )}
@@ -285,23 +285,23 @@ export default function MasterLayout() {
 
         <div className="flex items-center gap-3">
           {/* Status Indicator */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" strokeWidth={2} />
-            <span className="text-white/85 font-medium">Cluster Operacional Normal</span>
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" strokeWidth={2} />
+            <span className="text-slate-700 dark:text-white/85 font-medium">Cluster Operacional Normal</span>
           </div>
 
           <ThemeToggle />
 
-          <div className="h-5 w-px bg-white/10 mx-1" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-white/10 mx-1" />
 
           {/* Super Admin Avatar Badge */}
           <div className="flex items-center gap-2.5 pl-1">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] flex items-center justify-center text-white shadow-sm ring-1 ring-white/20">
-              <Shield className="w-4 h-4 text-[#B5D7E8]" strokeWidth={1.75} />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] flex items-center justify-center text-white shadow-sm ring-1 ring-blue-500/20 dark:ring-white/20">
+              <Shield className="w-4 h-4 text-white dark:text-[#B5D7E8]" strokeWidth={1.75} />
             </div>
             <div className="hidden sm:block text-left leading-none">
-              <div className="text-xs font-bold text-white tracking-tight" style={{ color: '#FFFFFF' }}>Super Admin</div>
-              <div className="text-[10px] text-slate-300 mt-1 font-mono">auditoria ativa</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Super Admin</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-300 mt-1 font-mono">auditoria ativa</div>
             </div>
           </div>
         </div>

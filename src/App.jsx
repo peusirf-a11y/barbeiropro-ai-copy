@@ -94,6 +94,7 @@ import AppAIGrowth from './pages/app/AppAIGrowth';
 import AppEquipe from './pages/app/AppEquipe';
 import AppConfiguracoes from './pages/app/AppConfiguracoes';
 import AppCRM from './pages/app/AppCRM';
+import AppAutomacoes from './pages/app/AppAutomacoes';
 import AppAssinatura from './pages/app/AppAssinatura';
 import AppBloqueios from './pages/app/AppBloqueios';
 import AppCaixa from './pages/app/AppCaixa.jsx';
@@ -250,6 +251,9 @@ function App() {
             <Route path="/app/crm" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppCRM /></RoleRoute></PrivateRoute>} />
             {/* Compat: rota antiga /app/retencao redireciona para a central unificada */}
             <Route path="/app/retencao" element={<Navigate to="/app/crm" replace />} />
+            <Route path="/app/automacoes" element={<PrivateRoute><RoleRoute roles={['admin','recepcao']}><AppAutomacoes /></RoleRoute></PrivateRoute>} />
+            <Route path="/app/whatsapp" element={<Navigate to="/app/automacoes?tab=whatsapp" replace />} />
+            <Route path="/app/campanhas" element={<Navigate to="/app/automacoes" replace />} />
             <Route path="/app/equipe" element={<PrivateRoute><RoleRoute roles={['admin']}><AppEquipe /></RoleRoute></PrivateRoute>} />
             <Route path="/app/configuracoes" element={<PrivateRoute><RoleRoute roles={['admin']}><AppConfiguracoes /></RoleRoute></PrivateRoute>} />
             <Route path="/app/configuracoes/unidades" element={<PrivateRoute><RoleRoute roles={['admin']}><AppUnidades /></RoleRoute></PrivateRoute>} />

@@ -44,20 +44,20 @@ export default function PartnerLayout({ children }) {
     <div className="min-h-screen bg-[#F1F2F7] dark:bg-[#0F101A] text-[#171827] dark:text-[#E5E7F3] font-inter">
       <AppBackgroundLayer />
 
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#171827] border-b border-[#232538] text-white">
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/95 dark:bg-[#171827]/95 border-b border-slate-200 dark:border-[#232538] text-slate-900 dark:text-white shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setOpen(true)}
-              className="p-2 rounded-lg hover:bg-white/[0.08] text-white/80 hover:text-white transition-colors"
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.08] text-slate-700 dark:text-white/80 hover:text-slate-950 dark:hover:text-white transition-colors"
               aria-label="Abrir menu"
             >
               <Menu className="w-5 h-5" strokeWidth={1.75} />
             </button>
             <Link to="/parceiro/dashboard" className="flex items-center gap-3 min-w-0">
-              <BrandMark size={32} tone="dark" />
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#2563EB]/20 border border-[#2563EB]/40 text-[11px] font-bold text-[#B5D7E8]">
-                <Gift className="w-3 h-3 text-[#B5D7E8]" strokeWidth={1.75} /> PARCEIRO
+              <BrandMark size={32} tone={isDark ? 'dark' : 'light'} />
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-[#2563EB]/20 border border-blue-200 dark:border-[#2563EB]/40 text-[11px] font-bold text-[#2563EB] dark:text-[#B5D7E8]">
+                <Gift className="w-3 h-3 text-[#2563EB] dark:text-[#B5D7E8]" strokeWidth={1.75} /> PARCEIRO
               </span>
             </Link>
           </div>
@@ -65,13 +65,13 @@ export default function PartnerLayout({ children }) {
             <ThemeToggle />
             {partner && (
               <div className="hidden sm:block text-right">
-                <div className="text-[11px] text-white/60 leading-none">Olá,</div>
-                <div className="text-sm font-bold text-white mt-0.5">{partner.name?.split(' ')[0]}</div>
+                <div className="text-[11px] text-slate-500 dark:text-white/60 leading-none">Olá,</div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{partner.name?.split(' ')[0]}</div>
               </div>
             )}
             <button
               onClick={logout}
-              className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-rose-400 transition-colors"
+              className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-white/10 text-slate-500 dark:text-white/60 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
               aria-label="Sair"
             >
               <LogOut className="w-4 h-4" strokeWidth={1.75} />

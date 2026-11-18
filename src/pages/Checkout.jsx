@@ -69,8 +69,25 @@ const PLAN_DESC = {
 };
 
 const STATIC_FEATURE_COPY = {
-  classico: ['Até 2 profissionais', 'Agenda online', 'Link público de agendamento', 'Gestão de clientes', 'Financeiro básico'],
-  master: ['Até 8 profissionais', 'Tudo do Clássico', 'AI Growth Engine', 'Relatórios avançados', 'Suporte prioritário'],
+  classico: [
+    '1 barbeiro cadastrado',
+    'Agendamentos online ilimitados',
+    'Link público e exclusivo (/agendar/:slug)',
+    'Recebimento via PIX e cartões (Asaas)',
+    'Painel financeiro com fechamento de caixa',
+    'Lembretes automáticos no WhatsApp',
+    'Cadastro e histórico de clientes',
+  ],
+  master: [
+    'Barbeiros e profissionais ilimitados',
+    'Agendamentos online ilimitados',
+    'CRM de retenção inteligente (IA anti-churn)',
+    'Clientes VIP e clubes de assinatura recorrente',
+    'Cálculo e conciliação automática de comissões',
+    'Automação de mensagens e pós-atendimento',
+    'Relatórios avançados de faturamento e ticket médio',
+    'Suporte prioritário humanizado no WhatsApp',
+  ],
   exclusivo: ['Unidade Matriz (R$ 249/mês)', '+ R$ 90,00/mês por filial extra', 'Profissionais e filiais ilimitadas', 'Tudo do Master', 'White-label total', 'Onboarding dedicado'],
 };
 
@@ -92,9 +109,13 @@ function mapDbPlansToUi(dbPlans) {
       name: key === 'master' ? 'Master' : (p.name || 'Master'),
       price: Number(p.price_monthly || p.price) || defaultPrice,
       desc: p.description || PLAN_DESC[key] || '',
-      features: Array.isArray(p.features) && p.features.length > 0
-        ? p.features.map(f => String(f).replace(/_/g, ' '))
-        : (STATIC_FEATURE_COPY[key] || STATIC_FEATURE_COPY.master),
+      features: key === 'classico'
+        ? STATIC_FEATURE_COPY.classico
+        : key === 'master'
+        ? STATIC_FEATURE_COPY.master
+        : (Array.isArray(p.features) && p.features.length > 0
+            ? p.features.map(f => String(f).replace(/_/g, ' '))
+            : (STATIC_FEATURE_COPY[key] || STATIC_FEATURE_COPY.master)),
       highlight: key === 'master' || Boolean(p.is_recommended),
     };
   });

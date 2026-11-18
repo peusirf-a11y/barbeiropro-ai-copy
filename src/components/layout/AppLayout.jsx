@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat, ChevronLeft } from 'lucide-react';
+import { Calendar, Users, Briefcase, DollarSign, BarChart2, Zap, Settings, UserCheck, LayoutDashboard, LogOut, X, MessageSquare, CreditCard, Lock, Wallet, Package, Percent, Star, Scissors, Gift, Repeat, ChevronLeft, Send } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import BrandMark from '@/components/BrandMark';
 import NavList from '@/components/layout/NavList';
@@ -43,6 +43,7 @@ function getSubRouteTitle(pathname) {
     ['/app/ai-growth', 'AI Growth'],
     ['/app/crm', 'CRM & Retenção'],
     ['/app/retencao', 'CRM & Retenção'],
+    ['/app/automacoes', 'Campanhas WhatsApp'],
     ['/app/avaliacoes', 'Avaliações'],
     ['/app/indicacoes', 'Indique e ganhe'],
     ['/app/equipe', 'Equipe'],
@@ -69,7 +70,8 @@ const navItemsAll = [
   { key: 'comissoes',     label: 'Comissões',     icon: Percent,         path: '/app/comissoes' },
   { key: 'relatorios',    label: 'Relatórios',    icon: BarChart2,       path: '/app/relatorios' },
   { key: 'ai-growth',     label: 'AI Growth',     icon: Zap,             path: '/app/ai-growth', badge: 'AI' },
-  { key: 'crm',           label: 'CRM',           icon: MessageSquare,   path: '/app/crm' },
+  { key: 'crm',           label: 'CRM & Retenção',     icon: MessageSquare,   path: '/app/crm' },
+  { key: 'automacoes',    label: 'Campanhas WhatsApp', icon: Send,            path: '/app/automacoes' },
   { key: 'avaliacoes',    label: 'Avaliações',    icon: Star,            path: '/app/avaliacoes' },
   { key: 'indicacoes',    label: 'Indique e ganhe',icon: Gift,           path: '/app/indicacoes' },
   { key: 'equipe',        label: 'Equipe',        icon: UserCheck,       path: '/app/equipe' },
@@ -160,20 +162,20 @@ export default function AppLayout({ children }) {
   // a pesar no mobile mid-range. Deps cobrem o que de fato muda a saída.
   // ⚠️ Hook DEVE vir ANTES de qualquer early return (rules-of-hooks).
   const navItems = useMemo(() => {
-    if (isBarbeiro) {
-      return navItemsAll.filter(i => ['dashboard', 'agenda', 'clientes', 'comissoes'].includes(i.key));
-    }
+    const baseItems = isBarbeiro
+      ? navItemsAll.filter(i => ['dashboard', 'agenda', 'clientes', 'comissoes'].includes(i.key))
+      : (allowed && !allowed.includes('*')
+          ? navItemsAll.filter(i => allowed.includes(i.key))
+          : navItemsAll);
 
-    const byRole = allowed && !allowed.includes('*')
-      ? navItemsAll.filter(i => allowed.includes(i.key))
-      : navItemsAll;
-
-    return byRole.filter(item => {
+    return baseItems.filter(item => {
       const requiredFeature = NAV_KEY_FEATURE_MAP[item.key];
       if (!requiredFeature) return true;
       return hasFeature(plan, company, requiredFeature);
     });
   }, [allowed, plan, company, isBarbeiro]);
+
+  const showUnitSwitcher = hasFeature(plan, company, 'multi_units');
 
   // 🔒 Bloqueio rígido: NÃO renderizar nada até saber o role.
   // Evita flash de menu completo antes do RBAC carregar.
@@ -191,6 +193,9 @@ export default function AppLayout({ children }) {
     const BARBER_ALLOWED_KEYS = ['dashboard', 'agenda', 'clientes', 'comissoes'];
     const current = navItemsAll.find(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'));
     if (current && !BARBER_ALLOWED_KEYS.includes(current.key)) {
+      return <Navigate to="/app/agenda" replace />;
+    }
+    if (current && NAV_KEY_FEATURE_MAP[current.key] && !hasFeature(plan, company, NAV_KEY_FEATURE_MAP[current.key])) {
       return <Navigate to="/app/agenda" replace />;
     }
   } else if (allowed && !allowed.includes('*')) {
@@ -240,9 +245,9 @@ export default function AppLayout({ children }) {
   return (
     <div className="min-h-screen font-sans text-[#55596A] dark:text-[#E5E7F3] bg-[#F1F2F7] dark:bg-[#0F101A]">
       <AppBackgroundLayer />
-      {/* Mobile top bar — #171827 executivo */}
+      {/* Mobile top bar — adaptável ao tema claro/escuro */}
       <header
-        className="lg:hidden sticky top-0 z-30 bg-[#171827] text-white border-b border-white/10 flex items-center justify-between px-4 gap-2 shadow-sm"
+        className="lg:hidden sticky top-0 z-30 bg-white/95 dark:bg-[#171827]/95 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-white/10 flex items-center justify-between px-4 gap-2 shadow-sm"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           height: 'calc(56px + env(safe-area-inset-top, 0px))',
@@ -252,7 +257,7 @@ export default function AppLayout({ children }) {
           <button
             type="button"
             onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/app/dashboard'))}
-            className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-white/10 text-white min-w-0"
+            className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-slate-100 dark:active:bg-white/10 text-slate-900 dark:text-white min-w-0"
             aria-label="Voltar"
           >
             <ChevronLeft className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} aria-hidden="true" />
@@ -262,12 +267,12 @@ export default function AppLayout({ children }) {
           </button>
         ) : (
           <Link to="/app/dashboard" className="min-w-0" aria-label="Ir para o dashboard">
-            <BrandMark size={32} tone="dark" />
+            <BrandMark size={32} tone={isDark ? 'dark' : 'light'} />
           </Link>
         )}
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
-          <UnitSwitcher />
+          {showUnitSwitcher && <UnitSwitcher />}
         </div>
       </header>
 
@@ -289,20 +294,20 @@ export default function AppLayout({ children }) {
         </aside>
       </div>
 
-      {/* Desktop top header — #171827 executivo com borda sutil */}
-      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-[#171827] text-white border-b border-white/10 h-16 items-center justify-end px-8 gap-4 shadow-sm">
+      {/* Desktop top header — adaptável ao tema claro/escuro */}
+      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-white/95 dark:bg-[#171827]/95 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-white/10 h-16 items-center justify-end px-8 gap-4 shadow-sm">
         <ThemeToggle />
-        <UnitSwitcher />
-        <div className="h-5 w-px bg-white/10 mx-1" />
+        {showUnitSwitcher && <UnitSwitcher />}
+        <div className="h-5 w-px bg-slate-200 dark:bg-white/10 mx-1" />
         <div className="text-right">
-          <div className="text-[10px] uppercase font-bold text-[#7E8BAF] leading-none">Unidade Ativa</div>
-          <div className="text-xs font-bold text-white mt-1 truncate max-w-[140px]">
+          <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#7E8BAF] leading-none">Unidade Ativa</div>
+          <div className="text-xs font-bold text-slate-900 dark:text-white mt-1 truncate max-w-[140px]">
             {isBarbeiro
               ? (teamRole?.name?.split(' ')[0] || user?.user_metadata?.name?.split(' ')[0] || 'Barbeiro')
               : (company?.owner_name?.split(' ')[0] || company?.name || 'Gestão')}
           </div>
         </div>
-        <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] flex items-center justify-center text-white font-bold text-xs shadow-sm ring-1 ring-white/20">
+        <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] flex items-center justify-center text-white font-bold text-xs shadow-sm ring-1 ring-blue-500/20 dark:ring-white/20">
           {(isBarbeiro
             ? (teamRole?.name?.[0] || user?.user_metadata?.name?.[0] || 'B')
             : (company?.owner_name?.[0] || company?.name?.[0] || 'B')).toUpperCase()}
@@ -319,7 +324,7 @@ export default function AppLayout({ children }) {
 
       {/* Bottom tab bar (mobile only) */}
       <MobileBottomTabs
-        allowedKeys={allowed}
+        allowedKeys={navItems.map(i => i.key)}
         isBarbeiro={isBarbeiro}
         onOpenMore={() => setOpen(true)}
       />

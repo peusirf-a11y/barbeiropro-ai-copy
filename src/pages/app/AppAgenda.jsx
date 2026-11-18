@@ -2,6 +2,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
+import { useFeatures } from '@/hooks/useFeatures';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar, LayoutGrid, Table as TableIcon } from 'lucide-react';
@@ -37,6 +38,8 @@ const emptyForm = {
 
 export default function AppAgenda() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const { has } = useFeatures();
+  const hasSubscriptions = has('subscriptions');
   const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
   const isBarbeiro = teamRole?.role === 'barbeiro';
@@ -114,16 +117,18 @@ export default function AppAgenda() {
   const { data: activeSubsRaw } = useQuery({
     queryKey: buildTenantQueryKey({ entity: 'subscriptions', companyId, filters: { status: 'active', activeUnitId } }),
     queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: companyId, status: 'active' }),
-    enabled: !!companyId,
+    enabled: !!companyId && hasSubscriptions,
   });
-  const activeSubs = safeArray(activeSubsRaw);
+  const activeSubs = hasSubscriptions ? safeArray(activeSubsRaw) : [];
   const { data: customerPlansRaw } = useQuery({
     queryKey: buildTenantQueryKey({ entity: 'customer-plans', companyId }),
     queryFn: () => base44.entities.CustomerPlan.filter({ company_id: companyId }),
-    enabled: !!companyId,
+    enabled: !!companyId && hasSubscriptions,
   });
-  const customerPlans = safeArray(customerPlansRaw);
-  const subByCustomer = activeSubs.reduce((acc, s) => { acc[s.customer_id] = s; return acc; }, {});
+  const customerPlans = hasSubscriptions ? safeArray(customerPlansRaw) : [];
+  const subByCustomer = hasSubscriptions
+    ? activeSubs.reduce((acc, s) => { acc[s.customer_id] = s; return acc; }, {})
+    : {};
 
   // Dialog "usar plano vs avulso" — disparado após criar agendamento de assinante
   const [pendingSubscriptionDialog, setPendingSubscriptionDialog] = useState(null);
@@ -231,8 +236,8 @@ export default function AppAgenda() {
       setShowNewForm(false);
       setForm(emptyForm);
 
-      // Se o cliente do agendamento tem assinatura ativa, abre dialog "plano vs avulso"
-      const sub = created?.customer_id ? subByCustomer[created.customer_id] : null;
+      // Se o cliente do agendamento tem assinatura ativa e plano habilita assinaturas, abre dialog "plano vs avulso"
+      const sub = hasSubscriptions && created?.customer_id ? subByCustomer[created.customer_id] : null;
       if (sub) {
         const plan = customerPlans.find(p => p.id === sub.plan_id);
         const svc = services.find(s => s.id === created.service_id);
@@ -685,10 +690,10 @@ export default function AppAgenda() {
             appointments={filteredAppts}
             services={services}
             customers={customers}
-            subByCustomer={subByCustomer}
-            hasActivePlans={customerPlans.some(p => p.active !== false)}
+            subByCustomer={hasSubscriptions ? subByCustomer : {}}
+            hasActivePlans={hasSubscriptions && customerPlans.some(p => p.active !== false)}
             onCardClick={setSelectedAppt}
-            onOfferPlan={!isBarbeiro ? setOfferCustomer : undefined}
+            onOfferPlan={!isBarbeiro && hasSubscriptions ? setOfferCustomer : undefined}
           />
         ) : viewMode === 'table' ? (
           <AgendaTanStackTable
@@ -727,7 +732,7 @@ export default function AppAgenda() {
         </div>
 
         {/* Dialog "Usar plano vs avulso" — aparece após criar agendamento de assinante */}
-        {pendingSubscriptionDialog && (
+        {hasSubscriptions && pendingSubscriptionDialog && (
           <UseSubscriptionDialog
             appointment={pendingSubscriptionDialog.appointment}
             subscription={pendingSubscriptionDialog.subscription}
@@ -764,7 +769,7 @@ export default function AppAgenda() {
           />
         )}
 
-        {offerCustomer && (
+        {hasSubscriptions && offerCustomer && (
           <OfferPlanModal
             companyId={companyId}
             customer={offerCustomer}

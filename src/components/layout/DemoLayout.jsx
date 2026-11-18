@@ -95,9 +95,9 @@ export default function DemoLayout({ children }) {
   return (
     <div className="min-h-screen font-inter bg-[#F1F2F7] dark:bg-[#0F101A] text-[#171827] dark:text-[#E5E7F3] transition-colors">
       <AppBackgroundLayer />
-      {/* Mobile top bar — glass com blur (igual AppLayout) */}
+      {/* Mobile top bar — glass com blur adaptável ao tema */}
       <header
-        className="lg:hidden sticky top-0 z-30 bg-[#050816]/85 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 gap-2"
+        className="lg:hidden sticky top-0 z-30 bg-white/95 dark:bg-[#050816]/85 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 gap-2 shadow-sm"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           height: 'calc(56px + env(safe-area-inset-top, 0px))',
@@ -107,7 +107,7 @@ export default function DemoLayout({ children }) {
           <button
             type="button"
             onClick={() => window.history.back()}
-            className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-white/10 text-white min-w-0"
+            className="flex items-center gap-1.5 -ml-2 px-2 py-2 rounded-lg active:bg-slate-100 dark:active:bg-white/10 text-slate-900 dark:text-white min-w-0"
             aria-label="Voltar"
           >
             <ChevronLeft className="w-5 h-5 flex-shrink-0" />
@@ -115,11 +115,11 @@ export default function DemoLayout({ children }) {
           </button>
         ) : (
           <Link to="/demo/dashboard" className="min-w-0" aria-label="Dashboard">
-            <BrandMark size={32} tone="dark" />
+            <BrandMark size={32} tone={isDark ? 'dark' : 'light'} />
           </Link>
         )}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 ring-1 ring-amber-200 dark:ring-amber-400/30">
             Demo
           </span>
           <ThemeToggle />
@@ -144,13 +144,13 @@ export default function DemoLayout({ children }) {
         </aside>
       </div>
 
-      {/* Desktop top header — dark glass com blur premium (igual AppLayout) */}
-      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-[#050816]/80 backdrop-blur-xl border-b border-white/5 h-16 items-center justify-between px-8 gap-3">
+      {/* Desktop top header — glass com blur adaptável ao tema */}
+      <header className="hidden lg:flex lg:ml-64 sticky top-0 z-30 bg-white/95 dark:bg-[#050816]/80 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-white/5 h-16 items-center justify-between px-8 gap-3">
         <div className="flex items-center gap-2.5 text-sm">
-          <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30">
+          <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 ring-1 ring-amber-200 dark:ring-amber-400/30">
             Demonstração
           </span>
-          <span className="text-white/55">Você está visualizando dados de exemplo.</span>
+          <span className="text-slate-600 dark:text-white/55">Você está visualizando dados de exemplo.</span>
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
@@ -161,7 +161,7 @@ export default function DemoLayout({ children }) {
             Criar conta grátis →
           </Link>
           {/* Avatar placeholder — igual ao AppLayout */}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_16px_rgba(37,99,235,0.5)] ring-1 ring-white/20">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB] to-[#60A5FA] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_16px_rgba(37,99,235,0.5)] ring-1 ring-blue-500/20 dark:ring-white/20">
             B
           </div>
         </div>

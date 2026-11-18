@@ -5,6 +5,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import BrandMark from '@/components/BrandMark';
+import { useTheme } from '@/theme/ThemeProvider';
 import { AlertCircle, ShieldAlert, Loader2, Lock, Mail, Eye, EyeOff, ArrowRight, X, MessageCircle } from 'lucide-react';
 import { setRbacCookie } from '@/lib/rbacCookie';
 
@@ -13,6 +14,7 @@ const BLOCKED_STORAGE_KEY = 'ocorte_blocked_account_notice';
 export default function BarberLogin() {
   const navigate = useNavigate();
   const { setUser, setIsAuthenticated } = useAuth();
+  const { isDark } = useTheme();
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const [email, setEmail] = useState((params.get('email') || '').trim().toLowerCase());
   const [password, setPassword] = useState('');
@@ -193,14 +195,14 @@ export default function BarberLogin() {
   return (
     <div className="min-h-screen bg-[#F1F2F7] dark:bg-[#0F101A] font-inter flex flex-col justify-between">
       {/* Top Header */}
-      <header className="bg-[#171827] text-white border-b border-[#232538] sticky top-0 z-20 shadow-xs">
+      <header className="bg-white/95 dark:bg-[#171827] backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-[#232538] sticky top-0 z-20 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
-            <BrandMark size={30} tone="dark" />
+            <BrandMark size={30} tone={isDark ? 'dark' : 'light'} />
           </Link>
           <Link
             to="/checkout"
-            className="text-xs font-bold text-[#B5D7E8] hover:text-white transition-colors"
+            className="text-xs font-bold text-[#2563EB] dark:text-[#B5D7E8] hover:text-[#1D4ED8] dark:hover:text-white transition-colors"
           >
             Quero ser parceiro →
           </Link>

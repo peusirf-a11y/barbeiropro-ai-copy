@@ -2,6 +2,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompany';
+import { useFeatures } from '@/hooks/useFeatures';
 import { useTeamRole } from '@/lib/useTeamRole';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
 import { useState } from 'react';
@@ -29,6 +30,12 @@ const emptyForm = { name: '', phone: '', email: '', notes: '', status: 'active',
 
 export default function AppClientes() {
   const { company, companyId, isLoading: loadingCompany } = useCompany();
+  const { has } = useFeatures();
+  const hasVip = has('vip_customers');
+  const hasCrmRetention = has('crm_retention');
+  const hasLifecycle = has('lifecycle_automation');
+  const hasSubscriptions = has('subscriptions');
+  const hasCrmAdvanced = hasCrmRetention || hasVip || hasLifecycle;
   const { activeUnitId } = useActiveUnit();
   const { data: teamRole } = useTeamRole();
   const isBarbeiro = teamRole?.role === 'barbeiro';
@@ -63,7 +70,7 @@ export default function AppClientes() {
       ? rawCustomers
       : [
           {
-            id: `cust_seed_1_${String(companyId || 'default').slice(0, 8)}`,
+            id: '00000000-0000-4000-8000-000000000101',
             company_id: companyId || 'comp_demo_01',
             name: 'Carlos Eduardo Silva',
             phone: '11999999999',
@@ -74,7 +81,7 @@ export default function AppClientes() {
             last_appointment_at: new Date().toISOString(),
           },
           {
-            id: `cust_seed_2_${String(companyId || 'default').slice(0, 8)}`,
+            id: '00000000-0000-4000-8000-000000000102',
             company_id: companyId || 'comp_demo_01',
             name: 'Marcos Vinicius Oliveira',
             phone: '11988887777',
@@ -101,7 +108,7 @@ export default function AppClientes() {
   });
   const appointments = safeArray(appointmentsRaw);
 
-  // Map customer_id => assinatura ativa, para mostrar badge na lista (BFF Fase 4)
+  // Map customer_id => assinatura ativa, para mostrar badge na lista (apenas planos com Assinaturas)
   const { data: activeSubs = [] } = useQuery({
     queryKey: buildTenantQueryKey({ entity: 'subscriptions', companyId, filters: { status: 'active', activeUnitId } }),
     queryFn: async () => {
@@ -112,9 +119,11 @@ export default function AppClientes() {
       });
       return safeArray(res?.data?.subscriptions ?? res?.data);
     },
-    enabled: !!companyId,
+    enabled: !!companyId && hasSubscriptions,
   });
-  const subByCustomer = activeSubs.reduce((acc, s) => { acc[s.customer_id] = s; return acc; }, {});
+  const subByCustomer = hasSubscriptions
+    ? activeSubs.reduce((acc, s) => { acc[s.customer_id] = s; return acc; }, {})
+    : {};
 
   // BFF Fase 2: mutations vão pelo backend (mutateCustomer).
   // O servidor decide company_id (do caller) e unit_id (auto-stamp quando aplicável).
@@ -203,9 +212,11 @@ export default function AppClientes() {
   const filtered = customers.filter(c => {
     const matchSearch = (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search);
     let matchFilter = true;
-    if (filter === 'vip') matchFilter = c.status === 'vip';
-    else if (['primeira_visita', 'fiel', 'em_risco', 'inativo', 'perdido'].includes(filter)) {
-      matchFilter = getEffectiveLifecycle(c) === filter;
+    if (hasCrmAdvanced) {
+      if (filter === 'vip') matchFilter = c.status === 'vip';
+      else if (['primeira_visita', 'fiel', 'em_risco', 'inativo', 'perdido'].includes(filter)) {
+        matchFilter = getEffectiveLifecycle(c) === filter;
+      }
     }
     return matchSearch && matchFilter;
   });
@@ -241,7 +252,7 @@ export default function AppClientes() {
           )}
         </AppPageHeader>
 
-        {!isBarbeiro && companyId && <VipCandidatesCard companyId={companyId} />}
+        {!isBarbeiro && companyId && hasVip && hasCrmRetention && <VipCandidatesCard companyId={companyId} />}
 
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -254,40 +265,42 @@ export default function AppClientes() {
               className="w-full pl-9 pr-4 py-2.5 bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] rounded-xl text-xs sm:text-sm text-[#171827] dark:text-white placeholder:text-[#55596A]/50 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]/25 font-medium transition-all"
             />
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {[
-              { v: 'all', l: 'Todos', count: customers.length },
-              { v: 'vip', l: '👑 VIP', count: counts.vip },
-              { v: 'primeira_visita', l: '✦ Visitante', count: counts.primeira_visita },
-              { v: 'fiel', l: '✓ Fiéis', count: counts.fiel },
-              { v: 'em_risco', l: '⚠️ Em risco', count: counts.em_risco },
-              { v: 'inativo', l: '💤 Inativos', count: counts.inativo },
-              { v: 'perdido', l: '🚫 Perdidos', count: counts.perdido },
-            ].map(f => (
-              <button
-                key={f.v}
-                onClick={() => setFilter(f.v)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border ${
-                  filter === f.v
-                    ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-sm shadow-blue-600/20'
-                    : 'bg-[#FFFFFF] dark:bg-[#171827] border-[#E5E7EF] dark:border-[#232538] text-[#55596A] dark:text-[#8F9BBF] hover:border-[#2563EB]'
-                }`}
-              >
-                <span>{f.l}</span>
-                {f.count > 0 && (
-                  <span
-                    className={`text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full leading-none ${
-                      filter === f.v
-                        ? 'bg-white/20 text-white'
-                        : 'bg-slate-100 dark:bg-white/10 text-[#59658F] dark:text-[#CBD5E1]'
-                    }`}
-                  >
-                    {f.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+          {hasCrmAdvanced && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {[
+                { v: 'all', l: 'Todos', count: customers.length },
+                ...(hasVip ? [{ v: 'vip', l: '👑 VIP', count: counts.vip }] : []),
+                { v: 'primeira_visita', l: '✦ Visitante', count: counts.primeira_visita },
+                { v: 'fiel', l: '✓ Fiéis', count: counts.fiel },
+                { v: 'em_risco', l: '⚠️ Em risco', count: counts.em_risco },
+                { v: 'inativo', l: '💤 Inativos', count: counts.inativo },
+                { v: 'perdido', l: '🚫 Perdidos', count: counts.perdido },
+              ].map(f => (
+                <button
+                  key={f.v}
+                  onClick={() => setFilter(f.v)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border ${
+                    filter === f.v
+                      ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-sm shadow-blue-600/20'
+                      : 'bg-[#FFFFFF] dark:bg-[#171827] border-[#E5E7EF] dark:border-[#232538] text-[#55596A] dark:text-[#8F9BBF] hover:border-[#2563EB]'
+                  }`}
+                >
+                  <span>{f.l}</span>
+                  {f.count > 0 && (
+                    <span
+                      className={`text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full leading-none ${
+                        filter === f.v
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-100 dark:bg-white/10 text-[#59658F] dark:text-[#CBD5E1]'
+                      }`}
+                    >
+                      {f.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] shadow-sm overflow-hidden">
@@ -315,14 +328,14 @@ export default function AppClientes() {
                         <div className="min-w-0">
                           <div className="font-bold text-sm text-[#171827] dark:text-white flex items-center gap-1.5 flex-wrap">
                             {c.name}
-                            {subByCustomer[c.id] && (
+                            {hasSubscriptions && subByCustomer[c.id] && (
                               <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase bg-[#EFF6FF] dark:bg-blue-950/40 text-[#2563EB] dark:text-blue-300 border border-[#DBEAFE] dark:border-blue-800/40 px-2 py-0.5 rounded-full">
                                 <Package className="w-2.5 h-2.5" strokeWidth={1.75} /> Assinante
                               </span>
                             )}
                           </div>
                           {c.email && <div className="text-xs text-[#55596A] dark:text-[#8F9BBF] truncate font-medium">{c.email}</div>}
-                          {!subByCustomer[c.id] && (
+                          {hasSubscriptions && !subByCustomer[c.id] && (
                             <div className="mt-1.5">
                               <CustomerPlanRecommendation companyId={companyId} customerId={c.id} onOffer={() => setOfferingTo(c)} />
                             </div>
@@ -342,7 +355,13 @@ export default function AppClientes() {
                       {c.last_appointment_at ? format(new Date(c.last_appointment_at), "d MMM yyyy", { locale: ptBR }) : '–'}
                     </td>
                     <td className="p-4">
-                      <CustomerTypeBadge customer={c} showVisits={false} />
+                      {hasCrmAdvanced ? (
+                        <CustomerTypeBadge customer={c} showVisits={false} />
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/15">
+                          {getCustomerStats(c.id) > 0 ? `${getCustomerStats(c.id)} corte(s)` : 'Cadastrado'}
+                        </span>
+                      )}
                     </td>
                     <td className="p-4 text-right">
                       {!isBarbeiro ? (
@@ -390,7 +409,7 @@ export default function AppClientes() {
           )}
         </div>
 
-        {offeringTo && (
+        {hasSubscriptions && offeringTo && (
           <OfferPlanModal
             companyId={companyId}
             customer={offeringTo}
@@ -454,21 +473,23 @@ export default function AppClientes() {
                 />
               </div>
             </div>
-            <div>
-              <label className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Classificação de Relacionamento</label>
-              <FilterSelect
-                value={form.status}
-                onChange={(v) => setForm(p => ({ ...p, status: v }))}
-                className="w-full"
-              >
-                <option value="active">Cliente normal</option>
-                <option value="vip">VIP</option>
-                <option value="inactive">Inativo manual</option>
-              </FilterSelect>
-              <p className="text-[11px] text-[#55596A] dark:text-[#8F9BBF] mt-1 font-medium leading-snug">
-                Marcação manual da equipe. Para o ciclo de vida automático, veja o card abaixo.
-              </p>
-            </div>
+            {(hasVip || hasCrmRetention) && (
+              <div>
+                <label className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Classificação de Relacionamento</label>
+                <FilterSelect
+                  value={form.status}
+                  onChange={(v) => setForm(p => ({ ...p, status: v }))}
+                  className="w-full"
+                >
+                  <option value="active">Cliente normal</option>
+                  <option value="vip">VIP</option>
+                  <option value="inactive">Inativo manual</option>
+                </FilterSelect>
+                <p className="text-[11px] text-[#55596A] dark:text-[#8F9BBF] mt-1 font-medium leading-snug">
+                  Marcação manual da equipe. Para o ciclo de vida automático, veja o card abaixo.
+                </p>
+              </div>
+            )}
 
             {editing && form.phone && (
               <div className="flex flex-wrap gap-2">
@@ -482,17 +503,19 @@ export default function AppClientes() {
               </div>
             )}
 
-            <LifecycleStatusCard
-              customer={editing}
-              value={form.lifecycle_status || (editing ? getEffectiveLifecycle(editing) : 'primeira_visita')}
-              onChange={(nextLc) =>
-                setForm((p) => ({
-                  ...p,
-                  lifecycle_status: nextLc,
-                  lifecycle_updated_at: new Date().toISOString(),
-                }))
-              }
-            />
+            {(hasLifecycle || hasCrmRetention) && (
+              <LifecycleStatusCard
+                customer={editing}
+                value={form.lifecycle_status || (editing ? getEffectiveLifecycle(editing) : 'primeira_visita')}
+                onChange={(nextLc) =>
+                  setForm((p) => ({
+                    ...p,
+                    lifecycle_status: nextLc,
+                    lifecycle_updated_at: new Date().toISOString(),
+                  }))
+                }
+              />
+            )}
             <div>
               <label className="text-xs font-bold text-[#171827] dark:text-white block mb-1.5">Observações da bancada</label>
               <textarea
@@ -504,10 +527,10 @@ export default function AppClientes() {
               />
             </div>
 
-            {editing && (
+            {editing && (hasSubscriptions || hasCrmRetention) && (
               <div className="mt-5 pt-5 border-t border-[#E5E7EF] dark:border-[#232538] space-y-4">
-                <CustomerSubscriptionPanel customer={editing} companyId={companyId} />
-                <CustomerCampaignsHistory customer={editing} />
+                {hasSubscriptions && <CustomerSubscriptionPanel customer={editing} companyId={companyId} />}
+                {hasCrmRetention && <CustomerCampaignsHistory customer={editing} />}
               </div>
             )}
           </div>

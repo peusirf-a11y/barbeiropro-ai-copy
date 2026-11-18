@@ -37,6 +37,10 @@ export default function AppDashboard() {
   const { has } = useFeatures();
   const showSubscriptions = showFinance && has('subscriptions');
   const showCrm = has('crm_retention');
+  const showAiGrowth = has('ai_growth');
+  const showCommissions = has('commissions');
+  const showAdvancedDashboard = has('advanced_dashboard');
+  const showTeamManagement = has('team_management');
   const queryClient = useQueryClient();
   const { containerProps: ptrProps, indicator: ptrIndicator } = usePullToRefresh({
     onRefresh: async () => {
@@ -107,7 +111,7 @@ export default function AppDashboard() {
         return [];
       }
     },
-    enabled: !!companyId && isBarbeiro,
+    enabled: !!companyId && isBarbeiro && showCommissions,
     staleTime: 30_000,
   });
 
@@ -151,7 +155,7 @@ export default function AppDashboard() {
         return [];
       }
     },
-    enabled: !!companyId && showFinance,
+    enabled: !!companyId && showSubscriptions,
     staleTime: 60_000,
   });
   const mrr = useMemo(() => activeSubs.reduce((s, sub) => s + (sub.plan_price_snapshot || 0), 0), [activeSubs]);
@@ -283,35 +287,39 @@ export default function AppDashboard() {
       });
     }
 
-    const vipInactive = customers.filter(c => {
-      if (c.status !== 'vip' || !c.last_appointment_at) return false;
-      return differenceInDays(now, new Date(c.last_appointment_at)) > 21;
-    });
-    if (vipInactive.length > 0) {
-      detected.push({
-        id: 'vip_inactive',
-        level: 'medium',
-        title: `${vipInactive.length} cliente${vipInactive.length > 1 ? 's' : ''} VIP sem retorno há +21 dias`,
-        desc: 'Seus melhores clientes estão sumindo. Use o AI Growth para reativá-los.',
-        href: '/app/ai-growth',
-        icon: 'zap',
+    if (showAiGrowth) {
+      const vipInactive = customers.filter(c => {
+        if (c.status !== 'vip' || !c.last_appointment_at) return false;
+        return differenceInDays(now, new Date(c.last_appointment_at)) > 21;
       });
+      if (vipInactive.length > 0) {
+        detected.push({
+          id: 'vip_inactive',
+          level: 'medium',
+          title: `${vipInactive.length} cliente${vipInactive.length > 1 ? 's' : ''} VIP sem retorno há +21 dias`,
+          desc: 'Seus melhores clientes estão sumindo. Use o AI Growth para reativá-los.',
+          href: '/app/ai-growth',
+          icon: 'zap',
+        });
+      }
     }
 
-    const generalInactive = customers.filter(c => {
-      if (c.status === 'vip') return false;
-      if (!c.last_appointment_at) return false;
-      return differenceInDays(now, new Date(c.last_appointment_at)) > 60;
-    });
-    if (generalInactive.length >= 5) {
-      detected.push({
-        id: 'general_inactive',
-        level: 'medium',
-        title: `${generalInactive.length} clientes não retornam há +60 dias`,
-        desc: 'Crie uma campanha de reativação para trazê-los de volta.',
-        href: '/app/retencao',
-        icon: 'warning',
+    if (showCrm) {
+      const generalInactive = customers.filter(c => {
+        if (c.status === 'vip') return false;
+        if (!c.last_appointment_at) return false;
+        return differenceInDays(now, new Date(c.last_appointment_at)) > 30;
       });
+      if (generalInactive.length >= 1) {
+        detected.push({
+          id: 'general_inactive',
+          level: 'medium',
+          title: `${generalInactive.length} ${generalInactive.length === 1 ? 'cliente ausente' : 'clientes ausentes'} há +30 dias`,
+          desc: 'Dispare ações automáticas de recuperação pelo CRM de retenção.',
+          href: '/app/crm',
+          icon: 'warning',
+        });
+      }
     }
 
     if (!loadingAppts && todayAppts.length === 0) {
@@ -326,7 +334,7 @@ export default function AppDashboard() {
     }
 
     return detected;
-  }, [apptsScoped, todayAppts, customers, loadingAppts, now]);
+  }, [apptsScoped, todayAppts, customers, loadingAppts, now, showAiGrowth, showCrm]);
 
   const isLoading = loadingCompany && !companyId;
 
@@ -379,7 +387,7 @@ export default function AppDashboard() {
               tone="green"
             />
           )}
-          {isBarbeiro && (
+          {isBarbeiro && showCommissions && (
             <KpiCard
               label="Minhas comissões"
               value={`R$ ${barberMonthEarnings.toFixed(2).replace('.', ',')}`}
@@ -452,16 +460,18 @@ export default function AppDashboard() {
         {/* Gráfico + Ranking */}
         {showFinance && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
-            <div className="lg:col-span-2">
+            <div className={(showAdvancedDashboard || showTeamManagement) ? 'lg:col-span-2' : 'lg:col-span-3'}>
               <RevenueChart financial={financialScoped} />
             </div>
-            <div>
-              <ProfessionalRanking data={topPros} />
-            </div>
+            {(showAdvancedDashboard || showTeamManagement) && (
+              <div>
+                <ProfessionalRanking data={topPros} />
+              </div>
+            )}
           </div>
         )}
 
-        {!showFinance && topPros.length > 0 && (
+        {!showFinance && (showAdvancedDashboard || showTeamManagement) && topPros.length > 0 && (
           <div className="mb-6">
             <ProfessionalRanking data={topPros} />
           </div>
@@ -473,7 +483,7 @@ export default function AppDashboard() {
             <TodayAgendaList appointments={dashboardAgendaAppts} />
           </div>
           <div className="space-y-4 lg:space-y-6">
-            <InsightsCard alerts={alerts} />
+            <InsightsCard alerts={alerts} hasAiInsights={showAiGrowth || showCrm} />
             {!isBarbeiro && companyId && showCrm && (
               <RetentionCampaignsCard companyId={companyId} customers={customers} />
             )}

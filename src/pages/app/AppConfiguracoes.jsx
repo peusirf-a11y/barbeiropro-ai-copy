@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Globe, Copy, CheckCircle, Settings, CreditCard, Upload, Loader2, Building2, Sparkles, Shield, ShieldAlert } from 'lucide-react';
+import { Save, Globe, Copy, CheckCircle, Settings, CreditCard, Upload, Loader2, Building2, Shield, ShieldAlert, MessageCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MyEmailLogs from '@/components/app/MyEmailLogs';
 import AppPageHeader from '@/components/app/AppPageHeader';
@@ -640,17 +640,6 @@ export default function AppConfiguracoes() {
           />
         )}
 
-        {/* CRM & Retenção — central unificada */}
-        {has('crm_retention') && (
-          <SettingsShortcutCard
-            title="CRM & Retenção"
-            description="Lifecycle dos clientes, sugestões de VIP, campanhas automáticas e mensagens transacionais — tudo em um só lugar."
-            icon={Sparkles}
-            ctaLabel="Abrir central de CRM"
-            to="/app/crm"
-          />
-        )}
-
         {/* Privacidade & LGPD */}
         {company && (
           <SettingsShortcutCard
@@ -676,6 +665,37 @@ export default function AppConfiguracoes() {
             ctaLabel="Ver auditoria e segurança"
             to="/app/configuracoes/seguranca"
           />
+        )}
+
+        {/* Suporte Prioritário Humanizado no WhatsApp (Master / Exclusivo) */}
+        {company && has('priority_support') && (
+          <div className="mt-6 rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-950/25 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Suporte prioritário humanizado no WhatsApp
+                  </h3>
+                  <ActiveBadge>VIP · Prioritário</ActiveBadge>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-white/65 mt-1 leading-relaxed">
+                  Canal direto com especialistas para tirar dúvidas e acelerar a operação da sua barbearia.
+                </p>
+              </div>
+            </div>
+            <a
+              href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá! Preciso de suporte prioritário para a barbearia ${company?.name || ''}.`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs sm:text-sm font-bold shadow-sm transition-colors flex-shrink-0"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Chamar no WhatsApp</span>
+            </a>
+          </div>
         )}
 
         {/* Conta & Sessão — sair da conta */}

@@ -14,6 +14,7 @@ import {
   getBarberStudioStandardizationPrompt,
   buildProfessionalBioTemplates,
 } from '@/lib/barberPhotoStudio';
+import { hasFeature } from '@/lib/featureGate';
 
 export async function resolveCompanyId(payload = {}) {
   if (payload?.company_id) {
@@ -201,6 +202,38 @@ async function verifyFunctionRbac(functionName) {
   return { allowed: true };
 }
 
+async function resolveCompanyAndPlan(companyId) {
+  if (!companyId) return { company: null, plan: null };
+  const company = await Company.get(companyId).catch(() => null);
+  let plan = null;
+  if (company?.plan_id) {
+    plan = await Plan.get(company.plan_id).catch(() => null);
+  }
+  return { company, plan };
+}
+
+async function checkCompanyFeature(companyId, featureKey) {
+  const { company, plan } = await resolveCompanyAndPlan(companyId);
+  if (company && !hasFeature(plan, company, featureKey)) {
+    return {
+      allowed: false,
+      company,
+      plan,
+      response: {
+        status: 403,
+        data: {
+          success: false,
+          status: 403,
+          error: 'FEATURE_NOT_IN_PLAN',
+          feature: featureKey,
+          message: 'Esta funcionalidade não está incluída no seu plano atual.',
+        },
+      },
+    };
+  }
+  return { allowed: true, company, plan };
+}
+
 export async function invokeFunction(functionName, payload = {}) {
   try {
     const rbacCheck = await verifyFunctionRbac(functionName);
@@ -246,6 +279,8 @@ export async function invokeFunction(functionName, payload = {}) {
 
       case 'generatePlanSuggestions': {
         const companyId = await resolveCompanyId(payload);
+        const featCheck = await checkCompanyFeature(companyId, 'subscriptions');
+        if (!featCheck.allowed) return featCheck.response;
         const action = payload.action || 'analyze';
 
         if (action === 'analyze') {
@@ -1128,13 +1163,13 @@ export async function invokeFunction(functionName, payload = {}) {
 
         if (companyCustomers.length === 0 && companyId) {
           const nowIso = new Date().toISOString();
+          const compTag = String(companyId).replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'demo';
           const seededCustomers = [
             {
-              id: `cust_seed_1_${String(companyId).slice(0, 8)}`,
               company_id: companyId,
               name: 'Carlos Eduardo Silva',
               phone: '11999999999',
-              email: 'carlos.silva@exemplo.com',
+              email: `carlos.silva+${compTag}@exemplo.com`,
               cpf: '123.456.789-00',
               status: 'active',
               lifecycle_status: 'fiel',
@@ -1143,11 +1178,10 @@ export async function invokeFunction(functionName, payload = {}) {
               created_at: nowIso,
             },
             {
-              id: `cust_seed_2_${String(companyId).slice(0, 8)}`,
               company_id: companyId,
               name: 'Marcos Vinicius Oliveira',
               phone: '11988887777',
-              email: 'marcos.oliveira@exemplo.com',
+              email: `marcos.oliveira+${compTag}@exemplo.com`,
               cpf: '234.567.890-11',
               status: 'active',
               lifecycle_status: 'recorrente',
@@ -1157,11 +1191,12 @@ export async function invokeFunction(functionName, payload = {}) {
             },
           ];
           for (const sc of seededCustomers) {
+            const payloadWithUuid = { ...sc, id: crypto.randomUUID() };
             try {
-              const created = await Customer.create(sc);
-              companyCustomers.push(created || sc);
+              const created = await Customer.create(payloadWithUuid);
+              companyCustomers.push(created || payloadWithUuid);
             } catch (_) {
-              companyCustomers.push(sc);
+              companyCustomers.push(payloadWithUuid);
             }
           }
         }
@@ -1222,6 +1257,13 @@ export async function invokeFunction(functionName, payload = {}) {
 
       case 'listCommissions': {
         const companyId = await resolveCompanyId(payload);
+        const featCheck = await checkCompanyFeature(companyId, 'commissions');
+        if (!featCheck.allowed) {
+          return {
+            status: 403,
+            data: { ...featCheck.response.data, commissions: [], total: 0 },
+          };
+        }
         const items = await Commission.list('-created_at', 500);
         const companyComms = items.filter(c => c.company_id === companyId);
 
@@ -1236,6 +1278,13 @@ export async function invokeFunction(functionName, payload = {}) {
 
       case 'listReviews': {
         const companyId = await resolveCompanyId(payload);
+        const featCheck = await checkCompanyFeature(companyId, 'reviews');
+        if (!featCheck.allowed) {
+          return {
+            status: 403,
+            data: { ...featCheck.response.data, reviews: [], total: 0 },
+          };
+        }
         const items = await Review.list('-created_at', 500);
         const companyReviews = items
           .filter(r => r.company_id === companyId)
@@ -1299,6 +1348,11 @@ export async function invokeFunction(functionName, payload = {}) {
               error: 'Agendamento não encontrado ou link de avaliação inválido.',
             },
           };
+        }
+
+        if (company?.id) {
+          const revCheck = await checkCompanyFeature(company.id, 'reviews');
+          if (!revCheck.allowed) return revCheck.response;
         }
 
         const safeAppointment = appointment || {
@@ -2425,6 +2479,13 @@ export async function invokeFunction(functionName, payload = {}) {
 
       case 'listSubscriptions': {
         const companyId = await resolveCompanyId(payload);
+        const subCheck = await checkCompanyFeature(companyId, 'subscriptions');
+        if (!subCheck.allowed) {
+          return {
+            status: 403,
+            data: { ...subCheck.response.data, subscriptions: [], items: [], total: 0 },
+          };
+        }
         let custSubs = await CustomerSubscription.list('-created_at', 500);
         if (companyId) {
           custSubs = custSubs.filter(s => !s.company_id || s.company_id === companyId);
@@ -5093,6 +5154,8 @@ export async function invokeFunction(functionName, payload = {}) {
       case 'analyzeProfessionalSpecialties': {
         const proId = payload.professional_id || payload.id;
         const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const featCheck = await checkCompanyFeature(companyId, 'ai_growth');
+        if (!featCheck.allowed) return featCheck.response;
         const pro = proId ? await Professional.get(proId) : null;
         const appts = (await Appointment.list('-created_at', 500)).filter(
           (a) => (!companyId || a.company_id === companyId) && (!proId || a.professional_id === proId || (pro?.name && a.professional_name === pro.name))
@@ -5148,6 +5211,9 @@ export async function invokeFunction(functionName, payload = {}) {
       case 'generateProfessionalBio': {
         const proId = payload.professional_id || payload.id;
         const pro = proId ? await Professional.get(proId) : null;
+        const companyId = payload.company_id || pro?.company_id || (await resolveCompanyId(payload));
+        const featCheck = await checkCompanyFeature(companyId, 'ai_growth');
+        if (!featCheck.allowed) return featCheck.response;
         const liveName = String(payload?.name || '').trim();
         const liveSpec = String(payload?.specialty || '').trim();
         const name = liveName || pro?.name || 'Profissional';
@@ -5173,6 +5239,8 @@ export async function invokeFunction(functionName, payload = {}) {
 
       case 'createReferralLink': {
         const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const featCheck = await checkCompanyFeature(companyId, 'referral_program');
+        if (!featCheck.allowed) return featCheck.response;
         let comp = companyId ? await Company.get(companyId) : null;
         if (!comp) {
           const all = await Company.list();
@@ -5207,6 +5275,8 @@ export async function invokeFunction(functionName, payload = {}) {
 
       case 'recommendPlanForCustomer': {
         const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const featCheck = await checkCompanyFeature(companyId, 'subscriptions');
+        if (!featCheck.allowed) return featCheck.response;
         const customerId = payload.customer_id;
         if (!companyId || !customerId) {
           return { data: { insufficient_data: true } };
@@ -5346,6 +5416,8 @@ export async function invokeFunction(functionName, payload = {}) {
 
       case 'mutateSubscription': {
         const companyId = payload.company_id || (await resolveCompanyId(payload));
+        const featCheck = await checkCompanyFeature(companyId, 'subscriptions');
+        if (!featCheck.allowed) return featCheck.response;
         const action = payload.action;
 
         if (action === 'subscribe') {
@@ -5430,6 +5502,9 @@ export async function invokeFunction(functionName, payload = {}) {
         if (subId) {
           const sub = await CustomerSubscription.get(subId);
           if (sub) {
+            const subCompanyId = payload.company_id || sub.company_id || (await resolveCompanyId(payload));
+            const featCheck = await checkCompanyFeature(subCompanyId, 'subscriptions');
+            if (!featCheck.allowed) return featCheck.response;
             if (action !== 'revert') {
               const planObj = sub.plan_id ? await CustomerPlan.get(sub.plan_id) : null;
               const allowedWeekdays = resolvePlanAllowedWeekdays(planObj, sub);

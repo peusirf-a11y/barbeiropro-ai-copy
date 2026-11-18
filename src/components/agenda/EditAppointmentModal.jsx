@@ -9,6 +9,7 @@ import CustomerTypeBadge from '@/components/agenda/CustomerTypeBadge';
 import OfferPlanInlineBanner from '@/components/agenda/OfferPlanInlineBanner';
 import OfferPlanModal from '@/components/clientes/OfferPlanModal';
 import { useCompany } from '@/hooks/useCompany';
+import { useFeatures } from '@/hooks/useFeatures';
 import MobileSelect from '@/components/ui/mobile-select';
 import StandardModal from '@/components/ui/standard-modal';
 import {
@@ -58,6 +59,9 @@ export default function EditAppointmentModal({
   // Action sheet: { key } quando aberto, null fechado.
   const [pendingStatus, setPendingStatus] = useState(null);
   const { company, companyId } = useCompany();
+  const { has } = useFeatures();
+  const hasSubscriptions = has('subscriptions');
+  const hasCrmBadge = has('crm_retention') || has('vip_customers');
   const safeCustomers = safeArray(customers);
   const safeServices = safeArray(services);
   const safeProfessionals = safeArray(professionals);
@@ -207,7 +211,7 @@ export default function EditAppointmentModal({
         footer={footer}
       >
         {/* Gatilho inteligente: cliente frequente sem assinatura → oferece plano */}
-        {!isBarbeiro && companyId && (customer?.id || appointment.customer_id) && (
+        {!isBarbeiro && hasSubscriptions && companyId && (customer?.id || appointment.customer_id) && (
           <OfferPlanInlineBanner
             companyId={companyId}
             customerId={customer?.id || appointment.customer_id}
@@ -221,7 +225,9 @@ export default function EditAppointmentModal({
             <div>
               <span className="text-[11px] font-bold text-[#59658F] dark:text-[#8F9BBF] uppercase tracking-wider block">Cliente</span>
               <p className="font-bold text-sm text-[#171827] dark:text-white mt-0.5">{appointment.customer_name}</p>
-              <div className="mt-1"><CustomerTypeBadge customer={safeCustomers.find(c => c.id === appointment.customer_id)} /></div>
+              {hasCrmBadge && (
+                <div className="mt-1"><CustomerTypeBadge customer={safeCustomers.find(c => c.id === appointment.customer_id)} /></div>
+              )}
             </div>
             <div>
               <span className="text-[11px] font-bold text-[#59658F] dark:text-[#8F9BBF] uppercase tracking-wider block">Telefone</span>
@@ -363,7 +369,7 @@ export default function EditAppointmentModal({
         )}
       </StandardModal>
 
-      {showOffer && customer && (
+      {hasSubscriptions && showOffer && customer && (
         <OfferPlanModal
           companyId={companyId}
           customer={customer}

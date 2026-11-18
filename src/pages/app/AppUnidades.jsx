@@ -13,12 +13,16 @@ import StandardModal from '@/components/ui/standard-modal';
 import { useToast } from '@/components/ui/use-toast';
 import MultiUnitToggle from '@/components/units/MultiUnitToggle';
 import CustomerScopeToggle from '@/components/units/CustomerScopeToggle';
+import UpgradePlanCard from '@/components/billing/UpgradePlanCard';
+import { useFeatures } from '@/hooks/useFeatures';
 import { calculateSubscriptionPrice, formatBRL, EXCLUSIVO_BASE_PRICE, ADDITIONAL_BRANCH_PRICE } from '@/lib/planPricing';
 
 const empty = { name: '', address: '', phone: '', whatsapp: '', active: true };
 
 export default function AppUnidades() {
   const { company, companyId } = useCompany();
+  const { has, isLoading: loadingFeatures } = useFeatures();
+  const hasMultiUnits = has('multi_units');
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
@@ -49,7 +53,12 @@ export default function AppUnidades() {
   const units = queriedUnits.length > 0 ? queriedUnits : [fallbackUnit];
 
   const createM = useMutation({
-    mutationFn: (data) => base44.entities.Unit.create({ ...data, company_id: companyId, sort_order: units.length }),
+    mutationFn: (data) => {
+      if (!hasMultiUnits) {
+        return Promise.reject(new Error('Seu plano atual não inclui múltiplas unidades.'));
+      }
+      return base44.entities.Unit.create({ ...data, company_id: companyId, sort_order: units.length });
+    },
     onSuccess: (createdUnit) => {
       if (createdUnit) {
         queryClient.setQueryData(['units', companyId], (old = []) => {
@@ -128,6 +137,21 @@ export default function AppUnidades() {
     }
     setDeletingUnit(u);
   };
+
+  if (!loadingFeatures && !hasMultiUnits) {
+    return (
+      <AppLayout>
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in space-y-6">
+          <AppPageHeader
+            title="Unidades & Filiais"
+            subtitle="Recurso exclusivo para redes e múltiplas unidades"
+            icon={Building2}
+          />
+          <UpgradePlanCard companyId={companyId} currentPlanId={company?.plan_id} highlight />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

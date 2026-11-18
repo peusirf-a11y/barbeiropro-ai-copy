@@ -13,6 +13,7 @@ import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { useBookingSession } from '@/contexts/BookingSessionContext';
 import { normalizeBusinessHours } from '@/lib/businessHours';
 import { sanitizeHexColor, getThemeAccent } from '@/lib/colorUtils';
+import { hasFeature } from '@/lib/featureGate';
 
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
@@ -64,7 +65,7 @@ export default function PublicBooking() {
       if (isSupabaseConfigured && supabase) {
         const { data: publicRow, error: publicErr } = await supabase
           .from('companies')
-          .select('id, name, slug, logo_url, phone, whatsapp, address, primary_color, business_hours')
+          .select('id, name, slug, logo_url, phone, whatsapp, address, primary_color, business_hours, plan_id, plan_name, multi_unit_enabled')
           .eq('slug', slug)
           .maybeSingle();
 
@@ -74,7 +75,7 @@ export default function PublicBooking() {
 
         const { data: colorRow, error: colorErr } = await supabase
           .from('companies')
-          .select('id, name, slug, logo_url, phone, primary_color, business_hours')
+          .select('id, name, slug, logo_url, phone, primary_color, business_hours, plan_id, plan_name')
           .eq('slug', slug)
           .maybeSingle();
 
@@ -131,6 +132,9 @@ export default function PublicBooking() {
   // Modelo A: A barbearia aceita pagamentos online (validação da chave ocorre exclusivamente no backend)
   const loadingConnect = false;
   const canAcceptPayments = company?.asaas_pix_enabled !== false;
+  const hasSubscriptions = hasFeature(null, company, 'subscriptions');
+  const hasReviews = hasFeature(null, company, 'reviews');
+  const hasMultiUnits = hasFeature(null, company, 'multi_units');
 
   const { customer: loggedCustomer, token: customerToken, loading: loadingCustomerAuth, logout: logoutCustomer, login } = useCustomerAuth(company?.id);
   const [isAuthenticatedCustomer, setIsAuthenticatedCustomer] = useState(false);
@@ -145,14 +149,14 @@ export default function PublicBooking() {
   const { data: customerSubs = [] } = useQuery({
     queryKey: ['public-customer-subscriptions', company?.id, loggedCustomer?.id],
     queryFn: () => base44.entities.CustomerSubscription.filter({ company_id: company.id, customer_id: loggedCustomer.id, status: 'active' }),
-    enabled: !!company?.id && !!loggedCustomer?.id,
+    enabled: !!company?.id && !!loggedCustomer?.id && hasSubscriptions,
   });
-  const activeSubscription = customerSubs[0] || null;
+  const activeSubscription = hasSubscriptions ? (customerSubs[0] || null) : null;
 
   const { data: activePlan } = useQuery({
     queryKey: ['public-customer-plan', activeSubscription?.plan_id],
     queryFn: () => base44.entities.CustomerPlan.get(activeSubscription.plan_id),
-    enabled: !!activeSubscription?.plan_id,
+    enabled: !!activeSubscription?.plan_id && hasSubscriptions,
   });
 
   const { data: servicesRaw = [] } = useQuery({
@@ -195,9 +199,9 @@ export default function PublicBooking() {
       }
       return base44.entities.CustomerPlan.filter({ company_id: companyId, active: true });
     },
-    enabled: !!company?.id,
+    enabled: !!company?.id && hasSubscriptions,
   });
-  const hasActivePlans = activePlans.length > 0;
+  const hasActivePlans = hasSubscriptions && activePlans.length > 0;
 
   const effectiveActivePlan =
     activePlan ||
@@ -226,10 +230,10 @@ export default function PublicBooking() {
   const { data: reviews = [] } = useQuery({
     queryKey: ['public-reviews', company?.id],
     queryFn: () => base44.entities.Review.filter({ company_id: company.id, published: true }, '-created_date', 20),
-    enabled: !!company?.id,
+    enabled: !!company?.id && hasReviews,
   });
 
-  const isMultiUnit = !!company?.multi_unit_enabled;
+  const isMultiUnit = hasMultiUnits && !!company?.multi_unit_enabled;
   const { data: units = [] } = useQuery({
     queryKey: ['public-units', company?.id],
     queryFn: async () => {
@@ -270,7 +274,9 @@ export default function PublicBooking() {
   })();
   const canUseSubscription = !!activeSubscription && !subscriptionBlocker;
 
-  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1) : null;
+  const avgRating = hasReviews && reviews.length > 0
+    ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1)
+    : null;
 
   const openBooking = (service = null, professional = null) => {
     setBookingService(service);
@@ -287,7 +293,7 @@ export default function PublicBooking() {
   const tabs = [
     { id: 'servicos', label: 'Serviços' },
     { id: 'profissionais', label: 'Profissionais' },
-    { id: 'avaliacoes', label: 'Avaliações' },
+    ...(hasReviews ? [{ id: 'avaliacoes', label: 'Avaliações' }] : []),
   ];
 
   // ─── LOADING ───
@@ -618,7 +624,7 @@ export default function PublicBooking() {
         )}
 
         {/* AVALIAÇÕES */}
-        {activeTab === 'avaliacoes' && (
+        {hasReviews && activeTab === 'avaliacoes' && (
           <div className="space-y-3">
             {reviews.length === 0 ? (
               <div className={`text-center py-12 ${tw.textMuted}`}>Nenhuma avaliação ainda</div>

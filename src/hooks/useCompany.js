@@ -6,6 +6,8 @@ import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useImpersonationContext } from '@/contexts/ImpersonationContext';
 import { useEffect } from 'react';
+import { resolvePlanKey } from '@/lib/featureGate';
+import { setRbacCookie } from '@/lib/rbacCookie';
 
 export function useCompany() {
   const { user } = useAuth();
@@ -61,6 +63,13 @@ export function useCompany() {
   }, []);
 
   const company = data?.company || (cachedCompanyId ? { id: cachedCompanyId, name: 'Minha Barbearia', active: true } : null);
+
+  useEffect(() => {
+    const planKey = resolvePlanKey(null, company);
+    if (planKey) {
+      setRbacCookie({ plan: planKey });
+    }
+  }, [company?.id, company?.plan_id, company?.plan_name]);
 
   return {
     company,

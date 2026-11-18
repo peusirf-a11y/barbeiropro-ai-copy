@@ -1,5 +1,5 @@
-// Seção das configurações do CRM — janelas (em dias) usadas para classificar
-// automaticamente o ciclo de vida dos clientes (em_risco / inativo / perdido)
+// Seção das configurações do CRM — local único para definir os prazos (em dias) usados
+// para classificar automaticamente o ciclo de vida dos clientes (em_risco / inativo / perdido)
 // e o mínimo de atendimentos para "Cliente fiel".
 //
 // Os valores são salvos em Company.crm_settings e reaproveitados pela lib
@@ -39,7 +39,8 @@ export default function CrmSettingsSection({ company }) {
     mutationFn: () => base44.entities.Company.update(company.id, { crm_settings: form }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
-      toast({ title: 'Configurações de CRM salvas!', description: 'A próxima recomputação usará os novos períodos.' });
+      queryClient.invalidateQueries({ queryKey: ['my-company'] });
+      toast({ title: 'Prazos de Lifecycle salvos!', description: 'A próxima recomputação usará os novos períodos.' });
     },
   });
 
@@ -47,6 +48,7 @@ export default function CrmSettingsSection({ company }) {
     mutationFn: () => base44.functions.invoke('recomputeCustomerLifecycle', { company_id: company.id }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customers-crm'] });
       const changed = res?.data?.changed ?? 0;
       const total = res?.data?.total ?? 0;
       toast({ title: 'Clientes recategorizados', description: `${changed} de ${total} clientes atualizados.` });
@@ -63,21 +65,23 @@ export default function CrmSettingsSection({ company }) {
 
   const setNum = (key, val) => {
     const n = Math.max(0, Math.floor(Number(val) || 0));
-    setForm(p => ({ ...p, [key]: n }));
+    setForm((p) => ({ ...p, [key]: n }));
   };
 
   if (!company) return null;
 
   return (
-    <div className="ds-card">
+    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.025] backdrop-blur-md p-5 sm:p-6 shadow-sm">
       <div className="flex items-start justify-between flex-wrap gap-3 mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 ring-1 ring-blue-400/20 flex items-center justify-center">
-            <Users className="w-5 h-5 text-[#60A5FA]" />
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-400/25 flex items-center justify-center">
+            <Users className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA]" />
           </div>
           <div>
-            <h2 className="font-bold text-foreground">CRM — Ciclo de vida dos clientes</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Define quando um cliente entra em risco, fica inativo ou é considerado perdido.</p>
+            <h2 className="font-bold text-slate-900 dark:text-white">Prazos do Ciclo de Vida (Lifecycle)</h2>
+            <p className="text-xs text-slate-500 dark:text-white/55 mt-0.5">
+              Define quando um cliente entra em risco, fica inativo ou é considerado perdido.
+            </p>
           </div>
         </div>
       </div>
@@ -90,24 +94,26 @@ export default function CrmSettingsSection({ company }) {
       </div>
 
       {!isValid && (
-        <div className="mt-3 text-xs text-amber-300 bg-amber-500/10 border border-amber-400/25 px-3 py-2 rounded-lg">
+        <div className="mt-3 text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-400/25 px-3 py-2 rounded-lg">
           As janelas devem ser crescentes: em risco &lt; inativo &lt; perdido (todas em dias e &gt; 0).
         </div>
       )}
 
       <div className="mt-5 flex flex-wrap gap-3">
         <button
+          type="button"
           onClick={() => saveMutation.mutate()}
           disabled={!isValid || saveMutation.isPending}
-          className="btn-primary disabled:opacity-50"
+          className="inline-flex items-center gap-2 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] hover:brightness-110 text-white text-sm font-semibold px-4 py-2.5 rounded-xl disabled:opacity-50 transition-all shadow-sm cursor-pointer"
         >
           <Save className="w-4 h-4" />
           {saveMutation.isPending ? 'Salvando...' : 'Salvar períodos'}
         </button>
         <button
+          type="button"
           onClick={() => recomputeMutation.mutate()}
           disabled={recomputeMutation.isPending}
-          className="btn-ghost disabled:opacity-50"
+          className="inline-flex items-center gap-2 border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] text-slate-700 dark:text-white text-sm font-semibold px-4 py-2.5 rounded-xl disabled:opacity-50 transition-all cursor-pointer"
         >
           <RefreshCw className={`w-4 h-4 ${recomputeMutation.isPending ? 'animate-spin' : ''}`} />
           {recomputeMutation.isPending ? 'Recategorizando...' : 'Recategorizar clientes agora'}
@@ -120,16 +126,16 @@ export default function CrmSettingsSection({ company }) {
 function Field({ label, suffix, value, onChange }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold text-muted-foreground block mb-1">{label}</span>
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10 focus-within:border-[#60A5FA]/60 focus-within:ring-2 focus-within:ring-[#60A5FA]/20 transition-all">
+      <span className="text-xs font-semibold text-slate-600 dark:text-white/65 block mb-1">{label}</span>
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 focus-within:border-[#2563EB] dark:focus-within:border-[#60A5FA]/60 focus-within:ring-2 focus-within:ring-[#60A5FA]/20 transition-all">
         <input
           type="number"
           min={0}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-transparent border-0 outline-none text-sm font-semibold text-foreground"
+          className="w-full bg-transparent border-0 outline-none text-sm font-semibold text-slate-900 dark:text-white"
         />
-        <span className="text-[11px] text-muted-foreground font-medium">{suffix}</span>
+        <span className="text-[11px] text-slate-500 dark:text-white/45 font-medium">{suffix}</span>
       </div>
     </label>
   );

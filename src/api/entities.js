@@ -2,6 +2,7 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { resolvePlanAllowedWeekdays } from '@/lib/businessHours';
 import { sanitizeHexColor } from '@/lib/colorUtils';
+import { hasFeature, getPlanLimits } from '@/lib/featureGate';
 
 const ENTITY_TABLE_MAP = {
   Company: 'companies',
@@ -1277,17 +1278,25 @@ export class EntityRepository {
     }
 
     if (this.tableName === 'customers') {
+      if (!isUpdate && item.id && !UUID_REGEX.test(String(item.id))) {
+        item.id = crypto.randomUUID();
+      }
+      if (item.unit_id && !UUID_REGEX.test(String(item.unit_id))) {
+        item.unit_id = null;
+      }
       if (!isUpdate && !item.status) {
         item.status = 'active';
       }
       if (!isUpdate && !item.email) {
         const phoneDigits = String(item.phone || '').replace(/\D/g, '');
         const cpfDigits = String(item.cpf || '').replace(/\D/g, '');
+        const compTag = String(item.company_id || '').replace(/[^a-z0-9]/gi, '').slice(0, 8);
+        const tagSuffix = compTag ? `.${compTag}` : '';
         item.email = phoneDigits
-          ? `${phoneDigits}@cliente.local`
+          ? `${phoneDigits}${tagSuffix}@cliente.local`
           : cpfDigits
-          ? `${cpfDigits}@cliente.local`
-          : `cliente_${Date.now()}@cliente.local`;
+          ? `${cpfDigits}${tagSuffix}@cliente.local`
+          : `cliente_${Date.now()}${tagSuffix}@cliente.local`;
       }
       const cleaned = {};
       for (const [k, v] of Object.entries(item)) {
@@ -1839,14 +1848,57 @@ export class EntityRepository {
   }
 
   async create(data) {
+    if ((this.tableName === 'professionals' || this.tableName === 'units') && data?.company_id) {
+      let comp = null;
+      try {
+        if (isSupabaseConfigured && supabase) {
+          const { data: row } = await supabase
+            .from('companies')
+            .select('id, plan_id, plan_name')
+            .eq('id', data.company_id)
+            .maybeSingle();
+          comp = row || null;
+        }
+      } catch (_) {}
+      if (!comp) {
+        const localCompanies = getLocalTable('companies');
+        comp = localCompanies.find((c) => String(c.id) === String(data.company_id)) || null;
+      }
+
+      if (comp) {
+        if (this.tableName === 'professionals') {
+          const limits = getPlanLimits(null, comp);
+          if (limits.barbers > 0) {
+            const existingPros = await this.filter({ company_id: data.company_id });
+            const activePros = (existingPros || []).filter(
+              (p) => p.active !== false && p.is_active !== false
+            );
+            if (activePros.length >= limits.barbers) {
+              throw new Error(
+                `Limite de profissionais do plano atingido (máximo ${limits.barbers} barbeiro neste plano).`
+              );
+            }
+          }
+        } else if (this.tableName === 'units') {
+          if (!hasFeature(null, comp, 'multi_units')) {
+            const existingUnits = await this.filter({ company_id: data.company_id });
+            if ((existingUnits || []).length >= 1) {
+              throw new Error('Múltiplas unidades não estão disponíveis no seu plano atual.');
+            }
+          }
+        }
+      }
+    }
+
+    const resolvedId = data.id && UUID_REGEX.test(String(data.id)) ? data.id : crypto.randomUUID();
     const rawNewItem = {
-      id: data.id && UUID_REGEX.test(String(data.id)) ? data.id : crypto.randomUUID(),
+      ...data,
+      id: resolvedId,
       created_at: data.created_at || new Date().toISOString(),
       updated_at: data.updated_at || new Date().toISOString(),
       ...(TABLES_WITH_ACTIVE_COLUMN.has(this.tableName)
         ? { active: data.active !== undefined ? data.active : true }
         : {}),
-      ...data,
     };
 
     const dbPayload = this._prepareDbPayload(rawNewItem, false);
@@ -1882,6 +1934,40 @@ export class EntityRepository {
           currentPayload.slug = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
           rawNewItem.slug = currentPayload.slug;
           continue;
+        }
+
+        if (this.tableName === 'customers' && error.code === '23505') {
+          if (msg.includes('customers_email_key') || msg.toLowerCase().includes('email')) {
+            if (currentPayload.company_id && currentPayload.email) {
+              const { data: existingSameCompany } = await supabase
+                .from('customers')
+                .select('*')
+                .eq('company_id', currentPayload.company_id)
+                .ilike('email', currentPayload.email)
+                .maybeSingle();
+              if (existingSameCompany) {
+                inserted = [existingSameCompany];
+                error = null;
+                break;
+              }
+            }
+            const rawEmail = String(currentPayload.email || `cliente_${Date.now()}@cliente.local`);
+            const atIdx = rawEmail.lastIndexOf('@');
+            const localPart = (atIdx > 0 ? rawEmail.slice(0, atIdx) : rawEmail).split('+')[0];
+            const domainPart = atIdx > 0 ? rawEmail.slice(atIdx + 1) : 'cliente.local';
+            const compTag = String(currentPayload.company_id || '').replace(/[^a-z0-9]/gi, '').slice(0, 8);
+            const uniqueTag = attempt === 0 && compTag
+              ? compTag
+              : `${compTag || 'c'}_${Date.now().toString(36).slice(-4)}_${attempt}`;
+            currentPayload.email = `${localPart}+${uniqueTag}@${domainPart}`;
+            rawNewItem.email = currentPayload.email;
+            continue;
+          }
+          if (msg.includes('_pkey') || msg.toLowerCase().includes('key (id)')) {
+            currentPayload.id = crypto.randomUUID();
+            rawNewItem.id = currentPayload.id;
+            continue;
+          }
         }
 
         if (this.tableName === 'companies' && error.code === '23502' && msg.includes('"slug"')) {

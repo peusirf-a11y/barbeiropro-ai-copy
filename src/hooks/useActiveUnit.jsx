@@ -13,6 +13,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo } 
 import { useQueryClient } from '@tanstack/react-query';
 import { useUnits } from '@/hooks/useUnits';
 import { useCompany } from '@/hooks/useCompany';
+import { useFeatures } from '@/hooks/useFeatures';
 
 const storageKey = (companyId) => `bt:active_unit:${companyId || 'none'}`;
 
@@ -43,6 +44,8 @@ const ActiveUnitContext = createContext(null);
 
 export function ActiveUnitProvider({ children }) {
   const { companyId } = useCompany();
+  const { has } = useFeatures();
+  const canMultiUnit = has('multi_units');
   const { units, isLoading } = useUnits();
   const queryClient = useQueryClient();
   const [activeUnitId, setActiveUnitIdState] = useState(null);
@@ -58,7 +61,7 @@ export function ActiveUnitProvider({ children }) {
     }
 
     const stored = typeof window !== 'undefined' ? localStorage.getItem(storageKey(companyId)) : null;
-    if (stored === '__all__') {
+    if (canMultiUnit && stored === '__all__') {
       setActiveUnitIdState(null);
     } else {
       const valid = stored && units.some(u => u.id === stored);
@@ -70,12 +73,15 @@ export function ActiveUnitProvider({ children }) {
       }
     }
     setHydrated(true);
-  }, [companyId, units, isLoading]);
+  }, [companyId, units, isLoading, canMultiUnit]);
 
   const setActiveUnitId = useCallback((id) => {
-    setActiveUnitIdState(id);
+    const resolvedId = !canMultiUnit && id === null
+      ? ((units.find(u => u.is_default) || units[0])?.id || null)
+      : id;
+    setActiveUnitIdState(resolvedId);
     if (companyId && typeof window !== 'undefined') {
-      localStorage.setItem(storageKey(companyId), id === null ? '__all__' : (id || ''));
+      localStorage.setItem(storageKey(companyId), resolvedId === null ? '__all__' : (resolvedId || ''));
     }
     // 🚨 Crítico: invalida todas as queries que dependem de unidade.
     // 1. Invalidação por prefixo clássico
@@ -99,9 +105,9 @@ export function ActiveUnitProvider({ children }) {
         });
       },
     });
-  }, [companyId, queryClient]);
+  }, [companyId, queryClient, canMultiUnit, units]);
 
-  const isMultiUnit = units.length > 1;
+  const isMultiUnit = canMultiUnit && units.length > 1;
   const isAllUnits = isMultiUnit && activeUnitId === null;
 
   const value = useMemo(() => ({

@@ -18,9 +18,9 @@ const TYPE_LABELS = {
 };
 
 const STATUS_BADGE = {
-  enviado: 'bg-emerald-400/[0.12] text-emerald-200 border-emerald-400/30',
-  simulado: 'bg-blue-400/[0.12] text-blue-200 border-blue-400/30',
-  erro: 'bg-rose-400/[0.12] text-rose-200 border-rose-400/30',
+  enviado: 'bg-emerald-50 dark:bg-emerald-400/[0.12] text-emerald-700 dark:text-emerald-200 border-emerald-200 dark:border-emerald-400/30',
+  simulado: 'bg-blue-50 dark:bg-blue-400/[0.12] text-blue-700 dark:text-blue-200 border-blue-200 dark:border-blue-400/30',
+  erro: 'bg-rose-50 dark:bg-rose-400/[0.12] text-rose-700 dark:text-rose-200 border-rose-200 dark:border-rose-400/30',
 };
 
 export default function CRMHistoryTab({ messages }) {
@@ -29,10 +29,10 @@ export default function CRMHistoryTab({ messages }) {
   const filtered = filter === 'all'
     ? messages
     : filter === 'crm'
-      ? messages.filter(m => m.type?.startsWith('crm_'))
+      ? messages.filter((m) => m.type?.startsWith('crm_'))
       : filter === 'transactional'
-        ? messages.filter(m => !m.type?.startsWith('crm_'))
-        : messages.filter(m => m.type === filter);
+        ? messages.filter((m) => !m.type?.startsWith('crm_'))
+        : messages.filter((m) => m.type === filter);
 
   return (
     <div className="space-y-4">
@@ -41,14 +41,15 @@ export default function CRMHistoryTab({ messages }) {
           { id: 'all', label: 'Todas' },
           { id: 'crm', label: 'Campanhas CRM' },
           { id: 'transactional', label: 'Transacionais' },
-        ].map(f => (
+        ].map((f) => (
           <button
             key={f.id}
+            type="button"
             onClick={() => setFilter(f.id)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
               filter === f.id
-                ? 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white border-transparent shadow-[0_4px_12px_rgba(37,99,235,0.35)] ring-1 ring-white/15'
-                : 'bg-white/[0.04] text-white/70 border-white/10 hover:border-blue-400/40 hover:text-[#93C5FD] hover:bg-white/[0.08]'
+                ? 'bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-white border-transparent shadow-sm ring-1 ring-white/15'
+                : 'bg-white dark:bg-white/[0.04] text-slate-600 dark:text-white/70 border-slate-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-blue-400/40 hover:text-[#2563EB] dark:hover:text-[#93C5FD]'
             }`}
           >
             {f.label}
@@ -56,36 +57,40 @@ export default function CRMHistoryTab({ messages }) {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md overflow-hidden">
+      <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.025] backdrop-blur-md overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-white/[0.02] border-b border-white/8">
+            <thead className="bg-slate-50 dark:bg-white/[0.02] border-b border-slate-200 dark:border-white/10">
               <tr>
-                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider">Cliente</th>
-                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider">Tipo</th>
-                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider hidden md:table-cell">Mensagem</th>
-                <th className="text-left px-4 py-3 font-semibold text-white/55 text-[11px] uppercase tracking-wider">Quando</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-500 dark:text-white/55 text-[11px] uppercase tracking-wider">Cliente</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-500 dark:text-white/55 text-[11px] uppercase tracking-wider">Tipo</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-500 dark:text-white/55 text-[11px] uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-500 dark:text-white/55 text-[11px] uppercase tracking-wider hidden md:table-cell">Mensagem</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-500 dark:text-white/55 text-[11px] uppercase tracking-wider">Quando</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-12 text-center text-white/40">Nenhuma mensagem ainda</td></tr>
-              )}
-              {filtered.slice(0, 200).map(m => (
-                <tr key={m.id} className="border-b border-white/5 hover:bg-white/[0.04] transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-white">{m.customer_name || '–'}</div>
-                    <div className="text-xs text-white/45">{m.phone}</div>
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-slate-400 dark:text-white/40">
+                    Nenhuma mensagem enviada ainda
                   </td>
-                  <td className="px-4 py-3 text-xs text-white/65">{TYPE_LABELS[m.type] || m.type}</td>
+                </tr>
+              )}
+              {filtered.slice(0, 200).map((m) => (
+                <tr key={m.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors">
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_BADGE[m.status] || 'bg-white/[0.06] text-white/65 border-white/15'}`}>
+                    <div className="font-medium text-slate-900 dark:text-white">{m.customer_name || '–'}</div>
+                    <div className="text-xs text-slate-500 dark:text-white/45">{m.phone}</div>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-600 dark:text-white/65">{TYPE_LABELS[m.type] || m.type}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_BADGE[m.status] || 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-white/65 border-slate-200 dark:border-white/15'}`}>
                       {m.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-white/60 hidden md:table-cell max-w-md truncate">{m.message_text}</td>
-                  <td className="px-4 py-3 text-xs text-white/45 whitespace-nowrap">
+                  <td className="px-4 py-3 text-xs text-slate-600 dark:text-white/60 hidden md:table-cell max-w-md truncate">{m.message_text}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 dark:text-white/45 whitespace-nowrap">
                     {m.sent_at ? new Date(m.sent_at).toLocaleString('pt-BR') : '–'}
                   </td>
                 </tr>

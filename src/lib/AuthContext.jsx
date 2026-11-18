@@ -105,6 +105,7 @@ export const AuthProvider = ({ children }) => {
       if (typeof document !== 'undefined') {
         document.cookie = 'ocorte_role=; path=/; max-age=0; SameSite=Lax';
         document.cookie = 'ocorte_email=; path=/; max-age=0; SameSite=Lax';
+        document.cookie = 'ocorte_plan=; path=/; max-age=0; SameSite=Lax';
       }
       if (supabase) {
         await supabase.auth.signOut();

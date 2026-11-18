@@ -8,8 +8,9 @@ import { resolveCompanyId } from '@/api/functions';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
-import { CreditCard, CheckCircle, ExternalLink, Calendar, Zap, AlertTriangle, XCircle, Loader2, Building2 } from 'lucide-react';
+import { CreditCard, CheckCircle, ExternalLink, Calendar, Zap, AlertTriangle, XCircle, Loader2, Building2, MessageCircle } from 'lucide-react';
 import AppPageHeader from '@/components/app/AppPageHeader';
+import { useFeatures } from '@/hooks/useFeatures';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useImpersonation } from '@/hooks/useImpersonation';
@@ -132,6 +133,8 @@ export default function AppAssinatura() {
   const [canceledLocalOverride, setCanceledLocalOverride] = useState(false);
   const [cardOverride, setCardOverride] = useState(null);
   const { isImpersonating } = useImpersonation();
+  const { has } = useFeatures();
+  const hasPrioritySupport = has('priority_support');
   const location = useLocation();
   const showUpgradeHighlight = new URLSearchParams(location.search).get('upgrade') === '1';
 
@@ -671,6 +674,39 @@ export default function AppAssinatura() {
         {company?.id && (
           <div className="mb-4">
             <UpgradePlanCard currentPlanId={company.plan_id || planName.toLowerCase()} companyId={company.id} highlight={showUpgradeHighlight} />
+          </div>
+        )}
+
+        {/* Suporte prioritário humanizado no WhatsApp (Plano Master / Exclusivo) */}
+        {hasPrioritySupport && (
+          <div className="mb-4 rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-950/25 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Suporte prioritário humanizado no WhatsApp
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 uppercase">
+                    VIP · Ativo no seu plano
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-white/65 mt-1 leading-relaxed">
+                  Atendimento direto com especialistas para acelerar a operação, configuração de comissões, WhatsApp e clubes da sua barbearia.
+                </p>
+              </div>
+            </div>
+            <a
+              href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá! Sou assinante do ${planName} (${company?.name || 'Minha Barbearia'}) e preciso de atendimento prioritário.`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs sm:text-sm font-bold shadow-sm transition-colors flex-shrink-0"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Falar com especialista</span>
+            </a>
           </div>
         )}
 

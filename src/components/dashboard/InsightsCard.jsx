@@ -25,7 +25,7 @@ const LEVEL_STYLES = {
   },
 };
 
-export default function InsightsCard({ alerts = [] }) {
+export default function InsightsCard({ alerts = [], hasAiInsights = true }) {
   return (
     <div className="rounded-2xl border border-[#E5E7EF] dark:border-[#232538] bg-[#FFFFFF] dark:bg-[#171827] p-4 sm:p-6 shadow-sm">
       <div className="flex items-center gap-2.5 mb-1">
@@ -37,7 +37,9 @@ export default function InsightsCard({ alerts = [] }) {
             Insights & Oportunidades
           </h3>
           <p className="text-xs text-[#55596A] dark:text-[#8F9BBF] font-medium">
-            Diagnósticos automatizados para aumento de receita e retenção
+            {hasAiInsights
+              ? 'Diagnósticos automatizados para aumento de receita e retenção'
+              : 'Alertas operacionais da sua agenda e atendimentos'}
           </p>
         </div>
       </div>

@@ -127,7 +127,7 @@ export default function PrivateRoute({ children }) {
     } catch (_) {}
   }, []);
 
-  const { data: plan } = useQuery({
+  const { data: plan, isLoading: isLoadingPlan } = useQuery({
     queryKey: ['private-route-plan', myCompany?.plan_id],
     queryFn: async () => {
       try {
@@ -136,12 +136,17 @@ export default function PrivateRoute({ children }) {
         return null;
       }
     },
-    enabled: !!myCompany?.plan_id && !isSuper && !isTeamMemberOnly,
+    enabled: !!myCompany?.plan_id && !isSuper,
     staleTime: 5 * 60_000,
   });
 
-  // Se autenticação ainda estiver carregando, exibe indicador limpo
-  if (isLoadingAuth || (isAuthenticated && !isSuper && (isLoadingTeam || isLoadingCompanies || isLoadingPartnerCheck))) {
+  // Se autenticação ou plano ainda estiverem carregando, exibe indicador limpo
+  if (
+    isLoadingAuth ||
+    (isAuthenticated &&
+      !isSuper &&
+      (isLoadingTeam || isLoadingCompanies || isLoadingPartnerCheck || (!!myCompany?.plan_id && isLoadingPlan)))
+  ) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#070D1E] p-6 text-center">
         <div className="w-8 h-8 border-4 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin mb-4" />
@@ -168,8 +173,11 @@ export default function PrivateRoute({ children }) {
     return <Navigate to="/parceiro/dashboard?forbidden=403" replace />;
   }
 
-  // Colaborador / Barbeiro não passa por Onboarding nem checagem de assinatura de dono
+  // Colaborador / Barbeiro não passa por Onboarding de dono, mas ainda obedece o plano da empresa
   if (isTeamMemberOnly) {
+    if (myCompany && !isRouteAllowedByPlan(location.pathname, plan || null, myCompany)) {
+      return <Navigate to="/app/agenda" replace />;
+    }
     return children;
   }
 
@@ -187,7 +195,7 @@ export default function PrivateRoute({ children }) {
       return <Navigate to="/onboarding" replace />;
     }
 
-    if (plan && !isRouteAllowedByPlan(location.pathname, plan, myCompany)) {
+    if (!isRouteAllowedByPlan(location.pathname, plan || null, myCompany)) {
       return <Navigate to="/app/configuracoes/assinatura?upgrade=1" replace />;
     }
 

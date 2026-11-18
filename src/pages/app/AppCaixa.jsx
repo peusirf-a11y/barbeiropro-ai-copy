@@ -16,6 +16,7 @@ import { useState, useMemo } from 'react';
 import { Wallet, Unlock, TrendingUp, TrendingDown, ArrowDownToLine, BarChart2, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCashPermissions } from '@/hooks/useCashPermissions';
+import { useFeatures } from '@/hooks/useFeatures';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EmptyState from '@/components/EmptyState';
@@ -58,6 +59,9 @@ export default function AppCaixa() {
   const { activeUnitId, isMultiUnit, isAllUnits } = useActiveUnit();
   const { user } = useAuth();
   const { can } = useCashPermissions();
+  const { has } = useFeatures();
+  const hasAdvancedReports = has('advanced_reports');
+  const hasTeamManagement = has('team_management');
   const queryClient = useQueryClient();
 
   // Modais
@@ -373,7 +377,7 @@ export default function AppCaixa() {
           icon={Wallet}
         >
           <div className="flex gap-2">
-            {can('view_audit') && (
+            {hasAdvancedReports && can('view_audit') && (
               <Link
                 to="/app/caixa/auditoria"
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] text-xs sm:text-sm font-semibold text-[#171827] dark:text-white hover:border-[#2563EB] shadow-sm transition-all"
@@ -382,7 +386,7 @@ export default function AppCaixa() {
                 <span>Auditoria</span>
               </Link>
             )}
-            {can('view_reports') && (
+            {hasAdvancedReports && can('view_reports') && (
               <Link
                 to="/app/caixa/relatorios"
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#FFFFFF] dark:bg-[#171827] border border-[#E5E7EF] dark:border-[#232538] text-xs sm:text-sm font-semibold text-[#171827] dark:text-white hover:border-[#2563EB] shadow-sm transition-all"
@@ -523,7 +527,7 @@ export default function AppCaixa() {
 
             <CaixaDreCard dre={dre} />
 
-            {dre.by_professional?.length > 0 && (
+            {(hasTeamManagement || professionals.length > 1) && dre.by_professional?.length > 0 && (
               <CaixaProfessionalBreakdown rows={dre.by_professional} />
             )}
 

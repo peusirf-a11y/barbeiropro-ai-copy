@@ -4,10 +4,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { getDeviceFingerprint } from '@/lib/referralTracking';
 import BrandMark from '@/components/BrandMark';
+import { useTheme } from '@/theme/ThemeProvider';
 import { Loader2, CheckCircle2, Gift } from 'lucide-react';
 
 export default function PartnerRegister() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [form, setForm] = useState({ name: '', email: '', phone: '', pix_key: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -82,9 +84,9 @@ export default function PartnerRegister() {
 
   return (
     <div className="min-h-screen bg-[#F1F2F7] dark:bg-[#050816] text-[#171827] dark:text-white flex flex-col justify-between transition-colors">
-      <header className="px-4 lg:px-8 py-5 bg-[#171827] border-b border-[#232538] flex items-center justify-between text-white">
-        <Link to="/parceiro"><BrandMark size={32} tone="dark" /></Link>
-        <Link to="/parceiro/login" className="text-sm text-white/75 hover:text-white">Já sou parceiro</Link>
+      <header className="px-4 lg:px-8 py-5 bg-white/95 dark:bg-[#171827] backdrop-blur-xl border-b border-slate-200 dark:border-[#232538] flex items-center justify-between text-slate-900 dark:text-white">
+        <Link to="/parceiro"><BrandMark size={32} tone={isDark ? 'dark' : 'light'} /></Link>
+        <Link to="/parceiro/login" className="text-sm font-semibold text-slate-600 hover:text-slate-950 dark:text-white/75 dark:hover:text-white transition-colors">Já sou parceiro</Link>
       </header>
 
       <div className="max-w-md w-full mx-auto px-4 py-8 lg:py-12">

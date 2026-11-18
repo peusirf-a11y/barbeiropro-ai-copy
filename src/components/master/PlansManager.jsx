@@ -25,8 +25,8 @@ const DEFAULT_SAAS_PLANS = [
     sort_order: 1,
     order_index: 1,
     visibility: 'public',
-    limits: { barbers: 2, appointments_month: 0, storage_mb: 500 },
-    features: ['online_booking', 'pix', 'cashier', 'whatsapp'],
+    limits: { barbers: 1, appointments_month: 0, storage_mb: 500 },
+    features: ['online_booking', 'online_payments', 'pix', 'cashier', 'financial_dashboard', 'whatsapp'],
   },
   {
     id: 'plan-master',
@@ -37,7 +37,7 @@ const DEFAULT_SAAS_PLANS = [
     sort_order: 2,
     order_index: 2,
     visibility: 'public',
-    limits: { barbers: 8, appointments_month: 0, storage_mb: 2048 },
+    limits: { barbers: 0, professionals: 0, appointments_month: 0, storage_mb: 5120 },
     features: [
       'online_booking',
       'crm_retention',
@@ -58,6 +58,7 @@ const DEFAULT_SAAS_PLANS = [
       'smart_insights',
       'team_management',
       'advanced_dashboard',
+      'priority_support',
     ],
   },
   {
@@ -69,7 +70,7 @@ const DEFAULT_SAAS_PLANS = [
     sort_order: 3,
     order_index: 3,
     visibility: 'public',
-    limits: { barbers: 0, appointments_month: 0, storage_mb: 10240 },
+    limits: { barbers: 0, professionals: 0, appointments_month: 0, storage_mb: 10240 },
     features: [
       'online_booking',
       'crm_retention',
@@ -92,6 +93,7 @@ const DEFAULT_SAAS_PLANS = [
       'team_management',
       'custom_branding',
       'advanced_dashboard',
+      'priority_support',
     ],
   },
 ];

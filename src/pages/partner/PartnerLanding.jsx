@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import AppBackgroundLayer from '@/components/layout/AppBackgroundLayer';
 import BrandMark from '@/components/BrandMark';
+import { useTheme } from '@/theme/ThemeProvider';
 import {
   Loader2,
   CheckCircle,
@@ -26,6 +27,7 @@ const EARNINGS_PROJECTION = [
 
 export default function PartnerLanding() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -222,7 +224,7 @@ export default function PartnerLanding() {
       {/* Header compacto */}
       <header className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
         <Link to="/landing">
-          <BrandMark size={32} tone="dark" />
+          <BrandMark size={32} tone={isDark ? 'dark' : 'light'} />
         </Link>
         <Link
           to="/parceiro/login"

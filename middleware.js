@@ -75,11 +75,11 @@ export default function middleware(request) {
     const cookies = parseCookies(request.headers.get('cookie') || '');
     const role = String(cookies.ocorte_role || '').toLowerCase().trim();
     const email = String(cookies.ocorte_email || '').toLowerCase().trim();
+    const plan = String(cookies.ocorte_plan || '').toLowerCase().trim();
+    const isSuper = role === 'super_admin' || role === 'master' || email === 'pedrojesantos@hotmail.com';
 
     // Se houver cookie explícito de papel (definido no login):
     if (role) {
-      const isSuper = role === 'super_admin' || role === 'master' || email === 'pedrojesantos@hotmail.com';
-
       // 1. Proteção de todas as rotas /master/*
       if (pathname.startsWith('/master')) {
         if (!isSuper) {
@@ -122,6 +122,33 @@ export default function middleware(request) {
             'O perfil Profissional / Barbeiro não possui autorização para acessar módulos financeiros, equipe ou configurações da barbearia.'
           );
         }
+      }
+    }
+
+    // 4. Bloqueio por Plano Clássico no nível de middleware HTTP
+    if (!isSuper && plan === 'classico' && pathname.startsWith('/app')) {
+      const classicoBlockedPrefixes = [
+        '/app/combos',
+        '/app/planos',
+        '/app/comissoes',
+        '/app/relatorios',
+        '/app/ai-growth',
+        '/app/crm',
+        '/app/retencao',
+        '/app/avaliacoes',
+        '/app/indicacoes',
+        '/app/indique-ganhe',
+        '/app/equipe',
+        '/app/configuracoes/unidades',
+        '/app/caixa/relatorios',
+        '/app/caixa/auditoria',
+      ];
+      if (classicoBlockedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+        return forbiddenResponse(
+          'Plano Clássico',
+          pathname,
+          'Este módulo não faz parte do Plano Clássico. Faça upgrade para o Plano Master ou Exclusivo para liberar este recurso.'
+        );
       }
     }
   } catch (_) {

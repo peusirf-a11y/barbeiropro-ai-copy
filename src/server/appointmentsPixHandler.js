@@ -152,11 +152,17 @@ async function ensureCustomerInSupabase({ companyId, customerId, name, phone, em
     }
 
     // 5. Cria novo registro na tabela `customers` para que apareça na carteira da barbearia e vincule o agendamento
-    const safeEmail =
+    const compTag = String(companyId || '').replace(/[^a-z0-9]/gi, '').slice(0, 8);
+    const tagSuffix = compTag ? `.${compTag}` : '';
+    let safeEmail =
       cleanEmail ||
-      (cleanPhone ? `${cleanPhone}@cliente.local` : cleanCpf ? `${cleanCpf}@cliente.local` : `cliente_${Date.now()}@cliente.local`);
+      (cleanPhone
+        ? `${cleanPhone}${tagSuffix}@cliente.local`
+        : cleanCpf
+        ? `${cleanCpf}${tagSuffix}@cliente.local`
+        : `cliente_${Date.now()}${tagSuffix}@cliente.local`);
 
-    const { data: created } = await supabase
+    let { data: created, error: insertErr } = await supabase
       .from('customers')
       .insert({
         company_id: companyId,
@@ -168,6 +174,26 @@ async function ensureCustomerInSupabase({ companyId, customerId, name, phone, em
       })
       .select()
       .single();
+
+    if (insertErr?.code === '23505') {
+      const atIdx = safeEmail.lastIndexOf('@');
+      const localPart = (atIdx > 0 ? safeEmail.slice(0, atIdx) : safeEmail).split('+')[0];
+      const domainPart = atIdx > 0 ? safeEmail.slice(atIdx + 1) : 'cliente.local';
+      safeEmail = `${localPart}+${compTag || 'c'}_${Date.now().toString(36).slice(-4)}@${domainPart}`;
+      const retryRes = await supabase
+        .from('customers')
+        .insert({
+          company_id: companyId,
+          name: cleanName,
+          phone: cleanPhone || null,
+          email: safeEmail,
+          cpf: cleanCpf,
+          status: 'active',
+        })
+        .select()
+        .single();
+      created = retryRes.data;
+    }
 
     if (created?.id) {
       return {

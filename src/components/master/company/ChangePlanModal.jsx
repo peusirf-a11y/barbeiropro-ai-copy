@@ -10,12 +10,35 @@ import { CheckCircle2, Loader2 } from 'lucide-react';
 const fmtMoney = (v) =>
   Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
 
+const MASTER_FALLBACK_FEATURES = [
+  'online_booking',
+  'online_payments',
+  'pix',
+  'cashier',
+  'financial_dashboard',
+  'whatsapp',
+  'team_management',
+  'crm_retention',
+  'lifecycle_automation',
+  'vip_customers',
+  'subscriptions',
+  'commissions',
+  'reviews',
+  'advanced_reports',
+  'advanced_dashboard',
+  'ai_growth',
+  'smart_insights',
+  'combos',
+  'referral_program',
+  'priority_support',
+];
+
 const FALLBACK_SAAS_PLANS = [
-  { id: 'starter', name: 'Starter', price_monthly: 49, features: ['online_booking', 'whatsapp'] },
-  { id: 'classico', name: 'Clássico', price_monthly: 69, features: ['online_booking', 'whatsapp', 'financial_dashboard', 'cashier'] },
-  { id: 'pro', name: 'Pro', price_monthly: 99, features: ['online_booking', 'whatsapp', 'financial_dashboard', 'cashier', 'crm_retention', 'commissions'] },
-  { id: 'master', name: 'Master', price_monthly: 119, features: ['online_booking', 'whatsapp', 'financial_dashboard', 'cashier', 'crm_retention', 'commissions', 'ai_growth', 'advanced_reports'] },
-  { id: 'exclusivo', name: 'Exclusivo', price_monthly: 249, features: ['online_booking', 'whatsapp', 'financial_dashboard', 'cashier', 'crm_retention', 'commissions', 'ai_growth', 'advanced_reports', 'multi_units', 'custom_branding'] },
+  { id: 'starter', name: 'Starter', price_monthly: 49, features: ['online_booking', 'online_payments', 'pix', 'financial_dashboard', 'cashier', 'whatsapp'] },
+  { id: 'classico', name: 'Clássico', price_monthly: 69, features: ['online_booking', 'online_payments', 'pix', 'financial_dashboard', 'cashier', 'whatsapp'] },
+  { id: 'pro', name: 'Pro', price_monthly: 99, features: MASTER_FALLBACK_FEATURES },
+  { id: 'master', name: 'Master', price_monthly: 119, features: MASTER_FALLBACK_FEATURES },
+  { id: 'exclusivo', name: 'Exclusivo', price_monthly: 249, features: [...MASTER_FALLBACK_FEATURES, 'multi_units', 'custom_branding'] },
 ];
 
 export default function ChangePlanModal({ open, onClose, company, onSuccess }) {

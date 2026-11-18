@@ -2,18 +2,21 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, ShieldCheck, Lock } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import Footer from '@/components/Footer';
+import { useTheme } from '@/theme/ThemeProvider';
 
 export default function PoliticaDePrivacidade() {
+  const { isDark } = useTheme();
+
   return (
     <div className="min-h-screen bg-[#F4F7FB] dark:bg-[#050816] text-[#171827] dark:text-white font-inter flex flex-col justify-between transition-colors">
-      <header className="bg-[#171827] dark:bg-[#050816]/85 backdrop-blur-xl border-b border-[#232538] dark:border-white/10 sticky top-0 z-30 text-white">
+      <header className="bg-white/95 dark:bg-[#050816]/85 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 sticky top-0 z-30 text-slate-900 dark:text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/landing" aria-label="Ir para a página inicial do O CORTE">
-            <BrandMark size={32} tone="dark" />
+            <BrandMark size={32} tone={isDark ? 'dark' : 'light'} />
           </Link>
           <Link
             to="/landing"
-            className="text-xs sm:text-sm font-semibold text-white/70 hover:text-white flex items-center gap-1.5 transition-colors"
+            className="text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-950 dark:text-white/70 dark:hover:text-white flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Voltar</span>

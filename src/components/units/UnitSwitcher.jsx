@@ -5,8 +5,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Building2, Check, Layers } from 'lucide-react';
 import { useActiveUnit } from '@/hooks/useActiveUnit';
+import { useFeature } from '@/hooks/useFeatures';
 
 export default function UnitSwitcher() {
+  const hasMultiUnits = useFeature('multi_units');
   const { activeUnitId, setActiveUnitId, units, isMultiUnit, isAllUnits } = useActiveUnit();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -19,7 +21,7 @@ export default function UnitSwitcher() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  if (!isMultiUnit) return null;
+  if (!hasMultiUnits || !isMultiUnit) return null;
 
   const active = units.find(u => u.id === activeUnitId);
   const labelText = isAllUnits ? 'Todas as unidades' : (active?.name || 'Selecionar unidade');

@@ -6,8 +6,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Building2, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useFeatures } from '@/hooks/useFeatures';
 
 export default function MultiUnitToggle({ company }) {
+  const { has } = useFeatures();
+  const hasMultiUnits = has('multi_units');
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [optimisticEnabled, setOptimisticEnabled] = useState(null);
@@ -61,7 +64,7 @@ export default function MultiUnitToggle({ company }) {
     },
   });
 
-  if (!company) return null;
+  if (!company || !hasMultiUnits) return null;
 
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-md p-5 flex items-center justify-between gap-4">
